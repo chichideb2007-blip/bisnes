@@ -10,8 +10,6 @@ app.secret_key = 'shimo_secret_key_2026'
 supabase = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY"))
 
 @app.route('/')
-def home():
-    return render_template('index.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
