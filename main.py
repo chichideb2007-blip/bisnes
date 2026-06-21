@@ -33,7 +33,8 @@ def login():
 def get_users():
     if 'user' not in session:
         return redirect(url_for('login'))
-    response = supabase.table("users_data").select("*").execute()
+    response = supabase.table("users").select("*").execute()
+
     return render_template('users.html', users=response.data)
 
 @app.route('/add_user', methods=['POST'])
