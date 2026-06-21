@@ -2,12 +2,12 @@
 def add_data():
     try:
         user_name = request.args.get('username', 'شيمو')
-        # نضيف قيماً افتراضية للأعمدة التي يطلبها الجدول إجبارياً
+        # نقوم بإرسال قيم افتراضية لكل الأعمدة التي يطلبها الجدول
         data = supabase.table("users").insert({
-            "username": user_name, 
-            "message": "لا توجد رسالة", 
-            "password": "123"
+            "username": user_name,
+            "password": "123",        # قيمة افتراضية لكلمة السر
+            "message": "لا يوجد"      # قيمة افتراضية للرسالة
         }).execute()
-        return f"تمت إضافة المستخدم: {user_name} بنجاح!"
+        return f"تمت الإضافة بنجاح للمستخدم: {user_name}"
     except Exception as e:
         return f"حدث خطأ: {str(e)}"
