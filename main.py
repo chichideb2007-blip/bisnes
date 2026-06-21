@@ -1,8 +1,14 @@
-@app.route('/users')
-def get_users():
+@app.route('/add')
+def add_data():
     try:
-        # جلب كل البيانات من جدول users
-        response = supabase.table("users").select("*").execute()
-        return str(response.data)
+        user_name = request.args.get('username', 'شيمو')
+        # سنرسل كل شيء يطلبه الجدول لكي لا يعترض
+        data = supabase.table("users").insert({
+            "username": user_name,
+            "password": "123",       # قيمة افتراضية
+            "company_id": 1,         # قيمة افتراضية
+            "role": "user"           # قيمة افتراضية (إذا كان هذا العمود موجوداً)
+        }).execute()
+        return "تمت الإضافة بنجاح!"
     except Exception as e:
-        return f"حدث خطأ أثناء جلب البيانات: {str(e)}"
+        return f"حدث خطأ: {str(e)}"
