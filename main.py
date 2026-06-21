@@ -4,21 +4,23 @@ from supabase import create_client, Client
 
 app = Flask(__name__)
 
+# إعداد الاتصال
 url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
 
-# صفحة لإضافة بيانات جديدة
+@app.route('/')
+def home():
+    return "السيرفر يعمل!"
+
 @app.route('/add')
 def add_data():
-    name = request.args.get('name', 'شخص مجهول')
-    message = request.args.get('message', 'مرحباً!')
-    
-    # إضافة البيانات للجدول (تأكدي أن اسم الجدول هو 'users')
+    name = request.args.get('name', 'شيماء')
+    message = request.args.get('message', 'مرحباً')
+    # تأكدي أن اسم الجدول هو 'users'
     data = supabase.table("users").insert({"name": name, "message": message}).execute()
     return f"تمت إضافة: {name} - {message}"
 
-# صفحة لعرض البيانات
 @app.route('/data')
 def get_data():
     response = supabase.table("users").select("*").execute()
