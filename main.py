@@ -4,7 +4,6 @@ from supabase import create_client
 
 app = Flask(__name__)
 
-# إعداد الاتصال باستخدام المتغيرات الموجودة في Render
 url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
@@ -16,11 +15,10 @@ def home():
 @app.route('/add')
 def add_data():
     try:
-        name = request.args.get('name', 'شيماء')
-        message = request.args.get('message', 'مرحباً')
-        # تأكدي أن اسم الجدول في Supabase هو 'users' تماماً
-        data = supabase.table("users").insert({"name": name, "message": message}).execute()
-        return "تمت الإضافة بنجاح!"
+        # هنا نستخدم اسم العمود الصحيح الموجود في جدولك وهو 'username'
+        user_name = request.args.get('username', 'ضيف')
+        data = supabase.table("users").insert({"username": user_name}).execute()
+        return f"تمت إضافة المستخدم: {user_name}"
     except Exception as e:
         return f"حدث خطأ: {str(e)}"
 
