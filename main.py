@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, render_template
 from supabase import create_client
 import os
 
@@ -12,7 +12,6 @@ supabase = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABAS
 def add_data():
     try:
         user_name = request.args.get('username', 'شيمو')
-        # سنحاول الإضافة بدون company_id
         data = supabase.table("users").insert({
             "username": user_name,
             "password": "123"
@@ -21,12 +20,12 @@ def add_data():
     except Exception as e:
         return f"حدث خطأ: {str(e)}"
 
-# وظيفة العرض
+# وظيفة العرض الاحترافية باستخدام القالب
 @app.route('/users')
 def get_users():
     try:
         response = supabase.table("users").select("*").execute()
-        return str(response.data)
+        return render_template('users.html', users=response.data)
     except Exception as e:
         return f"حدث خطأ: {str(e)}"
 
