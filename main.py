@@ -32,8 +32,6 @@ def login():
 
 @app.route('/')
 def home():
-    # إذا كان المستخدم مسجل دخول، حوله مباشرة للجدول
     if 'user' in session:
         return redirect(url_for('get_users'))
-    # إذا لم يكن مسجلاً، اطلب منه تسجيل الدخول
     return redirect(url_for('login'))
