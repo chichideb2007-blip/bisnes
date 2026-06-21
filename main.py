@@ -30,15 +30,10 @@ def login():
             
     return render_template('login.html')
 
-@app.route('/users')
-def get_users():
-    if 'user' not in session:
-        return redirect(url_for('login'))
-    
-    response = supabase.table("users").select("*").execute()
-    return render_template('users.html', users=response.data)
-
-# الجزء الأخير لتشغيل السيرفر
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
+@app.route('/')
+def home():
+    # إذا كان المستخدم مسجل دخول، حوله مباشرة للجدول
+    if 'user' in session:
+        return redirect(url_for('get_users'))
+    # إذا لم يكن مسجلاً، اطلب منه تسجيل الدخول
+    return redirect(url_for('login'))
