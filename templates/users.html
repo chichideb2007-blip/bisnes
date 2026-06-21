@@ -2,29 +2,21 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>قائمة المستخدمين</title>
+    <title>إضافة زبون جديد</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 40px; background-color: #f9f9f9; }
-        table { width: 100%; border-collapse: collapse; background-color: white; }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: right; }
-        th { background-color: #4CAF50; color: white; }
+        body { font-family: Arial, sans-serif; margin: 50px; background-color: #f4f4f4; }
+        form { background: white; padding: 20px; border-radius: 8px; width: 300px; }
+        input { width: 100%; padding: 10px; margin: 10px 0; }
+        button { background-color: #4CAF50; color: white; padding: 10px; border: none; width: 100%; }
     </style>
 </head>
 <body>
-    <h1>قائمة المستخدمين المسجلين</h1>
-    <table>
-        <tr>
-            <th>الاسم</th>
-            <th>كلمة السر</th>
-            <th>تاريخ الإنشاء</th>
-        </tr>
-        {% for user in users %}
-        <tr>
-            <td>{{ user.username }}</td>
-            <td>{{ user.password }}</td>
-            <td>{{ user.created_at }}</td>
-        </tr>
-        {% endfor %}
-    </table>
+    <h2>إضافة زبون جديد</h2>
+    <form action="/add" method="GET">
+        <input type="text" name="username" placeholder="اسم الزبون" required>
+        <button type="submit">حفظ البيانات</button>
+    </form>
+    <br>
+    <a href="/users">عرض قائمة الزبائن</a>
 </body>
 </html>
