@@ -9,6 +9,7 @@ supabase = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABAS
 
 # وظيفة الإضافة
 @app.route('/add')
+@app.route('/add')
 def add_data():
     try:
         user_name = request.args.get('username', 'شيمو')
@@ -18,16 +19,7 @@ def add_data():
         }).execute()
         return "تمت الإضافة بنجاح!"
     except Exception as e:
+        # إذا كان الخطأ بسبب تكرار الاسم، نخبر المستخدم بذلك بلطف
+        if "23505" in str(e):
+            return "هذا المستخدم موجود بالفعل في قاعدة البيانات."
         return f"حدث خطأ: {str(e)}"
-
-# وظيفة العرض الاحترافية باستخدام القالب
-@app.route('/users')
-def get_users():
-    try:
-        response = supabase.table("users").select("*").execute()
-        return render_template('users.html', users=response.data)
-    except Exception as e:
-        return f"حدث خطأ: {str(e)}"
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
