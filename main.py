@@ -9,7 +9,7 @@ supabase = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABAS
 
 # هذه الوصفة للإضافة
 @app.route('/add')
-@app.route('/add')
+
 def add_data():
     try:
         user_name = request.args.get('username', 'شيمو')
