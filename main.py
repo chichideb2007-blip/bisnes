@@ -2,12 +2,15 @@
 def add_data():
     try:
         user_name = request.args.get('username', 'شيمو')
-        # هنا سنرسل قيم فارغة لكل الأعمدة التي يطلبها الجدول
+        # سنحاول الإضافة ببيانات شاملة لكل الأعمدة المحتملة
         data = supabase.table("users").insert({
             "username": user_name,
-            "password": " ",    # مسافة فارغة
-            "message": " "      # مسافة فارغة
+            "password": " ", 
+            "message": " ",
+            "company_id": 1 # إذا كان هناك عمود لهذا الاسم
         }).execute()
         return "تمت الإضافة بنجاح!"
     except Exception as e:
-        return f"حدث خطأ: {str(e)}"
+        # هذا السطر سيخبرنا بالضبط ما هو العمود المتبقي الذي يسبب المشكلة
+        error_msg = str(e)
+        return f"الخطأ هو: {error_msg}"
