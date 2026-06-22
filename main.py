@@ -34,7 +34,6 @@ def dashboard():
     # جلب الطلبات للمدير الحالي
     response = supabase.table("orders").select("*").eq("manager_id", session['user']).execute()
     orders = response.data
-    # حساب الإجمالي
     total = sum(float(item.get('total_price', 0)) for item in orders if item.get('total_price'))
     return render_template('users.html', orders=orders, total=total)
 
@@ -42,7 +41,6 @@ def dashboard():
 def add():
     if 'user' not in session: return redirect('/login')
     
-    # التقاط البيانات من النموذج
     data = {
         "customer_name": request.form.get('customer_name'),
         "product_name": request.form.get('product_name'),
@@ -51,17 +49,36 @@ def add():
     }
     
     try:
-        # الإضافة في جدول orders
         supabase.table("orders").insert(data).execute()
         return redirect('/dashboard')
     except Exception as e:
-        return f"حدث خطأ أثناء الإضافة: {str(e)}"
+        return f"حدث خطأ: {str(e)}"
 
 @app.route('/delete/<int:id>')
 def delete(id):
     if 'user' not in session: return redirect('/login')
     supabase.table("orders").delete().eq("id", id).execute()
     return redirect('/dashboard')
+
+# --- المسارات الجديدة (الإحصائيات والخروج) ---
+
+@app.route('/stats')
+def stats():
+    if 'user' not in session: return redirect('/login')
+    
+    # جلب جميع الطلبات للمدير الحالي
+    response = supabase.table("orders").select("*").eq("manager_id", session['user']).execute()
+    orders = response.data
+    
+    count = len(orders)
+    total_revenue = sum(float(item.get('total_price', 0)) for item in orders if item.get('total_price'))
+    
+    return render_template('stats.html', count=count, total=total_revenue)
+
+@app.route('/logout')
+def logout():
+    session.pop('user', None)
+    return redirect('/login')
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
