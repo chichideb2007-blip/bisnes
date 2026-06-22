@@ -8,9 +8,9 @@
         .container { background: white; padding: 20px; border-radius: 8px; max-width: 600px; margin: 0 auto; box-shadow: 0px 4px 8px rgba(0,0,0,0.1); }
         .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
         .btn { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; color: white; font-size: 14px; }
-        .btn-logout { background-color: #f44336; } /* زر خروج أحمر */
-        .btn-add { background-color: #4CAF50; } /* زر إضافة أخضر */
-        .btn-delete { background-color: #ff9800; padding: 4px 8px; font-size: 12px; }
+        .btn-logout { background-color: #f44336; } 
+        .btn-add { background-color: #4CAF50; } 
+        .btn-delete { background-color: #ff9800; padding: 4px 8px; font-size: 12px; border-radius: 4px; color: white; text-decoration: none; }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th, td { border: 1px solid #ddd; padding: 12px; text-align: center; }
         th { background-color: #f2f2f2; }
@@ -35,11 +35,9 @@
                 {% if users %}
                     {% for user in users %}
                     <tr>
-                        <td>{{ user.order_name }}</td>
+                        <td>{{ user.username }}</td>
                         <td>
-                            <form action="/delete_data/{{ user.id }}" method="POST" style="display:inline;">
-                                <button type="submit" class="btn btn-delete">حذف</button>
-                            </form>
+                            <a href="/delete/{{ user.id }}" class="btn btn-delete">حذف</a>
                         </td>
                     </tr>
                     {% endfor %}
@@ -53,9 +51,9 @@
 
         <br>
         <h3 style="margin-top:20px;">إضافة طلب سريع</h3>
-        <form action="/add_data" method="POST" style="display: flex; gap: 10px; justify-content: center;">
-            <input type="text" name="order_name" placeholder="أدخل اسم الطلب..." required style="padding: 8px; width: 60%; border-radius: 4px; border: 1px solid #ddd;">
-            <button type="submit" class="btn btn-add">حفظ</button>
+        <form action="/add" method="GET" style="display: flex; gap: 10px; justify-content: center;">
+            <input type="text" name="username" placeholder="أدخل اسم الطلب..." required style="padding: 8px; width: 60%; border-radius: 4px; border: 1px solid #ddd;">
+            <button type="submit" class="btn btn-add">حفظ البيانات</button>
         </form>
     </div>
 
