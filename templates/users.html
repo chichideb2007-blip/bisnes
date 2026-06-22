@@ -2,82 +2,62 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>لوحة التحكم</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
-    <style>body { font-family: 'Cairo', sans-serif; }</style>
+    <title>لوحة التحكم - إدارة الطلبات</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 30px; background-color: #f4f4f4; text-align: center; }
+        .container { background: white; padding: 20px; border-radius: 8px; max-width: 600px; margin: 0 auto; box-shadow: 0px 4px 8px rgba(0,0,0,0.1); }
+        .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .btn { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; color: white; font-size: 14px; }
+        .btn-logout { background-color: #f44336; } /* زر خروج أحمر */
+        .btn-add { background-color: #4CAF50; } /* زر إضافة أخضر */
+        .btn-delete { background-color: #ff9800; padding: 4px 8px; font-size: 12px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: center; }
+        th { background-color: #f2f2f2; }
+    </style>
 </head>
-<body class="bg-stone-50 p-4">
-    <div class="max-w-4xl mx-auto space-y-6">
-        <div class="bg-white p-6 rounded-3xl shadow-md">
-            <form id="orderForm" class="flex gap-2">
-                <input type="text" id="order_name" placeholder="أدخل اسم الطلب..." required 
-                    class="flex-1 px-4 py-3 border rounded-2xl outline-none focus:ring-2 focus:ring-amber-500">
-                <button type="submit" class="bg-amber-600 text-white px-6 py-3 rounded-2xl font-bold">حفظ</button>
-            </form>
+<body>
+
+    <div class="container">
+        <div class="header-box">
+            <h2>لوحة التحكم</h2>
+            <a href="/logout" class="btn btn-logout">تسجيل الخروج</a>
         </div>
 
-        <div class="bg-white rounded-3xl shadow-md overflow-hidden">
-            <table class="w-full text-right">
-                <thead class="bg-stone-100 text-stone-600">
-                    <tr><th class="p-4">اسم الطلب</th><th class="p-4">التحكم</th></tr>
-                </thead>
-                <tbody id="ordersTable" class="divide-y">
-                    {% for item in users %}
-                    <tr id="row-{{ item.id }}">
-                        <td class="p-4">{{ item.order_name }}</td>
-                        <td class="p-4 flex gap-3">
-                            <button onclick="editOrder({{ item.id }}, '{{ item.order_name }}')" class="text-blue-600 font-bold">تعديل</button>
-                            <button onclick="deleteOrder({{ item.id }})" class="text-red-600 font-bold">حذف</button>
+        <table>
+            <thead>
+                <tr>
+                    <th>اسم الطلب / الزبون</th>
+                    <th>التحكم</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if users %}
+                    {% for user in users %}
+                    <tr>
+                        <td>{{ user.order_name }}</td>
+                        <td>
+                            <form action="/delete_data/{{ user.id }}" method="POST" style="display:inline;">
+                                <button type="submit" class="btn btn-delete">حذف</button>
+                            </form>
                         </td>
                     </tr>
                     {% endfor %}
-                </tbody>
-            </table>
-        </div>
+                {% else %}
+                    <tr>
+                        <td colspan="2">لا توجد طلبات مسجلة حالياً.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+
+        <br>
+        <h3 style="margin-top:20px;">إضافة طلب سريع</h3>
+        <form action="/add_data" method="POST" style="display: flex; gap: 10px; justify-content: center;">
+            <input type="text" name="order_name" placeholder="أدخل اسم الطلب..." required style="padding: 8px; width: 60%; border-radius: 4px; border: 1px solid #ddd;">
+            <button type="submit" class="btn btn-add">حفظ</button>
+        </form>
     </div>
 
-    <script>
-        // إرسال طلب جديد
-        document.getElementById('orderForm').onsubmit = async (e) => {
-            e.preventDefault();
-            const input = document.getElementById('order_name');
-            const res = await fetch('/add_data', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: `order_name=${input.value}`
-            });
-            if (res.ok) {
-                location.reload(); // تحديث الصفحة لرؤية الطلب الجديد
-            }
-        };
-
-        // حذف طلب
-        async function deleteOrder(id) {
-            if (await Swal.fire({title: 'هل أنت متأكد؟', icon: 'warning', showCancelButton: true}).then(r => r.isConfirmed)) {
-                const res = await fetch(`/delete_data/${id}`, {method: 'POST'});
-                if (res.ok) {
-                    document.getElementById(`row-${id}`).remove();
-                    Swal.fire('تم الحذف!', '', 'success');
-                }
-            }
-        }
-
-        // تعديل طلب
-        async function editOrder(id, oldName) {
-            const {value: newName} = await Swal.fire({
-                title: 'تعديل الطلب', input: 'text', inputValue: oldName, showCancelButton: true
-            });
-            if (newName) {
-                const res = await fetch(`/update_data/${id}`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                    body: `order_name=${newName}`
-                });
-                if (res.ok) location.reload();
-            }
-        }
-    </script>
 </body>
 </html>
