@@ -1,45 +1,25 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <title>لوحة التحكم</title>
-</head>
-<body>
-    <h1>مرحباً بك في لوحة التحكم</h1>
+<div style="direction: rtl; font-family: Arial; padding: 20px;">
+    <h2>لوحة تحكم المدير</h2>
+    <div style="background: #f4f4f4; padding: 15px; border-radius: 10px;">
+        <h3>إجمالي المبيعات: {{ total }} دج</h3>
+    </div>
 
-    <!-- نموذج إضافة منتج جديد -->
-    <form action="/add" method="POST">
-        <h3>إضافة طلب جديد</h3>
-        <input type="text" name="product_name" placeholder="اسم المنتج" required>
-        <input type="number" step="0.01" name="total_price" placeholder="السعر (total_price)" required>
-        <button type="submit">إضافة</button>
+    <form action="/add" method="POST" style="margin: 20px 0;">
+        <input type="text" name="customer_name" placeholder="اسم الزبون" required>
+        <input type="text" name="product_name" placeholder="المنتج" required>
+        <input type="number" name="total_price" placeholder="السعر" required>
+        <button type="submit">إضافة طلب</button>
     </form>
 
-    <hr>
-
-    <!-- عرض إجمالي المبيعات -->
-    <h3>مجموع المبيعات: {{ total }} دج</h3>
-
-    <!-- جدول الطلبات -->
-    <table border="1">
-        <thead>
-            <tr>
-                <th>اسم المنتج</th>
-                <th>السعر</th>
-                <th>إجراءات</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for order in orders %}
-            <tr>
-                <td>{{ order.price_display }}</td>
-
-                <td>{{ order.price_display }}</td>
-
-                <td><a href="/delete/{{ order.id }}">حذف</a></td>
-            </tr>
-            {% endfor %}
-        </tbody>
+    <table border="1" width="100%" style="border-collapse: collapse;">
+        <tr><th>الزبون</th><th>المنتج</th><th>السعر</th><th>إجراء</th></tr>
+        {% for order in orders %}
+        <tr>
+            <td>{{ order.customer_name }}</td>
+            <td>{{ order.product_name }}</td>
+            <td>{{ order.total_price }}</td>
+            <td><a href="/delete/{{ order.id }}">حذف</a></td>
+        </tr>
+        {% endfor %}
     </table>
-</body>
-</html>
+</div>
