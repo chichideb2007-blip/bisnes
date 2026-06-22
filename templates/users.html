@@ -2,38 +2,31 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>لوحة التحكم | إدارة الطلبات</title>
+    <title>لوحة التحكم</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script> <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
     <style>body { font-family: 'Cairo', sans-serif; }</style>
 </head>
-<body class="bg-stone-50 min-h-screen">
-
-    <nav class="bg-amber-900 text-white p-4 flex justify-between items-center shadow-lg">
-        <h1 class="font-bold text-xl">لوحة التحكم</h1>
-        <a href="/logout" class="bg-amber-700 px-4 py-2 rounded-xl text-sm hover:bg-amber-600 transition">خروج</a>
-    </nav>
-
-    <div class="max-w-4xl mx-auto p-4 space-y-6">
-        
-        <div class="bg-white p-6 rounded-3xl shadow-md border border-stone-100">
-            <h2 class="text-xl font-bold text-stone-800 mb-4">إضافة طلب جديد</h2>
+<body class="bg-stone-50 p-4">
+    <div class="max-w-4xl mx-auto space-y-6">
+        <div class="bg-white p-6 rounded-3xl shadow-md">
             <form id="orderForm" class="flex gap-2">
                 <input type="text" id="order_name" placeholder="أدخل اسم الطلب..." required 
-                    class="flex-1 px-4 py-3 border border-stone-200 rounded-2xl outline-none focus:ring-2 focus:ring-amber-500">
-                <button type="submit" class="bg-amber-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-amber-700 transition">حفظ</button>
+                    class="flex-1 px-4 py-3 border rounded-2xl outline-none focus:ring-2 focus:ring-amber-500">
+                <button type="submit" class="bg-amber-600 text-white px-6 py-3 rounded-2xl font-bold">حفظ</button>
             </form>
         </div>
 
-        <div class="bg-white rounded-3xl shadow-md border border-stone-100 overflow-hidden">
+        <div class="bg-white rounded-3xl shadow-md overflow-hidden">
             <table class="w-full text-right">
                 <thead class="bg-stone-100 text-stone-600">
                     <tr><th class="p-4">اسم الطلب</th><th class="p-4">الحالة</th></tr>
                 </thead>
-                <tbody id="ordersTable" class="divide-y divide-stone-100">
+                <tbody id="ordersTable" class="divide-y">
                     {% for item in users %}
                     <tr>
-                        <td class="p-4 text-stone-800">{{ item.order_name }}</td>
+                        <td class="p-4">{{ item.order_name }}</td>
                         <td class="p-4"><span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs">تم الاستلام</span></td>
                     </tr>
                     {% endfor %}
@@ -43,21 +36,22 @@
     </div>
 
     <script>
-        // كود إرسال الطلب بدون إعادة تحميل الصفحة
         document.getElementById('orderForm').onsubmit = async (e) => {
             e.preventDefault();
-            const orderName = document.getElementById('order_name').value;
-            
+            const input = document.getElementById('order_name');
             const response = await fetch('/add_data', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: `order_name=${orderName}`
+                body: `order_name=${input.value}`
             });
 
             if (response.ok) {
+                // إضافة السطر للجدول برمجياً
+                const table = document.getElementById('ordersTable');
+                table.innerHTML += `<tr><td class="p-4">${input.value}</td><td class="p-4"><span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs">تم الاستلام</span></td></tr>`;
+                
                 Swal.fire({icon: 'success', title: 'تم الحفظ!', text: 'تمت إضافة طلبك بنجاح', confirmButtonColor: '#78350f'});
-                document.getElementById('order_name').value = ''; // مسح الخانة
-                // يمكننا إضافة سطر لتحديث الجدول تلقائياً هنا
+                input.value = '';
             } else {
                 Swal.fire({icon: 'error', title: 'خطأ!', text: 'حدثت مشكلة أثناء الحفظ'});
             }
