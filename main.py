@@ -6,13 +6,11 @@ app = Flask(__name__)
 # مفتاح الجلسة لضمان أمان العمل
 app.secret_key = 'shimo_secret_key_2026'
 
-# إعداد الاتصال بـ Supabase (تأكدي من وجودها في Environment Variables على Render)
+# إعداد الاتصال بـ Supabase
 supabase = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY"))
 
 @app.route('/')
 def home():
-    if 'user' in session:
-        return redirect(url_for('get_data'))
     return redirect(url_for('login'))
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -21,44 +19,47 @@ def login():
         username = request.form.get('username')
         password = request.form.get('password')
         
-        # التحقق من المستخدم
+        # جلب المستخدم والتحقق
         user = supabase.table("users").select("username, company_id").eq("username", username).eq("password", password).execute()
         
         if user.data and len(user.data) > 0:
+            session.clear() # مسح أي جلسة قديمة
             session['user'] = username
             session['company_id'] = user.data[0]['company_id']
             return redirect(url_for('get_data'))
-        return "بيانات الدخول خاطئة أو المستخدم غير موجود!"
+        return "بيانات الدخول خاطئة!"
     return render_template('login.html')
 
 @app.route('/data')
 def get_data():
-    if 'user' not in session:
+    if 'company_id' not in session:
         return redirect(url_for('login'))
     
     comp_id = session.get('company_id')
     
-    # حماية من الخطأ إذا كان الـ ID مفقوداً
-    if comp_id is None:
-        session.clear()
-        return redirect(url_for('login'))
-    
-    response = supabase.table("orders").select("*").eq("company_id", comp_id).execute()
-    return render_template('users.html', users=response.data)
+    # جلب الطلبات مع تحويل comp_id إلى رقم صحيح
+    try:
+        response = supabase.table("orders").select("*").eq("company_id", int(comp_id)).execute()
+        return render_template('users.html', users=response.data)
+    except Exception as e:
+        return f"حدث خطأ أثناء جلب البيانات: {str(e)}"
 
 @app.route('/add_data', methods=['POST'])
 def add_data():
-    if 'user' not in session:
+    if 'company_id' not in session:
         return redirect(url_for('login'))
     
     order_name = request.form.get('order_name')
     comp_id = session.get('company_id')
     
-    if order_name and comp_id:
-        supabase.table("orders").insert({
-            "order_name": order_name, 
-            "company_id": comp_id
-        }).execute()
+    if order_name:
+        try:
+            supabase.table("orders").insert({
+                "order_name": order_name, 
+                "company_id": int(comp_id)
+            }).execute()
+        except Exception as e:
+            return f"خطأ في إضافة البيانات: {str(e)}"
         
     return redirect(url_for('get_data'))
 
