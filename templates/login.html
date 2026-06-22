@@ -4,12 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>تسجيل الدخول - نظام إدارة الطلبات</title>
-{% if error %}
-<div style="background-color: #fee2e2; color: #b91c1c; padding: 10px; border-radius: 8px; text-align: center; margin-bottom: 15px;">
-    {{ error }}
-</div>
-{% endif %}
-
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
@@ -19,14 +13,19 @@
 <body class="bg-stone-50 min-h-screen flex items-center justify-center p-4">
 
     <div class="w-full max-w-md bg-white rounded-3xl shadow-xl overflow-hidden border border-stone-100">
-        <!-- الجزء العلوي (الشعار) -->
         <div class="bg-amber-900 p-8 text-center">
             <h1 class="text-3xl font-bold text-white">نظام إدارة الطلبات</h1>
             <p class="text-amber-200 mt-2">سجل دخولك للوصول إلى لوحة التحكم</p>
         </div>
 
-        <!-- نموذج الدخول -->
         <form action="/login" method="POST" class="p-8 space-y-6">
+            
+            {% if error %}
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-2xl text-center">
+                {{ error }}
+            </div>
+            {% endif %}
+
             <div>
                 <label class="block text-stone-700 font-bold mb-2">اسم المستخدم</label>
                 <input type="text" name="username" required 
@@ -40,14 +39,10 @@
             </div>
 
             <button type="submit" 
-                class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-4 rounded-2xl transition duration-300 transform hover:scale-[1.02] shadow-lg">
+                class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-4 rounded-2xl transition duration-300 shadow-lg">
                 تسجيل الدخول
             </button>
         </form>
-        
-        <div class="px-8 pb-8 text-center text-stone-400 text-sm">
-            نظام مؤمن بالكامل - شركة خدمات الأعمال
-        </div>
     </div>
 
 </body>
