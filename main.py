@@ -1,10 +1,11 @@
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session
 from supabase import create_client
 import os
 
 app = Flask(__name__)
 app.secret_key = 'shimo_secret_key_2026'
 
+# إعداد اتصال سوبابايس
 supabase = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY"))
 
 @app.route('/')
@@ -40,10 +41,26 @@ def add_data():
     comp_id = session.get('company_id', 0)
     if order_name:
         try:
-            supabase.table("orders").insert({"order_name": order_name, "company_id": int(comp_id)}).execute()
+            # إضافة الطلب وإرجاع البيانات ليتم تحديثها في الجدول فوراً
+            data = supabase.table("orders").insert({"order_name": order_name, "company_id": int(comp_id)}).execute()
             return "Success", 200
         except Exception as e:
             return str(e), 500
+    return "No Data", 400
+
+@app.route('/delete_data/<int:order_id>', methods=['POST'])
+def delete_data(order_id):
+    if 'user' not in session: return "Unauthorized", 401
+    supabase.table("orders").delete().eq("id", order_id).execute()
+    return "Success", 200
+
+@app.route('/update_data/<int:order_id>', methods=['POST'])
+def update_data(order_id):
+    if 'user' not in session: return "Unauthorized", 401
+    new_name = request.form.get('order_name')
+    if new_name:
+        supabase.table("orders").update({"order_name": new_name}).eq("id", order_id).execute()
+        return "Success", 200
     return "No Data", 400
 
 @app.route('/logout')
