@@ -4,14 +4,14 @@ from supabase import create_client
 
 # 1. إعداد التطبيق
 app = Flask(__name__)
-app.secret_key = 'chaima_secret_key_2026' # غيريها بكلمة سر خاصة بيك
+app.secret_key = 'chaima_secret_key_2026'
 
-# 2. ربط سوبابايس (تأكدي أنك حاطة المتغيرات في Render)
+# 2. ربط سوبابايس (تأكدي من إضافة SUPABASE_URL و SUPABASE_KEY في إعدادات Render)
 url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
 
-# --- كود تسجيل الدخول ---
+# --- صفحات النظام ---
 @app.route('/', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -24,14 +24,12 @@ def login():
             return redirect(url_for('dashboard'))
     return render_template('login.html')
 
-# --- كود لوحة التحكم (الطلبات) ---
 @app.route('/dashboard')
 def dashboard():
     if 'user' not in session: return redirect(url_for('login'))
     orders = supabase.table("orders").select("*").eq("company_id", session['company_id']).execute()
     return render_template('users.html', orders=orders.data)
 
-# --- كود إدارة المنتجات (المخزن) ---
 @app.route('/products')
 def get_products():
     if 'user' not in session: return redirect(url_for('login'))
@@ -44,7 +42,6 @@ def add_product():
     name = request.form.get('name')
     price = request.form.get('price')
     quantity = request.form.get('quantity')
-    
     supabase.table("products").insert({
         "company_id": session['company_id'],
         "name": name,
@@ -53,13 +50,25 @@ def add_product():
     }).execute()
     return redirect(url_for('get_products'))
 
-# --- تسجيل الخروج ---
+# --- صفحة الإعدادات (الربط مع الإنستغرام) ---
+@app.route('/settings', methods=['GET', 'POST'])
+def settings():
+    if 'user' not in session: return redirect(url_for('login'))
+    if request.method == 'POST':
+        token = request.form.get('access_token')
+        supabase.table("integrations").upsert({
+            "company_id": session['company_id'],
+            "access_token": token
+        }).execute()
+        return "تم حفظ الربط بنجاح! <a href='/dashboard'>العودة للوحة التحكم</a>"
+    return render_template('settings.html')
+
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('login'))
 
-# 3. تشغيل التطبيق (مع تصحيح مشكلة الـ Port)
+# 3. تشغيل التطبيق (مع ضبط الـ Port لـ Render)
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
