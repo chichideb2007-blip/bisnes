@@ -6,30 +6,30 @@
 </head>
 <body>
 
+    <!-- الجزء الجديد: أزرار التنقل -->
     <div style="background-color: #f4f4f4; padding: 15px; text-align: left; margin-bottom: 20px;">
         <a href="/stats" style="margin-left: 15px; text-decoration: none; color: blue;">عرض الإحصائيات</a>
         <a href="/logout" style="text-decoration: none; color: red;">تسجيل الخروج</a>
     </div>
 
-    <h1>أهلاً بك في لوحة التحكم</h1>
+    <!-- الجزء القديم: إضافة طلب -->
+    <div style="padding: 20px;">
+        <h2>لوحة تحكم الطلبات</h2>
+        <form action="/add" method="POST" style="margin-bottom: 20px;">
+            <input type="text" name="customer_name" placeholder="اسم الزبون" required>
+            <input type="text" name="product_name" placeholder="المنتج" required>
+            <input type="number" name="total_price" placeholder="السعر" required>
+            <button type="submit">إضافة طلب</button>
+        </form>
 
-    <form action="/add" method="POST" style="margin-bottom: 30px;">
-        <input type="text" name="customer_name" placeholder="اسم الزبون" required>
-        <input type="text" name="product_name" placeholder="المنتج" required>
-        <input type="number" name="total_price" placeholder="السعر" required>
-        <button type="submit">إضافة طلب</button>
-    </form>
-
-    <table border="1" width="100%">
-        <thead>
+        <!-- الجدول القديم الموثق في 1000016795.mp4 -->
+        <table border="1" width="100%" style="border-collapse: collapse;">
             <tr>
                 <th>اسم الزبون</th>
                 <th>المنتج</th>
                 <th>السعر</th>
-                <th>إجراء</th>
+                <th>حذف</th>
             </tr>
-        </thead>
-        <tbody>
             {% for item in orders %}
             <tr>
                 <td>{{ item.customer_name }}</td>
@@ -38,11 +38,11 @@
                 <td><a href="/delete/{{ item.id }}">حذف</a></td>
             </tr>
             {% endfor %}
-        </tbody>
-    </table>
+        </table>
 
-    <br>
-    <h3>إجمالي الأرباح الحالية: {{ total }}</h3>
+        <br>
+        <h3>إجمالي الأرباح: {{ total }} دج</h3>
+    </div>
 
 </body>
 </html>
