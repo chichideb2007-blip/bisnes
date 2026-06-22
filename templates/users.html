@@ -32,7 +32,7 @@
         <tbody>
             {% for order in orders %}
             <tr>
-                <td>{{ order.product_name }}</td>
+                <td>{{ order.total_price }}</td>
                 <td>{{ order.total_price }}</td>
                 <td><a href="/delete/{{ order.id }}">حذف</a></td>
             </tr>
