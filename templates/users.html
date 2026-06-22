@@ -10,12 +10,13 @@
         .btn { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; color: white; font-size: 14px; display: inline-block; }
         .btn-logout { background-color: #f44336; } 
         .btn-add { background-color: #4CAF50; padding: 8px 15px; } 
-        .btn-edit { background-color: #008CBA; margin-left: 5px; } /* زر تعديل أزرق */
-        .btn-delete { background-color: #ff9800; } /* زر حذف برتقالي */
+        .btn-edit { background-color: #008CBA; } 
+        .btn-delete { background-color: #ff9800; }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th, td { border: 1px solid #ddd; padding: 12px; text-align: center; }
         th { background-color: #f2f2f2; }
         .actions-cell { display: flex; justify-content: center; gap: 5px; }
+        .edit-input { padding: 4px; width: 120px; border: 1px solid #ddd; border-radius: 4px; display: none; }
     </style>
 </head>
 <body>
@@ -29,21 +30,23 @@
         <table>
             <thead>
                 <tr>
-                    <th>اسم الطلب</th>
+                    <th>اسم الطلب / الزبون</th>
                     <th>التحكم</th>
                 </tr>
             </thead>
             <tbody>
                 {% if users %}
                     {% for user in users %}
-                    <tr>
-                        <td>{{ user.order_name }}</td>
+                    <tr id="row-{{ user.id }}">
+                        <td>
+                            <span id="text-{{ user.id }}">{{ user.order_name }}</span>
+                            <input type="text" id="input-{{ user.id }}" class="edit-input" value="{{ user.order_name }}">
+                        </td>
                         <td class="actions-cell">
-                            <a href="/edit_data/{{ user.id }}" class="btn btn-edit">تعديل</a>
+                            <button id="btn-edit-{{ user.id }}" onclick="toggleEdit('{{ user.id }}')" class="btn btn-edit">تعديل</button>
+                            <button id="btn-save-{{ user.id }}" onclick="saveEdit('{{ user.id }}')" class="btn btn-add" style="display:none;">حفظ</button>
 
-                            <form action="/delete_data/{{ user.id }}" method="POST" style="display:inline;">
-                                <button type="submit" class="btn btn-delete">حذف</button>
-                            </form>
+                            <button onclick="deleteOrder('{{ user.id }}')" class="btn btn-delete">حذف</button>
                         </td>
                     </tr>
                     {% endfor %}
@@ -57,11 +60,61 @@
 
         <br>
         <h3 style="margin-top:20px;">إضافة طلب سريع</h3>
-        <form action="/add_data" method="POST" style="display: flex; gap: 10px; justify-content: center;">
-            <input type="text" name="order_name" placeholder="أدخل اسم الطلب..." required style="padding: 8px; width: 60%; border-radius: 4px; border: 1px solid #ddd;">
-            <button type="submit" class="btn btn-add">تأكيد الطلب</button>
+        <form id="addForm" onsubmit="addOrder(event)" style="display: flex; gap: 10px; justify-content: center;">
+            <input type="text" id="new_order_name" name="order_name" placeholder="أدخل اسم الطلب..." required style="padding: 8px; width: 60%; border-radius: 4px; border: 1px solid #ddd;">
+            <button type="submit" class="btn btn-add">حفظ البيانات</button>
         </form>
     </div>
+
+    <script>
+        // دالة الإضافة السريعة
+        function addOrder(event) {
+            event.preventDefault();
+            const orderName = document.getElementById('new_order_name').value;
+            const formData = new FormData();
+            formData.append('order_name', orderName);
+
+            fetch('/add_data', { method: 'POST', body: formData })
+            .then(() => { location.reload(); }) // تعاود دير ريفريش تلقائي وتبين السطر الجديد
+            .catch(() => { location.reload(); });
+        }
+
+        // دالة الحذف السريع
+        function deleteOrder(orderId) {
+            if(confirm("هل أنت متأكد من حذف هذا الطلب؟")) {
+                fetch('/delete_data/' + orderId, { method: 'POST' })
+                .then(() => { document.getElementById('row-' + orderId).remove(); }) // تنحي السطر فوراً من العين
+                .catch(() => { location.reload(); });
+            }
+        }
+
+        // إظهار خانة التعديل
+        function toggleEdit(orderId) {
+            document.getElementById('text-' + orderId).style.display = 'none';
+            document.getElementById('btn-edit-' + orderId).style.display = 'none';
+            
+            document.getElementById('input-' + orderId).style.display = 'inline-block';
+            document.getElementById('btn-save-' + orderId).style.display = 'inline-block';
+        }
+
+        // حفظ التعديل وإرساله للبايثون (السطر 57 في main.py)
+        function saveEdit(orderId) {
+            const newName = document.getElementById('input-' + orderId).value;
+            const formData = new FormData();
+            formData.append('order_name', newName);
+
+            fetch('/update_data/' + orderId, { method: 'POST', body: formData })
+            .then(() => {
+                document.getElementById('text-' + orderId).innerText = newName;
+                document.getElementById('text-' + orderId).style.display = 'inline-block';
+                document.getElementById('btn-edit-' + orderId).style.display = 'inline-block';
+                
+                document.getElementById('input-' + orderId).style.display = 'none';
+                document.getElementById('btn-save-' + orderId).style.display = 'none';
+            })
+            .catch(() => { location.reload(); });
+        }
+    </script>
 
 </body>
 </html>
