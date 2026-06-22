@@ -11,7 +11,7 @@ url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
 
-# --- المسارات (Routes) ---
+# --- المسارات ---
 
 @app.route('/')
 def index():
@@ -31,31 +31,30 @@ def login():
 @app.route('/dashboard')
 def dashboard():
     if 'user' not in session: return redirect('/login')
-    # جلب طلبات المدير الحالي فقط
+    # جلب الطلبات للمدير الحالي
     response = supabase.table("orders").select("*").eq("manager_id", session['user']).execute()
     orders = response.data
-    total = sum(float(item.get('total_price', 0)) for item in orders if item.get('total_price'))
+    # حساب الإجمالي
+    total = sum(float(item.get('price', 0)) for item in orders if item.get('price'))
     return render_template('users.html', orders=orders, total=total)
 
 @app.route('/add', methods=['POST'])
 def add():
     if 'user' not in session: return redirect('/login')
     
-    # التقاط البيانات بدقة من الفورم
+    # هنا تم تحديث الأسماء لتطابق قاعدة بياناتك الحالية
     data = {
-        "customer_name": request.form.get('customer_name'),
-        "product_name": request.form.get('product_name'),
-        "total_price": request.form.get('total_price'),
+        "order_name": request.form.get('order_name'),
+        "customer_phone": request.form.get('customer_phone'),
+        "price": request.form.get('price'),
         "manager_id": session['user']
     }
     
-    # محاولة إضافة البيانات لقاعدة البيانات
     try:
         supabase.table("orders").insert(data).execute()
+        return redirect('/dashboard')
     except Exception as e:
-        print(f"خطأ في الإضافة: {e}")
-        
-    return redirect('/dashboard')
+        return f"حدث خطأ: {str(e)}"
 
 @app.route('/delete/<int:id>')
 def delete(id):
