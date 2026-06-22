@@ -5,7 +5,6 @@ import os
 app = Flask(__name__)
 app.secret_key = 'shimo_secret_key_2026'
 
-# إعداد Supabase
 supabase = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY"))
 
 @app.route('/')
@@ -19,9 +18,7 @@ def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-        
         user = supabase.table("users").select("*").eq("username", username).eq("password", password).execute()
-        
         if user.data:
             session['user'] = username
             return redirect(url_for('get_users'))
@@ -34,14 +31,13 @@ def get_users():
     if 'user' not in session:
         return redirect(url_for('login'))
     response = supabase.table("users").select("*").execute()
-
     return render_template('users.html', users=response.data)
 
 @app.route('/add_user', methods=['POST'])
 def add_user():
     name = request.form.get('customer_name')
     if name:
-        supabase.table("users_data").insert({"customer_name": name}).execute()
+        supabase.table("users").insert({"customer_name": name}).execute()
     return redirect(url_for('get_users'))
 
 if __name__ == '__main__':
