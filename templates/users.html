@@ -2,119 +2,53 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>لوحة التحكم - إدارة الطلبات</title>
+    <title>لوحة التحكم</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 30px; background-color: #f4f4f4; text-align: center; }
-        .container { background: white; padding: 20px; border-radius: 8px; max-width: 600px; margin: 0 auto; box-shadow: 0px 4px 8px rgba(0,0,0,0.1); }
-        .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
-        .btn { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; color: white; font-size: 14px; display: inline-block; }
-        .btn-logout { background-color: #f44336; } 
-        .btn-add { background-color: #4CAF50; padding: 8px 15px; } 
-        .btn-edit { background-color: #008CBA; } 
-        .btn-delete { background-color: #ff9800; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: center; }
-        th { background-color: #f2f2f2; }
-        .actions-cell { display: flex; justify-content: center; gap: 5px; }
-        .edit-input { padding: 4px; width: 120px; border: 1px solid #ddd; border-radius: 4px; display: none; }
+        body { font-family: sans-serif; padding: 20px; }
+        .card { border: 1px solid #ddd; padding: 15px; margin-bottom: 20px; border-radius: 8px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+        .admin-only { background-color: #f9f9f9; border-top: 2px solid #2ecc71; }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <div class="header-box">
-            <h2>لوحة التحكم</h2>
-            <a href="/logout" class="btn btn-logout">تسجيل الخروج</a>
-        </div>
+    <h1>لوحة التحكم</h1>
 
+    <div class="card">
+        <h3>سجل المبيعات</h3>
         <table>
-            <thead>
-                <tr>
-                    <th>اسم الطلب / الزبون</th>
-                    <th>التحكم</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% if users %}
-                    {% for user in users %}
-                    <tr id="row-{{ user.id }}">
-                        <td>
-                            <span id="text-{{ user.id }}">{{ user.order_name }}</span>
-                            <input type="text" id="input-{{ user.id }}" class="edit-input" value="{{ user.order_name }}">
-                        </td>
-                        <td class="actions-cell">
-                            <button id="btn-edit-{{ user.id }}" onclick="toggleEdit('{{ user.id }}')" class="btn btn-edit">تعديل</button>
-                            <button id="btn-save-{{ user.id }}" onclick="saveEdit('{{ user.id }}')" class="btn btn-add" style="display:none;">حفظ</button>
-
-                            <button onclick="deleteOrder('{{ user.id }}')" class="btn btn-delete">حذف</button>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                {% else %}
-                    <tr>
-                        <td colspan="2">لا توجد طلبات مسجلة حالياً.</td>
-                    </tr>
-                {% endif %}
-            </tbody>
+            <tr>
+                <th>الزبون</th>
+                <th>المنتج</th>
+                {% if role == 'admin' %}<th>السعر</th>{% endif %}
+            </tr>
+            {% for sale in sales %}
+            <tr>
+                <td>{{ sale.customer_name }}</td>
+                <td>{{ sale.product_name }}</td>
+                {% if role == 'admin' %}<td>{{ sale.amount }} دج</td>{% endif %}
+            </tr>
+            {% endfor %}
         </table>
-
-        <br>
-        <h3 style="margin-top:20px;">إضافة طلب سريع</h3>
-        <form id="addForm" onsubmit="addOrder(event)" style="display: flex; gap: 10px; justify-content: center;">
-            <input type="text" id="new_order_name" name="order_name" placeholder="أدخل اسم الطلب..." required style="padding: 8px; width: 60%; border-radius: 4px; border: 1px solid #ddd;">
-            <button type="submit" class="btn btn-add">حفظ البيانات</button>
-        </form>
     </div>
 
-    <script>
-        // دالة الإضافة السريعة
-        function addOrder(event) {
-            event.preventDefault();
-            const orderName = document.getElementById('new_order_name').value;
-            const formData = new FormData();
-            formData.append('order_name', orderName);
+    {% if role == 'admin' %}
+    <div class="card admin-only">
+        <h3>📊 التحليل المالي (للمدير فقط)</h3>
+        <p>إجمالي المداخيل: <strong>{{ total_revenue }} دج</strong></p>
+        
+        <h4>المصاريف اليومية:</h4>
+        <ul>
+            {% for expense in expenses %}
+            <li>{{ expense.name }}: {{ expense.amount }} دج</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
 
-            fetch('/add_data', { method: 'POST', body: formData })
-            .then(() => { location.reload(); }) // تعاود دير ريفريش تلقائي وتبين السطر الجديد
-            .catch(() => { location.reload(); });
-        }
-
-        // دالة الحذف السريع
-        function deleteOrder(orderId) {
-            if(confirm("هل أنت متأكد من حذف هذا الطلب؟")) {
-                fetch('/delete_data/' + orderId, { method: 'POST' })
-                .then(() => { document.getElementById('row-' + orderId).remove(); }) // تنحي السطر فوراً من العين
-                .catch(() => { location.reload(); });
-            }
-        }
-
-        // إظهار خانة التعديل
-        function toggleEdit(orderId) {
-            document.getElementById('text-' + orderId).style.display = 'none';
-            document.getElementById('btn-edit-' + orderId).style.display = 'none';
-            
-            document.getElementById('input-' + orderId).style.display = 'inline-block';
-            document.getElementById('btn-save-' + orderId).style.display = 'inline-block';
-        }
-
-        // حفظ التعديل وإرساله للبايثون (السطر 57 في main.py)
-        function saveEdit(orderId) {
-            const newName = document.getElementById('input-' + orderId).value;
-            const formData = new FormData();
-            formData.append('order_name', newName);
-
-            fetch('/update_data/' + orderId, { method: 'POST', body: formData })
-            .then(() => {
-                document.getElementById('text-' + orderId).innerText = newName;
-                document.getElementById('text-' + orderId).style.display = 'inline-block';
-                document.getElementById('btn-edit-' + orderId).style.display = 'inline-block';
-                
-                document.getElementById('input-' + orderId).style.display = 'none';
-                document.getElementById('btn-save-' + orderId).style.display = 'none';
-            })
-            .catch(() => { location.reload(); });
-        }
-    </script>
+    <br>
+    <a href="/logout">تسجيل الخروج</a>
 
 </body>
 </html>
