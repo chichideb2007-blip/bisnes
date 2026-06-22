@@ -31,10 +31,14 @@ def login():
 @app.route('/dashboard')
 def dashboard():
     if 'user' not in session: return redirect('/login')
-    # جلب الطلبات للمدير الحالي
+    
+    # جلب الطلبات للمدير الحالي فقط
     response = supabase.table("orders").select("*").eq("manager_id", session['user']).execute()
     orders = response.data
+    
+    # حساب الإجمالي
     total = sum(float(item.get('total_price', 0)) for item in orders if item.get('total_price'))
+    
     return render_template('users.html', orders=orders, total=total)
 
 @app.route('/add', methods=['POST'])
@@ -52,21 +56,22 @@ def add():
         supabase.table("orders").insert(data).execute()
         return redirect('/dashboard')
     except Exception as e:
-        return f"حدث خطأ: {str(e)}"
+        return f"حدث خطأ أثناء الإضافة: {str(e)}"
 
 @app.route('/delete/<int:id>')
 def delete(id):
     if 'user' not in session: return redirect('/login')
+    
     supabase.table("orders").delete().eq("id", id).execute()
     return redirect('/dashboard')
 
-# --- المسارات الجديدة (الإحصائيات والخروج) ---
+# --- الوظائف الجديدة (الإحصائيات والخروج) ---
 
 @app.route('/stats')
 def stats():
     if 'user' not in session: return redirect('/login')
     
-    # جلب جميع الطلبات للمدير الحالي
+    # جلب الطلبات للمدير الحالي
     response = supabase.table("orders").select("*").eq("manager_id", session['user']).execute()
     orders = response.data
     
@@ -77,7 +82,7 @@ def stats():
 
 @app.route('/logout')
 def logout():
-    session.pop('user', None)
+    session.pop('user', None) # مسح الجلسة
     return redirect('/login')
 
 if __name__ == '__main__':
