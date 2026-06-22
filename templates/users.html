@@ -21,13 +21,16 @@
         <div class="bg-white rounded-3xl shadow-md overflow-hidden">
             <table class="w-full text-right">
                 <thead class="bg-stone-100 text-stone-600">
-                    <tr><th class="p-4">اسم الطلب</th><th class="p-4">الحالة</th></tr>
+                    <tr><th class="p-4">اسم الطلب</th><th class="p-4">التحكم</th></tr>
                 </thead>
                 <tbody id="ordersTable" class="divide-y">
                     {% for item in users %}
-                    <tr>
+                    <tr id="row-{{ item.id }}">
                         <td class="p-4">{{ item.order_name }}</td>
-                        <td class="p-4"><span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs">تم الاستلام</span></td>
+                        <td class="p-4 flex gap-3">
+                            <button onclick="editOrder({{ item.id }}, '{{ item.order_name }}')" class="text-blue-600 font-bold">تعديل</button>
+                            <button onclick="deleteOrder({{ item.id }})" class="text-red-600 font-bold">حذف</button>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -36,26 +39,45 @@
     </div>
 
     <script>
+        // إرسال طلب جديد
         document.getElementById('orderForm').onsubmit = async (e) => {
             e.preventDefault();
             const input = document.getElementById('order_name');
-            const response = await fetch('/add_data', {
+            const res = await fetch('/add_data', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/x-www-form-urlencoded'},
                 body: `order_name=${input.value}`
             });
-
-            if (response.ok) {
-                // إضافة السطر للجدول برمجياً
-                const table = document.getElementById('ordersTable');
-                table.innerHTML += `<tr><td class="p-4">${input.value}</td><td class="p-4"><span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs">تم الاستلام</span></td></tr>`;
-                
-                Swal.fire({icon: 'success', title: 'تم الحفظ!', text: 'تمت إضافة طلبك بنجاح', confirmButtonColor: '#78350f'});
-                input.value = '';
-            } else {
-                Swal.fire({icon: 'error', title: 'خطأ!', text: 'حدثت مشكلة أثناء الحفظ'});
+            if (res.ok) {
+                location.reload(); // تحديث الصفحة لرؤية الطلب الجديد
             }
         };
+
+        // حذف طلب
+        async function deleteOrder(id) {
+            if (await Swal.fire({title: 'هل أنت متأكد؟', icon: 'warning', showCancelButton: true}).then(r => r.isConfirmed)) {
+                const res = await fetch(`/delete_data/${id}`, {method: 'POST'});
+                if (res.ok) {
+                    document.getElementById(`row-${id}`).remove();
+                    Swal.fire('تم الحذف!', '', 'success');
+                }
+            }
+        }
+
+        // تعديل طلب
+        async function editOrder(id, oldName) {
+            const {value: newName} = await Swal.fire({
+                title: 'تعديل الطلب', input: 'text', inputValue: oldName, showCancelButton: true
+            });
+            if (newName) {
+                const res = await fetch(`/update_data/${id}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: `order_name=${newName}`
+                });
+                if (res.ok) location.reload();
+            }
+        }
     </script>
 </body>
 </html>
