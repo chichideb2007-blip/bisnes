@@ -1,17 +1,17 @@
-from flask import Flask, request, render_template, session, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, session
 from supabase import create_client
 import os
 
 app = Flask(__name__)
-# مفتاح الجلسة لضمان أمان الموقع
 app.secret_key = 'shimo_secret_key_2026'
 
-# إعداد اتصال سوبابايس (تأكدي أن المتغيرات موجودة في إعدادات Render)
+# إعداد اتصال سوبابايس
 supabase = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY"))
 
 @app.route('/')
 def home():
     return redirect(url_for('login'))
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     error = None 
@@ -26,11 +26,9 @@ def login():
             session['company_id'] = user.data[0].get('company_id')
             return redirect(url_for('get_data'))
         else:
-            # هنا أضفنا رسالة الخطأ
             error = "اسم المستخدم أو كلمة السر غير صحيحة!"
             
     return render_template('login.html', error=error)
-
 
 @app.route('/data')
 def get_data():
@@ -38,8 +36,6 @@ def get_data():
         return redirect(url_for('login'))
     
     comp_id = session.get('company_id', 0)
-    
-    # جلب الطلبات الخاصة بهذه الشركة فقط
     response = supabase.table("orders").select("*").eq("company_id", comp_id).execute()
     return render_template('users.html', users=response.data)
 
@@ -54,13 +50,14 @@ def add_data():
     if order_name:
         try:
             supabase.table("orders").insert({
-                "order_name": order_name, 
+                "order_name": order_name,
                 "company_id": int(comp_id)
             }).execute()
         except Exception as e:
             return f"حدث خطأ أثناء الإضافة: {str(e)}"
-        
+            
     return redirect(url_for('get_data'))
+
 @app.route('/logout')
 def logout():
     session.clear()
