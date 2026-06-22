@@ -17,15 +17,8 @@ def login():
         user = supabase.table("users").select("*").eq("username", username).eq("password", password).execute()
         if user.data:
             session['user'] = username
-            session['company_id'] = user.data[0]['company_id']
-            session['role'] = user.data[0].get('role', 'employee')
-            return redirect(url_for('dashboard'))
+            return "تم تسجيل الدخول بنجاح"
     return render_template('login.html')
-
-@app.route('/dashboard')
-def dashboard():
-    if 'user' not in session: return redirect(url_for('login'))
-    return render_template('users.html', role=session.get('role'))
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
