@@ -62,6 +62,10 @@ def add_data():
             return f"حدث خطأ أثناء الإضافة: {str(e)}"
         
     return redirect(url_for('get_data'))
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
