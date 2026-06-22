@@ -1,11 +1,11 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, session
 from supabase import create_client
 
 app = Flask(__name__)
 app.secret_key = 'chaima_secret_2026'
 
-# التأكد من إعدادات الاتصال
+# إعداد الاتصال بـ Supabase
 url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
@@ -24,21 +24,24 @@ def login():
 @app.route('/dashboard')
 def dashboard():
     if 'user' not in session: return redirect('/')
-    # جلب الطلبات
+    # جلب البيانات من جدول orders
     orders = supabase.table("orders").select("*").execute()
-    # استخدام total_price لحساب المجموع
-    total = sum(float(item['total_price'] or 0) for item in orders.data)
+    # حساب المجموع باستخدام اسم العمود الصحيح total_price
+    total = sum(float(item.get('total_price') or 0) for item in orders.data)
     return render_template('users.html', orders=orders.data, total=total)
 
 @app.route('/add', methods=['POST'])
 def add():
+    if 'user' not in session: return redirect('/')
     name = request.form.get('product_name')
-    price = request.form.get('total_price') # التأكد من مطابقة الاسم
+    price = request.form.get('total_price')
+    # إضافة البيانات باستخدام اسم العمود الصحيح total_price
     supabase.table("orders").insert({"product_name": name, "total_price": price}).execute()
     return redirect('/dashboard')
 
 @app.route('/delete/<int:id>')
 def delete(id):
+    if 'user' not in session: return redirect('/')
     supabase.table("orders").delete().eq("id", id).execute()
     return redirect('/dashboard')
 
