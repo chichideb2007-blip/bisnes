@@ -1,23 +1,35 @@
 <!DOCTYPE html>
-<html dir="rtl" lang="ar">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>تسجيل الدخول</title>
-    <style>
-        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f4f4f9; }
-        .login-box { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); width: 300px; text-align: center; }
-        input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        button { width: 100%; padding: 10px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تسجيل الدخول - نظام إدارة الأعمال</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    <div class="login-box">
-        <h2>تسجيل الدخول</h2>
-        <form action="/login" method="POST">
-            <input type="text" name="username" placeholder="اسم المستخدم" required>
-            <input type="password" name="password" placeholder="كلمة السر" required>
-            <button type="submit">دخول</button>
+<body class="bg-stone-100 flex items-center justify-center min-h-screen">
+
+    <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-sm border border-stone-200">
+        <h2 class="text-2xl font-bold text-stone-800 text-center mb-6">مرحباً بك مجدداً</h2>
+        
+        <form action="/login" method="POST" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-stone-600 mb-1">اسم المستخدم</label>
+                <input type="text" name="username" required 
+                    class="w-full px-4 py-2 border border-stone-300 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none transition">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-stone-600 mb-1">كلمة السر</label>
+                <input type="password" name="password" required 
+                    class="w-full px-4 py-2 border border-stone-300 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none transition">
+            </div>
+
+            <button type="submit" 
+                class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 rounded-xl transition duration-300 shadow-lg">
+                دخول
+            </button>
         </form>
     </div>
+
 </body>
 </html>
