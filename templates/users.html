@@ -1,54 +1,31 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <title>لوحة التحكم</title>
-    <style>
-        body { font-family: sans-serif; padding: 20px; }
-        .card { border: 1px solid #ddd; padding: 15px; margin-bottom: 20px; border-radius: 8px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
-        .admin-only { background-color: #f9f9f9; border-top: 2px solid #2ecc71; }
-    </style>
-</head>
-<body>
+<div style="direction: rtl; text-align: right; padding: 20px;">
+    <h2>لوحة التحكم</h2>
+    <h3>مجموع مبيعات اليوم: {{ total }} دج</h3>
 
-    <h1>لوحة التحكم</h1>
+    <!-- خانة الإضافة -->
+    <form action="/add" method="POST">
+        <input type="text" name="product_name" placeholder="اسم المنتج" required>
+        <input type="number" name="price" placeholder="السعر" required>
+        <button type="submit">إضافة طلب</button>
+    </form>
 
-    <div class="card">
-        <h3>سجل المبيعات</h3>
-        <table>
-            <tr>
-                <th>الزبون</th>
-                <th>المنتج</th>
-                {% if role == 'admin' %}<th>السعر</th>{% endif %}
-            </tr>
-            {% for sale in sales %}
-            <tr>
-                <td>{{ sale.customer_name }}</td>
-                <td>{{ sale.product_name }}</td>
-                {% if role == 'admin' %}<td>{{ sale.amount }} دج</td>{% endif %}
-            </tr>
-            {% endfor %}
-        </table>
-    </div>
+    <hr>
 
-    {% if role == 'admin' %}
-    <div class="card admin-only">
-        <h3>📊 التحليل المالي (للمدير فقط)</h3>
-        <p>إجمالي المداخيل: <strong>{{ total_revenue }} دج</strong></p>
-        
-        <h4>المصاريف اليومية:</h4>
-        <ul>
-            {% for expense in expenses %}
-            <li>{{ expense.name }}: {{ expense.amount }} دج</li>
-            {% endfor %}
-        </ul>
-    </div>
-    {% endif %}
-
-    <br>
-    <a href="/logout">تسجيل الخروج</a>
-
-</body>
-</html>
+    <!-- جدول الطلبات مع أزرار الحذف -->
+    <table border="1" width="100%">
+        <tr>
+            <th>المنتج</th>
+            <th>السعر</th>
+            <th>إجراءات</th>
+        </tr>
+        {% for order in orders %}
+        <tr>
+            <td>{{ order.product_name }}</td>
+            <td>{{ order.price }}</td>
+            <td>
+                <a href="/delete/{{ order.id }}">حذف</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
