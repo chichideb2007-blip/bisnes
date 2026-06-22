@@ -5,6 +5,7 @@ import os
 app = Flask(__name__)
 app.secret_key = 'shimo_secret_key_2026'
 
+# إعداد الاتصال بـ Supabase
 supabase = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY"))
 
 @app.route('/')
@@ -18,7 +19,7 @@ def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-        # التحقق من المستخدم
+        # التحقق من المستخدم في جدول users
         user = supabase.table("users").select("username, company_id").eq("username", username).eq("password", password).execute()
         if user.data:
             session['user'] = username
@@ -32,11 +33,32 @@ def get_data():
     if 'user' not in session:
         return redirect(url_for('login'))
     
-    # جلب البيانات الخاصة بهذه الشركة فقط
+    # جلب البيانات الخاصة بهذه الشركة فقط من جدول orders
     comp_id = session.get('company_id')
     response = supabase.table("orders").select("*").eq("company_id", comp_id).execute()
     
     return render_template('users.html', users=response.data)
+
+@app.route('/add_data', methods=['POST'])
+def add_data():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    
+    order_name = request.form.get('order_name')
+    comp_id = session.get('company_id')
+    
+    if order_name:
+        supabase.table("orders").insert({
+            "order_name": order_name, 
+            "company_id": comp_id
+        }).execute()
+        
+    return redirect(url_for('get_data'))
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
