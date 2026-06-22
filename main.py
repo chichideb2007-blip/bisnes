@@ -3,9 +3,10 @@ from supabase import create_client
 import os
 
 app = Flask(__name__)
+# مفتاح الجلسة لضمان أمان العمل
 app.secret_key = 'shimo_secret_key_2026'
 
-# إعداد الاتصال بـ Supabase
+# إعداد الاتصال بـ Supabase (تأكدي من وجودها في Environment Variables على Render)
 supabase = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY"))
 
 @app.route('/')
@@ -19,13 +20,15 @@ def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-        # التحقق من المستخدم في جدول users
+        
+        # التحقق من المستخدم
         user = supabase.table("users").select("username, company_id").eq("username", username).eq("password", password).execute()
-        if user.data:
+        
+        if user.data and len(user.data) > 0:
             session['user'] = username
             session['company_id'] = user.data[0]['company_id']
             return redirect(url_for('get_data'))
-        return "بيانات الدخول خاطئة!"
+        return "بيانات الدخول خاطئة أو المستخدم غير موجود!"
     return render_template('login.html')
 
 @app.route('/data')
@@ -33,10 +36,14 @@ def get_data():
     if 'user' not in session:
         return redirect(url_for('login'))
     
-    # جلب البيانات الخاصة بهذه الشركة فقط من جدول orders
     comp_id = session.get('company_id')
-    response = supabase.table("orders").select("*").eq("company_id", comp_id).execute()
     
+    # حماية من الخطأ إذا كان الـ ID مفقوداً
+    if comp_id is None:
+        session.clear()
+        return redirect(url_for('login'))
+    
+    response = supabase.table("orders").select("*").eq("company_id", comp_id).execute()
     return render_template('users.html', users=response.data)
 
 @app.route('/add_data', methods=['POST'])
@@ -47,7 +54,7 @@ def add_data():
     order_name = request.form.get('order_name')
     comp_id = session.get('company_id')
     
-    if order_name:
+    if order_name and comp_id:
         supabase.table("orders").insert({
             "order_name": order_name, 
             "company_id": comp_id
