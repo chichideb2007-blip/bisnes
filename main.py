@@ -9,21 +9,25 @@ url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
 
+@app.route('/', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        # تحقق من البيانات في سوبابايس
+        user = supabase.table("users").select("*").eq("username", username).eq("password", password).execute()
+        if user.data:
+            session['user'] = username
+            session['company_id'] = user.data[0]['company_id']
+            session['role'] = user.data[0].get('role', 'employee')
+            return redirect(url_for('dashboard'))
+    return render_template('login.html')
+
 @app.route('/dashboard')
 def dashboard():
     if 'user' not in session: return redirect(url_for('login'))
-    
-    # جلب المصاريف (موجود عندك)
-    expenses = supabase.table("expenses").select("*").eq("company_id", session['company_id']).execute().data
-    
-    # جلب المبيعات (إذا كان الجدول غير موجود، سيعطي قائمة فارغة بدل أن يغلق الموقع)
-    try:
-        sales = supabase.table("sales").select("*").eq("company_id", session['company_id']).execute().data
-    except:
-        sales = [] # إذا لم تنشئي الجدول بعد، لن يتوقف الموقع
-        
-    total_revenue = sum(float(item['amount']) for item in sales) if sales else 0
-    
-    return render_template('users.html', sales=sales, total_revenue=total_revenue, expenses=expenses, role=session.get('role'))
+    return render_template('users.html', role=session.get('role'))
 
-# ... باقي الدوال (login, add_sale, add_expense) تبقى كما هي في الكود السابق ...
+if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
