@@ -1,15 +1,15 @@
-from datetime import datetime
+from flask import request
 
-@app.route('/dashboard')
-def dashboard():
-    if 'user' not in session:
-        return redirect(url_for('login'))
-    
-    # جلب طلبات اليوم فقط
-    today = datetime.now().strftime('%Y-%m-%d')
-    orders = supabase.table("orders").select("*").ilike("created_at", f"{today}%").execute()
-    
-    # حساب المجموع
-    total_today = sum(item['price'] for item in orders.data)
-    
-    return render_template('users.html', orders=orders.data, total=total_today)
+# دالة إضافة طلب جديد
+@app.route('/add', methods=['POST'])
+def add_order():
+    name = request.form.get('product_name')
+    price = request.form.get('price')
+    supabase.table("orders").insert({"product_name": name, "price": price}).execute()
+    return redirect(url_for('dashboard'))
+
+# دالة حذف طلب
+@app.route('/delete/<int:order_id>')
+def delete_order(order_id):
+    supabase.table("orders").delete().eq("id", order_id).execute()
+    return redirect(url_for('dashboard'))
