@@ -2,7 +2,7 @@ import os
 from flask import Flask, render_template, request, redirect, session
 from supabase import create_client
 
-# 1. أول شيء: تعريف التطبيق
+# 1. أول شيء: تعريف التطبيق (يجب أن يكون هنا في الأعلى)
 app = Flask(__name__)
 app.secret_key = 'chaima_pro_2026'
 
@@ -17,6 +17,7 @@ def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
+        # تحقق من المستخدم في قاعدة البيانات
         response = supabase.table("users").select("*").eq("username", username).eq("password", password).execute()
         if response.data:
             session['user'] = username
@@ -49,6 +50,6 @@ def delete(id):
     supabase.table("orders").delete().eq("id", id).execute()
     return redirect('/dashboard')
 
-# 4. رابع شيء: تشغيل التطبيق في النهاية
+# 4. رابع شيء: تشغيل التطبيق (يجب أن يكون في النهاية)
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
