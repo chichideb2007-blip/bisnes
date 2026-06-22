@@ -7,13 +7,15 @@
         body { font-family: Arial, sans-serif; margin: 30px; background-color: #f4f4f4; text-align: center; }
         .container { background: white; padding: 20px; border-radius: 8px; max-width: 600px; margin: 0 auto; box-shadow: 0px 4px 8px rgba(0,0,0,0.1); }
         .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
-        .btn { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; color: white; font-size: 14px; }
+        .btn { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; color: white; font-size: 14px; display: inline-block; }
         .btn-logout { background-color: #f44336; } 
-        .btn-add { background-color: #4CAF50; } 
-        .btn-delete { background-color: #ff9800; border: none; padding: 6px 12px; border-radius: 4px; color: white; cursor: pointer; }
+        .btn-add { background-color: #4CAF50; padding: 8px 15px; } 
+        .btn-edit { background-color: #008CBA; margin-left: 5px; } /* زر تعديل أزرق */
+        .btn-delete { background-color: #ff9800; } /* زر حذف برتقالي */
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th, td { border: 1px solid #ddd; padding: 12px; text-align: center; }
         th { background-color: #f2f2f2; }
+        .actions-cell { display: flex; justify-content: center; gap: 5px; }
     </style>
 </head>
 <body>
@@ -36,7 +38,9 @@
                     {% for user in users %}
                     <tr>
                         <td>{{ user.order_name }}</td>
-                        <td>
+                        <td class="actions-cell">
+                            <a href="/edit_data/{{ user.id }}" class="btn btn-edit">تعديل</a>
+
                             <form action="/delete_data/{{ user.id }}" method="POST" style="display:inline;">
                                 <button type="submit" class="btn btn-delete">حذف</button>
                             </form>
@@ -55,7 +59,7 @@
         <h3 style="margin-top:20px;">إضافة طلب سريع</h3>
         <form action="/add_data" method="POST" style="display: flex; gap: 10px; justify-content: center;">
             <input type="text" name="order_name" placeholder="أدخل اسم الطلب..." required style="padding: 8px; width: 60%; border-radius: 4px; border: 1px solid #ddd;">
-            <button type="submit" class="btn btn-add">حفظ البيانات</button>
+            <button type="submit" class="btn btn-add">تأكيد الطلب</button>
         </form>
     </div>
 
