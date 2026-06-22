@@ -27,7 +27,8 @@ def dashboard():
     if 'user' not in session: return redirect('/')
     # جلب البيانات
     orders = supabase.table("orders").select("*").execute()
-    total = sum(int(item['price']) for item in orders.data)
+    total = sum(int(item['total_price']) for item in orders.data)
+
     return render_template('users.html', orders=orders.data, total=total)
 
 @app.route('/add', methods=['POST'])
