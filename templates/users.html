@@ -32,8 +32,10 @@
         <tbody>
             {% for order in orders %}
             <tr>
-                <td>{{ order.total_price }}</td>
-                <td>{{ order.total_price }}</td>
+                <td>{{ order.price_display }}</td>
+
+                <td>{{ order.price_display }}</td>
+
                 <td><a href="/delete/{{ order.id }}">حذف</a></td>
             </tr>
             {% endfor %}
