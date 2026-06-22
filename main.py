@@ -12,26 +12,25 @@ supabase = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABAS
 @app.route('/')
 def home():
     return redirect(url_for('login'))
-
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    error = None 
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
         
-        # جلب بيانات المستخدم من الجدول
         user = supabase.table("users").select("*").eq("username", username).execute()
         
-        # التحقق من وجود المستخدم ومطابقة كلمة المرور
-        if user.data and len(user.data) > 0:
-            if user.data[0].get('password') == password:
-                session.clear()
-                session['user'] = username
-                # حفظ الـ company_id في الجلسة لاستخدامه لاحقاً
-                session['company_id'] = user.data[0].get('company_id') or 0
-                return redirect(url_for('get_data'))
-        return "بيانات الدخول خاطئة!"
-    return render_template('login.html')
+        if user.data and len(user.data) > 0 and user.data[0].get('password') == password:
+            session['user'] = username
+            session['company_id'] = user.data[0].get('company_id')
+            return redirect(url_for('get_data'))
+        else:
+            # هنا أضفنا رسالة الخطأ
+            error = "اسم المستخدم أو كلمة السر غير صحيحة!"
+            
+    return render_template('login.html', error=error)
+
 
 @app.route('/data')
 def get_data():
