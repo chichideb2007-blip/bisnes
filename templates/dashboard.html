@@ -4,63 +4,34 @@
     <meta charset="UTF-8">
     <title>لوحة التحكم</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; padding: 20px; }
-        .container { max-width: 900px; margin: auto; }
-        
-        /* شريط التنقل */
-        .navbar { display: flex; justify-content: space-between; background: #2c3e50; padding: 15px 20px; color: white; border-radius: 8px; margin-bottom: 20px; }
-        .navbar a { color: #ecf0f1; text-decoration: none; margin-right: 15px; font-weight: bold; }
-
-        /* البطاقات والجدول */
-        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { padding: 12px; text-align: center; border-bottom: 1px solid #eee; }
-        
-        /* نموذج إضافة منتج */
-        .add-form { display: flex; gap: 10px; margin-bottom: 20px; }
-        input { padding: 10px; border: 1px solid #ddd; border-radius: 5px; flex: 1; }
-        button { padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        /* تطبيق لون المتجر المختار */
+        :root {
+            --primary-color: {{ settings.get('theme_color', '#4CAF50') }};
+        }
+        body { font-family: sans-serif; margin: 0; background-color: #f4f4f9; }
+        .navbar { background-color: var(--primary-color); padding: 15px; color: white; display: flex; justify-content: space-between; }
+        .container { padding: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: center; }
+        th { background-color: var(--primary-color); color: white; }
+        .btn { padding: 10px 20px; color: white; border: none; cursor: pointer; text-decoration: none; border-radius: 5px; }
+        .btn-add { background-color: var(--primary-color); }
+        .btn-logout { background-color: #ff4d4d; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <nav class="navbar">
-            <span>مرحباً بك في لوحة التحكم</span>
-            <div>
-                <a href="/settings">⚙️ الإعدادات</a>
-                <a href="/logout" style="color: #ff7675;">تسجيل الخروج</a>
-            </div>
-        </nav>
 
-        <div class="card">
-            <h3>إضافة منتج جديد</h3>
-            <form action="/add-product" method="POST" class="add-form">
-                <input type="text" name="name" placeholder="اسم المنتج" required>
-                <input type="number" name="price" placeholder="السعر" required>
-                <button type="submit">إضافة</button>
-            </form>
-        </div>
-
-        <div class="card">
-            <h3>الطلبات الأخيرة</h3>
-            <div style="background: #007bff; color: white; padding: 10px; border-radius: 5px; text-align: center; margin-bottom: 10px;">
-                مجموع المبيعات: {{ total_sales }} دج
-            </div>
-            <table>
-                <tr>
-                    <th>الزبون</th>
-                    <th>المنتج</th>
-                    <th>السعر</th>
-                </tr>
-                {% for order in orders %}
-                <tr>
-                    <td>{{ order.customer_name }}</td>
-                    <td>{{ order.product_name }}</td>
-                    <td>{{ order.total_price }}</td>
-                </tr>
-                {% endfor %}
-            </table>
-        </div>
+<div class="navbar">
+    <h2>مرحباً في لوحة تحكم {{ settings.get('shop_name', 'متجرك') }}</h2>
+    <div>
+        <a href="/settings" class="btn">الإعدادات</a>
+        <a href="/stats" class="btn">الإحصائيات</a>
+        <a href="/logout" class="btn btn-logout">تسجيل الخروج</a>
     </div>
-</body>
-</html>
+</div>
+
+<div class="container">
+    <h3>إضافة منتج جديد</h3>
+    <form action="/add-product" method="POST">
+        <input type="text" name="name" placeholder="اسم المنتج" required>
+        <input type="number" name="price" placeholder="السعر" required>
