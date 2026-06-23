@@ -1,88 +1,110 @@
-import os
-import requests
-from flask import Flask, render_template, request, redirect, session, flash
-from supabase import create_client
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ settings.get('shop_name', 'طلباتي') }}</title>
+    <style>
+        :root { --primary-color: {{ settings.get('theme_color', '#4CAF50') }}; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f4f9; margin: 0; }
+        .navbar { background-color: var(--primary-color); padding: 15px; color: white; display: flex; justify-content: space-between; align-items: center; }
+        .navbar a { color: white; text-decoration: none; margin: 0 10px; font-weight: bold; }
+        .container { padding: 20px; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        input { padding: 10px; margin: 5px; border: 1px solid #ddd; border-radius: 4px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 12px; border: 1px solid #eee; text-align: center; }
+        .btn { padding: 6px 12px; border-radius: 4px; border: none; cursor: pointer; color: white; }
+        .btn-add { background-color: var(--primary-color); }
+        .btn-delete { background-color: #ff4d4d; }
+        .btn-edit { background-color: #ffa500; }
+        #editModal { display:none; position:fixed; top:20%; left:30%; width: 40%; background:white; padding:20px; border:1px solid #ccc; border-radius:8px; box-shadow: 0 0 10px rgba(0,0,0,0.3); z-index: 1000; }
+    </style>
+</head>
+<body>
 
-app = Flask(__name__)
-app.secret_key = 'shimo_secret_key_2026'
+<div class="navbar">
+    <h2>{{ settings.get('shop_name', 'طلباتي') }}</h2>
+    <div>
+        <a href="/dashboard">الطلبات</a>
+        <a href="/stats">الإحصائيات</a>
+        <a href="/settings">الإعدادات</a>
+        <a href="/logout">خروج</a>
+    </div>
+</div>
 
-supabase = create_client(os.environ.get('SUPABASE_URL'), os.environ.get('SUPABASE_KEY'))
+<div class="container">
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% for message in messages %}
+          <div style="background-color: #d4edda; color: #155724; padding: 15px; border-radius: 5px; margin-bottom: 15px; text-align: center; border: 1px solid #c3e6cb;">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
 
-# --- الدوال المساعدة ---
-def get_safe_float(value):
-    try: return float(value)
-    except: return 0.0
+    <div class="card">
+        <h3>إضافة طلب جديد</h3>
+        <form action="/add-order" method="POST">
+            <input type="text" name="name" placeholder="اسم المنتج" required>
+            <input type="text" name="customer_name" placeholder="اسم الزبون">
+            <input type="number" name="price" placeholder="السعر" required>
+            <button type="submit" class="btn btn-add">إضافة</button>
+        </form>
+    </div>
 
-def send_telegram_msg(token, chat_id, message):
-    try:
-        url = f"https://api.telegram.org/bot{token}/sendMessage"
-        payload = {"chat_id": chat_id, "text": message, "parse_mode": "HTML"}
-        requests.post(url, data=payload)
-    except: pass
+    <div class="card">
+        <h3>إجمالي المبيعات: {{ total_sales }} دج</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>المنتج</th>
+                    <th>اسم الزبون</th>
+                    <th>السعر</th>
+                    <th>الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr>
+                    <td>{{ order.product_name }}</td>
+                    <td>{{ order.customer_name }}</td>
+                    <td>{{ order.total_price }} دج</td>
+                    <td>
+                        <button onclick="showEditForm('{{ order.id }}', '{{ order.product_name }}', '{{ order.customer_name }}', '{{ order.total_price }}')" class="btn btn-edit">تعديل</button>
+                        <form action="/delete-order" method="POST" style="display:inline;">
+                            <input type="hidden" name="order_id" value="{{ order.id }}">
+                            <button type="submit" class="btn btn-delete">حذف</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 
-# --- الرد التلقائي على الزبائن ---
-@app.route('/webhook', methods=['POST'])
-def webhook():
-    update = request.get_json()
-    if 'message' in update:
-        chat_id = update['message']['chat']['id']
-        text = update['message'].get('text', '').lower()
-        
-        # إذا سأل الزبون عن السعر
-        if "سعر" in text:
-            # البحث عن اسم المنتج في قاعدة البيانات (جدول products)
-            product_name = text.replace("سعر", "").strip()
-            res = supabase.table("products").select("price").ilike("name", f"%{product_name}%").maybe_single().execute()
-            
-            if res.data:
-                reply = f"سعر {product_name} هو {res.data['price']} دج."
-            else:
-                reply = "عذراً، هذا المنتج غير متوفر حالياً."
-            
-            # جلب توكن البوت من جدول الإعدادات
-            s_res = supabase.table("settings").select("bot_token").limit(1).execute()
-            if s_res.data:
-                send_telegram_msg(s_res.data[0]['bot_token'], chat_id, reply)
-            
-    return "ok", 200
+<div id="editModal">
+    <h3>تعديل الطلب</h3>
+    <form action="/edit-order" method="POST">
+        <input type="hidden" name="order_id" id="edit_id">
+        <input type="text" name="name" id="edit_name" required><br>
+        <input type="text" name="customer_name" id="edit_customer"><br>
+        <input type="number" name="price" id="edit_price" required><br>
+        <button type="submit" class="btn btn-add">حفظ</button>
+        <button type="button" onclick="document.getElementById('editModal').style.display='none'">إلغاء</button>
+    </form>
+</div>
 
-# --- صفحات لوحة التحكم ---
-@app.route('/dashboard')
-def dashboard():
-    if 'user' not in session: return redirect('/login')
-    s_res = supabase.table("settings").select("*").eq("manager_id", session['user']).maybe_single().execute()
-    settings = s_res.data if s_res and s_res.data else {"theme_color": "#4CAF50", "shop_name": "طلباتي"}
-    o_res = supabase.table("orders").select("*").eq("manager_id", session['user']).execute()
-    orders = o_res.data if o_res and o_res.data else []
-    total = sum(get_safe_float(o.get('total_price')) for o in orders)
-    return render_template('dashboard.html', orders=orders, settings=settings, total_sales=total)
-
-@app.route('/add-order', methods=['POST'])
-def add_order():
-    if 'user' not in session: return redirect('/login')
-    data = {
-        "manager_id": session['user'],
-        "product_name": request.form.get('name', ''),
-        "customer_name": request.form.get('customer_name', ''),
-        "total_price": get_safe_float(request.form.get('price'))
+<script>
+    function showEditForm(id, name, customer, price) {
+        document.getElementById('editModal').style.display = 'block';
+        document.getElementById('edit_id').value = id;
+        document.getElementById('edit_name').value = name;
+        document.getElementById('edit_customer').value = customer;
+        document.getElementById('edit_price').value = price;
     }
-    supabase.table("orders").insert(data).execute()
-    
-    # التنبيه لصاحب المتجر
-    s_res = supabase.table("settings").select("bot_token, telegram_chat_id").eq("manager_id", session['user']).maybe_single().execute()
-    if s_res.data and s_res.data.get('bot_token'):
-        msg = f"🛒 <b>طلب جديد:</b> {data['product_name']} | السعر: {data['total_price']} دج"
-        send_telegram_msg(s_res.data['bot_token'], s_res.data['telegram_chat_id'], msg)
-        
-    flash("تمت إضافة الطلب وإرسال التنبيه! ✅")
-    return redirect('/dashboard')
+</script>
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        session['user'] = request.form.get('username')
-        return redirect('/dashboard')
-    return render_template('login.html')
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+</body>
+</html>
