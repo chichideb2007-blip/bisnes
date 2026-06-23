@@ -7,11 +7,13 @@ app = Flask(__name__)
 app.secret_key = 'chaima_pro_2026'
 
 # --- إعدادات الإيميل ---
+# نصيحة: في Render، ضعي هذه القيم في Environment Variables
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = 'your-email@gmail.com' # ضعي إيميلك هنا
-app.config['MAIL_PASSWORD'] = 'your-app-password'     # ضعي كلمة مرور التطبيق هنا
+app.config['MAIL_USERNAME'] = 'your-email@gmail.com' # إيميلك الخاص بالإرسال
+app.config['MAIL_PASSWORD'] = 'your-app-password'     # كلمة مرور التطبيق من Google
+
 mail = Mail(app)
 
 # --- الاتصال بـ Supabase ---
@@ -40,8 +42,11 @@ def login():
         username = request.form.get('username')
         password = request.form.get('password')
         response = supabase.table("users").select("*").eq("username", username).eq("password", password).execute()
+        
         if response.data:
+            user = response.data[0]
             session['user'] = username
+            session['email'] = user.get('email') # تخزين إيميل المدير في الجلسة
             return redirect('/dashboard')
     return render_template('login.html')
 
@@ -50,7 +55,15 @@ def register():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-        supabase.table("users").insert({"username": username, "password": password}).execute()
+        email = request.form.get('email')
+        
+        # حفظ المدير الجديد مع إيميله
+        supabase.table("users").insert({
+            "username": username, 
+            "password": password, 
+            "email": email
+        }).execute()
+        
         return redirect('/login')
     return render_template('register.html')
 
@@ -70,18 +83,20 @@ def add():
     p_name = request.form.get('product_name')
     price = request.form.get('total_price')
     
+    # إضافة الطلب
     data = {"customer_name": c_name, "product_name": p_name, "total_price": price, "manager_id": session['user']}
     supabase.table("orders").insert(data).execute()
     
-    # إرسال إيميل للمدير عند إضافة طلب
-    # (ملاحظة: استبدلي 'manager@example.com' بإيميل المدير الحقيقي)
-    send_order_email('manager@example.com', f"الزبون: {c_name} | المنتج: {p_name} | السعر: {price}")
+    # إرسال الإيميل للمدير (الإيميل مخزن في الـ session عند تسجيل الدخول)
+    manager_email = session.get('email')
+    if manager_email:
+        send_order_email(manager_email, f"الزبون: {c_name} | المنتج: {p_name} | السعر: {price}")
     
     return redirect('/dashboard')
 
 @app.route('/logout')
 def logout():
-    session.pop('user', None)
+    session.clear()
     return redirect('/login')
 
 if __name__ == '__main__':
