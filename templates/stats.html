@@ -5,32 +5,43 @@
     <title>إحصائيات المبيعات</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: sans-serif; text-align: center; padding: 20px; }
-        .nav { margin-bottom: 20px; }
-        .nav a { margin: 0 10px; text-decoration: none; color: blue; }
-        .logout { color: red; }
+        :root { --primary-color: {{ settings.get('theme_color', '#4CAF50') }}; }
+        body { font-family: 'Segoe UI', sans-serif; padding: 20px; background-color: #f4f4f9; }
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 80%; margin: auto; }
+        .btn-back { background-color: var(--primary-color); color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 20px; }
+        h2 { color: #333; }
     </style>
 </head>
 <body>
-    <h2>إحصائيات مبيعاتك</h2>
-    <div class="nav">
-        <a href="/dashboard">العودة للوحة التحكم</a> | 
-        <a href="/logout" class="logout">تسجيل الخروج</a>
-    </div>
-    <div style="width: 80%; margin: auto;"><canvas id="salesChart"></canvas></div>
-    <script>
-        const ctx = document.getElementById('salesChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: {{ labels | tojson }},
-                datasets: [{
-                    label: 'السعر بالدينار',
-                    data: {{ values | tojson }},
-                    backgroundColor: 'rgba(54, 162, 235, 0.5)'
-                }]
-            }
-        });
-    </script>
+
+<div class="card">
+    <h2>منحنى المصروفات اليومي</h2>
+    <canvas id="expenseChart" width="400" height="200"></canvas>
+    
+    <a href="/dashboard" class="btn-back">العودة للوحة التحكم</a>
+</div>
+
+<script>
+    const ctx = document.getElementById('expenseChart').getContext('2d');
+    const myChart = new Chart(ctx, {
+        type: 'line', // نوع الرسم: منحنى
+        data: {
+            labels: {{ labels | tojson }}, // الساعات/الأيام
+            datasets: [{
+                label: 'المصروف (دج)',
+                data: {{ values | tojson }}, // القيم المالية
+                borderColor: 'var(--primary-color)', // اللون المخصص لكل مدير
+                backgroundColor: 'rgba(76, 175, 80, 0.1)', // ظل خفيف أسفل المنحنى
+                tension: 0.4, // لجعل الخط ناعماً ومنحنياً
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { position: 'top' } }
+        }
+    });
+</script>
+
 </body>
 </html>
