@@ -3,11 +3,12 @@ from flask import Flask, render_template, request, redirect, session, flash
 from supabase import create_client
 
 app = Flask(__name__)
-app.secret_key = 'shimo_2026_secure'
+# مفتاح سري لتشفير الجلسات (مهم جداً لعمل الموقع)
+app.secret_key = 'shimo_2026_secure_key'
 
-# إعداد Supabase مع حماية لتجنب الخطأ 500 إذا كانت الإعدادات مفقودة
-url = os.environ.get('SUPABASE_URL')
-key = os.environ.get('SUPABASE_KEY')
+# إعداد Supabase مع فحص لتجنب الانهيار إذا لم تكن البيانات موجودة
+url = os.environ.get('SUPABASE_URL', '')
+key = os.environ.get('SUPABASE_KEY', '')
 supabase = create_client(url, key) if url and key else None
 
 @app.route('/')
@@ -21,12 +22,12 @@ def login():
         user = request.form.get('username')
         email = request.form.get('email')
         
-        # تخزين البيانات في الجلسة للانتقال للوحة التحكم
+        # تخزين المستخدم في الجلسة للانتقال للوحة التحكم
         if user and email:
             session['user'] = user
             return redirect('/dashboard')
         else:
-            flash("يرجى ملء جميع الحقول!")
+            return "خطأ: يرجى ملء اسم المستخدم والبريد الإلكتروني!", 400
     return render_template('login.html')
 
 @app.route('/dashboard')
@@ -34,16 +35,17 @@ def dashboard():
     if 'user' not in session:
         return redirect('/login')
     
-    # محاولة جلب البيانات مع تأمين ضد الانهيار
     products = []
     orders = []
-    try:
-        if supabase:
+    
+    # جلب البيانات من Supabase
+    if supabase:
+        try:
             products = supabase.table("products").select("*").execute().data
             orders = supabase.table("orders").select("*").execute().data
-    except Exception as e:
-        print(f"Error fetching data: {e}")
-        
+        except Exception as e:
+            print(f"Database Error: {e}")
+            
     return render_template('dashboard.html', products=products, orders=orders)
 
 @app.route('/add-product', methods=['POST'])
@@ -58,9 +60,8 @@ def add_product():
                 "stock_quantity": int(request.form.get('stock', 0))
             }
             supabase.table("products").insert(data).execute()
-            flash("تمت الإضافة بنجاح!")
     except Exception as e:
-        flash("خطأ في الاتصال بقاعدة البيانات.")
+        print(f"Add Product Error: {e}")
         
     return redirect('/dashboard')
 
