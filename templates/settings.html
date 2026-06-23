@@ -20,11 +20,12 @@
 
 <div class="card">
     <h2 style="text-align: center; color: var(--primary-color);">⚙️ إعدادات المتجر</h2>
+    
     <form action="/settings" method="POST">
         
         <div class="form-group">
             <label>اسم المتجر:</label>
-            <input type="text" name="shop_name" value="{{ settings.get('shop_name', '') }}" required>
+            <input type="text" name="shop_name" value="{{ settings.get('shop_name', '') }}">
         </div>
 
         <div class="form-group">
