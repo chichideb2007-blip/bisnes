@@ -1,29 +1,21 @@
 <!DOCTYPE html>
-<html dir="rtl" lang="ar">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <title>تسجيل الدخول</title>
-    <style>
-        body { font-family: Arial, sans-serif; display: flex; justify-content: center; padding-top: 50px; }
-        .form-container { border: 1px solid #ccc; padding: 30px; border-radius: 10px; width: 300px; text-align: center; }
-        input { display: block; width: 100%; margin-bottom: 15px; padding: 8px; box-sizing: border-box; }
-        button { width: 100%; padding: 10px; background-color: blue; color: white; border: none; cursor: pointer; }
-        .register-link { margin-top: 15px; display: block; color: gray; font-size: 14px; }
-    </style>
 </head>
 <body>
+    <h2>تسجيل الدخول إلى حسابك</h2>
 
-    <div class="form-container">
-        <h2>تسجيل الدخول</h2>
-        <form action="/login" method="POST">
-            <input type="text" name="username" placeholder="اسم المستخدم" required>
-            <input type="password" name="password" placeholder="كلمة السر" required>
-            <button type="submit">دخول</button>
-        </form>
+    {% if error %}
+        <p style="color: red; font-weight: bold;">{{ error }}</p>
+    {% endif %}
 
-        <!-- الرابط الجديد لصفحة التسجيل -->
-        <a href="/register" class="register-link">ليس لديك حساب؟ أنشئ حساباً جديداً</a>
-    </div>
-
+    <form action="/login" method="POST">
+        <input type="text" name="username" placeholder="اسم المستخدم" required><br><br>
+        <input type="email" name="email" placeholder="البريد الإلكتروني" required><br><br>
+        <input type="password" name="password" placeholder="كلمة السر" required><br><br>
+        <button type="submit">دخول</button>
+    </form>
 </body>
 </html>
