@@ -1,29 +1,27 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
+    <meta charset="UTF-8">
+    <title>تسجيل الدخول - المتجر الذكي</title>
     <style>
-        body { font-family: Arial, sans-serif; display: flex; justify-content: center; padding-top: 50px; background-color: #f4f4f9; }
-        .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); width: 300px; text-align: center; }
-        input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
-        button { width: 100%; padding: 10px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; }
-        .link { margin-top: 15px; display: block; color: #007bff; text-decoration: none; cursor: pointer; }
+        body { font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f4f4f9; margin: 0; }
+        .login-card { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 350px; text-align: center; }
+        input { width: 90%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+        button { width: 90%; padding: 12px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        button:hover { background-color: #218838; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h2>{{ "إنشاء حساب" if is_register else "تسجيل الدخول" }}</h2>
-        {% if error %}<p style="color: red;">{{ error }}</p>{% endif %}
-        
-        <form action="{{ '/register' if is_register else '/login' }}" method="POST">
-            <input type="text" name="username" placeholder="اسم المستخدم" required>
-            <input type="email" name="email" placeholder="البريد الإلكتروني" required>
-            <input type="password" name="password" placeholder="كلمة السر" required>
-            <button type="submit">{{ "تسجيل" if is_register else "دخول" }}</button>
-        </form>
-        
-        <a href="{{ '/login' if is_register else '/register' }}" class="link">
-            {{ "لدي حساب بالفعل" if is_register else "ليس لدي حساب؟ أنشئ واحداً" }}
-        </a>
-    </div>
+
+<div class="login-card">
+    <h2>تسجيل الدخول</h2>
+    <form action="/login" method="POST">
+        <input type="text" name="username" placeholder="اسم المستخدم" required>
+        <input type="password" name="password" placeholder="كلمة المرور">
+        <button type="submit">دخول</button>
+    </form>
+    <p>ليس لدي حساب؟ <a href="#">أنشئ واحداً</a></p>
+</div>
+
 </body>
 </html>
