@@ -1,16 +1,24 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html dir="rtl" lang="ar">
 <head>
     <meta charset="UTF-8">
-    <title>إعدادات الربط</title>
+    <title>إعدادات النظام</title>
 </head>
 <body>
-    <h1>ربط حساب الإنستغرام</h1>
-    <form method="POST">
-        <label>أدخل الـ Access Token الخاص بحسابك:</label><br>
-        <input type="text" name="access_token" required placeholder="ضع التوكين هنا">
-        <button type="submit">حفظ الربط</button>
+    <h2>إعدادات استقبال الطلبات</h2>
+    <form action="/save-settings" method="POST">
+        <input type="text" name="smtp_server" placeholder="SMTP Server" required>
+        <input type="number" name="smtp_port" placeholder="Port (e.g. 587)" required>
+        <input type="email" name="email_address" placeholder="إيميلك الشخصي" required>
+        <input type="password" name="email_password" placeholder="App Password" required>
+        
+        <hr>
+        
+        <input type="text" name="instagram_token" placeholder="أدخل Access Token للإنستغرام">
+        
+        <button type="submit">حفظ الإعدادات</button>
     </form>
+    
     <br>
     <a href="/dashboard">العودة للوحة التحكم</a>
 </body>
