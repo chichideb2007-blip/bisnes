@@ -6,7 +6,7 @@ from supabase import create_client
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_change_this'
 
-# إعداد Supabase (يتم جلبه من إعدادات Render)
+# إعداد Supabase
 supabase = create_client(os.environ.get('SUPABASE_URL'), os.environ.get('SUPABASE_KEY'))
 
 # --- دالة إرسال التنبيه ---
@@ -35,9 +35,15 @@ def login():
 @app.route('/dashboard')
 def dashboard():
     if 'user' not in session: return redirect('/login')
+    
     # جلب طلبات المدير الحالي فقط
-    orders = supabase.table("orders").select("*").eq("manager_id", session['user']).execute().data
-    return render_template('dashboard.html', orders=orders)
+    response = supabase.table("orders").select("*").eq("manager_id", session['user']).execute()
+    orders = response.data if response.data else []
+    
+    # حساب المجموع التلقائي للمبيعات
+    total_sales = sum(float(o.get('total_price', 0)) for o in orders)
+    
+    return render_template('dashboard.html', orders=orders, total_sales=total_sales)
 
 @app.route('/settings', methods=['GET', 'POST'])
 def settings():
@@ -63,6 +69,7 @@ def add_order():
     data = {
         "customer_name": request.form.get('customer_name'),
         "product_name": request.form.get('product_name'),
+        "total_price": request.form.get('total_price'),
         "manager_id": manager_id
     }
     supabase.table("orders").insert(data).execute()
