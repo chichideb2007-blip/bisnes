@@ -60,7 +60,7 @@ def settings():
         data = {"manager_id": manager_id, "shop_name": request.form.get('shop_name'), 
                 "bot_token": request.form.get('bot_token'), "telegram_chat_id": request.form.get('telegram_chat_id')}
         supabase.table("settings").upsert(data).execute()
-        return "تم الحفظ! <a href='/dashboard'>العودة</a>"
+        return "تم الحفظ! <a href='/dashboard'>العودة للوحة التحكم</a>"
     res = supabase.table("settings").select("*").eq("manager_id", manager_id).maybe_single().execute()
     return render_template('settings.html', settings=res.data if res and res.data else {})
 
