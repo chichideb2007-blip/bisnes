@@ -14,7 +14,7 @@ supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 mail = Mail(app)
 
-# --- دالة تسجيل الدخول ---
+# --- دالة تسجيل الدخول مع رسائل الخطأ ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     error = None 
@@ -23,19 +23,22 @@ def login():
         email = request.form.get('email')
         password = request.form.get('password')
         
+        # البحث عن المستخدم في قاعدة البيانات
         user_response = supabase.table("users").select("*").eq("username", username).execute()
         
         if user_response.data:
             user = user_response.data[0]
+            # التحقق من البيانات
             if user['password'] == password and user['email'] == email:
                 session['user'] = user['id']
                 return redirect('/dashboard')
         
+        # رسالة الخطأ إذا كانت البيانات غير صحيحة
         error = "خطأ: اسم المستخدم أو الإيميل أو كلمة السر غير صحيحة!"
             
     return render_template('login.html', error=error)
 
-# --- دالة إرسال الإيميل ---
+# --- دالة إرسال الإيميل الديناميكية ---
 def send_dynamic_email(manager_id, subject, body):
     response = supabase.table("manager_settings").select("*").eq("manager_id", manager_id).execute()
     if not response.data: return
@@ -72,7 +75,7 @@ def dashboard():
     if 'user' not in session: return redirect('/login')
     return "مرحباً بك في لوحة التحكم!"
 
-# --- هذا التعديل هو ما سيحل مشكلة المنفذ في Render ---
+# --- هذا الجزء يحل مشكلة تشغيل السيرفر على Render ---
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
