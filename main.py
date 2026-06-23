@@ -9,12 +9,11 @@ app.secret_key = 'your_super_secret_key'
 # إعداد Supabase
 supabase = create_client(os.environ.get('SUPABASE_URL'), os.environ.get('SUPABASE_KEY'))
 
-# --- دوال مساعدة ---
+# دالة مساعدة لتجنب الأخطاء عند تحويل الأرقام
 def get_safe_float(value):
     try: return float(value)
     except: return 0.0
 
-# --- المسارات ---
 @app.route('/')
 def home(): return redirect('/login')
 
@@ -33,6 +32,7 @@ def logout():
 @app.route('/dashboard')
 def dashboard():
     if 'user' not in session: return redirect('/login')
+    # جلب الإعدادات والطلبات بأمان
     s_res = supabase.table("settings").select("*").eq("manager_id", session['user']).maybe_single().execute()
     o_res = supabase.table("orders").select("*").eq("manager_id", session['user']).execute()
     
@@ -48,7 +48,7 @@ def add_product():
     data = {
         "manager_id": session['user'],
         "product_name": request.form.get('name', ''),
-        "customer_name": request.form.get('customer_name', ''), # اسم الزبون
+        "customer_name": request.form.get('customer_name', ''),
         "total_price": get_safe_float(request.form.get('price'))
     }
     supabase.table("orders").insert(data).execute()
@@ -66,15 +66,13 @@ def settings():
     if 'user' not in session: return redirect('/login')
     manager_id = session['user']
     if request.method == 'POST':
-        # تحديث الحقول فقط إذا تم إرسالها (لحفظ اللون وحده)
+        # تحديث اللون والحقول بدون إجبار المستخدم على ملئها
         data = {"manager_id": manager_id}
         if request.form.get('shop_name'): data['shop_name'] = request.form.get('shop_name')
-        if request.form.get('bot_token'): data['bot_token'] = request.form.get('bot_token')
-        if request.form.get('telegram_chat_id'): data['telegram_chat_id'] = request.form.get('telegram_chat_id')
         if request.form.get('theme_color'): data['theme_color'] = request.form.get('theme_color')
         
         supabase.table("settings").upsert(data, on_conflict="manager_id").execute()
-        return "تم الحفظ! <a href='/dashboard'>العودة للوحة التحكم</a>"
+        return redirect('/dashboard')
     
     res = supabase.table("settings").select("*").eq("manager_id", manager_id).maybe_single().execute()
     return render_template('settings.html', settings=res.data if res and res.data else {})
@@ -88,12 +86,14 @@ def stats():
     res = supabase.table("orders").select("*").eq("manager_id", session['user']).execute()
     orders = res.data if res and res.data else []
     
-    chart_data = {}
-    for o in orders:
-        date_key = o.get('created_at', datetime.now().isoformat())[11:13] + ":00"
-        chart_data[date_key] = chart_data.get(date_key, 0) + get_safe_float(o.get('total_price'))
+    # تجنب الخطأ إذا كانت الطلبات فارغة
+    labels = []
+    values = []
+    if orders:
+        labels = [o.get('product_name', 'غير معروف') for o in orders]
+        values = [get_safe_float(o.get('total_price')) for o in orders]
     
-    return render_template('stats.html', labels=list(chart_data.keys()), values=list(chart_data.values()), settings=settings)
+    return render_template('stats.html', labels=labels, values=values, settings=settings)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
