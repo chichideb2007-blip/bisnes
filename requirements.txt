@@ -1,5 +1,6 @@
 flask
+flask-mail
 supabase
+pyTelegramBotAPI
 requests
 python-dotenv
-Flask-Mail
