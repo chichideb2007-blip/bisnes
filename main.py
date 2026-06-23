@@ -9,7 +9,7 @@ app.secret_key = 'your_super_secret_key'
 # إعداد Supabase
 supabase = create_client(os.environ.get('SUPABASE_URL'), os.environ.get('SUPABASE_KEY'))
 
-# --- الدوال ---
+# --- الدوال المساعدة ---
 def send_telegram_order(manager_id, customer_name, product_name):
     res = supabase.table("settings").select("bot_token", "telegram_chat_id").eq("manager_id", manager_id).maybe_single().execute()
     settings = res.data if res and res.data else None
