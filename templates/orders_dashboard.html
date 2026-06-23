@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>إدارة الطلبات</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f4f9; padding: 20px; }
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: center; }
+        th { background-color: #f8f9fa; }
+        select { padding: 5px; border-radius: 4px; border: 1px solid #ccc; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h3>قائمة الطلبات الواردة</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>الزبون</th>
+                <th>تفاصيل الطلب</th>
+                <th>الحالة الحالية</th>
+                <th>تغيير الحالة</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for o in orders %}
+            <tr>
+                <td>{{ o.customer_name }}</td>
+                <td>{{ o.order_details }}</td>
+                <td><strong>{{ o.status }}</strong></td>
+                <td>
+                    <form action="/update-status/{{ o.id }}" method="POST">
+                        <select name="status" onchange="this.form.submit()">
+                            <option value="جديد" {% if o.status == 'جديد' %}selected{% endif %}>جديد</option>
+                            <option value="جاري التجهيز" {% if o.status == 'جاري التجهيز' %}selected{% endif %}>جاري التجهيز</option>
+                            <option value="تم الشحن" {% if o.status == 'تم الشحن' %}selected{% endif %}>تم الشحن</option>
+                            <option value="تم التوصيل" {% if o.status == 'تم التوصيل' %}selected{% endif %}>تم التوصيل</option>
+                        </select>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+</body>
+</html>
