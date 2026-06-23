@@ -4,22 +4,43 @@ from flask_mail import Mail, Message
 from supabase import create_client
 
 app = Flask(__name__)
+# استخدام مفتاح سري من المتغيرات في Render
 app.secret_key = os.environ.get('SECRET_KEY', 'default_secret_key')
 
-# الاتصال بـ Supabase باستخدام المتغيرات الموجودة في Render
+# الاتصال بـ Supabase
 SUPABASE_URL = os.environ.get('SUPABASE_URL')
 SUPABASE_KEY = os.environ.get('SUPABASE_KEY')
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 mail = Mail(app)
 
-# دالة إرسال الإيميل (تأخذ الإعدادات من جدول manager_settings)
+# --- دالة تسجيل الدخول مع رسائل الخطأ ---
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    error = None 
+    if request.method == 'POST':
+        username = request.form.get('username')
+        email = request.form.get('email')
+        password = request.form.get('password')
+        
+        user_response = supabase.table("users").select("*").eq("username", username).execute()
+        
+        if user_response.data:
+            user = user_response.data[0]
+            if user['password'] == password and user['email'] == email:
+                session['user'] = user['id']
+                return redirect('/dashboard')
+        
+        error = "خطأ: اسم المستخدم أو الإيميل أو كلمة السر غير صحيحة!"
+            
+    return render_template('login.html', error=error)
+
+# --- دالة إرسال الإيميل الديناميكية ---
 def send_dynamic_email(manager_id, subject, body):
     response = supabase.table("manager_settings").select("*").eq("manager_id", manager_id).execute()
     if not response.data: return
     
     cfg = response.data[0]
-    
     app.config.update(
         MAIL_SERVER=cfg['smtp_server'],
         MAIL_PORT=int(cfg['smtp_port']),
@@ -27,12 +48,11 @@ def send_dynamic_email(manager_id, subject, body):
         MAIL_PASSWORD=cfg['email_password'],
         MAIL_USE_TLS=True
     )
-    
-    mail_sender = Mail(app)
     msg = Message(subject, sender=cfg['email_address'], recipients=[cfg['email_address']])
     msg.body = body
-    mail_sender.send(msg)
+    mail.send(msg)
 
+# --- دالة حفظ الإعدادات ---
 @app.route('/save-settings', methods=['POST'])
 def save_settings():
     if 'user' not in session: return redirect('/login')
@@ -44,9 +64,13 @@ def save_settings():
         "email_address": request.form.get('email_address'),
         "email_password": request.form.get('email_password')
     }
-    # بما أن الجدول موجود، نستخدم upsert لتحديث البيانات
     supabase.table("manager_settings").upsert(data, on_conflict="manager_id").execute()
     return redirect('/dashboard')
+
+@app.route('/dashboard')
+def dashboard():
+    if 'user' not in session: return redirect('/login')
+    return "مرحباً بك في لوحة التحكم!"
 
 if __name__ == '__main__':
     app.run(debug=True)
