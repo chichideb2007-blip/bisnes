@@ -2,45 +2,24 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>لوحة تحكم {{ settings.get('shop_name', 'متجري') }}</title>
+    <title>لوحة التحكم | {{ settings.get('shop_name', 'متجري') }}</title>
     <style>
-        /* تعريف المتغيرات للألوان بناءً على اختيار المدير */
-        :root {
-            --primary-color: {{ settings.get('theme_color', '#4CAF50') }};
-        }
+        :root { --primary-color: {{ settings.get('theme_color', '#4CAF50') }}; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background-color: #f4f4f9; }
         
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background-color: #f9f9f9; }
-        
-        /* شريط التنقل */
-        .navbar { 
-            background-color: var(--primary-color); 
-            padding: 15px 20px; 
-            color: white; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        .navbar a { color: white; text-decoration: none; margin-left: 15px; font-weight: bold; }
-        .navbar a:hover { text-decoration: underline; }
+        .navbar { background-color: var(--primary-color); padding: 15px; color: white; display: flex; justify-content: space-between; align-items: center; }
+        .navbar a { color: white; text-decoration: none; margin: 0 10px; font-weight: bold; }
         
         .container { padding: 20px; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
         
-        /* التنسيق العام */
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { padding: 12px; border-bottom: 1px solid #ddd; text-align: center; }
-        th { background-color: #f2f2f2; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: center; }
+        th { background-color: #f8f8f8; }
         
-        .btn-add { 
-            background-color: var(--primary-color); 
-            color: white; 
-            border: none; 
-            padding: 10px 20px; 
-            border-radius: 5px; 
-            cursor: pointer; 
-        }
-        .btn-logout { background-color: #ff4d4d; }
+        .btn { padding: 8px 15px; border-radius: 4px; border: none; cursor: pointer; color: white; }
+        .btn-add { background-color: var(--primary-color); }
+        .btn-delete { background-color: #ff4d4d; }
     </style>
 </head>
 <body>
@@ -51,17 +30,17 @@
         <a href="/dashboard">الرئيسية</a>
         <a href="/stats">الإحصائيات</a>
         <a href="/settings">الإعدادات</a>
-        <a href="/logout" style="background: rgba(255,255,255,0.2); padding: 5px 10px; border-radius: 5px;">تسجيل الخروج</a>
+        <a href="/logout">تسجيل الخروج</a>
     </div>
 </div>
 
 <div class="container">
     <div class="card">
-        <h3>إضافة منتج جديد</h3>
+        <h3>إضافة طلبية جديدة</h3>
         <form action="/add-product" method="POST">
-            <input type="text" name="name" placeholder="اسم المنتج" required style="padding: 8px; width: 200px;">
-            <input type="number" name="price" placeholder="السعر (دج)" required style="padding: 8px; width: 100px;">
-            <button type="submit" class="btn-add">إضافة</button>
+            <input type="text" name="name" placeholder="اسم المنتج" required>
+            <input type="number" name="price" placeholder="السعر" required>
+            <button type="submit" class="btn btn-add">إضافة</button>
         </form>
     </div>
 
@@ -70,8 +49,9 @@
         <table>
             <thead>
                 <tr>
-                    <th>اسم المنتج</th>
+                    <th>المنتج</th>
                     <th>السعر</th>
+                    <th>الإجراءات</th>
                 </tr>
             </thead>
             <tbody>
@@ -79,6 +59,12 @@
                 <tr>
                     <td>{{ order.product_name }}</td>
                     <td>{{ order.total_price }} دج</td>
+                    <td>
+                        <form action="/delete-order" method="POST">
+                            <input type="hidden" name="order_id" value="{{ order.id }}">
+                            <button type="submit" class="btn btn-delete">حذف</button>
+                        </form>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
