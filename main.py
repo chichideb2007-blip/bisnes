@@ -1,24 +1,29 @@
+import os
 from flask import Flask, render_template, request, redirect, session
 from flask_mail import Mail, Message
 from supabase import create_client
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key' 
+# استخدمي مفتاح سري عشوائي
+app.secret_key = os.environ.get('SECRET_KEY', 'default_secret_key')
 
-# إعدادات Supabase (ضعي روابطكِ هنا)
-supabase = create_client("YOUR_SUPABASE_URL", "YOUR_SUPABASE_KEY")
+# 1. الاتصال بـ Supabase من متغيرات البيئة (لا تضعي الرابط هنا!)
+SUPABASE_URL = os.environ.get('SUPABASE_URL')
+SUPABASE_KEY = os.environ.get('SUPABASE_KEY')
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# إعدادات الـ Mail
+# إعدادات البريد
 mail = Mail(app)
 
-# 1. دالة إرسال الإيميل الديناميكية (لكل مدير إعداداته)
+# دالة إرسال الإيميل الديناميكية
 def send_dynamic_email(manager_id, subject, body):
-    config = supabase.table("manager_settings").select("*").eq("manager_id", manager_id).execute()
-    if not config.data: return
+    # جلب إعدادات المدير
+    response = supabase.table("manager_settings").select("*").eq("manager_id", manager_id).execute()
+    if not response.data: return
     
-    cfg = config.data[0]
+    cfg = response.data[0]
     
-    # تحديث إعدادات الإرسال مؤقتاً
+    # تحديث إعدادات الإرسال من قاعدة البيانات
     app.config.update(
         MAIL_SERVER=cfg['smtp_server'],
         MAIL_PORT=int(cfg['smtp_port']),
@@ -32,12 +37,10 @@ def send_dynamic_email(manager_id, subject, body):
     msg.body = body
     mail_sender.send(msg)
 
-# 2. مسار إضافة الطلب (الذي يجمع بين قاعدة البيانات والإشعارات)
 @app.route('/add', methods=['POST'])
 def add():
     if 'user' not in session: return redirect('/login')
     
-    # إضافة الطلب للقاعدة
     data = {
         "customer_name": request.form.get('customer_name'),
         "product_name": request.form.get('product_name'),
@@ -46,12 +49,10 @@ def add():
     }
     supabase.table("orders").insert(data).execute()
     
-    # إرسال إيميل للمدير بإعداداته الخاصة
+    # إرسال إيميل
     send_dynamic_email(session['user'], "طلب جديد!", f"وصلك طلب جديد من {data['customer_name']}")
-    
     return redirect('/dashboard')
 
-# 3. مسار حفظ الإعدادات الموحد (إيميل + إنستغرام)
 @app.route('/save-settings', methods=['POST'])
 def save_settings():
     if 'user' not in session: return redirect('/login')
@@ -64,7 +65,6 @@ def save_settings():
         "email_password": request.form.get('email_password'),
         "instagram_token": request.form.get('instagram_token')
     }
-    
     supabase.table("manager_settings").upsert(data, on_conflict="manager_id").execute()
     return redirect('/dashboard')
 
