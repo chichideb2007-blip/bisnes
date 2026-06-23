@@ -9,16 +9,16 @@ app.secret_key = 'your_super_secret_key'
 # إعداد Supabase
 supabase = create_client(os.environ.get('SUPABASE_URL'), os.environ.get('SUPABASE_KEY'))
 
-# --- الدالة الآمنة لإرسال التليجرام ---
+# --- الدوال المساعدة ---
 def send_telegram_order(manager_id, customer_name, product_name):
     res = supabase.table("settings").select("bot_token", "telegram_chat_id").eq("manager_id", manager_id).maybe_single().execute()
-    if res and res.data:
-        settings = res.data
-        if settings.get('bot_token') and settings.get('telegram_chat_id'):
-            try:
-                bot = telebot.TeleBot(settings['bot_token'])
-                bot.send_message(settings['telegram_chat_id'], f"🚨 طلب جديد!\n📦 المنتج: {product_name}")
-            except: pass
+    settings = res.data if res and res.data else None
+    
+    if settings and settings.get('bot_token') and settings.get('telegram_chat_id'):
+        try:
+            bot = telebot.TeleBot(settings['bot_token'])
+            bot.send_message(settings['telegram_chat_id'], f"🚨 طلب جديد!\n📦 المنتج: {product_name}")
+        except: pass
 
 # --- المسارات ---
 @app.route('/')
@@ -31,16 +31,32 @@ def login():
         return redirect('/dashboard')
     return render_template('login.html')
 
+@app.route('/logout')
+def logout():
+    session.pop('user', None)
+    return redirect('/login')
+
 @app.route('/dashboard')
 def dashboard():
     if 'user' not in session: return redirect('/login')
-    # جلب الإعدادات (ليتم استخدام اللون في القالب)
-    settings = supabase.table("settings").select("*").eq("manager_id", session['user']).maybe_single().execute()
-    user_settings = settings.data if settings and settings.data else {}
+    # جلب الإعدادات والطلبات
+    s_res = supabase.table("settings").select("*").eq("manager_id", session['user']).maybe_single().execute()
+    o_res = supabase.table("orders").select("*").eq("manager_id", session['user']).execute()
     
-    orders = supabase.table("orders").select("*").eq("manager_id", session['user']).execute()
-    orders_list = orders.data if orders and orders.data else []
-    return render_template('dashboard.html', orders=orders_list, settings=user_settings)
+    settings = s_res.data if s_res and s_res.data else {}
+    orders = o_res.data if o_res and o_res.data else []
+    total = sum(float(o.get('total_price', 0)) for o in orders)
+    
+    return render_template('dashboard.html', orders=orders, settings=settings, total_sales=total)
+
+@app.route('/stats')
+def stats():
+    if 'user' not in session: return redirect('/login')
+    res = supabase.table("orders").select("*").eq("manager_id", session['user']).execute()
+    orders = res.data if res and res.data else []
+    labels = [o.get('product_name') for o in orders]
+    values = [float(o.get('total_price', 0)) for o in orders]
+    return render_template('stats.html', labels=labels, values=values)
 
 @app.route('/settings', methods=['GET', 'POST'])
 def settings():
@@ -52,10 +68,10 @@ def settings():
             "shop_name": request.form.get('shop_name'),
             "bot_token": request.form.get('bot_token'),
             "telegram_chat_id": request.form.get('telegram_chat_id'),
-            "theme_color": request.form.get('theme_color') # حفظ اللون الجديد
+            "theme_color": request.form.get('theme_color')
         }
         supabase.table("settings").upsert(data).execute()
-        return "تم الحفظ! <a href='/dashboard'>العودة</a>"
+        return "تم الحفظ بنجاح! <a href='/dashboard'>العودة للوحة التحكم</a>"
     
     res = supabase.table("settings").select("*").eq("manager_id", manager_id).maybe_single().execute()
     return render_template('settings.html', settings=res.data if res and res.data else {})
