@@ -1,16 +1,43 @@
 <!DOCTYPE html>
-<html dir="rtl" lang="ar">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>الإحصائيات</title>
+    <title>إحصائيات المبيعات</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 20px; }
+        .nav-links { margin-bottom: 20px; }
+        .nav-links a { margin: 0 10px; text-decoration: none; color: blue; }
+        .logout { color: red !important; }
+    </style>
 </head>
 <body>
-    <h1>لوحة الإحصائيات</h1>
-    <div style="border: 1px solid #ccc; padding: 20px; width: 300px;">
-        <p>عدد الطلبات الكلي: <strong>{{ count }}</strong></p>
-        <p>مجموع الأرباح: <strong>{{ total }}</strong></p>
+    <h2>إحصائيات مبيعاتك</h2>
+    
+    <div class="nav-links">
+        <a href="/dashboard">العودة للوحة التحكم</a> | 
+        <a href="/logout" class="logout">تسجيل الخروج</a>
     </div>
-    <br>
-    <a href="/dashboard">العودة للطلبات</a> | <a href="/logout">تسجيل الخروج</a>
+
+    <div style="width: 80%; margin: auto;">
+        <canvas id="salesChart"></canvas>
+    </div>
+
+    <script>
+        const ctx = document.getElementById('salesChart').getContext('2d');
+        const salesChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: {{ labels | tojson }},
+                datasets: [{
+                    label: 'السعر بالدينار',
+                    data: {{ values | tojson }},
+                    backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            }
+        });
+    </script>
 </body>
 </html>
