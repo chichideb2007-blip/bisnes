@@ -35,6 +35,7 @@ def login():
 
 @app.route('/logout')
 def logout():
+    # هذا هو المسار الذي يقوم بحذف الجلسة وتسجيل الخروج
     session.pop('user', None)
     return redirect('/login')
 
