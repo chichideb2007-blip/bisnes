@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>لوحة الطلبات</title>
+    <title>{{ settings.get('shop_name', 'طلباتي') }}</title>
     <style>
         :root { --primary-color: {{ settings.get('theme_color', '#4CAF50') }}; }
         body { font-family: 'Segoe UI', sans-serif; background-color: #f4f4f9; margin: 0; }
@@ -17,9 +17,7 @@
         .btn-add { background-color: var(--primary-color); }
         .btn-delete { background-color: #ff4d4d; }
         .btn-edit { background-color: #ffa500; }
-        
-        /* تصميم نافذة التعديل */
-        #editModal { display:none; position:fixed; top:20%; left:30%; width: 40%; background:white; padding:20px; border:1px solid #ccc; border-radius:8px; box-shadow: 0 0 10px rgba(0,0,0,0.3); }
+        #editModal { display:none; position:fixed; top:20%; left:30%; width: 40%; background:white; padding:20px; border:1px solid #ccc; border-radius:8px; box-shadow: 0 0 10px rgba(0,0,0,0.3); z-index: 1000; }
     </style>
 </head>
 <body>
@@ -35,6 +33,16 @@
 </div>
 
 <div class="container">
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% for message in messages %}
+          <div style="background-color: #d4edda; color: #155724; padding: 15px; border-radius: 5px; margin-bottom: 15px; text-align: center; border: 1px solid #c3e6cb;">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
     <div class="card">
         <h3>إضافة طلب جديد</h3>
         <form action="/add-order" method="POST">
@@ -80,10 +88,10 @@
     <h3>تعديل الطلب</h3>
     <form action="/edit-order" method="POST">
         <input type="hidden" name="order_id" id="edit_id">
-        <input type="text" name="name" id="edit_name" placeholder="اسم المنتج" required><br>
-        <input type="text" name="customer_name" id="edit_customer" placeholder="اسم الزبون"><br>
-        <input type="number" name="price" id="edit_price" placeholder="السعر" required><br>
-        <button type="submit" class="btn btn-add">حفظ التعديلات</button>
+        <input type="text" name="name" id="edit_name" required><br>
+        <input type="text" name="customer_name" id="edit_customer"><br>
+        <input type="number" name="price" id="edit_price" required><br>
+        <button type="submit" class="btn btn-add">حفظ</button>
         <button type="button" onclick="document.getElementById('editModal').style.display='none'">إلغاء</button>
     </form>
 </div>
@@ -100,4 +108,3 @@
 
 </body>
 </html>
-
