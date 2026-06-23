@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>{{ settings.get('shop_name', 'طلباتي') }}</title>
+    <title>إدارة المتجر الذكي</title>
     <style>
         :root { --primary-color: {{ settings.get('theme_color', '#4CAF50') }}; }
         body { font-family: 'Segoe UI', sans-serif; background-color: #f4f4f9; margin: 0; }
@@ -17,15 +17,16 @@
         .btn-add { background-color: var(--primary-color); }
         .btn-delete { background-color: #ff4d4d; }
         .btn-edit { background-color: #ffa500; }
+        .stock-low { color: red; font-weight: bold; }
         #editModal { display:none; position:fixed; top:20%; left:30%; width: 40%; background:white; padding:20px; border:1px solid #ccc; border-radius:8px; box-shadow: 0 0 10px rgba(0,0,0,0.3); z-index: 1000; }
     </style>
 </head>
 <body>
 
 <div class="navbar">
-    <h2>{{ settings.get('shop_name', 'طلباتي') }}</h2>
+    <h2>{{ settings.get('shop_name', 'إدارة المتجر') }}</h2>
     <div>
-        <a href="/dashboard">الطلبات</a>
+        <a href="/dashboard">الرئيسية</a>
         <a href="/stats">الإحصائيات</a>
         <a href="/settings">الإعدادات</a>
         <a href="/logout">خروج</a>
@@ -33,78 +34,52 @@
 </div>
 
 <div class="container">
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        {% for message in messages %}
-          <div style="background-color: #d4edda; color: #155724; padding: 15px; border-radius: 5px; margin-bottom: 15px; text-align: center; border: 1px solid #c3e6cb;">
-            {{ message }}
-          </div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
+    {% with messages = get_flashed_messages() %}{% if messages %}{% for message in messages %}
+    <div style="background:#d4edda; color:#155724; padding:15px; border-radius:5px; margin-bottom:15px; text-align:center;">{{ message }}</div>
+    {% endfor %}{% endif %}{% endwith %}
 
     <div class="card">
-        <h3>إضافة طلب جديد</h3>
-        <form action="/add-order" method="POST">
+        <h3>إضافة منتج جديد للمخزن</h3>
+        <form action="/add-product" method="POST">
             <input type="text" name="name" placeholder="اسم المنتج" required>
-            <input type="text" name="customer_name" placeholder="اسم الزبون">
             <input type="number" name="price" placeholder="السعر" required>
-            <button type="submit" class="btn btn-add">إضافة</button>
+            <input type="number" name="stock" placeholder="الكمية" required>
+            <button type="submit" class="btn btn-add">إضافة المنتج</button>
         </form>
     </div>
 
     <div class="card">
-        <h3>إجمالي المبيعات: {{ total_sales }} دج</h3>
+        <h3>المخزون الحالي</h3>
         <table>
-            <thead>
-                <tr>
-                    <th>المنتج</th>
-                    <th>اسم الزبون</th>
-                    <th>السعر</th>
-                    <th>الإجراءات</th>
-                </tr>
-            </thead>
+            <thead><tr><th>المنتج</th><th>السعر</th><th>الكمية</th></tr></thead>
             <tbody>
-                {% for order in orders %}
+                {% for p in products %}
                 <tr>
-                    <td>{{ order.product_name }}</td>
-                    <td>{{ order.customer_name }}</td>
-                    <td>{{ order.total_price }} دج</td>
-                    <td>
-                        <button onclick="showEditForm('{{ order.id }}', '{{ order.product_name }}', '{{ order.customer_name }}', '{{ order.total_price }}')" class="btn btn-edit">تعديل</button>
-                        <form action="/delete-order" method="POST" style="display:inline;">
-                            <input type="hidden" name="order_id" value="{{ order.id }}">
-                            <button type="submit" class="btn btn-delete">حذف</button>
-                        </form>
-                    </td>
+                    <td>{{ p.name }}</td>
+                    <td>{{ p.price }} دج</td>
+                    <td class="{{ 'stock-low' if p.stock_quantity < 5 }}">{{ p.stock_quantity }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <h3>آخر الطلبات المسجلة</h3>
+        <table>
+            <thead><tr><th>المنتج</th><th>الزبون</th><th>السعر</th></tr></thead>
+            <tbody>
+                {% for o in orders %}
+                <tr>
+                    <td>{{ o.product_name }}</td>
+                    <td>{{ o.customer_name }}</td>
+                    <td>{{ o.total_price }} دج</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 </div>
-
-<div id="editModal">
-    <h3>تعديل الطلب</h3>
-    <form action="/edit-order" method="POST">
-        <input type="hidden" name="order_id" id="edit_id">
-        <input type="text" name="name" id="edit_name" required><br>
-        <input type="text" name="customer_name" id="edit_customer"><br>
-        <input type="number" name="price" id="edit_price" required><br>
-        <button type="submit" class="btn btn-add">حفظ</button>
-        <button type="button" onclick="document.getElementById('editModal').style.display='none'">إلغاء</button>
-    </form>
-</div>
-
-<script>
-    function showEditForm(id, name, customer, price) {
-        document.getElementById('editModal').style.display = 'block';
-        document.getElementById('edit_id').value = id;
-        document.getElementById('edit_name').value = name;
-        document.getElementById('edit_customer').value = customer;
-        document.getElementById('edit_price').value = price;
-    }
-</script>
 
 </body>
 </html>
