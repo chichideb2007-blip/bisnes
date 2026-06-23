@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <title>لوحة التحكم</title>
+</head>
+<body>
+    <h1>مرحباً بك في لوحة التحكم</h1>
+    <h3>مجموع المبيعات: {{ total_sales }} دج</h3>
+
+    <form action="/add-order" method="POST">
+        <input type="text" name="customer_name" placeholder="اسم الزبون" required>
+        <input type="text" name="product_name" placeholder="الاسم المنتج" required>
+        <input type="number" name="total_price" placeholder="السعر" required>
+        <button type="submit">إضافة الطلبية</button>
+    </form>
+
+    <table border="1">
+        <tr>
+            <th>الزبون</th>
+            <th>المنتج</th>
+            <th>السعر</th>
+            <th>حذف</th>
+        </tr>
+        {% for order in orders %}
+        <tr>
+            <td>{{ order.customer_name }}</td>
+            <td>{{ order.product_name }}</td>
+            <td>{{ order.total_price }}</td>
+            <td><a href="/delete-order/{{ order.id }}">حذف</a></td>
+        </tr>
+        {% endfor %}
+    </table>
+    <br>
+    <a href="/logout">تسجيل الخروج</a>
+</body>
+</html>
