@@ -13,6 +13,7 @@
         .container { padding: 20px; }
         .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
         
+        input { padding: 8px; margin: 5px; border: 1px solid #ddd; border-radius: 4px; }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: center; }
         th { background-color: #f8f8f8; }
@@ -35,42 +36,4 @@
 </div>
 
 <div class="container">
-    <div class="card">
-        <h3>إضافة طلبية جديدة</h3>
-        <form action="/add-product" method="POST">
-            <input type="text" name="name" placeholder="اسم المنتج" required>
-            <input type="number" name="price" placeholder="السعر" required>
-            <button type="submit" class="btn btn-add">إضافة</button>
-        </form>
-    </div>
-
-    <div class="card">
-        <h3>قائمة الطلبات - إجمالي المبيعات: {{ total_sales }} دج</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>المنتج</th>
-                    <th>السعر</th>
-                    <th>الإجراءات</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for order in orders %}
-                <tr>
-                    <td>{{ order.product_name }}</td>
-                    <td>{{ order.total_price }} دج</td>
-                    <td>
-                        <form action="/delete-order" method="POST">
-                            <input type="hidden" name="order_id" value="{{ order.id }}">
-                            <button type="submit" class="btn btn-delete">حذف</button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
-
-</body>
-</html>
+    <div class="
