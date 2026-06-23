@@ -2,52 +2,36 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>إعدادات المتجر</title>
+    <title>إعدادات المدير</title>
     <style>
-        :root { --primary-color: {{ settings.get('theme_color', '#4CAF50') }}; }
-        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f4f9; padding: 20px; }
-        .card { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 500px; margin: auto; }
-        
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; }
-        input[type="text"], input[type="color"] { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
-        
-        .btn-save { background-color: var(--primary-color); color: white; border: none; padding: 12px; width: 100%; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 10px; transition: 0.3s; }
-        .btn-save:hover { opacity: 0.9; }
-        .btn-back { display: block; text-align: center; margin-top: 15px; color: #666; text-decoration: none; font-size: 14px; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; padding: 20px; }
+        .card { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 500px; margin: auto; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        button:hover { background-color: #0056b3; }
+        .nav { margin-bottom: 20px; text-align: center; }
     </style>
 </head>
 <body>
 
+<div class="nav">
+    <a href="/dashboard">الرئيسية</a> | <a href="/orders">الطلبات</a> | <a href="/logout">تسجيل الخروج</a>
+</div>
+
 <div class="card">
-    <h2 style="text-align: center; color: var(--primary-color);">⚙️ إعدادات المتجر</h2>
-    
+    <h3>إعدادات المتجر والبوت</h3>
     <form action="/settings" method="POST">
+        <label>اسم المتجر:</label>
+        <input type="text" name="store_name" placeholder="أدخل اسم متجرك" required>
         
-        <div class="form-group">
-            <label>اسم المتجر:</label>
-            <input type="text" name="shop_name" value="{{ settings.get('shop_name', '') }}">
-        </div>
-
-        <div class="form-group">
-            <label>توكن البوت (Bot Token):</label>
-            <input type="text" name="bot_token" value="{{ settings.get('bot_token', '') }}">
-        </div>
-
-        <div class="form-group">
-            <label>رقم معرف تليجرام (Chat ID):</label>
-            <input type="text" name="telegram_chat_id" value="{{ settings.get('telegram_chat_id', '') }}">
-        </div>
-
-        <div class="form-group">
-            <label>اختر لون واجهة المتجر:</label>
-            <input type="color" name="theme_color" value="{{ settings.get('theme_color', '#4CAF50') }}">
-        </div>
-
-        <button type="submit" class="btn-save">حفظ الإعدادات</button>
+        <label>توكن بوت تلجرام:</label>
+        <input type="text" name="bot_token" placeholder="أدخل التوكن الخاص بك" required>
+        
+        <label>لون واجهة لوحة التحكم:</label>
+        <input type="color" name="theme_color" value="#007bff">
+        
+        <button type="submit">حفظ الإعدادات</button>
     </form>
-
-    <a href="/dashboard" class="btn-back">العودة للوحة التحكم</a>
 </div>
 
 </body>
