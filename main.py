@@ -9,26 +9,18 @@ app.secret_key = 'your_super_secret_key'
 # إعداد Supabase
 supabase = create_client(os.environ.get('SUPABASE_URL'), os.environ.get('SUPABASE_KEY'))
 
-# --- الدالة الآمنة لإرسال التليجرام ---
+# --- الدوال المساعدة ---
 def send_telegram_order(manager_id, customer_name, product_name):
-    # جلب الإعدادات من قاعدة البيانات
+    # جلب الإعدادات بأمان
     res = supabase.table("settings").select("bot_token", "telegram_chat_id").eq("manager_id", manager_id).maybe_single().execute()
+    settings = res.data if res and res.data else None
     
-    # فحص الأمان: التأكد من وجود رد ووجود بيانات بداخل الرد
-    if res and res.data:
-        settings = res.data
-        token = settings.get('bot_token')
-        chat_id = settings.get('telegram_chat_id')
-        
-        # التأكد من أن التوكن والشات آي دي ليسا فارغين
-        if token and chat_id:
-            try:
-                bot = telebot.TeleBot(token)
-                bot.send_message(chat_id, f"🚨 طلب جديد!\n📦 المنتج: {product_name}")
-            except Exception as e:
-                print(f"خطأ في إرسال البوت: {e}")
-    else:
-        print("تنبيه: لا توجد إعدادات مضبوطة لهذا المستخدم في جدول settings")
+    if settings and settings.get('bot_token') and settings.get('telegram_chat_id'):
+        try:
+            bot = telebot.TeleBot(settings['bot_token'])
+            bot.send_message(settings['telegram_chat_id'], f"🚨 طلب جديد!\n📦 المنتج: {product_name}")
+        except Exception as e:
+            print(f"خطأ في إرسال البوت: {e}")
 
 # --- المسارات ---
 @app.route('/')
@@ -78,14 +70,12 @@ def settings():
         return "تم الحفظ بنجاح! <a href='/dashboard'>العودة للوحة التحكم</a>"
     
     res = supabase.table("settings").select("*").eq("manager_id", manager_id).maybe_single().execute()
-    # إرجاع قاموس فارغ إذا كانت البيانات غير موجودة لتجنب الانهيار
     settings_data = res.data if res and res.data else {}
     return render_template('settings.html', settings=settings_data)
 
 @app.route('/add-product', methods=['POST'])
 def add_product():
     if 'user' not in session: return redirect('/login')
-    # إضافة المنتج لقاعدة البيانات
     data = {
         "manager_id": session['user'],
         "product_name": request.form.get('name'),
@@ -93,7 +83,6 @@ def add_product():
         "customer_name": "إضافة يدوية"
     }
     supabase.table("orders").insert(data).execute()
-    # محاولة إرسال تنبيه تليجرام (لن ينهار الموقع إذا كانت البيانات ناقصة)
     send_telegram_order(session['user'], "إضافة يدوية", request.form.get('name'))
     return redirect('/dashboard')
 
