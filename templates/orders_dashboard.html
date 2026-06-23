@@ -2,27 +2,45 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>إدارة الطلبات</title>
+    <title>لوحة تحكم الطلبات</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f4f4f9; padding: 20px; }
-        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f8f9fa; padding: 20px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        input { padding: 10px; margin: 5px; border: 1px solid #ccc; border-radius: 5px; width: 200px; }
+        button { padding: 10px 20px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th, td { padding: 12px; border: 1px solid #ddd; text-align: center; }
-        th { background-color: #f8f9fa; }
-        select { padding: 5px; border-radius: 4px; border: 1px solid #ccc; }
+        th { background-color: #007bff; color: white; }
+        .btn-delete { color: red; text-decoration: none; font-weight: bold; }
     </style>
 </head>
 <body>
 
+<div class="header">
+    <h2>لوحة تحكم الطلبات</h2>
+    <a href="/logout" style="color: red;">تسجيل الخروج</a>
+</div>
+
 <div class="card">
-    <h3>قائمة الطلبات الواردة</h3>
+    <h3>إضافة طلب جديد</h3>
+    <form action="/add-order" method="POST">
+        <input type="text" name="name" placeholder="اسم الزبون" required>
+        <input type="text" name="details" placeholder="تفاصيل الطلب" required>
+        <input type="number" name="price" placeholder="السعر" required>
+        <button type="submit">إضافة الطلب</button>
+    </form>
+</div>
+
+<div class="card">
     <table>
         <thead>
             <tr>
-                <th>الزبون</th>
+                <th>اسم الزبون</th>
                 <th>تفاصيل الطلب</th>
-                <th>الحالة الحالية</th>
-                <th>تغيير الحالة</th>
+                <th>السعر</th>
+                <th>الحالة</th>
+                <th>إجراءات</th>
             </tr>
         </thead>
         <tbody>
@@ -30,16 +48,10 @@
             <tr>
                 <td>{{ o.customer_name }}</td>
                 <td>{{ o.order_details }}</td>
-                <td><strong>{{ o.status }}</strong></td>
+                <td>{{ o.price }} دج</td>
+                <td>{{ o.status }}</td>
                 <td>
-                    <form action="/update-status/{{ o.id }}" method="POST">
-                        <select name="status" onchange="this.form.submit()">
-                            <option value="جديد" {% if o.status == 'جديد' %}selected{% endif %}>جديد</option>
-                            <option value="جاري التجهيز" {% if o.status == 'جاري التجهيز' %}selected{% endif %}>جاري التجهيز</option>
-                            <option value="تم الشحن" {% if o.status == 'تم الشحن' %}selected{% endif %}>تم الشحن</option>
-                            <option value="تم التوصيل" {% if o.status == 'تم التوصيل' %}selected{% endif %}>تم التوصيل</option>
-                        </select>
-                    </form>
+                    <a href="/delete-order/{{ o.id }}" class="btn-delete" onclick="return confirm('هل أنت متأكد؟')">حذف</a>
                 </td>
             </tr>
             {% endfor %}
