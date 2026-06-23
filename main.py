@@ -4,18 +4,15 @@ from flask import Flask, render_template, request, redirect, session
 from supabase import create_client
 
 app = Flask(__name__)
-# اجعلي هذا المفتاح سرياً دائماً
-app.secret_key = 'your_super_secret_key' 
+app.secret_key = 'your_super_secret_key'  # يفضل تغييرها
 
-# إعداد الاتصال بـ Supabase
+# إعداد Supabase
 supabase = create_client(os.environ.get('SUPABASE_URL'), os.environ.get('SUPABASE_KEY'))
 
-# --- الدوال البرمجية ---
-
+# --- الدوال ---
 def send_telegram_order(manager_id, customer_name, product_name):
-    # جلب إعدادات المدير المعني
-    response = supabase.table("settings").select("bot_token", "telegram_chat_id").eq("manager_id", manager_id).maybe_single().execute()
-    settings = response.data
+    res = supabase.table("settings").select("bot_token", "telegram_chat_id").eq("manager_id", manager_id).maybe_single().execute()
+    settings = res.data if res and res.data else None
     
     if settings and settings.get('bot_token') and settings.get('telegram_chat_id'):
         try:
@@ -26,7 +23,6 @@ def send_telegram_order(manager_id, customer_name, product_name):
             print(f"خطأ في إرسال التنبيه: {e}")
 
 # --- المسارات ---
-
 @app.route('/')
 def home():
     return redirect('/login')
@@ -34,7 +30,7 @@ def home():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        session['user'] = request.form.get('username') 
+        session['user'] = request.form.get('username')
         return redirect('/dashboard')
     return render_template('login.html')
 
@@ -47,13 +43,11 @@ def logout():
 def dashboard():
     if 'user' not in session: return redirect('/login')
     
-    # جلب طلبات المدير الحالي فقط
-    response = supabase.table("orders").select("*").eq("manager_id", session['user']).execute()
-    orders = response.data if response.data else []
+    # جلب الطلبات
+    res = supabase.table("orders").select("*").eq("manager_id", session['user']).execute()
+    orders = res.data if res and res.data else []
     
-    # حساب مجموع المبيعات
     total_sales = sum(float(o.get('total_price', 0)) for o in orders)
-    
     return render_template('dashboard.html', orders=orders, total_sales=total_sales)
 
 @app.route('/settings', methods=['GET', 'POST'])
@@ -69,32 +63,24 @@ def settings():
             "telegram_chat_id": request.form.get('telegram_chat_id')
         }
         supabase.table("settings").upsert(data).execute()
-        return "تم حفظ الإعدادات بنجاح! <a href='/dashboard'>العودة للوحة التحكم</a>"
+        return "تم حفظ الإعدادات! <a href='/dashboard'>العودة للوحة التحكم</a>"
         
-    # هنا تم حل المشكلة باستخدام maybe_single()
-    response = supabase.table("settings").select("*").eq("manager_id", manager_id).maybe_single().execute()
-    settings = response.data if response.data else {}
-    
-    return render_template('settings.html', settings=settings)
+    res = supabase.table("settings").select("*").eq("manager_id", manager_id).maybe_single().execute()
+    settings_data = res.data if res and res.data else {}
+    return render_template('settings.html', settings=settings_data)
 
 @app.route('/add-product', methods=['POST'])
 def add_product():
     if 'user' not in session: return redirect('/login')
     
-    product_name = request.form.get('name')
-    price = request.form.get('price')
-    manager_id = session['user']
-    
     data = {
-        "manager_id": manager_id,
-        "product_name": product_name,
-        "total_price": price,
+        "manager_id": session['user'],
+        "product_name": request.form.get('name'),
+        "total_price": request.form.get('price'),
         "customer_name": "إضافة يدوية"
     }
     supabase.table("orders").insert(data).execute()
-    # تنبيه المدير عبر التليجرام عند إضافة منتج/طلب
-    send_telegram_order(manager_id, "مدير المتجر", product_name)
-    
+    send_telegram_order(session['user'], "إضافة يدوية", request.form.get('name'))
     return redirect('/dashboard')
 
 if __name__ == '__main__':
