@@ -4,12 +4,12 @@ from supabase import create_client
 from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = 'your_super_secret_key'
+app.secret_key = 'your_secret_key' # استبدليها بمفتاح سري خاص بك
 
 # إعداد Supabase
 supabase = create_client(os.environ.get('SUPABASE_URL'), os.environ.get('SUPABASE_KEY'))
 
-# دالة مساعدة لتجنب انهيار الموقع عند تحويل البيانات
+# دالة مساعدة لتجنب انهيار الكود عند تحويل الأرقام
 def get_safe_float(value):
     try: return float(value)
     except: return 0.0
@@ -32,11 +32,12 @@ def logout():
 @app.route('/dashboard')
 def dashboard():
     if 'user' not in session: return redirect('/login')
-    # جلب الإعدادات والطلبات
+    # جلب الإعدادات (مع تجنب الخطأ إذا كانت فارغة)
     s_res = supabase.table("settings").select("*").eq("manager_id", session['user']).maybe_single().execute()
-    o_res = supabase.table("orders").select("*").eq("manager_id", session['user']).execute()
+    settings = s_res.data if s_res and s_res.data else {"theme_color": "#4CAF50", "shop_name": "طلباتي"}
     
-    settings = s_res.data if s_res and s_res.data else {"theme_color": "#4CAF50", "shop_name": "لوحة الطلبات"}
+    # جلب الطلبات
+    o_res = supabase.table("orders").select("*").eq("manager_id", session['user']).execute()
     orders = o_res.data if o_res and o_res.data else []
     total = sum(get_safe_float(o.get('total_price')) for o in orders)
     
@@ -78,7 +79,7 @@ def settings():
     if 'user' not in session: return redirect('/login')
     manager_id = session['user']
     if request.method == 'POST':
-        # تحديث الحقول بمرونة تامة (إذا كانت القيمة فارغة لا يتم التحديث)
+        # استخدام .get() لتجنب الأخطاء، وحفظ البيانات فقط إذا كانت موجودة
         data = {"manager_id": manager_id}
         if request.form.get('shop_name'): data['shop_name'] = request.form.get('shop_name')
         if request.form.get('bot_token'): data['bot_token'] = request.form.get('bot_token')
@@ -94,14 +95,14 @@ def settings():
 @app.route('/stats')
 def stats():
     if 'user' not in session: return redirect('/login')
+    # جلب الإعدادات (مع قيمة افتراضية للون)
     s_res = supabase.table("settings").select("theme_color").eq("manager_id", session['user']).maybe_single().execute()
     settings = s_res.data if s_res and s_res.data else {"theme_color": "#4CAF50"}
     
     res = supabase.table("orders").select("*").eq("manager_id", session['user']).execute()
     orders = res.data if res and res.data else []
     
-    # معالجة البيانات للمنحنى البياني بشكل آمن
-    labels = [o.get('created_at', '00:00')[11:13] + ":00" for o in orders]
+    labels = [o.get('product_name', 'طلب') for o in orders]
     values = [get_safe_float(o.get('total_price')) for o in orders]
     
     return render_template('stats.html', labels=labels, values=values, settings=settings)
