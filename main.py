@@ -23,6 +23,7 @@ def login():
         email = request.form.get('email')
         password = request.form.get('password')
         
+        # البحث عن المستخدم
         user_response = supabase.table("users").select("*").eq("username", username).execute()
         
         if user_response.data:
@@ -35,7 +36,7 @@ def login():
             
     return render_template('login.html', error=error)
 
-# --- دالة إرسال الإيميل الديناميكية ---
+# --- دالة إرسال الإيميل ---
 def send_dynamic_email(manager_id, subject, body):
     response = supabase.table("manager_settings").select("*").eq("manager_id", manager_id).execute()
     if not response.data: return
@@ -72,5 +73,7 @@ def dashboard():
     if 'user' not in session: return redirect('/login')
     return "مرحباً بك في لوحة التحكم!"
 
+# --- هذا السطر هو الذي سيحل مشكلة Render ---
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
