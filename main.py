@@ -10,7 +10,7 @@ app.secret_key = 'your_super_secret_key'
 supabase = create_client(os.environ.get('SUPABASE_URL'), os.environ.get('SUPABASE_KEY'))
 
 # --- الدوال المساعدة ---
-def send_telegram_order(manager_id, customer_name, product_name):
+def send_telegram_order(manager_id, product_name):
     res = supabase.table("settings").select("bot_token", "telegram_chat_id").eq("manager_id", manager_id).maybe_single().execute()
     settings = res.data if res and res.data else None
     
@@ -39,7 +39,6 @@ def logout():
 @app.route('/dashboard')
 def dashboard():
     if 'user' not in session: return redirect('/login')
-    # جلب الإعدادات والطلبات
     s_res = supabase.table("settings").select("*").eq("manager_id", session['user']).maybe_single().execute()
     o_res = supabase.table("orders").select("*").eq("manager_id", session['user']).execute()
     
@@ -71,7 +70,7 @@ def settings():
             "theme_color": request.form.get('theme_color')
         }
         supabase.table("settings").upsert(data).execute()
-        return "تم الحفظ بنجاح! <a href='/dashboard'>العودة للوحة التحكم</a>"
+        return "تم حفظ الإعدادات! <a href='/dashboard'>العودة للوحة التحكم</a>"
     
     res = supabase.table("settings").select("*").eq("manager_id", manager_id).maybe_single().execute()
     return render_template('settings.html', settings=res.data if res and res.data else {})
@@ -86,7 +85,14 @@ def add_product():
         "customer_name": "إضافة يدوية"
     }
     supabase.table("orders").insert(data).execute()
-    send_telegram_order(session['user'], "إضافة يدوية", request.form.get('name'))
+    send_telegram_order(session['user'], request.form.get('name'))
+    return redirect('/dashboard')
+
+@app.route('/delete-order', methods=['POST'])
+def delete_order():
+    if 'user' not in session: return redirect('/login')
+    order_id = request.form.get('order_id')
+    supabase.table("orders").delete().eq("id", order_id).execute()
     return redirect('/dashboard')
 
 if __name__ == '__main__':
