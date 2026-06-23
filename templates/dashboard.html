@@ -2,36 +2,89 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>لوحة التحكم</title>
+    <title>لوحة تحكم {{ settings.get('shop_name', 'متجري') }}</title>
     <style>
-        /* تطبيق لون المتجر المختار */
+        /* تعريف المتغيرات للألوان بناءً على اختيار المدير */
         :root {
             --primary-color: {{ settings.get('theme_color', '#4CAF50') }};
         }
-        body { font-family: sans-serif; margin: 0; background-color: #f4f4f9; }
-        .navbar { background-color: var(--primary-color); padding: 15px; color: white; display: flex; justify-content: space-between; }
+        
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background-color: #f9f9f9; }
+        
+        /* شريط التنقل */
+        .navbar { 
+            background-color: var(--primary-color); 
+            padding: 15px 20px; 
+            color: white; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .navbar a { color: white; text-decoration: none; margin-left: 15px; font-weight: bold; }
+        .navbar a:hover { text-decoration: underline; }
+        
         .container { padding: 20px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
-        th, td { padding: 12px; border: 1px solid #ddd; text-align: center; }
-        th { background-color: var(--primary-color); color: white; }
-        .btn { padding: 10px 20px; color: white; border: none; cursor: pointer; text-decoration: none; border-radius: 5px; }
-        .btn-add { background-color: var(--primary-color); }
+        
+        /* التنسيق العام */
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px; border-bottom: 1px solid #ddd; text-align: center; }
+        th { background-color: #f2f2f2; }
+        
+        .btn-add { 
+            background-color: var(--primary-color); 
+            color: white; 
+            border: none; 
+            padding: 10px 20px; 
+            border-radius: 5px; 
+            cursor: pointer; 
+        }
         .btn-logout { background-color: #ff4d4d; }
     </style>
 </head>
 <body>
 
 <div class="navbar">
-    <h2>مرحباً في لوحة تحكم {{ settings.get('shop_name', 'متجرك') }}</h2>
+    <h2>{{ settings.get('shop_name', 'لوحة التحكم') }}</h2>
     <div>
-        <a href="/settings" class="btn">الإعدادات</a>
-        <a href="/stats" class="btn">الإحصائيات</a>
-        <a href="/logout" class="btn btn-logout">تسجيل الخروج</a>
+        <a href="/dashboard">الرئيسية</a>
+        <a href="/stats">الإحصائيات</a>
+        <a href="/settings">الإعدادات</a>
+        <a href="/logout" style="background: rgba(255,255,255,0.2); padding: 5px 10px; border-radius: 5px;">تسجيل الخروج</a>
     </div>
 </div>
 
 <div class="container">
-    <h3>إضافة منتج جديد</h3>
-    <form action="/add-product" method="POST">
-        <input type="text" name="name" placeholder="اسم المنتج" required>
-        <input type="number" name="price" placeholder="السعر" required>
+    <div class="card">
+        <h3>إضافة منتج جديد</h3>
+        <form action="/add-product" method="POST">
+            <input type="text" name="name" placeholder="اسم المنتج" required style="padding: 8px; width: 200px;">
+            <input type="number" name="price" placeholder="السعر (دج)" required style="padding: 8px; width: 100px;">
+            <button type="submit" class="btn-add">إضافة</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h3>قائمة الطلبات - إجمالي المبيعات: {{ total_sales }} دج</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>اسم المنتج</th>
+                    <th>السعر</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr>
+                    <td>{{ order.product_name }}</td>
+                    <td>{{ order.total_price }} دج</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+</body>
+</html>
