@@ -4,8 +4,8 @@ from flask_mail import Mail, Message
 from supabase import create_client
 
 app = Flask(__name__)
-# استخدام مفتاح سري من المتغيرات في Render
-app.secret_key = os.environ.get('SECRET_KEY', 'default_secret_key')
+# مفتاح الجلسة (يُفضل تعيينه في متغيرات البيئة في Render باسم SECRET_KEY)
+app.secret_key = os.environ.get('SECRET_KEY', 'super-secret-key-123')
 
 # الاتصال بـ Supabase
 SUPABASE_URL = os.environ.get('SUPABASE_URL')
@@ -14,7 +14,12 @@ supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 mail = Mail(app)
 
-# --- دالة تسجيل الدخول مع رسائل الخطأ ---
+# 1. مسار الصفحة الرئيسية (حل مشكلة 404)
+@app.route('/')
+def home():
+    return redirect('/login')
+
+# 2. دالة تسجيل الدخول مع رسائل الخطأ
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     error = None 
@@ -23,22 +28,20 @@ def login():
         email = request.form.get('email')
         password = request.form.get('password')
         
-        # البحث عن المستخدم في قاعدة البيانات
+        # البحث عن المستخدم
         user_response = supabase.table("users").select("*").eq("username", username).execute()
         
         if user_response.data:
             user = user_response.data[0]
-            # التحقق من البيانات
             if user['password'] == password and user['email'] == email:
                 session['user'] = user['id']
                 return redirect('/dashboard')
         
-        # رسالة الخطأ إذا كانت البيانات غير صحيحة
         error = "خطأ: اسم المستخدم أو الإيميل أو كلمة السر غير صحيحة!"
             
     return render_template('login.html', error=error)
 
-# --- دالة إرسال الإيميل الديناميكية ---
+# 3. دالة إرسال الإيميل
 def send_dynamic_email(manager_id, subject, body):
     response = supabase.table("manager_settings").select("*").eq("manager_id", manager_id).execute()
     if not response.data: return
@@ -55,7 +58,7 @@ def send_dynamic_email(manager_id, subject, body):
     msg.body = body
     mail.send(msg)
 
-# --- دالة حفظ الإعدادات ---
+# 4. دالة حفظ الإعدادات
 @app.route('/save-settings', methods=['POST'])
 def save_settings():
     if 'user' not in session: return redirect('/login')
@@ -70,12 +73,13 @@ def save_settings():
     supabase.table("manager_settings").upsert(data, on_conflict="manager_id").execute()
     return redirect('/dashboard')
 
+# 5. لوحة التحكم
 @app.route('/dashboard')
 def dashboard():
     if 'user' not in session: return redirect('/login')
     return "مرحباً بك في لوحة التحكم!"
 
-# --- هذا الجزء يحل مشكلة تشغيل السيرفر على Render ---
+# 6. تشغيل السيرفر لـ Render
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
