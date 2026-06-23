@@ -14,7 +14,7 @@ supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 mail = Mail(app)
 
-# --- دالة تسجيل الدخول مع رسائل الخطأ ---
+# --- دالة تسجيل الدخول ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     error = None 
@@ -23,7 +23,6 @@ def login():
         email = request.form.get('email')
         password = request.form.get('password')
         
-        # البحث عن المستخدم
         user_response = supabase.table("users").select("*").eq("username", username).execute()
         
         if user_response.data:
@@ -73,7 +72,7 @@ def dashboard():
     if 'user' not in session: return redirect('/login')
     return "مرحباً بك في لوحة التحكم!"
 
-# --- هذا السطر هو الذي سيحل مشكلة Render ---
+# --- هذا التعديل هو ما سيحل مشكلة المنفذ في Render ---
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
