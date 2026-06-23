@@ -6,6 +6,7 @@ from supabase import create_client
 app = Flask(__name__)
 app.secret_key = 'your_super_secret_key'
 
+# إعداد Supabase
 supabase = create_client(os.environ.get('SUPABASE_URL'), os.environ.get('SUPABASE_KEY'))
 
 # --- الدوال ---
