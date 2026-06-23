@@ -4,7 +4,8 @@ from flask import Flask, render_template, request, redirect, session
 from supabase import create_client
 
 app = Flask(__name__)
-app.secret_key = 'your_super_secret_key' # يفضل تغييره لشيء معقد
+# اجعلي هذا المفتاح سرياً دائماً
+app.secret_key = 'your_super_secret_key' 
 
 # إعداد الاتصال بـ Supabase
 supabase = create_client(os.environ.get('SUPABASE_URL'), os.environ.get('SUPABASE_KEY'))
@@ -12,8 +13,10 @@ supabase = create_client(os.environ.get('SUPABASE_URL'), os.environ.get('SUPABAS
 # --- الدوال البرمجية ---
 
 def send_telegram_order(manager_id, customer_name, product_name):
-    """إرسال إشعار للبوت الخاص بالمدير المعني"""
-    settings = supabase.table("settings").select("bot_token", "telegram_chat_id").eq("manager_id", manager_id).single().execute().data
+    # جلب إعدادات المدير المعني
+    response = supabase.table("settings").select("bot_token", "telegram_chat_id").eq("manager_id", manager_id).maybe_single().execute()
+    settings = response.data
+    
     if settings and settings.get('bot_token') and settings.get('telegram_chat_id'):
         try:
             bot = telebot.TeleBot(settings['bot_token'])
@@ -22,7 +25,7 @@ def send_telegram_order(manager_id, customer_name, product_name):
         except Exception as e:
             print(f"خطأ في إرسال التنبيه: {e}")
 
-# --- مسارات الموقع (Routes) ---
+# --- المسارات ---
 
 @app.route('/')
 def home():
@@ -31,7 +34,6 @@ def home():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        # في نظام حقيقي، أضيفي هنا تحققاً من قاعدة البيانات
         session['user'] = request.form.get('username') 
         return redirect('/dashboard')
     return render_template('login.html')
@@ -45,7 +47,7 @@ def logout():
 def dashboard():
     if 'user' not in session: return redirect('/login')
     
-    # جلب طلبات المدير الحالي
+    # جلب طلبات المدير الحالي فقط
     response = supabase.table("orders").select("*").eq("manager_id", session['user']).execute()
     orders = response.data if response.data else []
     
@@ -69,19 +71,30 @@ def settings():
         supabase.table("settings").upsert(data).execute()
         return "تم حفظ الإعدادات بنجاح! <a href='/dashboard'>العودة للوحة التحكم</a>"
         
-    settings = supabase.table("settings").select("*").eq("manager_id", manager_id).single().execute().data
-    return render_template('settings.html', settings=settings if settings else {})
+    # هنا تم حل المشكلة باستخدام maybe_single()
+    response = supabase.table("settings").select("*").eq("manager_id", manager_id).maybe_single().execute()
+    settings = response.data if response.data else {}
+    
+    return render_template('settings.html', settings=settings)
 
 @app.route('/add-product', methods=['POST'])
 def add_product():
     if 'user' not in session: return redirect('/login')
+    
+    product_name = request.form.get('name')
+    price = request.form.get('price')
+    manager_id = session['user']
+    
     data = {
-        "manager_id": session['user'],
-        "product_name": request.form.get('name'),
-        "total_price": request.form.get('price'),
+        "manager_id": manager_id,
+        "product_name": product_name,
+        "total_price": price,
         "customer_name": "إضافة يدوية"
     }
     supabase.table("orders").insert(data).execute()
+    # تنبيه المدير عبر التليجرام عند إضافة منتج/طلب
+    send_telegram_order(manager_id, "مدير المتجر", product_name)
+    
     return redirect('/dashboard')
 
 if __name__ == '__main__':
