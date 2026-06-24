@@ -2,79 +2,57 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary: {{ settings.primary_color }}; --secondary: {{ settings.secondary_color }}; }
         body { font-family: sans-serif; background: #f0f2f5; padding: 20px; }
         .section { background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        
-        /* تصميم زر الإعدادات */
-        .settings-header { cursor: pointer; background: #eee; padding: 15px; border-radius: 8px; font-weight: bold; display: flex; justify-content: space-between; }
-        #settings-content { display: none; margin-top: 15px; border-top: 2px solid #f0f2f5; padding-top: 15px; }
-        
-        input { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-        .btn { padding: 12px; border: none; border-radius: 6px; cursor: pointer; color: white; font-weight: bold; width: 100%; margin-top: 10px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: center; }
+        .nav-btn { background: #333; color: white; padding: 10px; border-radius: 6px; text-decoration: none; margin-left: 10px; }
+        .btn { padding: 10px; border: none; border-radius: 6px; cursor: pointer; color: white; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div class="section">
-        <div class="settings-header" onclick="document.getElementById('settings-content').style.display = (document.getElementById('settings-content').style.display === 'block') ? 'none' : 'block';">
-            <span>⚙️ إعدادات المتجر</span>
-            <span>▼</span>
+    <div class="section" style="display:flex; justify-content:space-between;">
+        <div>
+            <a href="/" class="nav-btn">لوحة التحكم</a>
+            <a href="/" class="nav-btn">الرئيسية</a>
         </div>
-        
-        <div id="settings-content">
-            <h3>معلومات المتجر</h3>
-            <form action="/update-info" method="POST">
-                <input name="shop_name" value="{{ settings.shop_name }}" placeholder="اسم المتجر">
-                <input name="bot_token" value="{{ settings.telegram_bot_token }}" placeholder="Bot Token">
-                <input name="chat_id" value="{{ settings.telegram_chat_id }}" placeholder="Chat ID">
-                <button class="btn" style="background: var(--primary);">حفظ معلومات المتجر</button>
-            </form>
-            <hr>
-            <h3>تخصيص الألوان</h3>
-            <form action="/update-colors" method="POST">
-                <label>اللون الرئيسي:</label>
-                <input type="color" name="primary_color" value="{{ settings.primary_color }}">
-                <label>اللون الثانوي:</label>
-                <input type="color" name="secondary_color" value="{{ settings.secondary_color }}">
-                <button class="btn" style="background: var(--secondary);">حفظ وتطبيق الألوان</button>
-            </form>
+        <a href="/logout" style="color:red; text-decoration:none;">خروج 🚪</a>
+    </div>
+
+    <div class="section">
+        <h3>📊 إحصائيات الطلبات</h3>
+        <div style="display: flex; gap: 20px;">
+            <div style="width: 60%;">
+                <canvas id="myChart"></canvas>
+            </div>
+            <div style="width: 40%; align-self: center;">
+                <p>مجموع المبيعات اليومي: <strong>{{ orders|sum(attribute='total_price') }} دج</strong></p>
+            </div>
         </div>
     </div>
 
     <div class="section">
-        <h3>➕ إضافة طلبية جديدة</h3>
-        <form action="/add-order" method="POST">
-            <input name="name" placeholder="اسم الزبون" required>
-            <input name="product" placeholder="اسم المنتج" required>
-            <input name="price" type="number" placeholder="السعر" required>
-            <input name="phone" placeholder="رقم الهاتف">
-            <button class="btn" style="background: var(--primary);">حفظ الطلبية</button>
-        </form>
+        <h3 onclick="document.getElementById('set').style.display=(document.getElementById('set').style.display=='block'?'none':'block');" style="cursor:pointer;">⚙️ إعدادات المتجر (اضغط للفتح)</h3>
+        <div id="set" style="display:none;">
+             </div>
     </div>
 
-    <div class="section">
-        <h3>📦 الطلبات المسجلة</h3>
-        <table>
-            <tr><th>الاسم</th><th>المنتج</th><th>السعر</th><th>حذف</th></tr>
-            {% for o in orders %}
-            <tr>
-                <td>{{ o.customer_name }}</td>
-                <td>{{ o.product_name }}</td>
-                <td>{{ o.total_price }}</td>
-                <td>
-                    <form action="/delete-order" method="POST">
-                        <input type="hidden" name="order_id" value="{{ o.id }}">
-                        <button type="submit" style="background:red; color:white; border:none; padding:5px; cursor:pointer;">حذف</button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </table>
-    </div>
-
+    <script>
+        const ctx = document.getElementById('myChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء'],
+                datasets: [{
+                    label: 'المبيعات (دج)',
+                    data: [1000, 2500, 1800, 3200, 4500],
+                    borderColor: '{{ settings.primary_color }}',
+                    tension: 0.1
+                }]
+            }
+        });
+    </script>
 </body>
 </html>
