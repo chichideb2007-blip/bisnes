@@ -1,8 +1,42 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: sans-serif; background: #f4f4f4; padding: 20px; }
+        .card { background: white; padding: 20px; margin-bottom: 20px; border-radius: 10px; }
+        input { padding: 10px; margin: 5px; }
+        button { padding: 10px; background: green; color: white; border: none; }
+    </style>
+</head>
 <body>
-    <h1>أهلاً {{ user }}، أنتِ الآن في لوحة التحكم</h1>
-    <p>هذا النظام يعمل الآن بدون أخطاء!</p>
-    <a href="/">الخروج</a>
+    <div class="card">
+        <h1>أهلاً {{ user }}</h1>
+        <h2>مجموع الأرباح: {{ total }} دج</h2>
+        <canvas id="myChart" style="max-width: 300px;"></canvas>
+    </div>
+
+    <div class="card">
+        <h3>إضافة طلب</h3>
+        <form action="/add-order" method="POST">
+            <input name="name" placeholder="اسم الزبون" required>
+            <input name="details" placeholder="التفاصيل">
+            <input name="price" type="number" placeholder="السعر" required>
+            <button type="submit">إضافة</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h3>الطلبات</h3>
+        {% for o in orders %}
+        <p>{{ o.customer_name }} - {{ o.price }} دج</p>
+        {% endfor %}
+    </div>
+
+    <script>
+        const ctx = document.getElementById('myChart').getContext('2d');
+        new Chart(ctx, { type: 'line', data: { labels: ['اليوم'], datasets: [{ label: 'الأرباح', data: [{{ total }}], borderColor: 'green' }] } });
+    </script>
 </body>
 </html>
