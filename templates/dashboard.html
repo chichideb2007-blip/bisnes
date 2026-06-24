@@ -1,78 +1,72 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <title>لوحة تحكم المتجر</title>
     <style>
         :root { --primary: {{ settings.primary_color }}; --secondary: {{ settings.secondary_color }}; }
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f8f9fa; margin: 0; padding: 20px; }
-        
-        .navbar { background: #fff; padding: 15px 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        
-        .card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 20px; }
-        
-        input { width: 100%; padding: 12px; margin: 8px 0; border: 1.5px solid #e1e1e1; border-radius: 8px; box-sizing: border-box; }
-        
-        .btn { border: none; padding: 12px 20px; color: white; cursor: pointer; border-radius: 8px; font-weight: 600; transition: 0.3s; }
-        .btn-primary { background: var(--primary); }
-        .btn-secondary { background: var(--secondary); }
-        
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th { background: #f4f4f4; padding: 15px; text-align: right; }
-        td { padding: 15px; border-bottom: 1px solid #eee; }
+        body { font-family: sans-serif; background: #f0f2f5; padding: 20px; }
+        .section { background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .input-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
+        input { padding: 10px; border: 1px solid #ddd; border-radius: 6px; }
+        .btn { padding: 12px; border: none; border-radius: 6px; cursor: pointer; color: white; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: center; }
     </style>
 </head>
 <body>
 
-<div class="navbar">
-    <h2>لوحة التحكم - {{ settings.shop_name }}</h2>
-    <a href="/logout" style="color: red; text-decoration: none;">تسجيل خروج</a>
-</div>
-
-<div class="card">
-    <h3>⚙️ إعدادات المتجر</h3>
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+    <!-- قسم الإعدادات -->
+    <div class="section">
+        <h3>⚙️ إعدادات المتجر</h3>
         <form action="/update-info" method="POST">
-            <input name="shop_name" value="{{ settings.shop_name }}">
-            <button class="btn btn-primary">حفظ الإعدادات</button>
+            <input name="shop_name" value="{{ settings.shop_name }}" placeholder="اسم المتجر">
+            <input name="bot_token" placeholder="بوت تليجرام (Token)">
+            <input name="chat_id" placeholder="معرف تليجرام (Chat ID)">
+            <button class="btn" style="background: var(--primary);">حفظ معلومات المتجر</button>
         </form>
+        <hr>
         <form action="/update-colors" method="POST">
+            <label>اللون الرئيسي:</label>
             <input type="color" name="primary_color" value="{{ settings.primary_color }}">
+            <label>اللون الثانوي:</label>
             <input type="color" name="secondary_color" value="{{ settings.secondary_color }}">
-            <button class="btn btn-secondary">تحديث الألوان</button>
+            <button class="btn" style="background: var(--secondary);">حفظ وتطبيق الألوان</button>
         </form>
     </div>
-</div>
 
-<div class="card">
-    <h3>➕ إضافة طلب جديد</h3>
-    <form action="/add-order" method="POST" style="display: flex; gap: 10px; align-items: center;">
-        <input name="name" placeholder="اسم الزبون" required>
-        <input name="product" placeholder="المنتج" required>
-        <input name="price" type="number" placeholder="السعر" required>
-        <button class="btn btn-primary">إضافة</button>
-    </form>
-</div>
+    <!-- قسم إضافة طلب -->
+    <div class="section">
+        <h3>➕ إضافة طلبية جديدة</h3>
+        <form action="/add-order" method="POST" class="input-group">
+            <input name="name" placeholder="اسم الزبون" required>
+            <input name="product" placeholder="اسم المنتج" required>
+            <input name="price" type="number" placeholder="السعر" required>
+            <input name="phone" placeholder="رقم الهاتف">
+            <button class="btn" style="background: var(--primary);">حفظ الطلبية</button>
+        </form>
+    </div>
 
-<div class="card">
-    <h3>📦 الطلبات المسجلة</h3>
-    <table>
-        <tr><th>الزبون</th><th>المنتج</th><th>السعر</th><th>إجراء</th></tr>
-        {% for o in orders %}
-        <tr>
-            <td>{{ o.customer_name }}</td>
-            <td>{{ o.product_name }}</td>
-            <td>{{ o.total_price }} دج</td>
-            <td>
-                <form action="/delete-order" method="POST">
-                    <input type="hidden" name="order_id" value="{{ o.id }}">
-                    <button class="btn" style="background: #dc3545; padding: 5px 15px;">حذف</button>
-                </form>
-            </td>
-        </tr>
-        {% endfor %}
-    </table>
-</div>
+    <!-- جدول الطلبات -->
+    <div class="section">
+        <h3>📦 الطلبات المسجلة</h3>
+        <table>
+            <tr><th>الاسم</th><th>المنتج</th><th>السعر</th><th>حذف</th></tr>
+            {% for o in orders %}
+            <tr>
+                <td>{{ o.customer_name }}</td>
+                <td>{{ o.product_name }}</td>
+                <td>{{ o.total_price }}</td>
+                <td>
+                    <form action="/delete-order" method="POST">
+                        <input type="hidden" name="order_id" value="{{ o.id }}">
+                        <button type="submit" style="background:red; color:white; border:none; padding:5px;">حذف</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    <a href="/logout" style="display:block; text-align:center; margin-top:20px; color:red;">خروج من لوحة التحكم</a>
 
 </body>
 </html>
