@@ -10,57 +10,26 @@
             --primary: {{ settings.primary_color if settings and settings.primary_color else '#a855f7' }}; 
             --secondary: {{ settings.secondary_color if settings and settings.secondary_color else '#7e22ce' }}; 
         }
-        
         body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f4f7f6; padding: 10px; margin: 0; }
-        
-        .top-row { 
-            display: grid; 
-            grid-template-columns: 1fr 1fr; 
-            gap: 8px; 
-            margin-bottom: 15px; 
-            align-items: flex-start;
-        }
-        
+        .top-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; align-items: flex-start; }
         .box { background: white; padding: 12px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); box-sizing: border-box; }
-        
-        .accordion-title-btn { 
-            background: var(--primary); 
-            color: white; 
-            padding: 10px; 
-            border-radius: 8px; 
-            font-weight: bold; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            cursor: pointer; 
-            user-select: none;
-            font-size: 0.8em;
-        }
-        
+        .accordion-title-btn { background: var(--primary); color: white; padding: 10px; border-radius: 8px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; font-size: 0.8em; }
         .accordion-inside-content { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee; }
-        
         label { display: block; margin-top: 8px; font-weight: 600; color: #444; font-size: 0.8em; }
         input { width: 100%; padding: 10px; margin: 4px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 0.85em; background: #fafafa; }
-        input:focus { border-color: var(--primary); outline: none; background: #fff; }
-        
         .btn { padding: 10px 12px; width: 100%; border: none; border-radius: 6px; cursor: pointer; color: white; font-weight: bold; margin-top: 8px; font-size: 0.85em; text-align: center; text-decoration: none; display: inline-block; box-sizing: border-box; }
         .btn-main { background: var(--primary); }
         .btn-sub { background: var(--secondary); }
-        .btn:hover { opacity: 0.9; }
-        
         .stats-summary { background: #fafafa; padding: 10px; border-radius: 8px; border: 2px dashed var(--primary); margin-bottom: 12px; font-size: 0.8em; line-height: 1.5; color: #444; }
-        
         table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 15px; border-radius: 10px; overflow: hidden; }
         th { background: var(--primary); color: white; padding: 10px; font-weight: 600; font-size: 0.8em; }
         td { padding: 10px; border-bottom: 1px solid #eee; background: #fff; text-align: center; font-size: 0.8em; color: #555; }
-        
         .action-btn { border: none; padding: 5px 8px; border-radius: 4px; cursor: pointer; color: white; font-size: 0.75em; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <div class="top-row">
-        <!-- خانة الإحصائيات والمنحنيات المحدثة لـ 2026 -->
         <div class="box">
             <div class="accordion-title-btn" onclick="toggleSection('stats-content', 'stats-indicator')">
                 <span>📊 الإحصائيات والمنحنيات</span>
@@ -70,25 +39,24 @@
             <div id="stats-content" class="accordion-inside-content">
                 <div class="stats-summary">
                     💰 دخل اليوم:<br><strong>{{ daily_total }} دج</strong><br>
-                    📅 دخل الشهر:<br><strong>{{ monthly_total }} دج</strong><br>
-                    🗓️ دخل سنة 2026:<br><strong>{{ yearly_total }} دج</strong>
+                    📅 دخل الشهر الحقيقي:<br><strong>{{ monthly_total }} دج</strong><br>
+                    🗓️ دخل سنة {{ current_year }}:<br><strong>{{ yearly_total }} دج</strong>
                 </div>
                 
-                <label>📈 الأسبوع:</label>
-                <canvas id="chartWeek" style="max-height: 100px; margin-bottom: 10px;"></canvas>
+                <label>📈 الأسبوع كاملاً:</label>
+                <canvas id="chartWeek" style="max-height: 130px; margin-bottom: 15px;"></canvas>
                 
-                <label>📊 الأشهر:</label>
-                <canvas id="chartMonth" style="max-height: 110px; margin-bottom: 10px;"></canvas>
+                <label>📊 أشهر السنة كاملة:</label>
+                <canvas id="chartMonth" style="max-height: 140px; margin-bottom: 15px;"></canvas>
                 
-                <label>📉 السنوات:</label>
-                <canvas id="chartYear" style="max-height: 100px; margin-bottom: 10px;"></canvas>
+                <label>📉 السنوات (تلقائي ديناميكي):</label>
+                <canvas id="chartYear" style="max-height: 130px; margin-bottom: 15px;"></canvas>
                 
                 <a href="/" class="btn btn-main">تحديث البيانات</a>
                 <a href="/logout" class="btn btn-sub">خروج للرئيسية</a>
             </div>
         </div>
 
-        <!-- خانة الإعدادات وتعديل الألوان المتكرر اللانهائي -->
         <div class="box">
             <div class="accordion-title-btn" onclick="toggleSection('settings-content', 'settings-indicator')">
                 <span>⚙️ إعدادات المتجر والألوان</span>
@@ -119,7 +87,6 @@
         </div>
     </div>
 
-    <!-- واجهة إضافة الطلبيات والجدول -->
     <div class="box" style="margin-top: 10px;">
         <div class="accordion-title-btn" style="cursor: default;">
             <span>📦 إدارة وحفظ طلبيات المتجر الحالية</span>
@@ -129,16 +96,12 @@
             <form action="/add-order" method="POST" style="background: #fafafa; padding: 12px; border-radius: 10px; border: 1px solid #eee; margin-bottom: 15px;">
                 <label>اسم الزبون الكامل:</label>
                 <input type="text" name="name" placeholder="اسم الزبون" required>
-                
                 <label>المنتج أو السلعة المطلوبة:</label>
                 <input type="text" name="product" placeholder="اسم المنتج" required>
-                
                 <label>السعر الفعلي للطلبية (دج):</label>
                 <input type="number" step="0.01" name="price" placeholder="مثال: 4500" required>
-                
                 <label>رقم هاتف الزبون للاتصال:</label>
                 <input type="text" name="phone" placeholder="رقم الهاتف" required>
-                
                 <button type="submit" class="btn btn-sub" style="margin-top: 12px;">حفظ الطلبية وتأكيدها</button>
             </form>
 
@@ -180,47 +143,60 @@
         function toggleSection(contentId, indicatorId) {
             const content = document.getElementById(contentId);
             const indicator = document.getElementById(indicatorId);
-            if (content.style.display === "block") {
-                content.style.display = "none";
-                indicator.textContent = "▼";
-            } else {
-                content.style.display = "block";
-                indicator.textContent = "▲";
-            }
+            content.style.display = (content.style.display === "block") ? "none" : "block";
+            indicator.textContent = (content.style.display === "block") ? "▲" : "▼";
         }
 
-        const chartOptions = { responsive: true, scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } };
+        // إعدادات مخصصة تمنع إخفاء الكلمات والأسماء على شاشات الهواتف نهائياً
+        const forcedChartOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: {
+                    ticks: {
+                        autoSkip: false, // منع تخطي أي اسم إجبارياً
+                        maxRotation: 45, // تدوير خفيف للنصوص لكي تتسع الشاشة
+                        minRotation: 45,
+                        font: { size: 9, weight: 'bold' }
+                    }
+                },
+                y: { beginAtZero: true, ticks: { font: { size: 9 } } }
+            }
+        };
+
         const primaryColor = '{{ settings.primary_color if settings.primary_color else "#a855f7" }}';
         const secondaryColor = '{{ settings.secondary_color if settings.secondary_color else "#7e22ce" }}';
 
-        // 1. منحنى الأسبوع الحقيقي المرتب بدقة من السبت إلى الجمعة كما طلبتِ
+        // 1. منحنى الأسبوع كامل الأسماء بدون إخفاء
         new Chart(document.getElementById('chartWeek').getContext('2d'), {
             type: 'line',
             data: { 
                 labels: ['السبت', 'الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'], 
                 datasets: [{ data: {{ weekly_data }}, borderColor: primaryColor, tension: 0.3, fill: false }] 
             },
-            options: chartOptions
+            options: forcedChartOptions
         });
 
-        // 2. منحنى أشهر السنة كاملة الـ 12 شهراً بالأسماء المطلوبة تماماً
+        // 2. منحنى أشهر السنة كاملة الـ 12 بدون اختصار
         new Chart(document.getElementById('chartMonth').getContext('2d'), {
             type: 'bar',
             data: { 
                 labels: ['جانفي', 'فيفري', 'مارس', 'أفريل', 'ماي', 'جوان', 'جويلية', 'أوت', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'], 
                 datasets: [{ data: {{ monthly_data }}, backgroundColor: secondaryColor }] 
             },
-            options: chartOptions
+            options: forcedChartOptions
         });
 
-        // 3. منحنى السنوات الحالية والتركيز على عام 2026 الحالي
+        // 3. منحنى السنوات التلقائي الذكي بناءً على السنة الحالية
+        const currentYear = parseInt('{{ current_year }}');
         new Chart(document.getElementById('chartYear').getContext('2d'), {
             type: 'line',
             data: { 
-                labels: ['2024', '2025', '2026'], 
-                datasets: [{ data: [0, 0, {{ yearly_total }}], borderColor: primaryColor, tension: 0.1, fill: false }] 
+                labels: [String(currentYear), String(currentYear + 1), String(currentYear + 2)], 
+                datasets: [{ data: [{{ yearly_total }}, 0, 0], borderColor: primaryColor, tension: 0.1, fill: false }] 
             },
-            options: chartOptions
+            options: forcedChartOptions
         });
     </script>
 </body>
