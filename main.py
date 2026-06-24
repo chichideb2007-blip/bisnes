@@ -3,7 +3,7 @@ from flask import Flask, render_template, request, session, redirect
 from supabase import create_client
 
 app = Flask(__name__)
-app.secret_key = 'shimo_final_2026_fixed'
+app.secret_key = 'shimo_final_fix_2026'
 
 url = os.environ.get('SUPABASE_URL')
 key = os.environ.get('SUPABASE_KEY')
@@ -22,17 +22,13 @@ def login():
 @app.route('/dashboard', methods=['GET'])
 def dashboard():
     if 'user' not in session: return redirect('/login')
-    
     orders = []
-    total = 0
     if supabase:
         try:
-            response = supabase.table("orders").select("*").eq("manager_email", session['user']).execute()
+            response = supabase.table("orders").select("*").execute()
             orders = response.data if response.data else []
-            total = sum(float(o.get('price', 0)) for o in orders)
-        except Exception: pass
-            
-    return render_template('dashboard.html', user=session['user'], orders=orders, total=total)
+        except Exception as e: print(f"Error: {e}")
+    return render_template('dashboard.html', user=session['user'], orders=orders)
 
 @app.route('/add-order', methods=['POST'])
 def add_order():
@@ -41,11 +37,11 @@ def add_order():
         try:
             supabase.table("orders").insert({
                 "customer_name": request.form.get('name'),
-                "details": request.form.get('details'),
-                "price": float(request.form.get('price', 0)),
-                "manager_email": session['user']
+                "product_name": request.form.get('product'),
+                "total_price": float(request.form.get('price', 0)),
+                "customer_phone": request.form.get('phone')
             }).execute()
-        except Exception: pass
+        except Exception as e: print(f"Error adding: {e}")
     return redirect('/dashboard')
 
 if __name__ == '__main__':
