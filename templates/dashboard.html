@@ -6,58 +6,60 @@
     <title>لوحة التحكم الاحترافية للمتجر</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* نظام الألوان الديناميكي المربوط باختياراتكِ بالكامل */
+        /* نظام التحكم الشامل بالألوان المربوط باختياراتكِ */
         :root { 
             --primary: {{ settings.primary_color if settings and settings.primary_color else '#a855f7' }}; 
             --secondary: {{ settings.secondary_color if settings and settings.secondary_color else '#7e22ce' }}; 
         }
         
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f4f7f6; padding: 15px; margin: 0; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f4f7f6; padding: 10px; margin: 0; }
         
-        /* جعل الإحصائيات والإعدادات دائماً في نفس السطر بشكل متوازٍ واحترافي */
-        .top-row { display: flex; gap: 20px; margin-bottom: 20px; align-items: flex-start; flex-wrap: wrap; }
-        .box { flex: 1; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); min-width: 320px; box-sizing: border-box; }
+        /* إجبار الإحصائيات والإعدادات على البقاء في نفس السطر دائماً حتى على شاشة الهاتف */
+        .top-row { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 10px; 
+            margin-bottom: 15px; 
+            align-items: flex-start;
+        }
         
-        /* شريط العنوان القابل للضغط يتبع لونكِ الرئيسي */
+        .box { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); box-sizing: border-box; }
+        
+        /* أشرطة العناوين الموحدة الألوان حسب اختياركِ */
         .accordion-title-btn { 
             background: var(--primary); 
             color: white; 
-            padding: 14px; 
-            border-radius: 10px; 
+            padding: 12px; 
+            border-radius: 8px; 
             font-weight: bold; 
             display: flex; 
             justify-content: space-between; 
             align-items: center; 
             cursor: pointer; 
             user-select: none;
-            transition: opacity 0.2s;
-            font-size: 1.05em;
+            font-size: 0.9em;
         }
-        .accordion-title-btn:hover { opacity: 0.9; }
         
-        /* محتوى الخانات المخفي الذي يفتح عند الضغط */
-        .accordion-inside-content { display: none; margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; }
+        .accordion-inside-content { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee; }
         
-        label { display: block; margin-top: 12px; font-weight: 600; color: #444; font-size: 0.9em; }
-        input { width: 100%; padding: 12px; margin: 6px 0 12px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 0.95em; background: #fafafa; }
-        input:focus { border-color: var(--primary); outline: none; background: #fff; box-shadow: 0 0 5px rgba(168, 85, 247, 0.2); }
+        label { display: block; margin-top: 10px; font-weight: 600; color: #444; font-size: 0.85em; }
+        input { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 0.9em; background: #fafafa; }
+        input:focus { border-color: var(--primary); outline: none; background: #fff; }
         
-        /* جميع أزرار الصفحة بلا استثناء تتبع ألوانكِ المحددة بالكامل */
-        .btn { padding: 12px 20px; width: 100%; border: none; border-radius: 8px; cursor: pointer; color: white; font-weight: bold; margin-top: 10px; font-size: 1em; text-align: center; text-decoration: none; display: inline-block; box-sizing: border-box; transition: opacity 0.2s; }
+        /* أزرار موحدة الألوان بالكامل وتتبع لوحتكِ */
+        .btn { padding: 10px 15px; width: 100%; border: none; border-radius: 6px; cursor: pointer; color: white; font-weight: bold; margin-top: 8px; font-size: 0.9em; text-align: center; text-decoration: none; display: inline-block; box-sizing: border-box; }
         .btn-main { background: var(--primary); }
         .btn-sub { background: var(--secondary); }
-        .btn-main:hover, .btn-sub:hover { opacity: 0.85; }
+        .btn:hover { opacity: 0.9; }
         
-        /* بطاقة ملخص الإحصائيات تتبع لونك الرئيسي ناعماً */
-        .stats-summary { background: #fafafa; padding: 15px; border-radius: 10px; border: 2px dashed var(--primary); margin-bottom: 20px; font-size: 0.95em; line-height: 1.8; color: #444; }
+        .stats-summary { background: #fafafa; padding: 12px; border-radius: 8px; border: 2px dashed var(--primary); margin-bottom: 15px; font-size: 0.85em; line-height: 1.6; color: #444; }
         
-        /* الجداول تتبع لونكِ الرئيسي */
-        table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 15px; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
-        th { background: var(--primary); color: white; padding: 14px; font-weight: 600; font-size: 0.95em; }
-        td { padding: 12px; border-bottom: 1px solid #eee; background: #fff; text-align: center; font-size: 0.95em; color: #555; }
-        tr:last-child td { border-bottom: none; }
+        /* الجداول الاحترافية المتناسقة مع الألوان */
+        table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 15px; border-radius: 10px; overflow: hidden; }
+        th { background: var(--primary); color: white; padding: 12px; font-weight: 600; font-size: 0.85em; }
+        td { padding: 10px; border-bottom: 1px solid #eee; background: #fff; text-align: center; font-size: 0.85em; color: #555; }
         
-        .action-btn { border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; color: white; font-size: 0.85em; font-weight: bold; }
+        .action-btn { border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; color: white; font-size: 0.8em; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -66,96 +68,90 @@
         
         <div class="box">
             <div class="accordion-title-btn" onclick="toggleSection('stats-content', 'stats-indicator')">
-                <span>📊 الإحصائيات والمصروفات (اضغطي للفتح)</span>
+                <span>📊 الإحصائيات</span>
                 <span id="stats-indicator">▼</span>
             </div>
             
             <div id="stats-content" class="accordion-inside-content">
                 <div class="stats-summary">
-                    💰 مبيعات اليوم الحالي: <strong>{{ daily_total if daily_total is not none else 0 }} دج</strong><br>
-                    📅 مبيعات الشهر الحالي: <strong>{{ monthly_total if monthly_total is not none else 0 }} دج</strong><br>
-                    🗓️ مبيعات السنة كاملة: <strong>{{ yearly_total if yearly_total is not none else 0 }} دج</strong>
+                    💰 دخل اليوم:<br><strong>{{ daily_total if daily_total is not none else 0 }} دج</strong><br>
+                    📅 دخل الشهر:<br><strong>{{ monthly_total if monthly_total is not none else 0 }} دج</strong><br>
+                    🗓️ دخل السنة:<br><strong>{{ yearly_total if yearly_total is not none else 0 }} دج</strong>
                 </div>
                 
-                <label>📈 منحنى مبيعات الأسبوع الحالي:</label>
-                <canvas id="chartWeek" style="max-height: 130px; margin-bottom: 15px;"></canvas>
+                <label>📈 منحنى الأسبوع:</label>
+                <canvas id="chartWeek" style="max-height: 110px; margin-bottom: 10px;"></canvas>
                 
-                <label>📊 منحنى مبيعات الأشهر السنوية:</label>
-                <canvas id="chartMonth" style="max-height: 130px; margin-bottom: 15px;"></canvas>
+                <label>📊 منحنى الأشهر:</label>
+                <canvas id="chartMonth" style="max-height: 110px; margin-bottom: 10px;"></canvas>
                 
-                <label>📉 منحنى مبيعات السنوات الشامل:</label>
-                <canvas id="chartYear" style="max-height: 130px; margin-bottom: 15px;"></canvas>
+                <label>📉 منحنى السنوات:</label>
+                <canvas id="chartYear" style="max-height: 110px; margin-bottom: 10px;"></canvas>
                 
-                <a href="/" class="btn btn-main">العودة للوحة التحكم</a>
-                <a href="/logout" class="btn btn-sub">تسجيل الخروج للموقع</a>
+                <a href="/" class="btn btn-main">العودة</a>
+                <a href="/logout" class="btn btn-sub">خروج للرئيسية</a>
             </div>
         </div>
 
         <div class="box">
             <div class="accordion-title-btn" onclick="toggleSection('settings-content', 'settings-indicator')">
-                <span>⚙️ إعدادات المتجر وتخصيص الألوان (اضغطي للفتح)</span>
+                <span>⚙️ الإعدادات</span>
                 <span id="settings-indicator">▼</span>
             </div>
             
             <div id="settings-content" class="accordion-inside-content">
                 <form action="/update-info" method="POST">
-                    <label>اسم المتجر الحالي:</label>
-                    <input name="shop_name" value="{{ settings.shop_name if settings.shop_name and settings.shop_name != 'None' else '' }}" placeholder="أدخل اسم المتجر">
+                    <label>اسم المتجر:</label>
+                    <input name="shop_name" value="{{ settings.shop_name if settings.shop_name and settings.shop_name != 'None' else '' }}" placeholder="اسم المتجر">
                     
-                    <label>معرف بوت تليجرام (Bot Token):</label>
-                    <input name="bot_token" value="{{ settings.telegram_bot_token if settings.telegram_bot_token and settings.telegram_bot_token != 'None' else '' }}" placeholder="أدخل رمز توكن البوت">
+                    <label>توكن البوت:</label>
+                    <input name="bot_token" value="{{ settings.telegram_bot_token if settings.telegram_bot_token and settings.telegram_bot_token != 'None' else '' }}" placeholder="Bot Token">
                     
-                    <label>معرف شات تليجرام (Chat ID):</label>
-                    <input name="chat_id" value="{{ settings.telegram_chat_id if settings.telegram_chat_id and settings.telegram_chat_id != 'None' else '' }}" placeholder="أدخل معرف الشات">
+                    <label>Chat ID:</label>
+                    <input name="chat_id" value="{{ settings.telegram_chat_id if settings.telegram_chat_id and settings.telegram_chat_id != 'None' else '' }}" placeholder="Chat ID">
                     
-                    <button type="submit" class="btn btn-main">حفظ معلومات المتجر</button>
+                    <button type="submit" class="btn btn-main">حفظ البيانات</button>
                 </form>
                 
-                <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+                <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
                 
                 <form action="/update-colors" method="POST">
-                    <label>اللون الرئيسي (الخلفيات، العناوين، الجداول، الأزرار الأساسية):</label>
+                    <label>اللون الرئيسي:</label>
                     <input type="color" name="primary_color" value="{{ settings.primary_color if settings.primary_color else '#a855f7' }}">
                     
-                    <label>اللون الثانوي (أزرار الخروج، الحفظ البديل، الأزرار الثانوية):</label>
+                    <label>اللون الثانوي:</label>
                     <input type="color" name="secondary_color" value="{{ settings.secondary_color if settings.secondary_color else '#7e22ce' }}">
                     
-                    <button type="submit" class="btn btn-sub">حفظ وتطبيق الألوان الشاملة</button>
+                    <button type="submit" class="btn btn-sub">تطبيق الألوان</button>
                 </form>
                 
-                <a href="/logout" class="btn btn-sub">خروج لصفحة تسجيل الدخول</a>
-                <a href="/" class="btn btn-main">العودة للوحة التحكم</a>
+                <a href="/logout" class="btn btn-sub">تسجيل خروج</a>
+                <a href="/" class="btn btn-main">لوحة التحكم</a>
             </div>
         </div>
         
     </div>
 
-    <div class="box" style="margin-top: 20px;">
+    <div class="box" style="margin-top: 15px;">
         <div class="accordion-title-btn" style="cursor: default;">
             <span>📦 إدارة وحفظ طلبيات المتجر الحالية</span>
         </div>
         
-        <div style="margin-top: 20px;">
-            <form action="/add-order" method="POST" style="background: #fafafa; padding: 20px; border-radius: 12px; border: 1px solid #eee; margin-bottom: 25px;">
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px;">
-                    <div>
-                        <label>اسم الزبون الكامل:</label>
-                        <input name="name" placeholder="أدخل اسم الزبون هنا" required>
-                    </div>
-                    <div>
-                        <label>المنتج أو السلعة المطلوبة:</label>
-                        <input name="product" placeholder="أدخل اسم المنتج" required>
-                    </div>
-                    <div>
-                        <label>السعر الفعلي للطلبية (دج):</label>
-                        <input name="price" type="number" step="0.01" placeholder="مثال: 4500" required>
-                    </div>
-                    <div>
-                        <label>رقم هاتف الزبون للتواصل:</label>
-                        <input name="phone" placeholder="أدخل رقم الهاتف" required>
-                    </div>
-                </div>
-                <button type="submit" class="btn btn-main">حفظ الطلبية وتأكيدها</button>
+        <div style="margin-top: 15px;">
+            <form action="/add-order" method="POST" style="background: #fafafa; padding: 15px; border-radius: 10px; border: 1px solid #eee; margin-bottom: 20px;">
+                <label>اسم الزبون الكامل:</label>
+                <input name="name" placeholder="أدخل اسم الزبون هنا" required>
+                
+                <label>المنتج أو السلعة المطلوبة:</label>
+                <input name="product" placeholder="أدخل اسم المنتج" required>
+                
+                <label>السعر الفعلي للطلبية (دج):</label>
+                <input name="price" type="number" step="0.01" placeholder="مثال: 4500" required>
+                
+                <label>رقم هاتف الزبون للتواصل:</label>
+                <input name="phone" placeholder="أدخل رقم الهاتف" required>
+                
+                <button type="submit" class="btn btn-sub" style="margin-top: 15px;">حفظ الطلبية وتأكيدها</button>
             </form>
 
             <table>
@@ -163,9 +159,9 @@
                     <tr>
                         <th>اسم الزبون</th>
                         <th>المنتج</th>
-                        <th>السعر الحالي</th>
+                        <th>السعر</th>
                         <th>رقم الهاتف</th>
-                        <th>إجراءات الإدارة للتحكم</th>
+                        <th>إجراءات للتحكم</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -178,17 +174,17 @@
                         <td>
                             <form action="/edit-order" method="POST" style="display: inline;">
                                 <input type="hidden" name="order_id" value="{{ o.id }}">
-                                <button type="submit" class="action-btn" style="background: #eab308;">✏️ تعديل</button>
+                                <button type="submit" class="action-btn" style="background: #eab308;">✏️</button>
                             </form>
-                            <form action="/delete-order" method="POST" style="display: inline; margin-right: 5px;">
+                            <form action="/delete-order" method="POST" style="display: inline; margin-right: 3px;">
                                 <input type="hidden" name="order_id" value="{{ o.id }}">
-                                <button type="submit" class="action-btn" style="background: #dc3545;" onclick="return confirm('هل أنت متأكد من حذف هذه الطلبية نهائياً؟')">🗑️ حذف</button>
+                                <button type="submit" class="action-btn" style="background: #dc3545;" onclick="return confirm('هل أنت متأكد؟')">🗑️</button>
                             </form>
                         </td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="5" style="color: #777; padding: 25px; font-weight: 500;">لا توجد أي طلبات مسجلة في قاعدة البيانات حالياً.</td>
+                        <td colspan="5" style="color: #777; padding: 20px; font-weight: 500;">لا توجد أي طلبات مسجلة حالياً.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -197,7 +193,6 @@
     </div>
 
     <script>
-        // دالة الفتح والغلق الديناميكية مع الحفاظ على السطر المتوازي
         function toggleSection(contentId, indicatorId) {
             const content = document.getElementById(contentId);
             const indicator = document.getElementById(indicatorId);
@@ -220,7 +215,7 @@
         const primaryColor = '{{ settings.primary_color if settings.primary_color else "#a855f7" }}';
         const secondaryColor = '{{ settings.secondary_color if settings.secondary_color else "#7e22ce" }}';
 
-        // 1. منحنى الأسبوع الحقيقي الملون حسب اختياركِ
+        // منحنى الأسبوع
         new Chart(document.getElementById('chartWeek').getContext('2d'), {
             type: 'line',
             data: {
@@ -230,7 +225,7 @@
             options: chartOptions
         });
 
-        // 2. منحنى مبيعات الأشهر الملون حسب اختياركِ
+        // منحنى الأشهر
         new Chart(document.getElementById('chartMonth').getContext('2d'), {
             type: 'bar',
             data: {
@@ -240,7 +235,7 @@
             options: chartOptions
         });
 
-        // 3. منحنى مبيعات السنوات الشامل
+        // منحنى السنوات
         new Chart(document.getElementById('chartYear').getContext('2d'), {
             type: 'line',
             data: {
