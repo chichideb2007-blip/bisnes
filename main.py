@@ -1,23 +1,16 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session
 from datetime import datetime
 from supabase import create_client, Client
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "super-secret-key-shimo")
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "shimo-secret-key-2026")
 
-# 1. الاتصال بقاعدة بيانات Supabase
-SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_KEY = os.environ.get("SUPABASE_ANON_KEY")
-
-if not SUPABASE_URL or not SUPABASE_KEY:
-    # قيم احتياطية محلياً في حال عدم ضبط المتغيرات في Render بعد
-    SUPABASE_URL = "https://your-supabase-url.supabase.co"
-    SUPABASE_KEY = "your-supabase-anon-key"
-
+# الاتصال بقاعدة بيانات Supabase
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://your-supabase-url.supabase.co")
+SUPABASE_KEY = os.environ.get("SUPABASE_ANON_KEY", "your-supabase-key")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# دالة مساعدة لجلب إعدادات المتجر والألوان
 def get_settings():
     try:
         res = supabase.table("settings").select("*").maybe_single().execute()
@@ -25,7 +18,6 @@ def get_settings():
             return res.data
     except Exception as e:
         print(f"Error fetching settings: {e}")
-    
     return {
         "shop_name": "متجري الاحترافي",
         "telegram_bot_token": "",
@@ -33,8 +25,6 @@ def get_settings():
         "primary_color": "#a855f7",
         "secondary_color": "#7e22ce"
     }
-
-# ==================== المسارات (Routes) ====================
 
 @app.route('/')
 @app.route('/dashboard')
@@ -48,7 +38,7 @@ def dashboard():
         print(f"Error fetching orders: {e}")
         orders = []
 
-    # حساب الإحصائيات الحقيقية بناءً على تاريخ اليوم الفعلي
+    # حساب مجاميع الإحصائيات
     now = datetime.now()
     daily_total = 0.0
     monthly_total = 0.0
@@ -57,12 +47,10 @@ def dashboard():
     for o in orders:
         price = float(o.get('total_price', 0) or 0)
         created_at_str = o.get('created_at', '')
-        
         if created_at_str:
             try:
                 clean_date_str = created_at_str.split('.')[0].replace('Z', '').replace('T', ' ')
                 order_date = datetime.strptime(clean_date_str, "%Y-%m-%d %H:%M:%S")
-                
                 if order_date.date() == now.date():
                     daily_total += price
                 if order_date.year == now.year and order_date.month == now.month:
@@ -70,7 +58,7 @@ def dashboard():
                 if order_date.year == now.year:
                     yearly_total += price
             except Exception as ex:
-                print(f"Date parsing error: {ex}")
+                print(f"Date error: {ex}")
 
     return render_template(
         'dashboard.html', 
@@ -81,7 +69,7 @@ def dashboard():
         yearly_total=round(yearly_total, 2)
     )
 
-# مسار إضافة وتأكيد الطلبية (مطابق تماماً لحقول الـ HTML)
+# دالة استقبال وحفظ الطلبات المؤمنة
 @app.route('/add-order', methods=['POST'])
 def add_order():
     name = request.form.get('name')
@@ -106,12 +94,8 @@ def add_order():
         supabase.table("orders").insert(new_order).execute()
         print("✅ تم حفظ الطلبية بنجاح")
     except Exception as e:
-        print(f"❌ خطأ أثناء الحفظ في جدول Supabase: {e}")
+        print(f"❌ خطأ Supabase: {e}")
 
-    return redirect(url_for('dashboard'))
-
-@app.route('/edit-order', methods=['POST'])
-def edit_order():
     return redirect(url_for('dashboard'))
 
 @app.route('/delete-order', methods=['POST'])
@@ -121,7 +105,7 @@ def delete_order():
         try:
             supabase.table("orders").delete().eq("id", order_id).execute()
         except Exception as e:
-            print(f"Error deleting order: {e}")
+            print(f"Error deleting: {e}")
     return redirect(url_for('dashboard'))
 
 @app.route('/update-info', methods=['POST'])
@@ -129,13 +113,7 @@ def update_info():
     shop_name = request.form.get('shop_name')
     bot_token = request.form.get('bot_token')
     chat_id = request.form.get('chat_id')
-
-    updated_data = {
-        "shop_name": shop_name,
-        "telegram_bot_token": bot_token,
-        "telegram_chat_id": chat_id
-    }
-
+    updated_data = {"shop_name": shop_name, "telegram_bot_token": bot_token, "telegram_chat_id": chat_id}
     try:
         res = supabase.table("settings").select("id").maybe_single().execute()
         if res and res.data:
@@ -143,19 +121,14 @@ def update_info():
         else:
             supabase.table("settings").insert(updated_data).execute()
     except Exception as e:
-        print(f"Error updating info: {e}")
+        print(f"Error: {e}")
     return redirect(url_for('dashboard'))
 
 @app.route('/update-colors', methods=['POST'])
 def update_colors():
     primary_color = request.form.get('primary_color')
     secondary_color = request.form.get('secondary_color')
-
-    updated_colors = {
-        "primary_color": primary_color,
-        "secondary_color": secondary_color
-    }
-
+    updated_colors = {"primary_color": primary_color, "secondary_color": secondary_color}
     try:
         res = supabase.table("settings").select("id").maybe_single().execute()
         if res and res.data:
@@ -163,7 +136,7 @@ def update_colors():
         else:
             supabase.table("settings").insert(updated_colors).execute()
     except Exception as e:
-        print(f"Error updating colors: {e}")
+        print(f"Error: {e}")
     return redirect(url_for('dashboard'))
 
 @app.route('/logout')
