@@ -6,18 +6,18 @@ from supabase import create_client, Client
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "super-secret-key-shimo")
 
-# 1. الاتصال بقاعدة بيانات Supabase (تأكدي من إعداد المتغيرات في Render)
+# 1. الاتصال بقاعدة بيانات Supabase
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_ANON_KEY")
 
 if not SUPABASE_URL or not SUPABASE_KEY:
-    # قيم احتياطية محلياً إذا لم تكن مضافة في السيرفر بعد
+    # قيم احتياطية محلياً في حال عدم ضبط المتغيرات في Render بعد
     SUPABASE_URL = "https://your-supabase-url.supabase.co"
     SUPABASE_KEY = "your-supabase-anon-key"
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# دالة مساعدة لجلب الإعدادات الافتراضية إذا لم تكن موجودة
+# دالة مساعدة لجلب إعدادات المتجر والألوان
 def get_settings():
     try:
         res = supabase.table("settings").select("*").maybe_single().execute()
@@ -26,7 +26,6 @@ def get_settings():
     except Exception as e:
         print(f"Error fetching settings: {e}")
     
-    # قيم افتراضية في حال عدم وجود الجدول أو البيانات
     return {
         "shop_name": "متجري الاحترافي",
         "telegram_bot_token": "",
@@ -37,11 +36,9 @@ def get_settings():
 
 # ==================== المسارات (Routes) ====================
 
-# المسار الرئيسي للوحة التحكم (Dashboard)
 @app.route('/')
 @app.route('/dashboard')
 def dashboard():
-    # أ. جلب الإعدادات والطلبيات من Supabase
     settings = get_settings()
     
     try:
@@ -51,38 +48,30 @@ def dashboard():
         print(f"Error fetching orders: {e}")
         orders = []
 
-    # ب. حساب الإحصائيات الحقيقية بناءً على تاريخ اليوم الحالي
+    # حساب الإحصائيات الحقيقية بناءً على تاريخ اليوم الفعلي
     now = datetime.now()
     daily_total = 0.0
     monthly_total = 0.0
     yearly_total = 0.0
 
     for o in orders:
-        # قراءة السعر وتاريخ إنشاء الطلب
         price = float(o.get('total_price', 0) or 0)
         created_at_str = o.get('created_at', '')
         
         if created_at_str:
             try:
-                # تنظيف نص التاريخ ليتوافق مع بايثون
                 clean_date_str = created_at_str.split('.')[0].replace('Z', '').replace('T', ' ')
                 order_date = datetime.strptime(clean_date_str, "%Y-%m-%d %H:%M:%S")
                 
-                # 1. حساب مبيعات نهار اليوم
                 if order_date.date() == now.date():
                     daily_total += price
-                
-                # 2. حساب مبيعات الشهر الحالي
                 if order_date.year == now.year and order_date.month == now.month:
                     monthly_total += price
-                    
-                # 3. حساب مبيعات السنة الحالية
                 if order_date.year == now.year:
                     yearly_total += price
             except Exception as ex:
-                print(f"Date parsing error for order {o.get('id')}: {ex}")
+                print(f"Date parsing error: {ex}")
 
-    # ج. عرض الصفحة وإرسال البيانات محسوبة وجاهزة
     return render_template(
         'dashboard.html', 
         orders=orders, 
@@ -92,7 +81,7 @@ def dashboard():
         yearly_total=round(yearly_total, 2)
     )
 
-# مسار إضافة طلبية جديدة وحفظها
+# مسار إضافة وتأكيد الطلبية (مطابق تماماً لحقول الـ HTML)
 @app.route('/add-order', methods=['POST'])
 def add_order():
     name = request.form.get('name')
@@ -101,11 +90,10 @@ def add_order():
     phone = request.form.get('phone')
     
     try:
-        price = float(price_str)
+        price = float(price_str.strip()) if price_str else 0.0
     except ValueError:
         price = 0.0
 
-    # تجهيز بيانات الطلب الجديد للحفظ في Supabase
     new_order = {
         "customer_name": name,
         "product_name": product,
@@ -116,20 +104,16 @@ def add_order():
 
     try:
         supabase.table("orders").insert(new_order).execute()
+        print("✅ تم حفظ الطلبية بنجاح")
     except Exception as e:
-        print(f"Error inserting order: {e}")
+        print(f"❌ خطأ أثناء الحفظ في جدول Supabase: {e}")
 
     return redirect(url_for('dashboard'))
 
-# مسار تعديل أو حفظ الطلبية مباشرة من الجدول
 @app.route('/edit-order', methods=['POST'])
 def edit_order():
-    order_id = request.form.get('order_id')
-    # هنا يمكنك توجيه المستخدم لصفحة تعديل منفصلة أو معالجة التحديث
-    # للتبسيط، يعود لوحة التحكم
     return redirect(url_for('dashboard'))
 
-# مسار حذف طلبية من الجدول
 @app.route('/delete-order', methods=['POST'])
 def delete_order():
     order_id = request.form.get('order_id')
@@ -138,10 +122,8 @@ def delete_order():
             supabase.table("orders").delete().eq("id", order_id).execute()
         except Exception as e:
             print(f"Error deleting order: {e}")
-            
     return redirect(url_for('dashboard'))
 
-# مسار تحديث معلومات المتجر والبوت
 @app.route('/update-info', methods=['POST'])
 def update_info():
     shop_name = request.form.get('shop_name')
@@ -155,18 +137,15 @@ def update_info():
     }
 
     try:
-        # نتحقق أولاً إذا كان هناك سطر إعدادات مسجل لتحديثه أو نقوم بإنشائه
         res = supabase.table("settings").select("id").maybe_single().execute()
         if res and res.data:
             supabase.table("settings").update(updated_data).eq("id", res.data["id"]).execute()
         else:
             supabase.table("settings").insert(updated_data).execute()
     except Exception as e:
-        print(f"Error updating settings info: {e}")
-
+        print(f"Error updating info: {e}")
     return redirect(url_for('dashboard'))
 
-# مسار تحديث الألوان المخصصة للوحة التحكم
 @app.route('/update-colors', methods=['POST'])
 def update_colors():
     primary_color = request.form.get('primary_color')
@@ -185,18 +164,13 @@ def update_colors():
             supabase.table("settings").insert(updated_colors).execute()
     except Exception as e:
         print(f"Error updating colors: {e}")
-
     return redirect(url_for('dashboard'))
 
-# مسار تسجيل الخروج
 @app.route('/logout')
 def logout():
     session.clear()
-    # هنا يمكنك التوجيه لصفحة تسجيل الدخول إذا كانت متوفرة لديكِ
-    return "تم تسجيل الخروج بنجاح! يمكنك الآن العودة إلى صفحة الدخول الافتراضية الخاصة بكِ."
+    return redirect(url_for('dashboard'))
 
-# تشغيل التطبيق
 if __name__ == '__main__':
-    # بورت 5000 متوافق مع خوادم Render تلقائياً
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
