@@ -166,13 +166,13 @@
         <form action="/update-info" method="POST" class="sub-section">
             <div class="form-group">
                 <label>اسم المتجر:</label>
-                <input type="text" name="shop_name" value="{{ settings.shop_name }}" required>
+                <input type="text" name="shop_name" value="{{ settings.shop_name if settings.shop_name != 'None' else '' }}" placeholder="أدخلي اسم المتجر" required>
                 
                 <label>توكن بوت التليجرام (Bot Token):</label>
-                <input type="text" name="bot_token" value="{{ settings.telegram_bot_token }}" placeholder="أدخلي توكن البوت هنا">
+                <input type="text" name="bot_token" value="{{ settings.telegram_bot_token if settings.telegram_bot_token != 'None' else '' }}" placeholder="أدخلي توكن البوت هنا">
                 
                 <label>معرف شات التليجرام (Chat ID):</label>
-                <input type="text" name="chat_id" value="{{ settings.telegram_chat_id }}" placeholder="مثال: -100xxxxxxxxx">
+                <input type="text" name="chat_id" value="{{ settings.telegram_chat_id if settings.telegram_chat_id != 'None' else '' }}" placeholder="مثال: -100xxxxxxxxx">
             </div>
             <button type="submit" class="btn-save btn-blue">💾 حفظ معلومات المتجر والتليجرام</button>
         </form>
@@ -181,12 +181,12 @@
             <div class="form-group">
                 <div style="display: flex; gap: 15px;">
                     <div style="flex: 1;">
-                        <label>اللون الأساسي (للأزرار الرئيسية والعناوين والشرائط الجانبية):</label>
-                        <input type="color" name="primary_color" value="{{ settings.primary_color }}">
+                        <label>اللون الأساسي:</label>
+                        <input type="color" name="primary_color" value="{{ settings.primary_color if settings.primary_color and settings.primary_color != 'None' else '#7a3e13' }}">
                     </div>
                     <div style="flex: 1;">
-                        <label>اللون الثانوي (للهيدر المتدرج والأسعار والتركيز):</label>
-                        <input type="color" name="secondary_color" value="{{ settings.secondary_color }}">
+                        <label>اللون الثانوي:</label>
+                        <input type="color" name="secondary_color" value="{{ settings.secondary_color if settings.secondary_color and settings.secondary_color != 'None' else '#bd6a2c' }}">
                     </div>
                 </div>
             </div>
