@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>لوحة التحكم - {{ settings.shop_name }}</title>
     <style>
-        /* جلب الألوان ديناميكياً من قاعدة البيانات */
         :root {
             --primary-color: {{ settings.primary_color }};
             --secondary-color: {{ settings.secondary_color }};
@@ -21,11 +20,15 @@
         .btn-settings-toggle { background-color: rgba(255,255,255,0.2); color: white; border: 1px solid white; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
         .card h3 { margin-top: 0; color: var(--primary-color); border-bottom: 2px solid #f4f6f9; padding-bottom: 10px; display: flex; align-items: center; gap: 8px; }
-        .form-group input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
+        .form-group label { display: block; margin-top: 12px; font-weight: bold; font-size: 14px; color: #555; }
+        .form-group input { width: 100%; padding: 12px; margin: 6px 0 6px 0; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
         .form-group input[type="color"] { height: 45px; padding: 2px; cursor: pointer; }
         .form-group input:focus { border-color: var(--secondary-color); outline: none; }
-        .btn-save { background-color: #2da745; color: white; border: none; width: 100%; padding: 12px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 5px; }
+        .btn-save { background-color: #2da745; color: white; border: none; width: 100%; padding: 12px; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 5px; }
         .btn-save:hover { background-color: #218838; }
+        .btn-blue { background-color: #007bff; }
+        .btn-blue:hover { background-color: #0056b3; }
+        .sub-section { background: #fdfdfd; padding: 15px; border: 1px solid #eef2f5; border-radius: 10px; margin-bottom: 15px; }
         .order-item { background: #fff; border-right: 5px solid var(--primary-color); padding: 15px; margin-bottom: 10px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); display: flex; justify-content: space-between; align-items: center; }
         .order-info p { margin: 4px 0; font-size: 14px; }
         .price-tag { color: #2da745; font-weight: bold; }
@@ -41,7 +44,7 @@
 <div class="container">
     <div class="header">
         <div class="user-box">
-            <h2>🏪 {{ settings.shop_name }} ({{ user }})</h2>
+            <h2>🏪 {{ settings.shop_name }}</h2>
         </div>
         <div class="nav-buttons">
             <button class="btn-settings-toggle" onclick="toggleSettings()">⚙️ الإعدادات</button>
@@ -50,30 +53,36 @@
     </div>
 
     <div class="card" id="settings-section">
-        <h3>⚙️ إعدادات المتجر والمنصة</h3>
-        <form action="/update-settings" method="POST">
+        <h3>⚙️ إعدادات المنصة والمظهر</h3>
+        
+        <form action="/update-info" method="POST" class="sub-section">
             <div class="form-group">
-                <label><b>اسم المتجر:</b></label>
+                <label>اسم المتجر:</label>
                 <input type="text" name="shop_name" value="{{ settings.shop_name }}" required>
                 
-                <label><b>توكن بوت التليجرام (Bot Token):</b></label>
+                <label>توكن بوت التليجرام (Bot Token):</label>
                 <input type="text" name="bot_token" value="{{ settings.telegram_bot_token }}" placeholder="أدخلي توكن البوت هنا">
                 
-                <label><b>معرف شات التليجرام (Chat ID):</b></label>
-                <input type="text" name="chat_id" value="{{ settings.telegram_chat_id }}" placeholder="مثال: -100xxxxxxxxx أو معرف حسابك">
-                
-                <div style="display: flex; gap: 15px; margin-top: 10px;">
+                <label>معرف شات التليجرام (Chat ID):</label>
+                <input type="text" name="chat_id" value="{{ settings.telegram_chat_id }}" placeholder="مثال: -100xxxxxxxxx">
+            </div>
+            <button type="submit" class="btn-save btn-blue">💾 حفظ معلومات المتجر والتليجرام</button>
+        </form>
+
+        <form action="/update-colors" method="POST" class="sub-section">
+            <div class="form-group">
+                <div style="display: flex; gap: 15px;">
                     <div style="flex: 1;">
-                        <label><b>اللون الأساسي:</b></label>
+                        <label>اللون الأساسي:</label>
                         <input type="color" name="primary_color" value="{{ settings.primary_color }}">
                     </div>
                     <div style="flex: 1;">
-                        <label><b>اللون الثانوي:</b></label>
+                        <label>اللون الثانوي:</label>
                         <input type="color" name="secondary_color" value="{{ settings.secondary_color }}">
                     </div>
                 </div>
             </div>
-            <button type="submit" class="btn-save" style="background-color: var(--primary-color);">💾 حفظ الإعدادات وتغيير الألوان</button>
+            <button type="submit" class="btn-save" style="background-color: var(--primary-color); margin-top: 10px;">🎨 حفظ وتطبيق الألوان الجديدة</button>
         </form>
     </div>
 
@@ -96,10 +105,10 @@
         <div style="margin-bottom: 15px;">
             <div class="order-item">
                 <div class="order-info">
-                    <p><strong>👤 :الزبون</strong> {{ o.customer_name }}</p>
-                    <p><strong>🛍️ :المنتج</strong> {{ o.product_name }}</p>
-                    <p><strong>💰 :السعر</strong> <span class="price-tag">{{ o.total_price }} دج</span></p>
-                    <p><strong>📞 :الهاتف</strong> {{ o.customer_phone or 'غير مسجل' }}</p>
+                    <p><strong>👤 الزبون:</strong> {{ o.customer_name }}</p>
+                    <p><strong>🛍️ المنتج:</strong> {{ o.product_name }}</p>
+                    <p><strong>💰 السعر:</strong> <span class="price-tag">{{ o.total_price }} دج</span></p>
+                    <p><strong>📞 الهاتف:</strong> {{ o.customer_phone or 'غير مسجل' }}</p>
                 </div>
                 <div class="actions">
                     <button class="btn-edit" onclick="toggleEdit('{{ o.id }}')">تعديل</button>
@@ -135,7 +144,6 @@
         panel.style.display = (panel.style.display === 'block') ? 'none' : 'block';
     }
 
-    // دالة إظهار وإخفاء قسم الإعدادات
     function toggleSettings() {
         var section = document.getElementById('settings-section');
         section.style.display = (section.style.display === 'block') ? 'none' : 'block';
