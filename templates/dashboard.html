@@ -2,48 +2,79 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary: {{ settings.primary_color }}; --secondary: {{ settings.secondary_color }}; }
         body { font-family: sans-serif; background: #f4f7f6; padding: 20px; }
-        .box { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        .header-click { cursor: pointer; background: #eee; padding: 15px; border-radius: 10px; font-weight: bold; }
-        .content-hidden { display: none; margin-top: 15px; }
-        .btn { padding: 10px; width: 100%; border: none; border-radius: 6px; cursor: pointer; color: white; margin-top: 5px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { padding: 10px; border: 1px solid #ddd; text-align: center; }
+        .row { display: flex; gap: 20px; margin-bottom: 20px; }
+        .box { flex: 1; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        label { display: block; margin-top: 10px; font-weight: bold; }
+        input { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        .btn { padding: 12px; width: 100%; border: none; border-radius: 6px; cursor: pointer; color: white; font-weight: bold; margin-top: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; border: 1px solid #eee; text-align: center; }
     </style>
 </head>
 <body>
 
-<div class="box">
-    <div class="header-click" onclick="document.getElementById('stats').classList.toggle('content-hidden')">📊 الإحصائيات (اضغط للفتح)</div>
-    <div id="stats" class="content-hidden">
-        <p>مبيعات اليوم: <strong>{{ daily_total }} دج</strong></p>
-        <p>مبيعات الشهر الحالي: <strong>{{ monthly_total }} دج</strong></p>
-        <p>مبيعات السنة: <strong>{{ yearly_total }} دج</strong></p>
-    </div>
-</div>
-
-<div class="box">
-    <div class="header-click" onclick="document.getElementById('settings').classList.toggle('content-hidden')">⚙️ الإعدادات (اضغط للفتح)</div>
-    <div id="settings" class="content-hidden">
+<div class="row">
+    <!-- خانة الإعدادات -->
+    <div class="box">
+        <h3>⚙️ الإعدادات</h3>
         <form action="/update-info" method="POST">
-            <input name="shop_name" value="{{ settings.shop_name }}" placeholder="اسم المتجر">
-            <input name="bot_token" value="{{ settings.telegram_bot_token }}" placeholder="Bot Token">
-            <input name="chat_id" value="{{ settings.telegram_chat_id }}" placeholder="Chat ID">
-            <button class="btn" style="background:var(--primary);">حفظ</button>
+            <label>اسم المتجر:</label> <input name="shop_name" value="{{ settings.shop_name }}">
+            <label>بوت تليجرام:</label> <input name="bot_token" value="{{ settings.telegram_bot_token }}">
+            <label>معرف تليجرام (Chat ID):</label> <input name="chat_id" value="{{ settings.telegram_chat_id }}">
+            <button class="btn" style="background:var(--primary);">حفظ المعلومات</button>
         </form>
+        <form action="/update-colors" method="POST">
+            <label>اللون الرئيسي:</label> <input type="color" name="primary_color" value="{{ settings.primary_color }}">
+            <label>اللون الثانوي:</label> <input type="color" name="secondary_color" value="{{ settings.secondary_color }}">
+            <button class="btn" style="background:var(--secondary);">حفظ الألوان</button>
+        </form>
+        <a href="/login" class="btn" style="background:red; text-align:center; display:block; text-decoration:none;">خروج لصفحة الدخول</a>
+    </div>
+
+    <!-- خانة الإحصائيات -->
+    <div class="box">
+        <h3>📊 الإحصائيات</h3>
+        <p>يومي: 100دج | شهري: 3000دج | سنوي: 36000دج</p>
+        <canvas id="chartWeek" height="100"></canvas>
+        <canvas id="chartMonth" height="100"></canvas>
+        <canvas id="chartYear" height="100"></canvas>
+        <a href="/" class="btn" style="background:#555; text-align:center; display:block; text-decoration:none;">العودة للوحة التحكم</a>
     </div>
 </div>
 
+<!-- خانة الطلبات -->
 <div class="box">
-    <h3>📦 إضافة طلب جديد</h3>
+    <h3>➕ إضافة طلبية جديدة</h3>
     <form action="/add-order" method="POST">
-        <input name="name" placeholder="الاسم" required>
+        <input name="name" placeholder="اسم الزبون" required>
+        <input name="product" placeholder="المنتج" required>
         <input name="price" type="number" placeholder="السعر" required>
-        <button class="btn" style="background:var(--primary);">حفظ</button>
+        <input name="phone" placeholder="رقم الهاتف" required>
+        <button class="btn" style="background:var(--primary);">تأكيد وحفظ الطلبية</button>
     </form>
+
+    <h3>📦 الطلبات المسجلة</h3>
+    <table>
+        <tr><th>الاسم</th><th>المنتج</th><th>السعر</th><th>الهاتف</th><th>حذف</th></tr>
+        {% for o in orders %}
+        <tr>
+            <td>{{ o.customer_name }}</td>
+            <td>{{ o.product_name }}</td>
+            <td>{{ o.total_price }}</td>
+            <td>{{ o.customer_phone }}</td>
+            <td><form action="/delete-order" method="POST"><input type="hidden" name="order_id" value="{{ o.id }}"><button>🗑️</button></form></td>
+        </tr>
+        {% endfor %}
+    </table>
 </div>
 
+<script>
+    function draw(id) { new Chart(document.getElementById(id), { type: 'line', data: { labels: ['1','2','3','4','5'], datasets: [{ data: [10,20,15,30,25], borderColor: '#7a3e13' }] } }); }
+    draw('chartWeek'); draw('chartMonth'); draw('chartYear');
+</script>
 </body>
 </html>
