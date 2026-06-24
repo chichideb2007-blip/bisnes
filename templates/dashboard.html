@@ -5,116 +5,75 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary: {{ settings.primary_color }}; --secondary: {{ settings.secondary_color }}; }
-        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; padding: 20px; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f8f9fa; padding: 20px; }
         
-        .section { background: white; padding: 20px; border-radius: 15px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .header-bar { cursor: pointer; background: var(--primary); color: white; padding: 15px; border-radius: 10px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
-        .content-area { display: none; margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; }
+        /* تصميم السطر الواحد */
+        .top-row { display: flex; gap: 20px; margin-bottom: 20px; }
+        .flex-item { flex: 1; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         
-        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        .btn { padding: 12px; border: none; border-radius: 8px; cursor: pointer; color: white; font-weight: bold; width: 100%; margin-top: 10px; transition: 0.3s; }
-        .btn:hover { opacity: 0.9; }
+        .header-bar { cursor: pointer; background: #f1f1f1; padding: 15px; border-radius: 10px; font-weight: bold; text-align: center; margin-bottom: 10px; }
+        .content-area { display: none; padding-top: 15px; }
         
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { border: 1px solid #eee; padding: 12px; text-align: center; }
-        th { background: #f8f9fa; }
+        /* تصميم الجدول الاحترافي */
+        .table-container { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; }
+        th { background: var(--primary); color: white; padding: 15px; }
+        td { padding: 15px; border-bottom: 1px solid #eee; }
+        tr:hover { background-color: #fcfcfc; }
+        
+        .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; color: white; font-weight: bold; margin-top: 5px; }
+        input { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 6px; }
     </style>
 </head>
 <body>
 
-    <div class="section">
-        <div class="header-bar" onclick="toggleSection('stats-content')">
-            <span>📊 الإحصائيات والمصروفات</span>
-            <span>▼</span>
-        </div>
+<div class="top-row">
+    <!-- خانة الإحصائيات -->
+    <div class="flex-item">
+        <div class="header-bar" onclick="document.getElementById('stats-content').style.display = (document.getElementById('stats-content').style.display === 'block') ? 'none' : 'block';">📊 الإحصائيات</div>
         <div id="stats-content" class="content-area">
-            <div style="width: 100%; max-width: 400px; margin: auto;">
-                <canvas id="myChart"></canvas>
-            </div>
-            <p style="text-align: center; font-size: 1.2em; font-weight: bold; color: #333;">
-                مجموع المصروف اليومي: <span>{{ orders|sum(attribute='total_price') }} دج</span>
-            </p>
-            <div style="display:flex; justify-content:center; gap:10px;">
-                <a href="/" class="btn" style="background: #6c757d; width: auto;">العودة للوحة التحكم</a>
-                <a href="/logout" class="btn" style="background: #dc3545; width: auto;">خروج</a>
-            </div>
+            <canvas id="myChart"></canvas>
+            <p>المصروف اليومي: <strong>{{ orders|sum(attribute='total_price') }} دج</strong></p>
+            <a href="/logout" class="btn" style="background:#dc3545;">خروج</a>
         </div>
     </div>
 
-    <div class="section">
-        <div class="header-bar" style="background: var(--secondary);" onclick="toggleSection('settings-content')">
-            <span>⚙️ إعدادات المتجر</span>
-            <span>▼</span>
-        </div>
+    <!-- خانة الإعدادات -->
+    <div class="flex-item">
+        <div class="header-bar" onclick="document.getElementById('settings-content').style.display = (document.getElementById('settings-content').style.display === 'block') ? 'none' : 'block';">⚙️ الإعدادات</div>
         <div id="settings-content" class="content-area">
-            <h3>تعديل بيانات المتجر</h3>
             <form action="/update-info" method="POST">
-                <input name="shop_name" value="{{ settings.shop_name }}" placeholder="اسم المتجر">
-                <input name="bot_token" value="{{ settings.telegram_bot_token }}" placeholder="Bot Token">
-                <input name="chat_id" value="{{ settings.telegram_chat_id }}" placeholder="Chat ID">
-                <button class="btn" style="background: var(--primary);">حفظ الإعدادات</button>
+                <input name="shop_name" placeholder="اسم المتجر" value="{{ settings.shop_name }}">
+                <button class="btn" style="background:var(--primary);">حفظ</button>
             </form>
-            <hr>
-            <h3>تخصيص الألوان</h3>
-            <form action="/update-colors" method="POST">
-                <input type="color" name="primary_color" value="{{ settings.primary_color }}">
-                <input type="color" name="secondary_color" value="{{ settings.secondary_color }}">
-                <button class="btn" style="background: var(--secondary);">حفظ وتطبيق الألوان</button>
-            </form>
-            <a href="/" class="btn" style="background: #6c757d;">العودة للوحة التحكم</a>
         </div>
     </div>
+</div>
 
-    <div class="section">
-        <h3>➕ إضافة طلبية جديدة</h3>
-        <form action="/add-order" method="POST">
-            <input name="name" placeholder="اسم الزبون" required>
-            <input name="product" placeholder="اسم المنتج" required>
-            <input name="price" type="number" placeholder="السعر" required>
-            <input name="phone" placeholder="رقم الهاتف">
-            <button class="btn" style="background: var(--primary);">حفظ الطلبية</button>
-        </form>
+<!-- جدول الطلبات الاحترافي -->
+<div class="table-container">
+    <h3>📦 قائمة الطلبات</h3>
+    <table>
+        <tr><th>الزبون</th><th>المنتج</th><th>السعر</th><th>الإجراء</th></tr>
+        {% for o in orders %}
+        <tr>
+            <td>{{ o.customer_name }}</td>
+            <td>{{ o.product_name }}</td>
+            <td>{{ o.total_price }} دج</td>
+            <td>
+                <form action="/delete-order" method="POST">
+                    <input type="hidden" name="order_id" value="{{ o.id }}">
+                    <button type="submit" style="background:none; border:none; color:red; cursor:pointer;">🗑️ حذف</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
 
-        <h3>📦 الطلبات المسجلة</h3>
-        <table>
-            <tr><th>الاسم</th><th>المنتج</th><th>السعر</th><th>الهاتف</th><th>حذف</th></tr>
-            {% for o in orders %}
-            <tr>
-                <td>{{ o.customer_name }}</td>
-                <td>{{ o.product_name }}</td>
-                <td>{{ o.total_price }}</td>
-                <td>{{ o.customer_phone }}</td>
-                <td>
-                    <form action="/delete-order" method="POST">
-                        <input type="hidden" name="order_id" value="{{ o.id }}">
-                        <button type="submit" style="background:#dc3545; color:white; border:none; padding:5px; cursor:pointer;">حذف</button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </table>
-    </div>
-
-    <script>
-        function toggleSection(id) {
-            const el = document.getElementById(id);
-            el.style.display = (el.style.display === 'block') ? 'none' : 'block';
-        }
-
-        // رسم المنحنى البياني
-        const ctx = document.getElementById('myChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: ['يوم 1', 'يوم 2', 'يوم 3', 'يوم 4'],
-                datasets: [{
-                    label: 'المبيعات',
-                    data: [500, 1200, 800, 2000],
-                    borderColor: '{{ settings.primary_color }}',
-                    backgroundColor: 'rgba(0,0,0,0.1)'
-                }]
-            }
-        });
-    </script>
+<script>
+    const ctx = document.getElementById('myChart').getContext('2d');
+    new Chart(ctx, { type: 'line', data: { labels: ['السبت', 'الأحد', 'الاثنين'], datasets: [{ label: 'المبيعات', data: [1000, 2000, 1500], borderColor: '{{ settings.primary_color }}' }] } });
+</script>
 </body>
 </html>
