@@ -2,261 +2,48 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة التحكم - {{ settings.shop_name }}</title>
+    <title>لوحة التحكم</title>
     <style>
         :root {
-            --primary-color: {{ settings.primary_color if settings.primary_color and settings.primary_color != 'None' else '#7a3e13' }};
-            --secondary-color: {{ settings.secondary_color if settings.secondary_color and settings.secondary_color != 'None' else '#bd6a2c' }};
+            --primary: {{ settings.primary_color }};
+            --secondary: {{ settings.secondary_color }};
         }
-        
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            background-color: #f4f6f9; 
-            margin: 0; 
-            padding: 20px; 
-            color: #333; 
-        }
-        
-        .container { max-width: 700px; margin: 0 auto; }
-        
-        .header { 
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); 
-            color: white; 
-            padding: 20px; 
-            border-radius: 12px; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            margin-bottom: 20px; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
-        }
-        .user-box h2 { margin: 0; font-size: 20px; }
-        
-        .nav-buttons { display: flex; gap: 10px; align-items: center; }
-        
-        .btn-logout { 
-            background-color: #e63946; 
-            color: white; 
-            border: none; 
-            padding: 8px 16px; 
-            border-radius: 6px; 
-            cursor: pointer; 
-            text-decoration: none; 
-            font-size: 14px; 
-            transition: 0.3s; 
-        }
-        .btn-logout:hover { background-color: #c1121f; }
-        
-        .btn-settings-toggle { 
-            background-color: rgba(255,255,255,0.2); 
-            color: white; 
-            border: 1px solid white; 
-            padding: 8px 16px; 
-            border-radius: 6px; 
-            cursor: pointer; 
-            font-size: 14px; 
-        }
-        
-        .card { 
-            background: white; 
-            padding: 20px; 
-            border-radius: 12px; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
-            margin-bottom: 20px; 
-            border: 1px solid rgba(0,0,0,0.03);
-        }
-        
-        .card h3 { 
-            margin-top: 0; 
-            color: var(--primary-color); 
-            border-bottom: 2px solid #f4f6f9; 
-            padding-bottom: 10px; 
-            display: flex; 
-            align-items: center; 
-            gap: 8px; 
-        }
-        
-        .form-group label { display: block; margin-top: 12px; font-weight: bold; font-size: 14px; color: #555; }
-        
-        .form-group input { 
-            width: 100%; 
-            padding: 12px; 
-            margin: 6px 0 6px 0; 
-            border: 1px solid #ccc; 
-            border-radius: 8px; 
-            box-sizing: border-box; 
-            font-size: 14px; 
-        }
-        .form-group input[type="color"] { height: 45px; padding: 2px; cursor: pointer; }
-        
-        .form-group input:focus { 
-            border-color: var(--secondary-color); 
-            outline: none; 
-        }
-        
-        .btn-save { 
-            background-color: var(--primary-color); 
-            color: white; 
-            border: none; 
-            width: 100%; 
-            padding: 12px; 
-            border-radius: 8px; 
-            font-size: 15px; 
-            font-weight: bold; 
-            cursor: pointer; 
-            transition: 0.3s; 
-            margin-top: 5px; 
-        }
-        .btn-save:hover { filter: brightness(90%); }
-        
-        .btn-blue { 
-            background-color: var(--secondary-color); 
-        }
-        
-        .sub-section { background: #fdfdfd; padding: 15px; border: 1px solid #eef2f5; border-radius: 10px; margin-bottom: 15px; }
-        
-        .order-item { 
-            background: #fff; 
-            border-right: 6px solid var(--primary-color); 
-            padding: 15px; 
-            margin-bottom: 10px; 
-            border-radius: 8px; 
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04); 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-        }
-        .order-info p { margin: 4px 0; font-size: 14px; }
-        
-        .price-tag { color: var(--secondary-color); font-weight: bold; font-size: 16px; }
-        
-        .actions { display: flex; gap: 8px; }
-        .btn-delete { background-color: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; }
-        .btn-edit { background-color: #007bff; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; }
-        
-        .edit-panel { 
-            display: none; 
-            background: #f8f9fa; 
-            padding: 15px; 
-            border-radius: 8px; 
-            margin-top: 10px; 
-            border: 1px dashed var(--primary-color); 
-        }
-        
-        #settings-section { display: none; }
+        body { font-family: sans-serif; background: #f4f6f9; padding: 20px; }
+        .container { max-width: 600px; margin: auto; }
+        .header { background: var(--primary); color: white; padding: 20px; border-radius: 10px; }
+        .card { background: white; padding: 20px; border-radius: 10px; margin-top: 20px; }
+        input { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 5px; }
+        button { background: var(--primary); color: white; border: none; padding: 10px; width: 100%; cursor: pointer; border-radius: 5px; margin-top: 10px; }
     </style>
 </head>
 <body>
-
 <div class="container">
-    <div class="header">
-        <div class="user-box">
-            <h2>🏪 {{ settings.shop_name if settings.shop_name and settings.shop_name != 'None' else 'متجري الإلكتروني' }}</h2>
-        </div>
-        <div class="nav-buttons">
-            <button class="btn-settings-toggle" onclick="toggleSettings()">⚙️ الإعدادات</button>
-            <a href="/logout" class="btn-logout">تسجيل الخروج</a>
-        </div>
-    </div>
-
-    <div class="card" id="settings-section">
-        <h3>⚙️ إعدادات المنصة والمظهر</h3>
-        
-        <form action="/update-info" method="POST" class="sub-section">
-            <div class="form-group">
-                <label>اسم المتجر:</label>
-                <input type="text" name="shop_name" value="{{ settings.shop_name if settings.shop_name and settings.shop_name != 'None' else '' }}" placeholder="أدخلي اسم المتجر" required>
-                
-                <label>توكن بوت التليجرام (Bot Token):</label>
-                <input type="text" name="bot_token" value="{{ settings.telegram_bot_token if settings.telegram_bot_token and settings.telegram_bot_token != 'None' else '' }}" placeholder="أدخلي توكن البوت هنا">
-                
-                <label>معرف شات التليجرام (Chat ID):</label>
-                <input type="text" name="chat_id" value="{{ settings.telegram_chat_id if settings.telegram_chat_id and settings.telegram_chat_id != 'None' else '' }}" placeholder="مثال: -100xxxxxxxxx">
-            </div>
-            <button type="submit" class="btn-save btn-blue">💾 حفظ معلومات المتجر والتليجرام</button>
+    <div class="header"><h1>{{ settings.shop_name }}</h1></div>
+    
+    <div class="card">
+        <h3>⚙️ الإعدادات</h3>
+        <form action="/update-info" method="POST">
+            <input type="text" name="shop_name" value="{{ settings.shop_name }}" placeholder="اسم المتجر">
+            <input type="text" name="bot_token" value="{{ settings.telegram_bot_token }}" placeholder="Token">
+            <input type="text" name="chat_id" value="{{ settings.telegram_chat_id }}" placeholder="Chat ID">
+            <button type="submit">حفظ المعلومات</button>
         </form>
-
-        <form action="/update-colors" method="POST" class="sub-section">
-            <div class="form-group">
-                <div style="display: flex; gap: 15px;">
-                    <div style="flex: 1;">
-                        <label>اللون الأساسي:</label>
-                        <input type="color" name="primary_color" value="{{ settings.primary_color if settings.primary_color and settings.primary_color != 'None' else '#7a3e13' }}">
-                    </div>
-                    <div style="flex: 1;">
-                        <label>اللون الثانوي:</label>
-                        <input type="color" name="secondary_color" value="{{ settings.secondary_color if settings.secondary_color and settings.secondary_color != 'None' else '#bd6a2c' }}">
-                    </div>
-                </div>
-            </div>
-            <button type="submit" class="btn-save">🎨 حفظ وتطبيق الألوان الجديدة على كامل اللوحة</button>
+        <form action="/update-colors" method="POST">
+            <input type="color" name="primary_color" value="{{ settings.primary_color }}">
+            <input type="color" name="secondary_color" value="{{ settings.secondary_color }}">
+            <button type="submit" style="background: var(--secondary);">حفظ الألوان</button>
         </form>
     </div>
 
     <div class="card">
-        <h3>➕ إضافة طلب جديد</h3>
-        <form action="/add-order" method="POST">
-            <div class="form-group">
-                <input type="text" name="name" placeholder="اسم الزبون" required>
-                <input type="text" name="product" placeholder="اسم المنتج" required>
-                <input type="number" step="any" name="price" placeholder="السعر (دج)" required>
-                <input type="text" name="phone" placeholder="رقم الهاتف">
-            </div>
-            <button type="submit" class="btn-save">حفظ الطلب وتأكيده</button>
-        </form>
-    </div>
-
-    <div class="card">
-        <h3>📦 قائمة الطلبات الحالية</h3>
+        <h3>📦 الطلبات</h3>
         {% for o in orders %}
-        <div style="margin-bottom: 15px;">
-            <div class="order-item">
-                <div class="order-info">
-                    <p><strong>👤 الزبون:</strong> {{ o.customer_name }}</p>
-                    <p><strong>🛍️ المنتج:</strong> {{ o.product_name }}</p>
-                    <p><strong>💰 السعر:</strong> <span class="price-tag">{{ o.total_price }} دج</span></p>
-                    <p><strong>📞 الهاتف:</strong> {{ o.customer_phone or 'غير مسجل' }}</p>
-                </div>
-                <div class="actions">
-                    <button class="btn-edit" onclick="toggleEdit('{{ o.id }}')">تعديل</button>
-                    <form action="/delete-order" method="POST" style="margin:0;" onsubmit="return confirm('هل أنتِ متأكدة من حذف هذا الطلب؟')">
-                        <input type="hidden" name="order_id" value="{{ o.id }}">
-                        <button type="submit" class="btn-delete">حذف</button>
-                    </form>
-                </div>
-            </div>
-
-            <div id="edit-form-{{ o.id }}" class="edit-panel">
-                <form action="/edit-order" method="POST">
-                    <input type="hidden" name="order_id" value="{{ o.id }}">
-                    <div class="form-group">
-                        <input type="text" name="name" value="{{ o.customer_name }}" required>
-                        <input type="text" name="product" value="{{ o.product_name }}" required>
-                        <input type="number" step="any" name="price" value="{{ o.total_price }}" required>
-                        <input type="text" name="phone" value="{{ o.customer_phone }}">
-                    </div>
-                    <button type="submit" class="btn-save">حفظ التعديلات</button>
-                </form>
-            </div>
+        <div style="border-right: 5px solid var(--primary); padding: 10px; background: #eee; margin-bottom: 10px;">
+            <p>{{ o.customer_name }} - {{ o.product_name }} ({{ o.total_price }} دج)</p>
+            <form action="/delete-order" method="POST"><input type="hidden" name="order_id" value="{{ o.id }}"><button style="background: red;">حذف</button></form>
         </div>
-        {% else %}
-        <p style="text-align: center; color: #777; font-size: 14px;">لا توجد طلبات مسجلة حالياً.</p>
         {% endfor %}
     </div>
 </div>
-
-<script>
-    function toggleEdit(id) {
-        var panel = document.getElementById('edit-form-' + id);
-        panel.style.display = (panel.style.display === 'block') ? 'none' : 'block';
-    }
-
-    function toggleSettings() {
-        var section = document.getElementById('settings-section');
-        section.style.display = (section.style.display === 'block') ? 'none' : 'block';
-    }
-</script>
-
 </body>
 </html>
