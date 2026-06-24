@@ -5,37 +5,161 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>لوحة التحكم - {{ settings.shop_name }}</title>
     <style>
+        /* جلب الألوان ديناميكياً من قاعدة البيانات وتطبيقها على كامل عناصر الصفحة */
         :root {
             --primary-color: {{ settings.primary_color }};
             --secondary-color: {{ settings.secondary_color }};
         }
         
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; color: #333; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: #f4f6f9; 
+            margin: 0; 
+            padding: 20px; 
+            color: #333; 
+        }
+        
         .container { max-width: 700px; margin: 0 auto; }
-        .header { background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); color: white; padding: 20px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        
+        /* الهيدر العلوي */
+        .header { 
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); 
+            color: white; 
+            padding: 20px; 
+            border-radius: 12px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 20px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
+        }
         .user-box h2 { margin: 0; font-size: 20px; }
+        
         .nav-buttons { display: flex; gap: 10px; align-items: center; }
-        .btn-logout { background-color: #e63946; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; text-decoration: none; font-size: 14px; transition: 0.3s; }
+        
+        /* زر تسجيل الخروج */
+        .btn-logout { 
+            background-color: #e63946; 
+            color: white; 
+            border: none; 
+            padding: 8px 16px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            text-decoration: none; 
+            font-size: 14px; 
+            transition: 0.3s; 
+        }
         .btn-logout:hover { background-color: #c1121f; }
-        .btn-settings-toggle { background-color: rgba(255,255,255,0.2); color: white; border: 1px solid white; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; }
-        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        .card h3 { margin-top: 0; color: var(--primary-color); border-bottom: 2px solid #f4f6f9; padding-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+        
+        /* زر الإعدادات */
+        .btn-settings-toggle { 
+            background-color: rgba(255,255,255,0.2); 
+            color: white; 
+            border: 1px solid white; 
+            padding: 8px 16px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-size: 14px; 
+        }
+        
+        /* البطاقات الكبيرة */
+        .card { 
+            background: white; 
+            padding: 20px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
+            margin-bottom: 20px; 
+            border: 1px solid rgba(0,0,0,0.03);
+        }
+        
+        /* عناوين البطاقات تتغير حسب اللون المختار */
+        .card h3 { 
+            margin-top: 0; 
+            color: var(--primary-color); 
+            border-bottom: 2px solid #f4f6f9; 
+            padding-bottom: 10px; 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+        }
+        
         .form-group label { display: block; margin-top: 12px; font-weight: bold; font-size: 14px; color: #555; }
-        .form-group input { width: 100%; padding: 12px; margin: 6px 0 6px 0; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
+        
+        /* حقول الإدخال */
+        .form-group input { 
+            width: 100%; 
+            padding: 12px; 
+            margin: 6px 0 6px 0; 
+            border: 1px solid #ccc; 
+            border-radius: 8px; 
+            box-sizing: border-box; 
+            font-size: 14px; 
+        }
         .form-group input[type="color"] { height: 45px; padding: 2px; cursor: pointer; }
-        .form-group input:focus { border-color: var(--secondary-color); outline: none; }
-        .btn-save { background-color: #2da745; color: white; border: none; width: 100%; padding: 12px; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 5px; }
-        .btn-save:hover { background-color: #218838; }
-        .btn-blue { background-color: #007bff; }
-        .btn-blue:hover { background-color: #0056b3; }
+        
+        /* عند الضغط داخل الحقل يتغير الإطار باللون المختار */
+        .form-group input:focus { 
+            border-color: var(--secondary-color); 
+            outline: none; 
+            box-shadow: 0 0 5px rgba(0,0,0,0.05);
+        }
+        
+        /* الأزرار الرئيسية تأخذ اللون المختار تلقائياً بالكامل */
+        .btn-save { 
+            background-color: var(--primary-color); 
+            color: white; 
+            border: none; 
+            width: 100%; 
+            padding: 12px; 
+            border-radius: 8px; 
+            font-size: 15px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            transition: 0.3s; 
+            margin-top: 5px; 
+        }
+        .btn-save:hover { 
+            filter: brightness(90%); /* تجعل الزر أغمق قليلاً عند تمرير الماوس */
+        }
+        
+        /* زر حفظ معلومات المتجر المخصص */
+        .btn-blue { 
+            background-color: var(--secondary-color); 
+        }
+        
         .sub-section { background: #fdfdfd; padding: 15px; border: 1px solid #eef2f5; border-radius: 10px; margin-bottom: 15px; }
-        .order-item { background: #fff; border-right: 5px solid var(--primary-color); padding: 15px; margin-bottom: 10px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); display: flex; justify-content: space-between; align-items: center; }
+        
+        /* بطاقات الطلبات تأخذ شريطاً جانبياً باللون المختار */
+        .order-item { 
+            background: #fff; 
+            border-right: 6px solid var(--primary-color); 
+            padding: 15px; 
+            margin-bottom: 10px; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04); 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+        }
         .order-info p { margin: 4px 0; font-size: 14px; }
-        .price-tag { color: #2da745; font-weight: bold; }
+        
+        /* سعر الطلب يأخذ اللون الثانوي المختار */
+        .price-tag { color: var(--secondary-color); font-weight: bold; font-size: 16px; }
+        
         .actions { display: flex; gap: 8px; }
         .btn-delete { background-color: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; }
         .btn-edit { background-color: #007bff; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; }
-        .edit-panel { display: none; background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 10px; border: 1px dashed var(--primary-color); }
+        
+        /* لوحة تعديل الطلبات المنبثقة تأخذ إطاراً متقطعاً باللون المختار */
+        .edit-panel { 
+            display: none; 
+            background: #f8f9fa; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin-top: 10px; 
+            border: 1px dashed var(--primary-color); 
+        }
+        
         #settings-section { display: none; }
     </style>
 </head>
@@ -73,16 +197,16 @@
             <div class="form-group">
                 <div style="display: flex; gap: 15px;">
                     <div style="flex: 1;">
-                        <label>اللون الأساسي:</label>
+                        <label>اللون الأساسي (للأزرار الرئيسية والعناوين والشرائط الجانبية):</label>
                         <input type="color" name="primary_color" value="{{ settings.primary_color }}">
                     </div>
                     <div style="flex: 1;">
-                        <label>اللون الثانوي:</label>
+                        <label>اللون الثانوي (للهيدر المتدرج والأسعار):</label>
                         <input type="color" name="secondary_color" value="{{ settings.secondary_color }}">
                     </div>
                 </div>
             </div>
-            <button type="submit" class="btn-save" style="background-color: var(--primary-color); margin-top: 10px;">🎨 حفظ وتطبيق الألوان الجديدة</button>
+            <button type="submit" class="btn-save">🎨 حفظ وتطبيق الألوان الجديدة على كامل اللوحة</button>
         </form>
     </div>
 
@@ -128,7 +252,7 @@
                         <input type="number" step="any" name="price" value="{{ o.total_price }}" required>
                         <input type="text" name="phone" value="{{ o.customer_phone }}">
                     </div>
-                    <button type="submit" class="btn-save" style="background-color: var(--primary-color);">حفظ التعديلات</button>
+                    <button type="submit" class="btn-save">حفظ التعديلات</button>
                 </form>
             </div>
         </div>
