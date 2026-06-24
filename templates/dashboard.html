@@ -2,28 +2,70 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>لوحة التحكم الرئيسية</title>
+    <title>لوحة التحكم - إدارة الطلبات</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; padding: 20px; }
-        .navbar { background: #333; color: white; padding: 15px; border-radius: 10px; display: flex; justify-content: space-between; margin-bottom: 20px; }
-        .navbar a { color: white; text-decoration: none; margin: 0 10px; }
-        .stats-card { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; margin-bottom: 20px; }
-        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .stats-box { background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 20px; text-align: center; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th, td { padding: 12px; border-bottom: 1px solid #ddd; text-align: center; }
-        th { background-color: #f8f9fa; }
+        input { padding: 10px; margin: 5px; border: 1px solid #ddd; border-radius: 5px; }
+        button { padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-<div class="navbar">
-    <div><strong>نظام إدارة الطلبات</strong></div>
-    <div>
-        <a href="/dashboard">الرئيسية</a>
-        <a href="/orders">الطلبات</a>
-        <a href="/settings">الإعدادات</a>
-        <a href="/logout" style="color: #ffcccc;">خروج</a>
-    </div>
+<div class="stats-box">
+    <h3>إجمالي المبيعات اليومية</h3>
+    <h1 style="color: #28a745;">{{ total }} دج</h1>
+    <canvas id="myChart" style="max-width: 400px; margin: auto;"></canvas>
 </div>
 
+<div class="card">
+    <h3>أحدث الطلبات</h3>
+    <table>
+        <tr>
+            <th>الزبون</th>
+            <th>التفاصيل</th>
+            <th>السعر</th>
+        </tr>
+        {% for o in orders %}
+        <tr>
+            <td>{{ o.customer_name }}</td>
+            <td>{{ o.order_details }}</td>
+            <td>{{ o.price }} دج</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+
+<div class="card">
+    <h3>إضافة طلب جديد</h3>
+    <form action="/add-order" method="POST">
+        <input name="name" placeholder="اسم الزبون" required>
+        <input name="details" placeholder="التفاصيل">
+        <input name="price" type="number" placeholder="السعر" required>
+        <button type="submit">حفظ الطلب</button>
+    </form>
+</div>
+
+<script>
+    const ctx = document.getElementById('myChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['اليوم'],
+            datasets: [{
+                label: 'الأرباح (دج)',
+                data: [{{ total }}],
+                backgroundColor: 'rgba(40, 167, 69, 0.2)',
+                borderColor: '#28a745',
+                borderWidth: 3
+            }]
+        }
+    });
+</script>
+
+</body>
+</html>
