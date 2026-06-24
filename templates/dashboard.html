@@ -1,183 +1,211 @@
-import os
-from flask import Flask, render_template, request, redirect, url_for, session
-from datetime import datetime
-from supabase import create_client, Client
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم الاحترافية</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { 
+            --primary: {{ settings.primary_color if settings and settings.primary_color else '#a855f7' }}; 
+            --secondary: {{ settings.secondary_color if settings and settings.secondary_color else '#7e22ce' }}; 
+        }
+        
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f4f7f6; padding: 10px; margin: 0; }
+        
+        /* قفل الإحصائيات والإعدادات في سطر واحد بدون انهيار على شاشة الهاتف */
+        .top-row { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 8px; 
+            margin-bottom: 15px; 
+            align-items: flex-start;
+        }
+        
+        .box { background: white; padding: 12px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); box-sizing: border-box; }
+        
+        .accordion-title-btn { 
+            background: var(--primary); 
+            color: white; 
+            padding: 10px; 
+            border-radius: 8px; 
+            font-weight: bold; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            cursor: pointer; 
+            user-select: none;
+            font-size: 0.8em;
+        }
+        
+        .accordion-inside-content { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee; }
+        
+        label { display: block; margin-top: 8px; font-weight: 600; color: #444; font-size: 0.8em; }
+        input { width: 100%; padding: 10px; margin: 4px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 0.85em; background: #fafafa; }
+        input:focus { border-color: var(--primary); outline: none; background: #fff; }
+        
+        .btn { padding: 10px 12px; width: 100%; border: none; border-radius: 6px; cursor: pointer; color: white; font-weight: bold; margin-top: 8px; font-size: 0.85em; text-align: center; text-decoration: none; display: inline-block; box-sizing: border-box; }
+        .btn-main { background: var(--primary); }
+        .btn-sub { background: var(--secondary); }
+        .btn:hover { opacity: 0.9; }
+        
+        .stats-summary { background: #fafafa; padding: 10px; border-radius: 8px; border: 2px dashed var(--primary); margin-bottom: 12px; font-size: 0.8; line-height: 1.5; color: #444; }
+        
+        table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 15px; border-radius: 10px; overflow: hidden; }
+        th { background: var(--primary); color: white; padding: 10px; font-weight: 600; font-size: 0.8em; }
+        td { padding: 10px; border-bottom: 1px solid #eee; background: #fff; text-align: center; font-size: 0.8em; color: #555; }
+        
+        .action-btn { border: none; padding: 5px 8px; border-radius: 4px; cursor: pointer; color: white; font-size: 0.75em; font-weight: bold; }
+    </style>
+</head>
+<body>
 
-app = Flask(__name__)
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "shimo-secret-key-2026")
+    <div class="top-row">
+        <div class="box">
+            <div class="accordion-title-btn" onclick="toggleSection('stats-content', 'stats-indicator')">
+                <span>📊 الإحصائيات</span>
+                <span id="stats-indicator">▼</span>
+            </div>
+            
+            <div id="stats-content" class="accordion-inside-content">
+                <div class="stats-summary">
+                    💰 اليوم:<br><strong>{{ daily_total }} دج</strong><br>
+                    📅 الشهر:<br><strong>{{ monthly_total }} دج</strong><br>
+                    🗓️ السنة:<br><strong>{{ yearly_total }} دج</strong>
+                </div>
+                
+                <label>📈 الأسبوع:</label>
+                <canvas id="chartWeek" style="max-height: 100px; margin-bottom: 10px;"></canvas>
+                <label>📊 الأشهر:</label>
+                <canvas id="chartMonth" style="max-height: 100px; margin-bottom: 10px;"></canvas>
+                <label>📉 السنوات:</label>
+                <canvas id="chartYear" style="max-height: 100px; margin-bottom: 10px;"></canvas>
+                
+                <a href="/" class="btn btn-main">تحديث</a>
+                <a href="/logout" class="btn btn-sub">خروج للرئيسية</a>
+            </div>
+        </div>
 
-# قائمة احتياطية لحفظ الطلبيات داخل ذاكرة الموقع في حال حدوث أي خلل في قاعدة البيانات
-LOCAL_ORDERS = [
-    {"customer_name": "شيماء", "product_name": "شموع", "total_price": 15.0, "customer_phone": "0555555555", "created_at": "2026-06-25T00:00:00"},
-    {"customer_name": "شيماء", "product_name": "عطر", "total_price": 50.0, "customer_phone": "0666666666", "created_at": "2026-06-25T00:00:00"}
-]
+        <div class="box">
+            <div class="accordion-title-btn" onclick="toggleSection('settings-content', 'settings-indicator')">
+                <span>⚙️ الإعدادات</span>
+                <span id="settings-indicator">▼</span>
+            </div>
+            
+            <div id="settings-content" class="accordion-inside-content">
+                <form action="/update-info" method="POST">
+                    <label>اسم المتجر:</label>
+                    <input name="shop_name" value="{{ settings.shop_name if settings.shop_name and settings.shop_name != 'None' else '' }}">
+                    <label>توكن تليجرام:</label>
+                    <input name="bot_token" value="{{ settings.telegram_bot_token if settings.telegram_bot_token and settings.telegram_bot_token != 'None' else '' }}">
+                    <label>Chat ID:</label>
+                    <input name="chat_id" value="{{ settings.telegram_chat_id if settings.telegram_chat_id and settings.telegram_chat_id != 'None' else '' }}">
+                    <button type="submit" class="btn btn-main">حفظ البيانات</button>
+                </form>
+                
+                <hr style="border: 0; border-top: 1px solid #eee; margin: 12px 0;">
+                
+                <form action="/update-colors" method="POST">
+                    <label>اللون الرئيسي:</label>
+                    <input type="color" name="primary_color" value="{{ settings.primary_color if settings.primary_color else '#a855f7' }}">
+                    <label>اللون الثانوي:</label>
+                    <input type="color" name="secondary_color" value="{{ settings.secondary_color if settings.secondary_color else '#7e22ce' }}">
+                    <button type="submit" class="btn btn-sub">تطبيق الألوان</button>
+                </form>
+            </div>
+        </div>
+    </div>
 
-# الاتصال بقاعدة بيانات Supabase
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://your-supabase-url.supabase.co")
-SUPABASE_KEY = os.environ.get("SUPABASE_ANON_KEY", "your-supabase-key")
+    <div class="box" style="margin-top: 10px;">
+        <div class="accordion-title-btn" style="cursor: default;">
+            <span>📦 إدارة وحفظ طلبيات المتجر الحالية</span>
+        </div>
+        
+        <div style="margin-top: 12px;">
+            <form action="/add-order" method="POST" style="background: #fafafa; padding: 12px; border-radius: 10px; border: 1px solid #eee; margin-bottom: 15px;">
+                <label>اسم الزبون الكامل:</label>
+                <input type="text" name="name" placeholder="اسم الزبون" required>
+                
+                <label>المنتج أو السلعة المطلوبة:</label>
+                <input type="text" name="product" placeholder="اسم المنتج" required>
+                
+                <label>السعر الفعلي للطلبية (دج):</label>
+                <input type="number" step="0.01" name="price" placeholder="مثال: 4500" required>
+                
+                <label>رقم هاتف الزبون للاتصال:</label>
+                <input type="text" name="phone" placeholder="رقم الهاتف" required>
+                
+                <button type="submit" class="btn btn-sub" style="margin-top: 12px;">حفظ الطلبية وتأكيدها</button>
+            </form>
 
-supabase = None
-try:
-    if "your-supabase" not in SUPABASE_URL:
-        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-except Exception as e:
-    print(f"تنبيه: لم يتم الاتصال بـ Supabase، سيتم استخدام الذاكرة المحلية: {e}")
+            <table>
+                <thead>
+                    <tr>
+                        <th>الزبون</th>
+                        <th>المنتج</th>
+                        <th>السعر</th>
+                        <th>الهاتف</th>
+                        <th>حذف</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for o in orders %}
+                    <tr>
+                        <td>{{ o.customer_name }}</td>
+                        <td>{{ o.product_name }}</td>
+                        <td>{{ o.total_price }} دج</td>
+                        <td>{{ o.customer_phone if o.customer_phone else 'لا يوجد' }}</td>
+                        <td>
+                            <form action="/delete-order" method="POST" style="display: inline;">
+                                <input type="hidden" name="order_id" value="{{ o.id }}">
+                                <button type="submit" class="action-btn" style="background: #dc3545;" onclick="return confirm('هل أنت متأكد؟')">🗑️</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" style="color: #777; padding: 15px;">لا توجد طلبات مسجلة حالياً.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 
-def get_settings():
-    if supabase:
-        try:
-            res = supabase.table("settings").select("*").maybe_single().execute()
-            if res and res.data:
-                return res.data
-        except Exception as e:
-            print(f"Error fetching settings: {e}")
-    return {
-        "shop_name": "متجري الاحترافي",
-        "telegram_bot_token": "",
-        "telegram_chat_id": "",
-        "primary_color": "#a855f7",
-        "secondary_color": "#7e22ce"
-    }
+    <script>
+        function toggleSection(contentId, indicatorId) {
+            const content = document.getElementById(contentId);
+            const indicator = document.getElementById(indicatorId);
+            if (content.style.display === "block") {
+                content.style.display = "none";
+                indicator.textContent = "▼";
+            } else {
+                content.style.display = "block";
+                indicator.textContent = "▲";
+            }
+        }
 
-# ==================== المسارات (Routes) ====================
+        const chartOptions = { responsive: true, scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } };
+        const primaryColor = '{{ settings.primary_color if settings.primary_color else "#a855f7" }}';
+        const secondaryColor = '{{ settings.secondary_color if settings.secondary_color else "#7e22ce" }}';
 
-@app.route('/')
-@app.route('/dashboard')
-def dashboard():
-    settings = get_settings()
-    
-    # جلب الطلبيات
-    orders = []
-    if supabase:
-        try:
-            orders_res = supabase.table("orders").select("*").order("created_at", desc=True).execute()
-            if orders_res and orders_res.data:
-                orders = orders_res.data
-        except Exception as e:
-            print(f"Error fetching orders from Supabase: {e}")
-            orders = LOCAL_ORDERS
-    else:
-        orders = LOCAL_ORDERS
+        new Chart(document.getElementById('chartWeek').getContext('2d'), {
+            type: 'line',
+            data: { labels: ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'], datasets: [{ data: [0, 0, 0, 0, {{ daily_total if daily_total else 0 }}, 0, 0], borderColor: primaryColor, tension: 0.3, fill: false }] },
+            options: chartOptions
+        });
 
-    # حساب مجاميع الإحصائيات
-    now = datetime.now()
-    daily_total = 0.0
-    monthly_total = 0.0
-    yearly_total = 0.0
+        new Chart(document.getElementById('chartMonth').getContext('2d'), {
+            type: 'bar',
+            data: { labels: ['جانفي', 'فيفري', 'مارس', 'أفريل', 'ماي', 'جوان', 'جويلية', 'أوت'], datasets: [{ data: [0, 0, 0, 0, 0, {{ monthly_total if monthly_total else 0 }}, 0, 0], backgroundColor: secondaryColor }] },
+            options: chartOptions
+        });
 
-    for o in orders:
-        try:
-            price = float(o.get('total_price', 0) or 0)
-            created_at_str = o.get('created_at', '')
-            if created_at_str:
-                clean_date_str = created_at_str.split('.')[0].replace('Z', '').replace('T', ' ')
-                order_date = datetime.strptime(clean_date_str, "%Y-%m-%d %H:%M:%S")
-                if order_date.date() == now.date():
-                    daily_total += price
-                if order_date.year == now.year and order_date.month == now.month:
-                    monthly_total += price
-                if order_date.year == now.year:
-                    yearly_total += price
-        except Exception as ex:
-            print(f"Date error: {ex}")
-
-    return render_template(
-        'dashboard.html', 
-        orders=orders, 
-        settings=settings,
-        daily_total=round(daily_total, 2),
-        monthly_total=round(monthly_total, 2),
-        yearly_total=round(yearly_total, 2)
-    )
-
-# دالة استقبال وحفظ الطلبات المعدلة والمؤمنة بالكامل
-@app.route('/add-order', methods=['POST'])
-def add_order():
-    name = request.form.get('name')
-    product = request.form.get('product')
-    price_str = request.form.get('price', '0')
-    phone = request.form.get('phone')
-    
-    try:
-        price = float(price_str.strip()) if price_str else 0.0
-    except ValueError:
-        price = 0.0
-
-    # تجهيز بيانات الطلبية الجديدة
-    new_order = {
-        "customer_name": name,
-        "product_name": product,
-        "total_price": price,
-        "customer_phone": phone,
-        "created_at": datetime.utcnow().isoformat()
-    }
-
-    # 1. الحفظ أولاً في الذاكرة المحلية لضمان ظهورها فوراً للزبون وحل مشكلتكِ
-    LOCAL_ORDERS.insert(0, new_order)
-
-    # 2. محاولة الحفظ في قاعدة بيانات Supabase الاحترافية
-    if supabase:
-        try:
-            supabase.table("orders").insert(new_order).execute()
-            print("✅ تم الحفظ في قاعدة بيانات Supabase بنجاح")
-        except Exception as e:
-            print(f"❌ تعذر الحفظ في قاعدة البيانات الخارجية وتم الاعتماد على الذاكرة المحلية: {e}")
-
-    return redirect(url_for('dashboard'))
-
-@app.route('/delete-order', methods=['POST'])
-def delete_order():
-    order_id = request.form.get('order_id')
-    # حذف من الذاكرة المحلية
-    global LOCAL_ORDERS
-    LOCAL_ORDERS = [o for o in LOCAL_ORDERS if o.get('id') != order_id]
-    
-    # حذف من Supabase
-    if supabase and order_id:
-        try:
-            supabase.table("orders").delete().eq("id", order_id).execute()
-        except Exception as e:
-            print(f"Error deleting: {e}")
-    return redirect(url_for('dashboard'))
-
-@app.route('/update-info', methods=['POST'])
-def update_info():
-    shop_name = request.form.get('shop_name')
-    bot_token = request.form.get('bot_token')
-    chat_id = request.form.get('chat_id')
-    updated_data = {"shop_name": shop_name, "telegram_bot_token": bot_token, "telegram_chat_id": chat_id}
-    if supabase:
-        try:
-            res = supabase.table("settings").select("id").maybe_single().execute()
-            if res and res.data:
-                supabase.table("settings").update(updated_data).eq("id", res.data["id"]).execute()
-            else:
-                supabase.table("settings").insert(updated_data).execute()
-        except Exception as e:
-            print(f"Error: {e}")
-    return redirect(url_for('dashboard'))
-
-@app.route('/update-colors', methods=['POST'])
-def update_colors():
-    primary_color = request.form.get('primary_color')
-    secondary_color = request.form.get('secondary_color')
-    updated_colors = {"primary_color": primary_color, "secondary_color": secondary_color}
-    if supabase:
-        try:
-            res = supabase.table("settings").select("id").maybe_single().execute()
-            if res and res.data:
-                supabase.table("settings").update(updated_colors).eq("id", res.data["id"]).execute()
-            else:
-                supabase.table("settings").insert(updated_colors).execute()
-        except Exception as e:
-            print(f"Error: {e}")
-    return redirect(url_for('dashboard'))
-
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('dashboard'))
-
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+        new Chart(document.getElementById('chartYear').getContext('2d'), {
+            type: 'line',
+            data: { labels: ['2024', '2025', '2026'], datasets: [{ data: [0, 0, {{ yearly_total if yearly_total else 0 }}], borderColor: primaryColor, tension: 0.1, fill: false }] },
+            options: chartOptions
+        });
+    </script>
+</body>
+</html>
