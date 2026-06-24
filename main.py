@@ -10,7 +10,7 @@ key = os.environ.get('SUPABASE_KEY')
 supabase = create_client(url, key) if url and key else None
 
 def get_or_create_settings():
-    """دالة ذكية لجلب الإعدادات أو إنشائها فوراً إذا كانت غير موجودة لتجنب الـ None"""
+    """جلب الإعدادات بأمان وتجنب الـ None تماماً"""
     default_settings = {
         "id": 1,
         "shop_name": "متجري الإلكتروني",
@@ -22,11 +22,9 @@ def get_or_create_settings():
     if not supabase:
         return default_settings
     try:
-        # فحص وجود السطر رقم 1
         res = supabase.table("settings").select("*").eq("id", 1).execute()
         if res.data and len(res.data) > 0:
             db_set = res.data[0]
-            # التأكد من ملء الفراغات إذا كانت قيمتها None في القاعدة
             return {
                 "id": 1,
                 "shop_name": db_set.get("shop_name") or "متجري الإلكتروني",
@@ -36,7 +34,6 @@ def get_or_create_settings():
                 "secondary_color": db_set.get("secondary_color") or "#bd6a2c"
             }
         else:
-            # إذا لم يجد السطر، يقوم بإنشائه فوراً بقيم افتراضية
             supabase.table("settings").insert(default_settings).execute()
             return default_settings
     except Exception as e:
@@ -60,7 +57,6 @@ def dashboard():
         return redirect('/login')
     
     orders = []
-    # جلب الإعدادات المؤمنة بدون None
     settings = get_or_create_settings()
     
     if supabase:
@@ -123,12 +119,16 @@ def update_info():
         return redirect('/login')
     if supabase:
         try:
-            # نقوم بعمل الفحص والإنشاء أولاً للتأكد من وجود السطر
-            get_or_create_settings()
+            current = get_or_create_settings()
+            # حماية من القيم الفارغة: إذا كان الحقل فارغاً نستخدم القيمة القديمة
+            shop_name = request.form.get('shop_name') or current['shop_name']
+            bot_token = request.form.get('bot_token') or current['telegram_bot_token']
+            chat_id = request.form.get('chat_id') or current['telegram_chat_id']
+            
             supabase.table("settings").update({
-                "shop_name": request.form.get('shop_name'),
-                "telegram_bot_token": request.form.get('bot_token'),
-                "telegram_chat_id": request.form.get('chat_id')
+                "shop_name": shop_name,
+                "telegram_bot_token": bot_token,
+                "telegram_chat_id": chat_id
             }).eq("id", 1).execute()
         except Exception as e:
             print(f"Error updating info: {e}")
@@ -140,10 +140,13 @@ def update_colors():
         return redirect('/login')
     if supabase:
         try:
-            get_or_create_settings()
+            current = get_or_create_settings()
+            primary_color = request.form.get('primary_color') or current['primary_color']
+            secondary_color = request.form.get('secondary_color') or current['secondary_color']
+            
             supabase.table("settings").update({
-                "primary_color": request.form.get('primary_color'),
-                "secondary_color": request.form.get('secondary_color')
+                "primary_color": primary_color,
+                "secondary_color": secondary_color
             }).eq("id", 1).execute()
         except Exception as e:
             print(f"Error updating colors: {e}")
