@@ -16,19 +16,23 @@
     <div class="card">
         <button onclick="document.getElementById('set').style.display='block'">⚙️ الإعدادات</button>
         <div id="set" style="display:none;">
+            <h3>معلومات المتجر</h3>
             <form action="/update-info" method="POST">
                 <input name="shop_name" value="{{ settings.shop_name }}">
                 <input name="bot_token" placeholder="Bot Token">
                 <input name="chat_id" placeholder="Chat ID">
                 <button class="btn" style="background:var(--primary)">حفظ معلومات المتجر</button>
             </form>
+            <hr>
+            <h3>تغيير الألوان</h3>
             <form action="/update-colors" method="POST">
-                <input type="color" name="primary_color" value="{{ settings.primary_color }}">
-                <input type="color" name="secondary_color" value="{{ settings.secondary_color }}">
+                <label>الأساسي:</label><input type="color" name="primary_color" value="{{ settings.primary_color }}">
+                <label>الثانوي:</label><input type="color" name="secondary_color" value="{{ settings.secondary_color }}">
                 <button class="btn" style="background:var(--secondary)">حفظ الألوان</button>
             </form>
         </div>
     </div>
+    
     <div class="card">
         <h3>إضافة طلب</h3>
         <form action="/add-order" method="POST">
@@ -39,14 +43,23 @@
             <button class="btn" style="background:var(--primary)">حفظ الطلب</button>
         </form>
     </div>
+
     <div class="card">
         <h3>📦 الطلبات</h3>
         <table>
             <tr><th>الاسم</th><th>المنتج</th><th>السعر</th><th>الهاتف</th><th>حذف</th></tr>
             {% for o in orders %}
             <tr>
-                <td>{{ o.customer_name }}</td><td>{{ o.product_name }}</td><td>{{ o.total_price }}</td><td>{{ o.customer_phone }}</td>
-                <td><form action="/delete-order" method="POST"><input type="hidden" name="order_id" value="{{ o.id }}"><button>حذف</button></form></td>
+                <td>{{ o.customer_name }}</td>
+                <td>{{ o.product_name }}</td>
+                <td>{{ o.total_price }}</td>
+                <td>{{ o.customer_phone }}</td>
+                <td>
+                    <form action="/delete-order" method="POST">
+                        <input type="hidden" name="order_id" value="{{ o.id }}">
+                        <button type="submit">حذف</button>
+                    </form>
+                </td>
             </tr>
             {% endfor %}
         </table>
