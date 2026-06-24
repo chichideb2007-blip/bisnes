@@ -3,32 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تسجيل الدخول - نظام إدارة الطلبات</title>
+    <title>تسجيل الدخول</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .card { background: white; padding: 40px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 350px; text-align: center; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; background-color: #007bff; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; margin-top: 10px; }
-        button:hover { background-color: #0056b3; }
-        .footer-link { margin-top: 20px; font-size: 14px; }
-        a { color: #007bff; text-decoration: none; }
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background-color: #f4f7f6; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            margin: 0; 
+        }
+        .card { 
+            background: white; 
+            padding: 40px; 
+            border-radius: 15px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
+            width: 100%; 
+            max-width: 350px; 
+            text-align: center; 
+        }
+        input { 
+            width: 100%; 
+            padding: 12px; 
+            margin: 10px 0; 
+            border: 1px solid #ddd; 
+            border-radius: 8px; 
+            box-sizing: border-box; 
+        }
+        button { 
+            width: 100%; 
+            padding: 12px; 
+            background-color: #007bff; 
+            color: white; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-size: 16px; 
+            margin-top: 10px; 
+        }
+        button:hover { 
+            background-color: #0056b3; 
+        }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2>مرحباً بك مجدداً</h2>
-    <p>سجل دخولك لإدارة طلباتك</p>
+    <h2>تسجيل الدخول</h2>
+    <p>أدخلي اسمك للمتابعة</p>
     
     <form action="/login" method="POST">
-        <input type="text" name="username" placeholder="البريد الإلكتروني" required>
-        <input type="password" name="password" placeholder="كلمة السر" required>
+        <input type="text" name="username" placeholder="اسم المستخدم" required>
         <button type="submit">دخول</button>
     </form>
-
-    <div class="footer-link">
-        <p>لا تملك حساباً؟ <a href="/register">أنشئ حساباً جديداً الآن</a></p>
-    </div>
 </div>
 
 </body>
