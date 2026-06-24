@@ -1,21 +1,104 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
-<head><meta charset="UTF-8"><style>body{font-family:sans-serif; padding:20px;}</style></head>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم الاحترافية</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 900px; margin: 0 auto; }
+        .header { background: linear-gradient(135deg, #007bff, #0056b3); color: white; padding: 20px; border-radius: 15px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .btn-logout { background: #dc3545; color: white; padding: 8px 15px; border-radius: 8px; text-decoration: none; font-size: 14px; }
+        .card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        h3 { margin-top: 0; color: #0056b3; border-bottom: 2px solid #f0f2f5; padding-bottom: 10px; }
+        .form-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 15px; }
+        input { padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; box-sizing: border-box; width: 100%; }
+        input:focus { border-color: #007bff; outline: none; }
+        .btn-success { background-color: #28a745; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-size: 16px; width: 100%; font-weight: bold; }
+        .btn-success:hover { background-color: #218838; }
+        .order-list { display: grid; gap: 15px; }
+        .order-item { background: #f8f9fa; border-right: 5px solid #007bff; padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+        .order-details p { margin: 5px 0; }
+        .order-actions { display: flex; gap: 5px; }
+        .btn-danger { background: #dc3545; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
+        .btn-edit { background: #007bff; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
+        
+        /* تصميم نموذج التعديل المخفي */
+        .edit-form-container { display: none; background: #e9ecef; padding: 15px; margin-top: 10px; border-radius: 8px; width: 100%; }
+    </style>
+</head>
 <body>
-    <h1>أهلاً {{ user }}</h1>
-    <h3>إضافة طلب جديد</h3>
-    <form action="/add-order" method="POST">
-        <input name="name" placeholder="اسم الزبون" required>
-        <input name="product" placeholder="اسم المنتج" required>
-        <input name="price" type="number" placeholder="السعر" required>
-        <input name="phone" placeholder="رقم الهاتف">
-        <button type="submit">حفظ الطلب</button>
-    </form>
-    <h3>قائمة الطلبات</h3>
-    <ul>
-        {% for o in orders %}
-        <li>{{ o.customer_name }} | {{ o.product_name }} | {{ o.total_price }} دج</li>
-        {% endfor %}
-    </ul>
+
+<div class="container">
+    <div class="header">
+        <h2>مرحباً، {{ user }} 👋</h2>
+        <a href="/logout" class="btn-logout">تسجيل الخروج</a>
+    </div>
+
+    <div class="card">
+        <h3>➕ إضافة طلب جديد</h3>
+        <form action="/add-order" method="POST">
+            <div class="form-group">
+                <input name="name" placeholder="اسم الزبون" required>
+                <input name="product" placeholder="اسم المنتج" required>
+                <input name="price" type="number" placeholder="السعر (دج)" required>
+                <input name="phone" placeholder="رقم الهاتف">
+            </div>
+            <button type="submit" class="btn-success">حفظ الطلب وتأكيده</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h3>📦 قائمة الطلبات الحالية</h3>
+        <div class="order-list">
+            {% for o in orders %}
+            <div>
+                <div class="order-item">
+                    <div class="order-details">
+                        <strong>👤 الزبون:</strong> {{ o.customer_name }} | 
+                        <strong>🛍️ المنتج:</strong> {{ o.product_name }} <br>
+                        <strong>💰 السعر:</strong> <span style="color: #28a745; font-weight: bold;">{{ o.total_price }} دج</span> | 
+                        <strong>📞 الهاتف:</strong> {{ o.customer_phone or 'غير مسجل' }}
+                    </div>
+                    <div class="order-actions">
+                        <button class="btn-edit" onclick="toggleEdit('{{ o.id }}')">تعديل</button>
+                        
+                        <form action="/delete-order/{{ o.id }}" method="POST" style="display:inline;" onsubmit="return confirm('هل أنتِ متأكدة من حذف هذا الطلب؟')">
+                            <button type="submit" class="btn-danger">حذف</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div id="edit-card-{{ o.id }}" class="edit-form-container">
+                    <form action="/edit-order/{{ o.id }}" method="POST">
+                        <div class="form-group">
+                            <input name="name" value="{{ o.customer_name }}" required>
+                            <input name="product" value="{{ o.product_name }}" required>
+                            <input name="price" type="number" value="{{ o.total_price }}" required>
+                            <input name="phone" value="{{ o.customer_phone }}">
+                        </div>
+                        <button type="submit" class="btn-success" style="background:#007bff; padding: 8px;">حفظ التعديلات</button>
+                    </form>
+                </div>
+            </div>
+            {% else %}
+            <p style="text-align: center; color: #777;">لا توجد طلبات مسجلة حالياً.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+    // دالة لإظهار وإخفاء نموذج التعديل عند الضغط على زر تعديل
+    function toggleEdit(orderId) {
+        var form = document.getElementById('edit-card-' + orderId);
+        if (form.style.display === 'block') {
+            form.style.display = 'none';
+        } else {
+            form.style.display = 'block';
+        }
+    }
+</script>
+
 </body>
 </html>
