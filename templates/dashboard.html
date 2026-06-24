@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>لوحة التحكم - {{ settings.shop_name }}</title>
     <style>
-        /* جلب الألوان ديناميكياً من قاعدة البيانات وتطبيقها على كامل عناصر الصفحة */
         :root {
             --primary-color: {{ settings.primary_color }};
             --secondary-color: {{ settings.secondary_color }};
@@ -21,7 +20,6 @@
         
         .container { max-width: 700px; margin: 0 auto; }
         
-        /* الهيدر العلوي */
         .header { 
             background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); 
             color: white; 
@@ -37,7 +35,6 @@
         
         .nav-buttons { display: flex; gap: 10px; align-items: center; }
         
-        /* زر تسجيل الخروج */
         .btn-logout { 
             background-color: #e63946; 
             color: white; 
@@ -51,7 +48,6 @@
         }
         .btn-logout:hover { background-color: #c1121f; }
         
-        /* زر الإعدادات */
         .btn-settings-toggle { 
             background-color: rgba(255,255,255,0.2); 
             color: white; 
@@ -62,7 +58,6 @@
             font-size: 14px; 
         }
         
-        /* البطاقات الكبيرة */
         .card { 
             background: white; 
             padding: 20px; 
@@ -72,7 +67,6 @@
             border: 1px solid rgba(0,0,0,0.03);
         }
         
-        /* عناوين البطاقات تتغير حسب اللون المختار */
         .card h3 { 
             margin-top: 0; 
             color: var(--primary-color); 
@@ -85,7 +79,6 @@
         
         .form-group label { display: block; margin-top: 12px; font-weight: bold; font-size: 14px; color: #555; }
         
-        /* حقول الإدخال */
         .form-group input { 
             width: 100%; 
             padding: 12px; 
@@ -97,14 +90,11 @@
         }
         .form-group input[type="color"] { height: 45px; padding: 2px; cursor: pointer; }
         
-        /* عند الضغط داخل الحقل يتغير الإطار باللون المختار */
         .form-group input:focus { 
             border-color: var(--secondary-color); 
             outline: none; 
-            box-shadow: 0 0 5px rgba(0,0,0,0.05);
         }
         
-        /* الأزرار الرئيسية تأخذ اللون المختار تلقائياً بالكامل */
         .btn-save { 
             background-color: var(--primary-color); 
             color: white; 
@@ -118,18 +108,14 @@
             transition: 0.3s; 
             margin-top: 5px; 
         }
-        .btn-save:hover { 
-            filter: brightness(90%); /* تجعل الزر أغمق قليلاً عند تمرير الماوس */
-        }
+        .btn-save:hover { filter: brightness(90%); }
         
-        /* زر حفظ معلومات المتجر المخصص */
         .btn-blue { 
             background-color: var(--secondary-color); 
         }
         
         .sub-section { background: #fdfdfd; padding: 15px; border: 1px solid #eef2f5; border-radius: 10px; margin-bottom: 15px; }
         
-        /* بطاقات الطلبات تأخذ شريطاً جانبياً باللون المختار */
         .order-item { 
             background: #fff; 
             border-right: 6px solid var(--primary-color); 
@@ -143,14 +129,12 @@
         }
         .order-info p { margin: 4px 0; font-size: 14px; }
         
-        /* سعر الطلب يأخذ اللون الثانوي المختار */
         .price-tag { color: var(--secondary-color); font-weight: bold; font-size: 16px; }
         
         .actions { display: flex; gap: 8px; }
         .btn-delete { background-color: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; }
         .btn-edit { background-color: #007bff; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; }
         
-        /* لوحة تعديل الطلبات المنبثقة تأخذ إطاراً متقطعاً باللون المختار */
         .edit-panel { 
             display: none; 
             background: #f8f9fa; 
@@ -201,7 +185,7 @@
                         <input type="color" name="primary_color" value="{{ settings.primary_color }}">
                     </div>
                     <div style="flex: 1;">
-                        <label>اللون الثانوي (للهيدر المتدرج والأسعار):</label>
+                        <label>اللون الثانوي (للهيدر المتدرج والأسعار والتركيز):</label>
                         <input type="color" name="secondary_color" value="{{ settings.secondary_color }}">
                     </div>
                 </div>
