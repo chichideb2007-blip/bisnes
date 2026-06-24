@@ -3,14 +3,14 @@ from flask import Flask, render_template, request, session, redirect
 from supabase import create_client
 
 app = Flask(__name__)
-app.secret_key = 'shimo_ultimate_fixed_2026'
+app.secret_key = 'shimo_absolute_fix_2026'
 
 url = os.environ.get('SUPABASE_URL')
 key = os.environ.get('SUPABASE_KEY')
 supabase = create_client(url, key) if url and key else None
 
-def get_or_create_settings():
-    """جلب الإعدادات بأمان وتجنب الـ None تماماً"""
+def get_current_settings_from_db():
+    """دالة لجلب الإعدادات الحالية من قاعدة البيانات بأمان تام وبدون قيم None"""
     default_settings = {
         "id": 1,
         "shop_name": "متجري الإلكتروني",
@@ -34,10 +34,11 @@ def get_or_create_settings():
                 "secondary_color": db_set.get("secondary_color") or "#bd6a2c"
             }
         else:
+            # إنشاء السطر الأول إذا لم يكن موجوداً
             supabase.table("settings").insert(default_settings).execute()
             return default_settings
     except Exception as e:
-        print(f"Error in get_or_create_settings: {e}")
+        print(f"Error fetching settings: {e}")
         return default_settings
 
 @app.route('/')
@@ -57,7 +58,7 @@ def dashboard():
         return redirect('/login')
     
     orders = []
-    settings = get_or_create_settings()
+    settings = get_current_settings_from_db()
     
     if supabase:
         try:
@@ -119,11 +120,17 @@ def update_info():
         return redirect('/login')
     if supabase:
         try:
-            current = get_or_create_settings()
-            # حماية من القيم الفارغة: إذا كان الحقل فارغاً نستخدم القيمة القديمة
-            shop_name = request.form.get('shop_name') or current['shop_name']
-            bot_token = request.form.get('bot_token') or current['telegram_bot_token']
-            chat_id = request.form.get('chat_id') or current['telegram_chat_id']
+            # جلب البيانات المخزنة حالياً قبل التحديث لمنع الـ None والمسافات الفارغة
+            current = get_current_settings_from_db()
+            
+            form_shop_name = request.form.get('shop_name', '').strip()
+            form_bot_token = request.form.get('bot_token', '').strip()
+            form_chat_id = request.form.get('chat_id', '').strip()
+            
+            # إذا أرسل المستخدم حقلاً فارغاً أو تالفاً، نرجع للقيمة القديمة المخزنة
+            shop_name = form_shop_name if form_shop_name and form_shop_name != 'None' else current['shop_name']
+            bot_token = form_bot_token if form_bot_token and form_bot_token != 'None' else current['telegram_bot_token']
+            chat_id = form_chat_id if form_chat_id and form_chat_id != 'None' else current['telegram_chat_id']
             
             supabase.table("settings").update({
                 "shop_name": shop_name,
@@ -140,9 +147,12 @@ def update_colors():
         return redirect('/login')
     if supabase:
         try:
-            current = get_or_create_settings()
-            primary_color = request.form.get('primary_color') or current['primary_color']
-            secondary_color = request.form.get('secondary_color') or current['secondary_color']
+            current = get_current_settings_from_db()
+            form_primary = request.form.get('primary_color', '').strip()
+            form_secondary = request.form.get('secondary_color', '').strip()
+            
+            primary_color = form_primary if form_primary and form_primary.startswith('#') else current['primary_color']
+            secondary_color = form_secondary if form_secondary and form_secondary.startswith('#') else current['secondary_color']
             
             supabase.table("settings").update({
                 "primary_color": primary_color,
