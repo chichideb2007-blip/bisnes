@@ -5,7 +5,7 @@ from supabase import create_client
 app = Flask(__name__)
 app.secret_key = 'shimo_clean_start_2026'
 
-# تأكدي من إعدادات الـ Environment في Render
+# إعداد الاتصال بقاعدة البيانات
 url = os.environ.get('SUPABASE_URL')
 key = os.environ.get('SUPABASE_KEY')
 supabase = create_client(url, key) if url and key else None
@@ -22,7 +22,18 @@ def login():
 @app.route('/dashboard')
 def dashboard():
     if 'user' not in session: return redirect('/')
-    return render_template('dashboard.html', user=session['user'])
+    
+    # محاولة جلب الطلبات من جدول 'orders'
+    orders = []
+    if supabase:
+        try:
+            # نقوم بجلب البيانات وتخزينها في متغير orders
+            response = supabase.table("orders").select("*").execute()
+            orders = response.data
+        except Exception as e:
+            print(f"Error fetching data: {e}")
+            
+    return render_template('dashboard.html', user=session['user'], orders=orders)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
