@@ -6,7 +6,6 @@ from supabase import create_client, Client
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "shimo-saas-secure-2026")
 
-# الذاكرة الاحتياطية لتأمين الحفظ الفوري للمديرين داخل السيرفر
 if not hasattr(app, 'global_orders'):
     app.global_orders = []
 
@@ -45,7 +44,6 @@ def dashboard():
     current_user_id = session['user_id']
     settings = get_user_settings(current_user_id)
     
-    # جلب الطلبيات المخصصة للمدير الحالي فقط
     orders = []
     if supabase:
         try:
@@ -53,16 +51,19 @@ def dashboard():
             if orders_res and orders_res.data:
                 orders = orders_res.data
         except Exception as e:
-            print(f"Fallback to local memory due to fetch error: {e}")
+            print(f"Fallback to local memory: {e}")
             orders = [o for o in app.global_orders if o.get('user_id') == current_user_id]
     else:
         orders = [o for o in app.global_orders if o.get('user_id') == current_user_id]
 
-    # حساب مجاميع الإحصائيات
+    # حساب الإحصائيات لعام 2026 الحالية
     now = datetime.now()
     daily_total = 0.0
     monthly_total = 0.0
     yearly_total = 0.0
+
+    weekly_data = [0.0] * 7  # سبت، أحد، اثنين، ثلاثاء، أربعاء، خميس، جمعة
+    monthly_data = [0.0] * 12 # 12 شهر كاملة
 
     for o in orders:
         try:
@@ -71,12 +72,20 @@ def dashboard():
             if created_at_str:
                 clean_date_str = created_at_str.split('.')[0].replace('Z', '').replace('T', ' ')
                 order_date = datetime.strptime(clean_date_str, "%Y-%m-%d %H:%M:%S")
-                if order_date.date() == now.date():
-                    daily_total += price
-                if order_date.year == now.year and order_date.month == now.month:
-                    monthly_total += price
-                if order_date.year == now.year:
+                
+                if order_date.year == 2026:
                     yearly_total += price
+                    monthly_data[order_date.month - 1] += price
+                    
+                    if order_date.month == now.month:
+                        monthly_total += price
+                        
+                    # ترتيب مبيعات الأسبوع لتبدأ من السبت
+                    day_idx = (order_date.weekday() + 2) % 7 
+                    weekly_data[day_idx] += price
+                    
+                    if order_date.date() == now.date():
+                        daily_total += price
         except Exception as ex:
             print(f"Date parsing error: {ex}")
 
@@ -86,7 +95,9 @@ def dashboard():
         settings=settings,
         daily_total=round(daily_total, 2),
         monthly_total=round(monthly_total, 2),
-        yearly_total=round(yearly_total, 2)
+        yearly_total=round(yearly_total, 2),
+        weekly_data=weekly_data,
+        monthly_data=monthly_data
     )
 
 @app.route('/add-order', methods=['POST'])
@@ -114,15 +125,13 @@ def add_order():
         "created_at": datetime.utcnow().isoformat()
     }
 
-    # حفظ محلي فوري لمنع أي تجمد في الصفحة وضمان بقاء الخانات محدثة للمدير
     app.global_orders.insert(0, new_order)
 
-    # دفع البيانات متزامنة لـ Supabase
     if supabase:
         try:
             supabase.table("orders").insert(new_order).execute()
         except Exception as e:
-            print(f"قاعدة البيانات مشغولة، تم التأمين محلياً: {e}")
+            print(f"Database error: {e}")
 
     return redirect(url_for('dashboard'))
 
@@ -130,12 +139,8 @@ def add_order():
 def delete_order():
     if 'user_id' not in session:
         return redirect(url_for('dashboard'))
-        
     order_id = request.form.get('order_id')
     current_user_id = session['user_id']
-    
-    global_orders = [o for o in app.global_orders if not (o.get('user_id') == current_user_id and o.get('customer_name') == request.form.get('customer_name'))]
-    
     if supabase and order_id:
         try:
             supabase.table("orders").delete().eq("id", order_id).eq("user_id", current_user_id).execute()
@@ -148,19 +153,20 @@ def update_info():
     if 'user_id' not in session:
         return redirect(url_for('dashboard'))
     current_user_id = session['user_id']
+    
     updated_data = {
         "user_id": current_user_id,
         "shop_name": request.form.get('shop_name'),
         "telegram_bot_token": request.form.get('bot_token'),
         "telegram_chat_id": request.form.get('chat_id')
     }
+    
     if supabase:
         try:
             res = supabase.table("settings").select("id").eq("user_id", current_user_id).maybe_single().execute()
             if res and res.data:
-                supabase.table("settings").update(updated_data).eq("id", res.data["id"]).execute()
-            else:
-                supabase.table("settings").insert(updated_data).execute()
+                updated_data["id"] = res.data["id"]
+            supabase.table("settings").upsert(updated_data).execute()
         except Exception as e:
             print(f"Error: {e}")
     return redirect(url_for('dashboard'))
@@ -170,20 +176,24 @@ def update_colors():
     if 'user_id' not in session:
         return redirect(url_for('dashboard'))
     current_user_id = session['user_id']
+    
     updated_colors = {
         "user_id": current_user_id,
         "primary_color": request.form.get('primary_color'),
         "secondary_color": request.form.get('secondary_color')
     }
+    
     if supabase:
         try:
+            # جلب المعرّف الفريد للصف لضمان السحق والتحديث المستمر بلا نهاية
             res = supabase.table("settings").select("id").eq("user_id", current_user_id).maybe_single().execute()
             if res and res.data:
-                supabase.table("settings").update(updated_colors).eq("id", res.data["id"]).execute()
-            else:
-                supabase.table("settings").insert(updated_colors).execute()
+                updated_colors["id"] = res.data["id"]
+            
+            supabase.table("settings").upsert(updated_colors).execute()
+            print(f"✅ تم تحديث الألوان بنجاح للمدير {current_user_id}")
         except Exception as e:
-            print(f"Error: {e}")
+            print(f"❌ فشل تحديث الألوان: {e}")
     return redirect(url_for('dashboard'))
 
 @app.route('/logout')
