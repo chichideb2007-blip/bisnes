@@ -8,15 +8,12 @@
         .box { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
         input { width: 100%; padding: 10px; margin: 5px 0; box-sizing: border-box; }
         button { width: 100%; padding: 10px; background: #28a745; color: white; border: none; cursor: pointer; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
     </style>
 </head>
 <body>
     <div class="box">
         <h1>أهلاً {{ user }}</h1>
         <h2>مجموع الأرباح: {{ total }} دج</h2>
-        <a href="/logout">تسجيل خروج</a>
     </div>
 
     <div class="box">
@@ -31,16 +28,11 @@
 
     <div class="box">
         <h3>الطلبات</h3>
-        <table>
-            <tr><th>الزبون</th><th>التفاصيل</th><th>السعر</th></tr>
+        <ul>
             {% for o in orders %}
-            <tr>
-                <td>{{ o.customer_name }}</td>
-                <td>{{ o.details }}</td>
-                <td>{{ o.price }} دج</td>
-            </tr>
+            <li>{{ o.customer_name }} | {{ o.price }} دج</li>
             {% endfor %}
-        </table>
+        </ul>
     </div>
 </body>
 </html>
