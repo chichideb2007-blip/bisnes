@@ -3,15 +3,14 @@ from flask import Flask, render_template, request, session, redirect
 from supabase import create_client
 
 app = Flask(__name__)
-app.secret_key = 'shimo_final_fix_2026'
+app.secret_key = 'shimo_final_2026_fixed'
 
 url = os.environ.get('SUPABASE_URL')
 key = os.environ.get('SUPABASE_KEY')
 supabase = create_client(url, key) if url and key else None
 
-@app.route('/', methods=['GET'])
-def index():
-    return render_template('login.html')
+@app.route('/')
+def index(): return redirect('/login')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -31,7 +30,7 @@ def dashboard():
             response = supabase.table("orders").select("*").eq("manager_email", session['user']).execute()
             orders = response.data if response.data else []
             total = sum(float(o.get('price', 0)) for o in orders)
-        except: pass
+        except Exception: pass
             
     return render_template('dashboard.html', user=session['user'], orders=orders, total=total)
 
@@ -46,7 +45,7 @@ def add_order():
                 "price": float(request.form.get('price', 0)),
                 "manager_email": session['user']
             }).execute()
-        except: pass
+        except Exception: pass
     return redirect('/dashboard')
 
 if __name__ == '__main__':
