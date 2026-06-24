@@ -3,10 +3,12 @@ from flask import Flask, render_template, request, redirect, session
 from supabase import create_client
 
 app = Flask(__name__)
-app.secret_key = 'shimo_final_fix_2026'
+# ضروري جداً لعمل الجلسات (Sessions)
+app.secret_key = 'shimo_super_secure_key_2026'
 
-url = os.environ.get('SUPABASE_URL')
-key = os.environ.get('SUPABASE_KEY')
+# إعداد Supabase
+url = os.environ.get('SUPABASE_URL', '')
+key = os.environ.get('SUPABASE_KEY', '')
 supabase = create_client(url, key) if url and key else None
 
 @app.route('/')
@@ -16,7 +18,7 @@ def home():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        # نستخدم 'username' كما في نموذج الـ HTML
+        # تخزين الإيميل في الجلسة لتعريف المستخدم
         session['user'] = request.form.get('username')
         return redirect('/dashboard')
     return render_template('login.html')
@@ -33,37 +35,33 @@ def register():
 
 @app.route('/dashboard')
 def dashboard():
+    # حماية الصفحة: إذا لم يكن مسجلاً، اطرده لصفحة الدخول
     if 'user' not in session: return redirect('/login')
-    # تأمين جلب البيانات
-    try:
-        response = supabase.table("orders").select("*").eq("manager_email", session['user']).execute()
-        orders = response.data if response.data else []
-    except:
-        orders = []
     
+    orders = []
+    if supabase:
+        try:
+            # جلب طلبات المدير الحالي فقط
+            response = supabase.table("orders").select("*").eq("manager_email", session['user']).execute()
+            orders = response.data if response.data else []
+        except:
+            orders = []
+            
     total_today = sum(float(o.get('price', 0)) for o in orders)
     return render_template('dashboard.html', total_today=total_today, orders=orders)
-
-@app.route('/orders')
-def manage_orders():
-    if 'user' not in session: return redirect('/login')
-    try:
-        response = supabase.table("orders").select("*").eq("manager_email", session['user']).execute()
-        orders = response.data if response.data else []
-    except:
-        orders = []
-    return render_template('orders_dashboard.html', orders=orders)
 
 @app.route('/add-order', methods=['POST'])
 def add_order():
     if 'user' not in session: return redirect('/login')
-    supabase.table("orders").insert({
-        "customer_name": request.form.get('name'),
-        "order_details": request.form.get('details'),
-        "price": float(request.form.get('price', 0)),
-        "manager_email": session['user']
-    }).execute()
-    return redirect('/orders')
+    
+    if supabase:
+        supabase.table("orders").insert({
+            "customer_name": request.form.get('name'),
+            "order_details": request.form.get('details'),
+            "price": float(request.form.get('price', 0)),
+            "manager_email": session.get('user')
+        }).execute()
+    return redirect('/dashboard')
 
 @app.route('/logout')
 def logout():
