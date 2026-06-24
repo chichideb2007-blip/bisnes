@@ -2,41 +2,45 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>لوحة التحكم</title>
     <style>
         body { font-family: sans-serif; background: #f4f4f4; padding: 20px; }
-        .card { background: white; padding: 20px; margin-bottom: 20px; border-radius: 10px; }
-        input { padding: 10px; margin: 5px; }
-        button { padding: 10px; background: green; color: white; border: none; }
+        .box { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        input { width: 100%; padding: 10px; margin: 5px 0; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background: #28a745; color: white; border: none; cursor: pointer; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
     </style>
 </head>
 <body>
-    <div class="card">
+    <div class="box">
         <h1>أهلاً {{ user }}</h1>
         <h2>مجموع الأرباح: {{ total }} دج</h2>
-        <canvas id="myChart" style="max-width: 300px;"></canvas>
+        <a href="/logout">تسجيل خروج</a>
     </div>
 
-    <div class="card">
-        <h3>إضافة طلب</h3>
+    <div class="box">
+        <h3>إضافة طلب جديد</h3>
         <form action="/add-order" method="POST">
             <input name="name" placeholder="اسم الزبون" required>
             <input name="details" placeholder="التفاصيل">
             <input name="price" type="number" placeholder="السعر" required>
-            <button type="submit">إضافة</button>
+            <button type="submit">حفظ الطلب</button>
         </form>
     </div>
 
-    <div class="card">
+    <div class="box">
         <h3>الطلبات</h3>
-        {% for o in orders %}
-        <p>{{ o.customer_name }} - {{ o.price }} دج</p>
-        {% endfor %}
+        <table>
+            <tr><th>الزبون</th><th>التفاصيل</th><th>السعر</th></tr>
+            {% for o in orders %}
+            <tr>
+                <td>{{ o.customer_name }}</td>
+                <td>{{ o.details }}</td>
+                <td>{{ o.price }} دج</td>
+            </tr>
+            {% endfor %}
+        </table>
     </div>
-
-    <script>
-        const ctx = document.getElementById('myChart').getContext('2d');
-        new Chart(ctx, { type: 'line', data: { labels: ['اليوم'], datasets: [{ label: 'الأرباح', data: [{{ total }}], borderColor: 'green' }] } });
-    </script>
 </body>
 </html>
