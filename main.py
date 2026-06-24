@@ -3,28 +3,45 @@ from flask import Flask, render_template, request, session, redirect
 from supabase import create_client
 
 app = Flask(__name__)
-app.secret_key = 'shimo_split_buttons_2026'
+app.secret_key = 'shimo_ultimate_fixed_2026'
 
 url = os.environ.get('SUPABASE_URL')
 key = os.environ.get('SUPABASE_KEY')
 supabase = create_client(url, key) if url and key else None
 
-def ensure_settings_exist():
-    """وظيفة للتأكد من وجود السطر الأول في جدول الإعدادات لتجنب الـ None"""
-    if supabase:
-        try:
-            res = supabase.table("settings").select("*").eq("id", 1).execute()
-            if not res.data:
-                supabase.table("settings").insert({
-                    "id": 1,
-                    "shop_name": "متجري الإلكتروني",
-                    "telegram_bot_token": "",
-                    "telegram_chat_id": "",
-                    "primary_color": "#7a3e13",
-                    "secondary_color": "#bd6a2c"
-                }).execute()
-        except Exception as e:
-            print(f"Error ensuring settings: {e}")
+def get_or_create_settings():
+    """دالة ذكية لجلب الإعدادات أو إنشائها فوراً إذا كانت غير موجودة لتجنب الـ None"""
+    default_settings = {
+        "id": 1,
+        "shop_name": "متجري الإلكتروني",
+        "telegram_bot_token": "",
+        "telegram_chat_id": "",
+        "primary_color": "#7a3e13",
+        "secondary_color": "#bd6a2c"
+    }
+    if not supabase:
+        return default_settings
+    try:
+        # فحص وجود السطر رقم 1
+        res = supabase.table("settings").select("*").eq("id", 1).execute()
+        if res.data and len(res.data) > 0:
+            db_set = res.data[0]
+            # التأكد من ملء الفراغات إذا كانت قيمتها None في القاعدة
+            return {
+                "id": 1,
+                "shop_name": db_set.get("shop_name") or "متجري الإلكتروني",
+                "telegram_bot_token": db_set.get("telegram_bot_token") or "",
+                "telegram_chat_id": db_set.get("telegram_chat_id") or "",
+                "primary_color": db_set.get("primary_color") or "#7a3e13",
+                "secondary_color": db_set.get("secondary_color") or "#bd6a2c"
+            }
+        else:
+            # إذا لم يجد السطر، يقوم بإنشائه فوراً بقيم افتراضية
+            supabase.table("settings").insert(default_settings).execute()
+            return default_settings
+    except Exception as e:
+        print(f"Error in get_or_create_settings: {e}")
+        return default_settings
 
 @app.route('/')
 def index(): 
@@ -42,31 +59,16 @@ def dashboard():
     if 'user' not in session: 
         return redirect('/login')
     
-    ensure_settings_exist()
     orders = []
-    settings = {
-        "shop_name": "متجري الإلكتروني", 
-        "telegram_bot_token": "", 
-        "telegram_chat_id": "", 
-        "primary_color": "#7a3e13", 
-        "secondary_color": "#bd6a2c"
-    }
+    # جلب الإعدادات المؤمنة بدون None
+    settings = get_or_create_settings()
     
     if supabase:
         try:
             response_orders = supabase.table("orders").select("*").execute()
             orders = response_orders.data if response_orders.data else []
-            
-            response_settings = supabase.table("settings").select("*").eq("id", 1).execute()
-            if response_settings.data:
-                db_set = response_settings.data[0]
-                settings["shop_name"] = db_set.get("shop_name") or "متجري الإلكتروني"
-                settings["telegram_bot_token"] = db_set.get("telegram_bot_token") or ""
-                settings["telegram_chat_id"] = db_set.get("telegram_chat_id") or ""
-                settings["primary_color"] = db_set.get("primary_color") or "#7a3e13"
-                settings["secondary_color"] = db_set.get("secondary_color") or "#bd6a2c"
         except Exception as e: 
-            print(f"Error fetching data: {e}")
+            print(f"Error fetching orders: {e}")
             
     return render_template('dashboard.html', user=session['user'], orders=orders, settings=settings)
 
@@ -117,11 +119,12 @@ def edit_order():
 
 @app.route('/update-info', methods=['POST'])
 def update_info():
-    """حفظ معلومات المتجر والتليجرام فقط"""
     if 'user' not in session: 
         return redirect('/login')
     if supabase:
         try:
+            # نقوم بعمل الفحص والإنشاء أولاً للتأكد من وجود السطر
+            get_or_create_settings()
             supabase.table("settings").update({
                 "shop_name": request.form.get('shop_name'),
                 "telegram_bot_token": request.form.get('bot_token'),
@@ -133,11 +136,11 @@ def update_info():
 
 @app.route('/update-colors', methods=['POST'])
 def update_colors():
-    """حفظ الألوان وتخصيص المظهر فقط"""
     if 'user' not in session: 
         return redirect('/login')
     if supabase:
         try:
+            get_or_create_settings()
             supabase.table("settings").update({
                 "primary_color": request.form.get('primary_color'),
                 "secondary_color": request.form.get('secondary_color')
