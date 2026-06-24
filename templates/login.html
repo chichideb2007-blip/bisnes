@@ -1,10 +1,135 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تسجيل الدخول - نظام إدارة الطلبات</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f7f9fb;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .card {
+            background: white;
+            border-radius: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 380px;
+            overflow: hidden;
+            text-align: center;
+        }
+        .card-header {
+            background-color: #7a3e13; /* اللون البني الدافئ الحاضر في التصميم */
+            color: white;
+            padding: 30px 20px;
+        }
+        .card-header h2 {
+            margin: 0;
+            font-size: 26px;
+            font-weight: bold;
+        }
+        .card-header p {
+            margin: 10px 0 0 0;
+            font-size: 14px;
+            color: #dfba9d;
+        }
+        .card-body {
+            padding: 30px;
+        }
+        .form-group {
+            text-align: right;
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 15px;
+            font-weight: bold;
+            color: #444;
+            margin-bottom: 8px;
+        }
+        input {
+            width: 100%;
+            padding: 14px;
+            background-color: #ebf2f7; /* اللون المائل للأزرق الخفيف اللطيف للخانات */
+            border: none;
+            border-radius: 12px;
+            box-sizing: border-box;
+            font-size: 15px;
+            color: #333;
+        }
+        input:focus {
+            outline: 2px solid #bd6a2c;
+        }
+        .btn-login {
+            width: 100%;
+            padding: 14px;
+            background-color: #bd6a2c; /* اللون البرتقالي البني الدافئ للزر */
+            color: white;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(189, 106, 44, 0.3);
+            transition: 0.3s;
+        }
+        .btn-login:hover {
+            background-color: #9e531f;
+        }
+        .footer-text {
+            margin-top: 25px;
+            font-size: 13px;
+            color: #666;
+        }
+        .footer-text a {
+            color: #bd6a2c;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .footer-text a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
 <body>
-    <h2>تسجيل الدخول</h2>
-    <form action="/login" method="POST">
-        <input type="text" name="username" placeholder="اسم المستخدم" required>
-        <button type="submit">دخول</button>
-    </form>
+
+<div class="card">
+    <div class="card-header">
+        <h2>نظام إدارة الطلبات</h2>
+        <p>سجل دخولك للوصول إلى لوحة التحكم</p>
+    </div>
+    
+    <div class="card-body">
+        <form action="/login" method="POST">
+            
+            <div class="form-group">
+                <label>اسم المستخدم</label>
+                <input type="text" name="username" placeholder="مثال: شيمو" required>
+            </div>
+
+            <div class="form-group">
+                <label>البريد الإلكتروني</label>
+                <input type="email" name="email" placeholder="example@gmail.com" required>
+            </div>
+
+            <div class="form-group">
+                <label>كلمة السر</label>
+                <input type="password" name="password" placeholder="••••••••" required>
+            </div>
+
+            <button type="submit" class="btn-login">تسجيل الدخول</button>
+        </form>
+
+        <div class="footer-text">
+            ليس لديك حساب؟ <a href="#">أنشئ حساباً جديداً الآن</a>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>
