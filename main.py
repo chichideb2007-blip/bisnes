@@ -4,29 +4,30 @@ from datetime import datetime
 from supabase import create_client, Client
 
 app = Flask(__name__)
-# مفتاح تشفير الجلسات لحفظ بيانات تسجيل دخول كل مدير على حدة
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "shimo-saas-secret-2026")
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "shimo-saas-secure-2026")
 
-# الاتصال بقاعدة بيانات Supabase
+# الذاكرة الاحتياطية لتأمين الحفظ الفوري للمديرين داخل السيرفر
+if not hasattr(app, 'global_orders'):
+    app.global_orders = []
+
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_ANON_KEY")
 
-if not SUPABASE_URL or not SUPABASE_KEY:
-    SUPABASE_URL = "https://your-supabase-url.supabase.co"
-    SUPABASE_KEY = "your-supabase-anon-key"
-
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-
-# دالة مساعدة لجلب إعدادات المتجر والألوان الخاصة بالمدير الحالي فقط
-def get_user_settings(user_id):
+supabase = None
+if SUPABASE_URL and SUPABASE_KEY and "your-supabase" not in SUPABASE_URL:
     try:
-        res = supabase.table("settings").select("*").eq("user_id", user_id).maybe_single().execute()
-        if res and res.data:
-            return res.data
+        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
     except Exception as e:
-        print(f"Error fetching settings for user {user_id}: {e}")
-    
-    # إعدادات افتراضية في حال لم يقم المدير بضبط ألوانه بعد
+        print(f"Supabase init error: {e}")
+
+def get_user_settings(user_id):
+    if supabase:
+        try:
+            res = supabase.table("settings").select("*").eq("user_id", user_id).maybe_single().execute()
+            if res and res.data:
+                return res.data
+        except Exception as e:
+            print(f"Error fetching settings: {e}")
     return {
         "shop_name": "متجري الاحترافي",
         "telegram_bot_token": "",
@@ -35,51 +36,49 @@ def get_user_settings(user_id):
         "secondary_color": "#7e22ce"
     }
 
-# ==================== المسارات (Routes) ====================
-
 @app.route('/')
 @app.route('/dashboard')
 def dashboard():
-    # التأكد من أن هناك مدير قام بتسجيل الدخول
-    # إذا لم يكن مسجلاً، نقوم بجلب معرف تجريبي مؤقتاً لكي لا تعطل الواجهة أثناء البرمجة
     if 'user_id' not in session:
-        # هنا يمكنكِ توجيهه لصفحة الـ login لاحقاً، حالياً سنضع معرف افتراضي لتشغيل الموقع
-        session['user_id'] = "default_manager_id"
+        session['user_id'] = "manager_shimo_id"
 
     current_user_id = session['user_id']
     settings = get_user_settings(current_user_id)
     
-    # جلب طلبيات المدير الحالي فقط وعزلها عن باقي المديرين
-    try:
-        orders_res = supabase.table("orders").select("*").eq("user_id", current_user_id).order("created_at", desc=True).execute()
-        orders = orders_res.data if orders_res and orders_res.data else []
-    except Exception as e:
-        print(f"Error fetching orders for user {current_user_id}: {e}")
-        orders = []
+    # جلب الطلبيات المخصصة للمدير الحالي فقط
+    orders = []
+    if supabase:
+        try:
+            orders_res = supabase.table("orders").select("*").eq("user_id", current_user_id).order("created_at", desc=True).execute()
+            if orders_res and orders_res.data:
+                orders = orders_res.data
+        except Exception as e:
+            print(f"Fallback to local memory due to fetch error: {e}")
+            orders = [o for o in app.global_orders if o.get('user_id') == current_user_id]
+    else:
+        orders = [o for o in app.global_orders if o.get('user_id') == current_user_id]
 
-    # حساب الإحصائيات الخاصة بالمدير الحالي فقط بناءً على طلبياته
+    # حساب مجاميع الإحصائيات
     now = datetime.now()
     daily_total = 0.0
     monthly_total = 0.0
     yearly_total = 0.0
 
     for o in orders:
-        price = float(o.get('total_price', 0) or 0)
-        created_at_str = o.get('created_at', '')
-        
-        if created_at_str:
-            try:
+        try:
+            price = float(o.get('total_price', 0) or 0)
+            created_at_str = o.get('created_at', '')
+            if created_at_str:
                 clean_date_str = created_at_str.split('.')[0].replace('Z', '').replace('T', ' ')
                 order_date = datetime.strptime(clean_date_str, "%Y-%m-%d %H:%M:%S")
-                
                 if order_date.date() == now.date():
                     daily_total += price
                 if order_date.year == now.year and order_date.month == now.month:
                     monthly_total += price
                 if order_date.year == now.year:
                     yearly_total += price
-            except Exception as ex:
-                print(f"Date parsing error: {ex}")
+        except Exception as ex:
+            print(f"Date parsing error: {ex}")
 
     return render_template(
         'dashboard.html', 
@@ -90,14 +89,12 @@ def dashboard():
         yearly_total=round(yearly_total, 2)
     )
 
-# دالة إضافة وحفظ الطلبية المربوطة بالمدير الحالي
 @app.route('/add-order', methods=['POST'])
 def add_order():
     if 'user_id' not in session:
         return redirect(url_for('dashboard'))
         
     current_user_id = session['user_id']
-    
     name = request.form.get('name')
     product = request.form.get('product')
     price_str = request.form.get('price', '0')
@@ -108,9 +105,8 @@ def add_order():
     except ValueError:
         price = 0.0
 
-    # تجهيز القاموس مع إضافة حقل الـ user_id الحاسم لكي تقبله قاعدة البيانات ويُحفظ فوراً
     new_order = {
-        "user_id": current_user_id, # ربط الطلبية بالمدير الحالي فقط
+        "user_id": current_user_id,
         "customer_name": name,
         "product_name": product,
         "total_price": price,
@@ -118,11 +114,15 @@ def add_order():
         "created_at": datetime.utcnow().isoformat()
     }
 
-    try:
-        supabase.table("orders").insert(new_order).execute()
-        print(f"✅ تم حفظ طلبية الزبون {name} للمدير {current_user_id} بنجاح!")
-    except Exception as e:
-        print(f"❌ خطأ أثناء الحفظ في جدول Supabase: {e}")
+    # حفظ محلي فوري لمنع أي تجمد في الصفحة وضمان بقاء الخانات محدثة للمدير
+    app.global_orders.insert(0, new_order)
+
+    # دفع البيانات متزامنة لـ Supabase
+    if supabase:
+        try:
+            supabase.table("orders").insert(new_order).execute()
+        except Exception as e:
+            print(f"قاعدة البيانات مشغولة، تم التأمين محلياً: {e}")
 
     return redirect(url_for('dashboard'))
 
@@ -134,9 +134,10 @@ def delete_order():
     order_id = request.form.get('order_id')
     current_user_id = session['user_id']
     
-    if order_id:
+    global_orders = [o for o in app.global_orders if not (o.get('user_id') == current_user_id and o.get('customer_name') == request.form.get('customer_name'))]
+    
+    if supabase and order_id:
         try:
-            # التأكد من أن المدير يحذف طلبيته هو فقط وليس طلبية مدير آخر
             supabase.table("orders").delete().eq("id", order_id).eq("user_id", current_user_id).execute()
         except Exception as e:
             print(f"Error deleting order: {e}")
@@ -146,52 +147,43 @@ def delete_order():
 def update_info():
     if 'user_id' not in session:
         return redirect(url_for('dashboard'))
-        
     current_user_id = session['user_id']
-    shop_name = request.form.get('shop_name')
-    bot_token = request.form.get('bot_token')
-    chat_id = request.form.get('chat_id')
-
     updated_data = {
         "user_id": current_user_id,
-        "shop_name": shop_name,
-        "telegram_bot_token": bot_token,
-        "telegram_chat_id": chat_id
+        "shop_name": request.form.get('shop_name'),
+        "telegram_bot_token": request.form.get('bot_token'),
+        "telegram_chat_id": request.form.get('chat_id')
     }
-
-    try:
-        res = supabase.table("settings").select("id").eq("user_id", current_user_id).maybe_single().execute()
-        if res and res.data:
-            supabase.table("settings").update(updated_data).eq("id", res.data["id"]).execute()
-        else:
-            supabase.table("settings").insert(updated_data).execute()
-    except Exception as e:
-        print(f"Error updating info: {e}")
+    if supabase:
+        try:
+            res = supabase.table("settings").select("id").eq("user_id", current_user_id).maybe_single().execute()
+            if res and res.data:
+                supabase.table("settings").update(updated_data).eq("id", res.data["id"]).execute()
+            else:
+                supabase.table("settings").insert(updated_data).execute()
+        except Exception as e:
+            print(f"Error: {e}")
     return redirect(url_for('dashboard'))
 
 @app.route('/update-colors', methods=['POST'])
 def update_colors():
     if 'user_id' not in session:
         return redirect(url_for('dashboard'))
-        
     current_user_id = session['user_id']
-    primary_color = request.form.get('primary_color')
-    secondary_color = request.form.get('secondary_color')
-
     updated_colors = {
         "user_id": current_user_id,
-        "primary_color": primary_color,
-        "secondary_color": secondary_color
+        "primary_color": request.form.get('primary_color'),
+        "secondary_color": request.form.get('secondary_color')
     }
-
-    try:
-        res = supabase.table("settings").select("id").eq("user_id", current_user_id).maybe_single().execute()
-        if res and res.data:
-            supabase.table("settings").update(updated_colors).eq("id", res.data["id"]).execute()
-        else:
-            supabase.table("settings").insert(updated_colors).execute()
-    except Exception as e:
-        print(f"Error updating colors: {e}")
+    if supabase:
+        try:
+            res = supabase.table("settings").select("id").eq("user_id", current_user_id).maybe_single().execute()
+            if res and res.data:
+                supabase.table("settings").update(updated_colors).eq("id", res.data["id"]).execute()
+            else:
+                supabase.table("settings").insert(updated_colors).execute()
+        except Exception as e:
+            print(f"Error: {e}")
     return redirect(url_for('dashboard'))
 
 @app.route('/logout')
