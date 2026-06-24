@@ -2,83 +2,54 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>لوحة التحكم</title>
     <style>
-        :root {
-            --primary: {{ settings.primary_color }};
-            --secondary: {{ settings.secondary_color }};
-        }
+        :root { --primary: {{ settings.primary_color }}; --secondary: {{ settings.secondary_color }}; }
         body { font-family: sans-serif; background: #f4f6f9; padding: 20px; }
-        .container { max-width: 600px; margin: auto; }
-        .header { background: var(--primary); color: #fff; padding: 20px; border-radius: 10px; text-align: center; }
-        .card { background: white; padding: 20px; border-radius: 10px; margin-top: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        
-        /* تنسيق الإعدادات المخفية */
-        #settings-panel { display: none; margin-top: 15px; border-top: 2px solid #eee; padding-top: 15px; }
-        
-        input { width: 95%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 5px; }
-        .btn { border: none; padding: 12px; width: 100%; cursor: pointer; border-radius: 5px; margin-top: 10px; color: #fff !important; font-weight: bold; text-align: center; display: block; text-decoration: none; }
-        .btn-main { background: var(--primary); }
-        .btn-sec { background: var(--secondary); }
-        .btn-toggle { background: #6c757d; color: white !important; }
-        
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .card { background: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
+        input { width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ccc; }
+        .btn { border: none; padding: 10px; color: white; cursor: pointer; width: 100%; margin-top: 5px; }
+        table { width: 100%; border-collapse: collapse; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
     </style>
 </head>
 <body>
-<div class="container">
-    <div class="header"><h1>{{ settings.shop_name }}</h1></div>
-
     <div class="card">
-        <button class="btn btn-toggle" onclick="document.getElementById('settings-panel').style.display = (document.getElementById('settings-panel').style.display === 'block') ? 'none' : 'block';">⚙️ الإعدادات</button>
-        
-        <div id="settings-panel">
-            <h3>تعديل الإعدادات</h3>
+        <button onclick="document.getElementById('set').style.display='block'">⚙️ الإعدادات</button>
+        <div id="set" style="display:none;">
             <form action="/update-info" method="POST">
-                <input type="text" name="shop_name" value="{{ settings.shop_name }}" placeholder="اسم المتجر">
-                <input type="text" name="bot_token" value="{{ settings.telegram_bot_token }}" placeholder="Bot Token">
-                <input type="text" name="chat_id" value="{{ settings.telegram_chat_id }}" placeholder="Chat ID">
-                <button class="btn btn-main" type="submit">حفظ المعلومات</button>
+                <input name="shop_name" value="{{ settings.shop_name }}">
+                <input name="bot_token" placeholder="Bot Token">
+                <input name="chat_id" placeholder="Chat ID">
+                <button class="btn" style="background:var(--primary)">حفظ معلومات المتجر</button>
             </form>
             <form action="/update-colors" method="POST">
-                <label>اللون الأساسي:</label><input type="color" name="primary_color" value="{{ settings.primary_color }}">
-                <label>اللون الثانوي:</label><input type="color" name="secondary_color" value="{{ settings.secondary_color }}">
-                <button class="btn btn-sec" type="submit">حفظ الألوان</button>
+                <input type="color" name="primary_color" value="{{ settings.primary_color }}">
+                <input type="color" name="secondary_color" value="{{ settings.secondary_color }}">
+                <button class="btn" style="background:var(--secondary)">حفظ الألوان</button>
             </form>
         </div>
     </div>
-
     <div class="card">
-        <h3>➕ إضافة طلب جديد</h3>
+        <h3>إضافة طلب</h3>
         <form action="/add-order" method="POST">
-            <input type="text" name="name" placeholder="اسم الزبون" required>
-            <input type="text" name="product" placeholder="المنتج" required>
-            <input type="number" name="price" placeholder="السعر" required>
-            <input type="text" name="phone" placeholder="رقم الهاتف">
-            <button class="btn btn-main" type="submit">إضافة</button>
+            <input name="name" placeholder="الاسم" required>
+            <input name="product" placeholder="المنتج" required>
+            <input name="price" type="number" placeholder="السعر" required>
+            <input name="phone" placeholder="رقم الهاتف">
+            <button class="btn" style="background:var(--primary)">حفظ الطلب</button>
         </form>
     </div>
-
     <div class="card">
-        <h3>📦 قائمة الطلبات</h3>
+        <h3>📦 الطلبات</h3>
         <table>
-            <tr><th>الاسم</th><th>المنتج</th><th>السعر</th><th>إجراء</th></tr>
+            <tr><th>الاسم</th><th>المنتج</th><th>السعر</th><th>الهاتف</th><th>حذف</th></tr>
             {% for o in orders %}
             <tr>
-                <td>{{ o.customer_name }}</td>
-                <td>{{ o.product_name }}</td>
-                <td>{{ o.total_price }}</td>
-                <td>
-                    <form action="/delete-order" method="POST">
-                        <input type="hidden" name="order_id" value="{{ o.id }}">
-                        <button type="submit" style="background: red; color: white; border: none; border-radius: 3px; cursor: pointer;">حذف</button>
-                    </form>
-                </td>
+                <td>{{ o.customer_name }}</td><td>{{ o.product_name }}</td><td>{{ o.total_price }}</td><td>{{ o.customer_phone }}</td>
+                <td><form action="/delete-order" method="POST"><input type="hidden" name="order_id" value="{{ o.id }}"><button>حذف</button></form></td>
             </tr>
             {% endfor %}
         </table>
     </div>
-</div>
 </body>
 </html>
