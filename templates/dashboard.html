@@ -2,6 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>لوحة التحكم الاحترافية للمتجر</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -9,18 +10,37 @@
             --primary: {{ settings.primary_color if settings and settings.primary_color else '#a855f7' }}; 
             --secondary: {{ settings.secondary_color if settings and settings.secondary_color else '#7e22ce' }}; 
         }
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f4f7f6; padding: 20px; margin: 0; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f4f7f6; padding: 15px; margin: 0; }
         
-        /* جعل الإحصائيات والإعدادات ثابتة دائماً جنباً إلى جنب في سطر واحد لتصميم احترافي */
-        .top-row { display: flex; gap: 20px; margin-bottom: 20px; align-items: stretch; flex-wrap: wrap; }
-        .box { flex: 1; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.06); min-width: 320px; box-sizing: border-box; }
+        /* تقسيم الشاشة العلوي المتوازي */
+        .top-row { display: flex; gap: 20px; margin-bottom: 20px; align-items: flex-start; flex-wrap: wrap; }
+        .box { flex: 1; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); min-width: 320px; box-sizing: border-box; }
         
-        .box-title { font-weight: bold; font-size: 1.2em; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 3px solid var(--primary); display: flex; align-items: center; gap: 8px; color: #333; }
+        /* تصميم الأكورديون (الضغط للفتح والغلق) */
+        .accordion-header { 
+            background: #fff; 
+            padding: 15px; 
+            border-radius: 12px; 
+            font-weight: bold; 
+            border-right: 5px solid var(--primary); 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            cursor: pointer; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            user-select: none;
+            transition: background 0.2s;
+        }
+        .accordion-header:hover { background: #fafafa; }
+        .accordion-content { display: none; margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; }
         
+        /* التحكم الشامل في الألوان المتناسقة */
+        .box-title { font-weight: bold; font-size: 1.15em; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 3px solid var(--primary); display: flex; align-items: center; gap: 8px; color: #333; }
         label { display: block; margin-top: 12px; font-weight: 600; color: #444; font-size: 0.9em; }
-        input { width: 100%; padding: 12px; margin: 6px 0 12px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 0.95em; background: #fafafa; transition: all 0.3s; }
+        input { width: 100%; padding: 12px; margin: 6px 0 12px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 0.95em; background: #fafafa; }
         input:focus { border-color: var(--primary); outline: none; background: #fff; box-shadow: 0 0 5px rgba(168, 85, 247, 0.2); }
         
+        /* أزرار متناسقة وتتبع ألوانكِ بالكامل */
         .btn { padding: 12px 20px; width: 100%; border: none; border-radius: 8px; cursor: pointer; color: white; font-weight: bold; margin-top: 10px; font-size: 1em; text-align: center; text-decoration: none; display: inline-block; box-sizing: border-box; transition: opacity 0.2s; }
         .btn-primary { background: var(--primary); }
         .btn-secondary { background: var(--secondary); }
@@ -28,16 +48,15 @@
         .btn-dark { background: #333; }
         .btn:hover { opacity: 0.9; }
         
-        .stats-summary { background: #fdf8ff; padding: 15px; border-radius: 10px; border: 1px dashed var(--primary); margin-bottom: 20px; font-size: 1em; line-height: 1.8; color: #444; }
+        .stats-summary { background: #fdf8ff; padding: 15px; border-radius: 10px; border: 1px dashed var(--primary); margin-bottom: 20px; font-size: 0.95em; line-height: 1.8; color: #444; }
         
-        /* تنسيق جدول الطلبات الاحترافي الفاخر */
+        /* الجداول التابعة لمنظومة الألوان الموحدة */
         table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 15px; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
         th { background: var(--primary); color: white; padding: 14px; font-weight: 600; font-size: 0.95em; }
         td { padding: 12px; border-bottom: 1px solid #eee; background: #fff; text-align: center; font-size: 0.95em; color: #555; }
         tr:last-child td { border-bottom: none; }
         
-        .action-btn { border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; color: white; font-size: 0.85em; font-weight: bold; transition: opacity 0.2s; }
-        .action-btn:hover { opacity: 0.9; }
+        .action-btn { border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; color: white; font-size: 0.85em; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -45,67 +64,80 @@
     <div class="top-row">
         
         <div class="box">
-            <div class="box-title">📊 الإحصائيات الحقيقية والمصروفات</div>
-            <div class="stats-summary">
-                💰 مجموع دخل اليوم (حسب طلبات اليوم): <strong>{{ daily_total if daily_total is not none else 0 }} دج</strong><br>
-                📅 مجموع مبيعات الشهر الحالي: <strong>{{ monthly_total if monthly_total is not none else 0 }} دج</strong><br>
-                🗓️ مجموع مصروف السنة كاملة: <strong>{{ yearly_total if yearly_total is not none else 0 }} دج</strong>
+            <div class="accordion-header" onclick="toggleAccordion('stats-sect', 'stats-arrow')">
+                <span>📊 الإحصائيات والمصروفات (اضغطي للفتح)</span>
+                <span id="stats-arrow">▼</span>
             </div>
             
-            <label>📈 منحنى مبيعات الأسبوع الحالي بدلالة الأيام والتوقيت:</label>
-            <canvas id="chartWeek" style="max-height: 140px; margin-bottom: 15px;"></canvas>
-            
-            <label>📊 منحنى مبيعات الأشهر بدلالة التوقيت السنوي:</label>
-            <canvas id="chartMonth" style="max-height: 140px; margin-bottom: 15px;"></canvas>
-            
-            <label>📉 منحنى مبيعات السنة بدلالة التوقيت:</label>
-            <canvas id="chartYear" style="max-height: 140px; margin-bottom: 15px;"></canvas>
-            
-            <a href="/" class="btn btn-dark">العودة للوحة التحكم</a>
-            <a href="/logout" class="btn btn-danger">تسجيل الخروج للموقع</a>
+            <div id="stats-sect" class="accordion-content">
+                <div class="stats-summary">
+                    💰 مجموع دخل اليوم (حسب طلبات اليوم): <strong>{{ daily_total if daily_total is not none else 0 }} دج</strong><br>
+                    📅 مجموع مبيعات الشهر الحالي: <strong>{{ monthly_total if monthly_total is not none else 0 }} دج</strong><br>
+                    🗓️ مجموع مصروف السنة كاملة: <strong>{{ yearly_total if yearly_total is not none else 0 }} دج</strong>
+                </div>
+                
+                <label>📈 منحنى مبيعات الأسبوع الحالي:</label>
+                <canvas id="chartWeek" style="max-height: 130px; margin-bottom: 15px;"></canvas>
+                
+                <label>📊 منحنى مبيعات الأشهر السنوية:</label>
+                <canvas id="chartMonth" style="max-height: 130px; margin-bottom: 15px;"></canvas>
+                
+                <label>📉 منحنى مبيعات السنوات الشامل:</label>
+                <canvas id="chartYear" style="max-height: 130px; margin-bottom: 15px;"></canvas>
+                
+                <a href="/" class="btn btn-dark">العودة للوحة التحكم</a>
+                <a href="/logout" class="btn btn-danger">تسجيل الخروج للموقع</a>
+            </div>
         </div>
 
         <div class="box">
-            <div class="box-title">⚙️ إعدادات المتجر وتخصيص الألوان</div>
+            <div class="accordion-header" onclick="toggleAccordion('settings-sect', 'settings-arrow')">
+                <span>⚙️ إعدادات المتجر وتخصيص الألوان (اضغطي للفتح)</span>
+                <span id="settings-arrow">▼</span>
+            </div>
             
-            <form action="/update-info" method="POST">
-                <label>اسم المتجر الحالي:</label>
-                <input name="shop_name" value="{{ settings.shop_name if settings.shop_name and settings.shop_name != 'None' else '' }}" placeholder="أدخل اسم المتجر الاحترافي هنا">
+            <div id="settings-sect" class="accordion-content">
+                <form action="/update-info" method="POST">
+                    <div class="box-title" style="font-size: 1em; margin-bottom: 10px;">📋 تعديل بيانات المتجر</div>
+                    <label>اسم المتجر الحالي:</label>
+                    <input name="shop_name" value="{{ settings.shop_name if settings.shop_name and settings.shop_name != 'None' else '' }}" placeholder="أدخل اسم المتجر الاحترافي هنا">
+                    
+                    <label>معرف بوت تليجرام (Bot Token):</label>
+                    <input name="bot_token" value="{{ settings.telegram_bot_token if settings.telegram_bot_token and settings.telegram_bot_token != 'None' else '' }}" placeholder="أدخل رمز توكن البوت الخاص بك">
+                    
+                    <label>معرف شات تليجرام (Chat ID):</label>
+                    <input name="chat_id" value="{{ settings.telegram_chat_id if settings.telegram_chat_id and settings.telegram_chat_id != 'None' else '' }}" placeholder="أدخل معرف شات تليجرام">
+                    
+                    <button type="submit" class="btn btn-primary">حفظ معلومات المتجر</button>
+                </form>
                 
-                <label>معرف بوت تليجرام (Bot Token):</label>
-                <input name="bot_token" value="{{ settings.telegram_bot_token if settings.telegram_bot_token and settings.telegram_bot_token != 'None' else '' }}" placeholder="أدخل رمز توكن البوت الخاص بك">
+                <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
                 
-                <label>معرف شات تليجرام (Chat ID):</label>
-                <input name="chat_id" value="{{ settings.telegram_chat_id if settings.telegram_chat_id and settings.telegram_chat_id != 'None' else '' }}" placeholder="أدخل معرف شات تليجرام">
+                <form action="/update-colors" method="POST">
+                    <div class="box-title" style="font-size: 1em; margin-bottom: 10px;">🎨 تخصيص نظام الألوان الموحد</div>
+                    <label>اللون الرئيسي (للخلفيات، الجداول، والعناوين):</label>
+                    <input type="color" name="primary_color" value="{{ settings.primary_color if settings.primary_color else '#a855f7' }}">
+                    
+                    <label>اللون الثانوي (للأزرار وحفظ الطلبيات):</label>
+                    <input type="color" name="secondary_color" value="{{ settings.secondary_color if settings.secondary_color else '#7e22ce' }}">
+                    
+                    <button type="submit" class="btn btn-secondary">حفظ وتطبيق الألوان الشاملة</button>
+                </form>
                 
-                <button type="submit" class="btn btn-primary">حفظ معلومات المتجر</button>
-            </form>
-            
-            <hr style="border: 0; border-top: 1px solid #eee; margin: 25px 0;">
-            
-            <form action="/update-colors" method="POST">
-                <label>تخصيص اللون الرئيسي للوحة التحكم:</label>
-                <input type="color" name="primary_color" value="{{ settings.primary_color if settings.primary_color else '#a855f7' }}">
-                
-                <label>تخصيص اللون الثانوي للأزرار:</label>
-                <input type="color" name="secondary_color" value="{{ settings.secondary_color if settings.secondary_color else '#7e22ce' }}">
-                
-                <button type="submit" class="btn btn-secondary">حفظ وتطبيق الألوان</button>
-            </form>
-            
-            <a href="/logout" class="btn btn-danger">خروج لصفحة تسجيل الدخول</a>
-            <a href="/" class="btn btn-dark">العودة للوحة التحكم</a>
+                <a href="/logout" class="btn btn-danger">خروج لصفحة تسجيل الدخول</a>
+                <a href="/" class="btn btn-dark">العودة للوحة التحكم</a>
+            </div>
         </div>
         
     </div>
 
     <div class="box" style="margin-top: 20px;">
-        <div class="box-title" style="border-bottom-color: #22c55e;">➕ جدول إضافة طلبية جديدة</div>
+        <div class="box-title" style="border-bottom-color: var(--primary);">➕ جدول إضافة طلبية جديدة</div>
         
-        <form action="/add-order" method="POST" style="background: #fafafa; padding: 20px; border-radius: 12px; border: 1px solid #ebdcfc; margin-bottom: 25px;">
+        <form action="/add-order" method="POST" style="background: #fafafa; padding: 20px; border-radius: 12px; border: 1px solid #eee; margin-bottom: 25px;">
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px;">
                 <div>
-                    <label>اسم الزبون الكامـل:</label>
+                    <label>اسم الزبون الكامل:</label>
                     <input name="name" placeholder="أدخل اسم الزبون هنا" required>
                 </div>
                 <div>
@@ -121,7 +153,7 @@
                     <input name="phone" placeholder="أدخل رقم الهاتف" required>
                 </div>
             </div>
-            <button type="submit" class="btn btn-primary" style="background: #22c55e; margin-top: 15px;">حفظ الطلبية وتأكيدها</button>
+            <button type="submit" class="btn btn-secondary">حفظ الطلبية وتأكيدها</button>
         </form>
 
         <div class="box-title">📦 جدول الطلبات المسجلة في النظام</div>
@@ -132,7 +164,7 @@
                     <th>المنتج</th>
                     <th>السعر الحالي</th>
                     <th>رقم الهاتف</th>
-                    <th>إجراءات التحكم للطلبيات</th>
+                    <th>إجراءات الإدارة للتحكم</th>
                 </tr>
             </thead>
             <tbody>
@@ -163,38 +195,52 @@
     </div>
 
     <script>
+        // دالة الضغط للفتح والغلق للأقسام
+        function toggleAccordion(contentId, arrowId) {
+            const content = document.getElementById(contentId);
+            const arrow = document.getElementById(arrowId);
+            
+            if (content.style.display === "block") {
+                content.style.display = "none";
+                arrow.textContent = "▼";
+            } else {
+                content.style.display = "block";
+                arrow.textContent = "▲";
+            }
+        }
+
         const chartOptions = {
             responsive: true,
             scales: { y: { beginAtZero: true } },
             plugins: { legend: { display: false } }
         };
 
-        // 1. منحنى الأسبوع الديناميكي بدلالة التوقيت الحقيقي والأيام
+        // 1. منحنى الأسبوع الديناميكي الحقيقي (يأخذ قيمة اليوم الفعلية ويبدأ الباقي من الصفر)
         new Chart(document.getElementById('chartWeek').getContext('2d'), {
             type: 'line',
             data: {
                 labels: ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'],
-                datasets: [{ data: [{{ daily_total if daily_total else 0 }}, 1450, 1100, 2500, 1750, 2900, 2100], borderColor: '#a855f7', tension: 0.3, fill: false }]
+                datasets: [{ data: [0, 0, 0, 0, {{ daily_total if daily_total else 0 }}, 0, 0], borderColor: '{{ settings.primary_color if settings.primary_color else "#a855f7" }}', tension: 0.3, fill: false }]
             },
             options: chartOptions
         });
 
-        // 2. منحنى مبيعات الأشهر بدلالة التوقيت السنوي
+        // 2. منحنى مبيعات الأشهر الحقيقي (مصفر ولا يعرض إلا قيمة شهرك الحالي فقط)
         new Chart(document.getElementById('chartMonth').getContext('2d'), {
             type: 'bar',
             data: {
                 labels: ['جانفي', 'فيفري', 'مارس', 'أفريل', 'ماي', 'جوان', 'جويلية', 'أوت'],
-                datasets: [{ data: [14000, 21000, 16500, 28000, 19000, {{ monthly_total if monthly_total else 0 }}, 0, 0], backgroundColor: '#7e22ce' }]
+                datasets: [{ data: [0, 0, 0, 0, 0, {{ monthly_total if monthly_total else 0 }}, 0, 0], backgroundColor: '{{ settings.secondary_color if settings.secondary_color else "#7e22ce" }}' }]
             },
             options: chartOptions
         });
 
-        // 3. منحنى مبيعات السنة كاملة
+        // 3. منحنى مبيعات السنة الحقيقي (يبدأ من الصفر ويعتمد على توثيقك)
         new Chart(document.getElementById('chartYear').getContext('2d'), {
             type: 'line',
             data: {
                 labels: ['2024', '2025', '2026'],
-                datasets: [{ data: [110000, 240000, {{ yearly_total if yearly_total else 0 }}], borderColor: '#333', tension: 0.1, fill: false }]
+                datasets: [{ data: [0, 0, {{ yearly_total if yearly_total else 0 }}], borderColor: '#333', tension: 0.1, fill: false }]
             },
             options: chartOptions
         });
