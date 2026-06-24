@@ -3,35 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة التحكم الاحترافية</title>
+    <title>لوحة التحكم</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; color: #333; }
-        .container { max-width: 900px; margin: 0 auto; }
-        .header { background: linear-gradient(135deg, #007bff, #0056b3); color: white; padding: 20px; border-radius: 15px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-        .btn-logout { background: #dc3545; color: white; padding: 8px 15px; border-radius: 8px; text-decoration: none; font-size: 14px; }
-        .card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        h3 { margin-top: 0; color: #0056b3; border-bottom: 2px solid #f0f2f5; padding-bottom: 10px; }
-        .form-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 15px; }
-        input { padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; box-sizing: border-box; width: 100%; }
-        input:focus { border-color: #007bff; outline: none; }
-        .btn-success { background-color: #28a745; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-size: 16px; width: 100%; font-weight: bold; }
-        .btn-success:hover { background-color: #218838; }
-        .order-list { display: grid; gap: 15px; }
-        .order-item { background: #f8f9fa; border-right: 5px solid #007bff; padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
-        .order-details p { margin: 5px 0; }
-        .order-actions { display: flex; gap: 5px; }
-        .btn-danger { background: #dc3545; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
-        .btn-edit { background: #007bff; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
-        
-        /* تصميم نموذج التعديل المخفي */
-        .edit-form-container { display: none; background: #e9ecef; padding: 15px; margin-top: 10px; border-radius: 8px; width: 100%; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 700px; margin: 0 auto; }
+        .header { background: linear-gradient(135deg, #1e3c72, #2a5298); color: white; padding: 20px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .user-box h2 { margin: 0; font-size: 20px; }
+        .btn-logout { background-color: #e63946; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; text-decoration: none; font-size: 14px; transition: 0.3s; }
+        .btn-logout:hover { background-color: #c1121f; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .card h3 { margin-top: 0; color: #1e3c72; border-bottom: 2px solid #f4f6f9; padding-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+        .form-group input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
+        .form-group input:focus { border-color: #2a5298; outline: none; }
+        .btn-save { background-color: #2da745; color: white; border: none; width: 100%; padding: 12px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 5px; }
+        .btn-save:hover { background-color: #218838; }
+        .order-item { background: #fff; border-right: 5px solid #2a5298; padding: 15px; margin-bottom: 10px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); display: flex; justify-content: space-between; align-items: center; }
+        .order-info p { margin: 4px 0; font-size: 14px; }
+        .price-tag { color: #2da745; font-weight: bold; }
+        .actions { display: flex; gap: 8px; }
+        .btn-delete { background-color: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+        .btn-edit { background-color: #007bff; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+        .edit-panel { display: none; background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 10px; border: 1px dashed #2a5298; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="header">
-        <h2>مرحباً، {{ user }} 👋</h2>
+        <div class="user-box">
+            <h2>مرحباً، {{ user }} 👋</h2>
+        </div>
         <a href="/logout" class="btn-logout">تسجيل الخروج</a>
     </div>
 
@@ -39,63 +40,61 @@
         <h3>➕ إضافة طلب جديد</h3>
         <form action="/add-order" method="POST">
             <div class="form-group">
-                <input name="name" placeholder="اسم الزبون" required>
-                <input name="product" placeholder="اسم المنتج" required>
-                <input name="price" type="number" placeholder="السعر (دج)" required>
-                <input name="phone" placeholder="رقم الهاتف">
+                <input type="text" name="name" placeholder="اسم الزبون" required>
+                <input type="text" name="product" placeholder="اسم المنتج" required>
+                <input type="number" step="any" name="price" placeholder="السعر (دج)" required>
+                <input type="text" name="phone" placeholder="رقم الهاتف">
             </div>
-            <button type="submit" class="btn-success">حفظ الطلب وتأكيده</button>
+            <button type="submit" class="btn-save">حفظ الطلب وتأكيده</button>
         </form>
     </div>
 
     <div class="card">
         <h3>📦 قائمة الطلبات الحالية</h3>
-        <div class="order-list">
-            {% for o in orders %}
-            <div>
-                <div class="order-item">
-                    <div class="order-details">
-                        <strong>👤 الزبون:</strong> {{ o.customer_name }} | 
-                        <strong>🛍️ المنتج:</strong> {{ o.product_name }} <br>
-                        <strong>💰 السعر:</strong> <span style="color: #28a745; font-weight: bold;">{{ o.total_price }} دج</span> | 
-                        <strong>📞 الهاتف:</strong> {{ o.customer_phone or 'غير مسجل' }}
-                    </div>
-                    <div class="order-actions">
-                        <button class="btn-edit" onclick="toggleEdit('{{ o.id }}')">تعديل</button>
-                        
-                        <form action="/delete-order/{{ o.id }}" method="POST" style="display:inline;" onsubmit="return confirm('هل أنتِ متأكدة من حذف هذا الطلب؟')">
-                            <button type="submit" class="btn-danger">حذف</button>
-                        </form>
-                    </div>
+        {% for o in orders %}
+        <div style="margin-bottom: 15px;">
+            <div class="order-item">
+                <div class="order-info">
+                    <p><strong>👤 الزبون:</strong> {{ o.customer_name }}</p>
+                    <p><strong>🛍️ المنتج:</strong> {{ o.product_name }}</p>
+                    <p><strong>💰 السعر:</strong> <span class="price-tag">{{ o.total_price }} دج</span></p>
+                    <p><strong>📞 الهاتف:</strong> {{ o.customer_phone or 'غير مسجل' }}</p>
                 </div>
-
-                <div id="edit-card-{{ o.id }}" class="edit-form-container">
-                    <form action="/edit-order/{{ o.id }}" method="POST">
-                        <div class="form-group">
-                            <input name="name" value="{{ o.customer_name }}" required>
-                            <input name="product" value="{{ o.product_name }}" required>
-                            <input name="price" type="number" value="{{ o.total_price }}" required>
-                            <input name="phone" value="{{ o.customer_phone }}">
-                        </div>
-                        <button type="submit" class="btn-success" style="background:#007bff; padding: 8px;">حفظ التعديلات</button>
+                <div class="actions">
+                    <button class="btn-edit" onclick="toggleEdit('{{ o.id }}')">تعديل</button>
+                    <form action="/delete-order" method="POST" style="margin:0;" onsubmit="return confirm('هل أنتِ متأكدة من حذف هذا الطلب؟')">
+                        <input type="hidden" name="order_id" value="{{ o.id }}">
+                        <button type="submit" class="btn-delete">حذف</button>
                     </form>
                 </div>
             </div>
-            {% else %}
-            <p style="text-align: center; color: #777;">لا توجد طلبات مسجلة حالياً.</p>
-            {% endfor %}
+
+            <div id="edit-form-{{ o.id }}" class="edit-panel">
+                <form action="/edit-order" method="POST">
+                    <input type="hidden" name="order_id" value="{{ o.id }}">
+                    <div class="form-group">
+                        <input type="text" name="name" value="{{ o.customer_name }}" required>
+                        <input type="text" name="product" value="{{ o.product_name }}" required>
+                        <input type="number" step="any" name="price" value="{{ o.total_price }}" required>
+                        <input type="text" name="phone" value="{{ o.customer_phone }}">
+                    </div>
+                    <button type="submit" class="btn-save" style="background-color:#007bff;">حفظ التعديلات</button>
+                </form>
+            </div>
         </div>
+        {% else %}
+        <p style="text-align: center; color: #777; font-size: 14px;">لا توجد طلبات مسجلة حالياً.</p>
+        {% endfor %}
     </div>
 </div>
 
 <script>
-    // دالة لإظهار وإخفاء نموذج التعديل عند الضغط على زر تعديل
-    function toggleEdit(orderId) {
-        var form = document.getElementById('edit-card-' + orderId);
-        if (form.style.display === 'block') {
-            form.style.display = 'none';
+    function toggleEdit(id) {
+        var panel = document.getElementById('edit-form-' + id);
+        if (panel.style.display === 'block') {
+            panel.style.display = 'none';
         } else {
-            form.style.display = 'block';
+            panel.style.display = 'block';
         }
     }
 </script>
