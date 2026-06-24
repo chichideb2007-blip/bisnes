@@ -3,7 +3,7 @@ from flask import Flask, render_template, request, session, redirect
 from supabase import create_client
 
 app = Flask(__name__)
-app.secret_key = 'shimo_final_perfect_2026'
+app.secret_key = 'shimo_settings_pro_2026'
 
 url = os.environ.get('SUPABASE_URL')
 key = os.environ.get('SUPABASE_KEY')
@@ -25,14 +25,22 @@ def dashboard():
     if 'user' not in session: 
         return redirect('/login')
     orders = []
+    settings = {"shop_name": "متجري الإلكتروني", "telegram_bot_token": "", "telegram_chat_id": "", "primary_color": "#1e3c72", "secondary_color": "#2a5298"}
+    
     if supabase:
         try:
-            # جلب البيانات بشكل مباشر لتفادي أي مشاكل في أعمدة التوقيت
-            response = supabase.table("orders").select("*").execute()
-            orders = response.data if response.data else []
+            # جلب الطلبات
+            response_orders = supabase.table("orders").select("*").execute()
+            orders = response_orders.data if response_orders.data else []
+            
+            # جلب الإعدادات (السطر رقم 1)
+            response_settings = supabase.table("settings").select("*").eq("id", 1).execute()
+            if response_settings.data:
+                settings = response_settings.data[0]
         except Exception as e: 
             print(f"Error fetching data: {e}")
-    return render_template('dashboard.html', user=session['user'], orders=orders)
+            
+    return render_template('dashboard.html', user=session['user'], orders=orders, settings=settings)
 
 @app.route('/add-order', methods=['POST'])
 def add_order():
@@ -40,7 +48,6 @@ def add_order():
         return redirect('/login')
     if supabase:
         try:
-            # الحفظ المباشر داخل الأعمدة التي تظهر في جدولك
             supabase.table("orders").insert({
                 "customer_name": request.form.get('name'),
                 "product_name": request.form.get('product'),
@@ -78,6 +85,24 @@ def edit_order():
             }).eq("id", order_id).execute()
         except Exception as e: 
             print(f"Error editing: {e}")
+    return redirect('/dashboard')
+
+@app.route('/update-settings', methods=['POST'])
+def update_settings():
+    if 'user' not in session: 
+        return redirect('/login')
+    if supabase:
+        try:
+            # تحديث الإعدادات في قاعدة البيانات
+            supabase.table("settings").update({
+                "shop_name": request.form.get('shop_name'),
+                "telegram_bot_token": request.form.get('bot_token'),
+                "telegram_chat_id": request.form.get('chat_id'),
+                "primary_color": request.form.get('primary_color'),
+                "secondary_color": request.form.get('secondary_color')
+            }).eq("id", 1).execute()
+        except Exception as e:
+            print(f"Error updating settings: {e}")
     return redirect('/dashboard')
 
 @app.route('/logout')
