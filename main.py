@@ -56,14 +56,15 @@ def dashboard():
     else:
         orders = [o for o in app.global_orders if o.get('user_id') == current_user_id]
 
-    # حساب الإحصائيات لعام 2026 الحالية
     now = datetime.now()
+    current_year = now.year # جلب السنة الحالية تلقائياً (2026)
+
     daily_total = 0.0
     monthly_total = 0.0
     yearly_total = 0.0
 
-    weekly_data = [0.0] * 7  # سبت، أحد، اثنين، ثلاثاء، أربعاء، خميس، جمعة
-    monthly_data = [0.0] * 12 # 12 شهر كاملة
+    weekly_data = [0.0] * 7  
+    monthly_data = [0.0] * 12 
 
     for o in orders:
         try:
@@ -73,14 +74,13 @@ def dashboard():
                 clean_date_str = created_at_str.split('.')[0].replace('Z', '').replace('T', ' ')
                 order_date = datetime.strptime(clean_date_str, "%Y-%m-%d %H:%M:%S")
                 
-                if order_date.year == 2026:
+                if order_date.year == current_year:
                     yearly_total += price
                     monthly_data[order_date.month - 1] += price
                     
                     if order_date.month == now.month:
                         monthly_total += price
                         
-                    # ترتيب مبيعات الأسبوع لتبدأ من السبت
                     day_idx = (order_date.weekday() + 2) % 7 
                     weekly_data[day_idx] += price
                     
@@ -97,7 +97,8 @@ def dashboard():
         monthly_total=round(monthly_total, 2),
         yearly_total=round(yearly_total, 2),
         weekly_data=weekly_data,
-        monthly_data=monthly_data
+        monthly_data=monthly_data,
+        current_year=current_year
     )
 
 @app.route('/add-order', methods=['POST'])
@@ -135,6 +136,30 @@ def add_order():
 
     return redirect(url_for('dashboard'))
 
+@app.route('/update-colors', methods=['POST'])
+def update_colors():
+    if 'user_id' not in session:
+        return redirect(url_for('dashboard'))
+    current_user_id = session['user_id']
+    p_color = request.form.get('primary_color')
+    s_color = request.form.get('secondary_color')
+    
+    updated_colors = {
+        "user_id": current_user_id,
+        "primary_color": p_color,
+        "secondary_color": s_color
+    }
+    
+    if supabase:
+        try:
+            # مسح السجل القديم أولاً ثم إعادة الإدخال الفوري لكسر قفل الألوان نهائياً في سوبابايس
+            supabase.table("settings").delete().eq("user_id", current_user_id).execute()
+            supabase.table("settings").insert(updated_colors).execute()
+        except Exception as e:
+            print(f"Error resetting colors: {e}")
+            
+    return redirect(url_for('dashboard'))
+
 @app.route('/delete-order', methods=['POST'])
 def delete_order():
     if 'user_id' not in session:
@@ -153,47 +178,21 @@ def update_info():
     if 'user_id' not in session:
         return redirect(url_for('dashboard'))
     current_user_id = session['user_id']
-    
     updated_data = {
         "user_id": current_user_id,
         "shop_name": request.form.get('shop_name'),
         "telegram_bot_token": request.form.get('bot_token'),
         "telegram_chat_id": request.form.get('chat_id')
     }
-    
     if supabase:
         try:
             res = supabase.table("settings").select("id").eq("user_id", current_user_id).maybe_single().execute()
             if res and res.data:
-                updated_data["id"] = res.data["id"]
-            supabase.table("settings").upsert(updated_data).execute()
+                supabase.table("settings").update(updated_data).eq("user_id", current_user_id).execute()
+            else:
+                supabase.table("settings").insert(updated_data).execute()
         except Exception as e:
             print(f"Error: {e}")
-    return redirect(url_for('dashboard'))
-
-@app.route('/update-colors', methods=['POST'])
-def update_colors():
-    if 'user_id' not in session:
-        return redirect(url_for('dashboard'))
-    current_user_id = session['user_id']
-    
-    updated_colors = {
-        "user_id": current_user_id,
-        "primary_color": request.form.get('primary_color'),
-        "secondary_color": request.form.get('secondary_color')
-    }
-    
-    if supabase:
-        try:
-            # جلب المعرّف الفريد للصف لضمان السحق والتحديث المستمر بلا نهاية
-            res = supabase.table("settings").select("id").eq("user_id", current_user_id).maybe_single().execute()
-            if res and res.data:
-                updated_colors["id"] = res.data["id"]
-            
-            supabase.table("settings").upsert(updated_colors).execute()
-            print(f"✅ تم تحديث الألوان بنجاح للمدير {current_user_id}")
-        except Exception as e:
-            print(f"❌ فشل تحديث الألوان: {e}")
     return redirect(url_for('dashboard'))
 
 @app.route('/logout')
