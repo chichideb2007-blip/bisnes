@@ -3,14 +3,14 @@ from flask import Flask, render_template, request, session, redirect
 from supabase import create_client
 
 app = Flask(__name__)
-app.secret_key = 'shimo_final_fix_2026'
+app.secret_key = 'shimo_final_code_2026'
 
 url = os.environ.get('SUPABASE_URL')
 key = os.environ.get('SUPABASE_KEY')
 supabase = create_client(url, key) if url and key else None
 
 def get_settings():
-    default = {"id": 1, "shop_name": "متجري الإلكتروني", "telegram_bot_token": "", "telegram_chat_id": "", "primary_color": "#7a3e13", "secondary_color": "#bd6a2c"}
+    default = {"id": 1, "shop_name": "متجري", "telegram_bot_token": "", "telegram_chat_id": "", "primary_color": "#7a3e13", "secondary_color": "#bd6a2c"}
     if not supabase: return default
     try:
         res = supabase.table("settings").select("*").eq("id", 1).execute()
@@ -31,7 +31,7 @@ def login():
 def dashboard():
     if 'user' not in session: return redirect('/login')
     orders = supabase.table("orders").select("*").execute().data if supabase else []
-    return render_template('dashboard.html', user=session['user'], orders=orders, settings=get_settings())
+    return render_template('dashboard.html', orders=orders, settings=get_settings())
 
 @app.route('/add-order', methods=['POST'])
 def add_order():
@@ -42,12 +42,6 @@ def add_order():
 @app.route('/delete-order', methods=['POST'])
 def delete_order():
     if supabase: supabase.table("orders").delete().eq("id", request.form.get('order_id')).execute()
-    return redirect('/dashboard')
-
-@app.route('/edit-order', methods=['POST'])
-def edit_order():
-    if supabase:
-        supabase.table("orders").update({"customer_name": request.form.get('name'), "product_name": request.form.get('product'), "total_price": float(request.form.get('price', 0)), "customer_phone": request.form.get('phone')}).eq("id", request.form.get('order_id')).execute()
     return redirect('/dashboard')
 
 @app.route('/update-info', methods=['POST'])
