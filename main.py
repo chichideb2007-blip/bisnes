@@ -1,4 +1,4 @@
- import os
+import os
 from flask import Flask, render_template, request, redirect
 from supabase import create_client
 
@@ -10,8 +10,10 @@ supabase = create_client(url, key) if url and key else None
 def get_settings():
     default = {"shop_name": "متجري", "primary_color": "#7a3e13", "secondary_color": "#bd6a2c"}
     if not supabase: return default
-    res = supabase.table("settings").select("*").eq("id", 1).execute()
-    return res.data[0] if res.data else default
+    try:
+        res = supabase.table("settings").select("*").eq("id", 1).execute()
+        return res.data[0] if res.data else default
+    except: return default
 
 @app.route('/')
 def dashboard():
