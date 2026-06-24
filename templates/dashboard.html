@@ -2,48 +2,54 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --primary: {{ settings.primary_color }}; --secondary: {{ settings.secondary_color }}; }
         body { font-family: sans-serif; background: #f4f7f6; padding: 20px; }
-        .box { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        .header-click { cursor: pointer; background: #eee; padding: 15px; border-radius: 10px; font-weight: bold; }
-        .content-hidden { display: none; margin-top: 15px; }
-        .btn { padding: 10px; width: 100%; border: none; border-radius: 6px; cursor: pointer; color: white; margin-top: 5px; }
+        .row { display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap; }
+        .box { flex: 1; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); min-width: 300px; }
+        input { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; }
+        .btn { padding: 10px; width: 100%; border: none; border-radius: 6px; cursor: pointer; color: white; font-weight: bold; margin-top: 10px; background: #333; }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { padding: 10px; border: 1px solid #ddd; text-align: center; }
+        th, td { padding: 10px; border: 1px solid #eee; text-align: center; }
     </style>
 </head>
 <body>
 
-<div class="box">
-    <div class="header-click" onclick="document.getElementById('stats').classList.toggle('content-hidden')">📊 الإحصائيات (اضغط للفتح)</div>
-    <div id="stats" class="content-hidden">
-        <p>مبيعات اليوم: <strong>{{ daily_total }} دج</strong></p>
-        <p>مبيعات الشهر الحالي: <strong>{{ monthly_total }} دج</strong></p>
-        <p>مبيعات السنة: <strong>{{ yearly_total }} دج</strong></p>
-    </div>
-</div>
+    <div class="row">
+        <div class="box">
+            <h3>📊 الإحصائيات</h3>
+            <p>مجموع مصروف اليوم: {{ daily_total }} | الشهر: {{ monthly_total }} | السنة: {{ yearly_total }}</p>
+            <canvas id="chartWeek"></canvas>
+            <a href="/logout" class="btn" style="background:red;">خروج لصفحة تسجيل الدخول</a>
+            <a href="/dashboard" class="btn">العودة للوحة التحكم</a>
+        </div>
 
-<div class="box">
-    <div class="header-click" onclick="document.getElementById('settings').classList.toggle('content-hidden')">⚙️ الإعدادات (اضغط للفتح)</div>
-    <div id="settings" class="content-hidden">
-        <form action="/update-info" method="POST">
-            <input name="shop_name" value="{{ settings.shop_name }}" placeholder="اسم المتجر">
-            <input name="bot_token" value="{{ settings.telegram_bot_token }}" placeholder="Bot Token">
-            <input name="chat_id" value="{{ settings.telegram_chat_id }}" placeholder="Chat ID">
-            <button class="btn" style="background:var(--primary);">حفظ</button>
-        </form>
+        <div class="box">
+            <h3>⚙️ الإعدادات</h3>
+            <input placeholder="اسم المتجر">
+            <input placeholder="اسم البوت">
+            <input placeholder="تليجرام">
+            <input type="color" title="اللون الرئيسي">
+            <button class="btn">حفظ المعلومات</button>
+            <a href="/logout" class="btn" style="background:red;">خروج لصفحة تسجيل الدخول</a>
+            <a href="/dashboard" class="btn">العودة للوحة التحكم</a>
+        </div>
     </div>
-</div>
 
-<div class="box">
-    <h3>📦 إضافة طلب جديد</h3>
-    <form action="/add-order" method="POST">
-        <input name="name" placeholder="الاسم" required>
-        <input name="price" type="number" placeholder="السعر" required>
-        <button class="btn" style="background:var(--primary);">حفظ</button>
-    </form>
-</div>
+    <div class="box">
+        <h3>➕ إضافة طلبية جديدة</h3>
+        <input placeholder="اسم الزبون">
+        <input placeholder="المنتج">
+        <input placeholder="السعر">
+        <input placeholder="رقم الهاتف">
+        <button class="btn" style="background:green;">حفظ الطلبية</button>
+
+        <h3>📦 جدول الطلبيات</h3>
+        <table>
+            <tr><th>الاسم</th><th>المنتج</th><th>السعر</th><th>الهاتف</th><th>إجراء</th></tr>
+            <tr><td>أحمد</td><td>عطر</td><td>1500</td><td>06xx</td><td><button>تعديل</button> <button>حفظ</button></td></tr>
+        </table>
+    </div>
 
 </body>
 </html>
