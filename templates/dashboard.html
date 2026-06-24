@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة التحكم الاحترافية</title>
+    <title>لوحة التحكم الاحترافية للمتجر</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { 
@@ -13,7 +13,6 @@
         
         body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f4f7f6; padding: 10px; margin: 0; }
         
-        /* قفل الإحصائيات والإعدادات في سطر واحد بدون انهيار على شاشة الهاتف */
         .top-row { 
             display: grid; 
             grid-template-columns: 1fr 1fr; 
@@ -49,7 +48,7 @@
         .btn-sub { background: var(--secondary); }
         .btn:hover { opacity: 0.9; }
         
-        .stats-summary { background: #fafafa; padding: 10px; border-radius: 8px; border: 2px dashed var(--primary); margin-bottom: 12px; font-size: 0.8; line-height: 1.5; color: #444; }
+        .stats-summary { background: #fafafa; padding: 10px; border-radius: 8px; border: 2px dashed var(--primary); margin-bottom: 12px; font-size: 0.8em; line-height: 1.5; color: #444; }
         
         table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 15px; border-radius: 10px; overflow: hidden; }
         th { background: var(--primary); color: white; padding: 10px; font-weight: 600; font-size: 0.8em; }
@@ -61,61 +60,66 @@
 <body>
 
     <div class="top-row">
+        <!-- خانة الإحصائيات والمنحنيات المحدثة لـ 2026 -->
         <div class="box">
             <div class="accordion-title-btn" onclick="toggleSection('stats-content', 'stats-indicator')">
-                <span>📊 الإحصائيات</span>
+                <span>📊 الإحصائيات والمنحنيات</span>
                 <span id="stats-indicator">▼</span>
             </div>
             
             <div id="stats-content" class="accordion-inside-content">
                 <div class="stats-summary">
-                    💰 اليوم:<br><strong>{{ daily_total }} دج</strong><br>
-                    📅 الشهر:<br><strong>{{ monthly_total }} دج</strong><br>
-                    🗓️ السنة:<br><strong>{{ yearly_total }} دج</strong>
+                    💰 دخل اليوم:<br><strong>{{ daily_total }} دج</strong><br>
+                    📅 دخل الشهر:<br><strong>{{ monthly_total }} دج</strong><br>
+                    🗓️ دخل سنة 2026:<br><strong>{{ yearly_total }} دج</strong>
                 </div>
                 
                 <label>📈 الأسبوع:</label>
                 <canvas id="chartWeek" style="max-height: 100px; margin-bottom: 10px;"></canvas>
+                
                 <label>📊 الأشهر:</label>
-                <canvas id="chartMonth" style="max-height: 100px; margin-bottom: 10px;"></canvas>
+                <canvas id="chartMonth" style="max-height: 110px; margin-bottom: 10px;"></canvas>
+                
                 <label>📉 السنوات:</label>
                 <canvas id="chartYear" style="max-height: 100px; margin-bottom: 10px;"></canvas>
                 
-                <a href="/" class="btn btn-main">تحديث</a>
+                <a href="/" class="btn btn-main">تحديث البيانات</a>
                 <a href="/logout" class="btn btn-sub">خروج للرئيسية</a>
             </div>
         </div>
 
+        <!-- خانة الإعدادات وتعديل الألوان المتكرر اللانهائي -->
         <div class="box">
             <div class="accordion-title-btn" onclick="toggleSection('settings-content', 'settings-indicator')">
-                <span>⚙️ الإعدادات</span>
+                <span>⚙️ إعدادات المتجر والألوان</span>
                 <span id="settings-indicator">▼</span>
             </div>
             
             <div id="settings-content" class="accordion-inside-content">
                 <form action="/update-info" method="POST">
-                    <label>اسم المتجر:</label>
+                    <label>اسم المتجر الحالي:</label>
                     <input name="shop_name" value="{{ settings.shop_name if settings.shop_name and settings.shop_name != 'None' else '' }}">
-                    <label>توكن تليجرام:</label>
+                    <label>توكن تليجرام البوت:</label>
                     <input name="bot_token" value="{{ settings.telegram_bot_token if settings.telegram_bot_token and settings.telegram_bot_token != 'None' else '' }}">
-                    <label>Chat ID:</label>
+                    <label>معرف الـ Chat ID:</label>
                     <input name="chat_id" value="{{ settings.telegram_chat_id if settings.telegram_chat_id and settings.telegram_chat_id != 'None' else '' }}">
-                    <button type="submit" class="btn btn-main">حفظ البيانات</button>
+                    <button type="submit" class="btn btn-main">حفظ البيانات للبرمجيات</button>
                 </form>
                 
                 <hr style="border: 0; border-top: 1px solid #eee; margin: 12px 0;">
                 
                 <form action="/update-colors" method="POST">
-                    <label>اللون الرئيسي:</label>
+                    <label>اللون الرئيسي للمتجر:</label>
                     <input type="color" name="primary_color" value="{{ settings.primary_color if settings.primary_color else '#a855f7' }}">
-                    <label>اللون الثانوي:</label>
+                    <label>اللون الثانوي للمتجر:</label>
                     <input type="color" name="secondary_color" value="{{ settings.secondary_color if settings.secondary_color else '#7e22ce' }}">
-                    <button type="submit" class="btn btn-sub">تطبيق الألوان</button>
+                    <button type="submit" class="btn btn-sub">تحديث وتغيير الألوان الآن</button>
                 </form>
             </div>
         </div>
     </div>
 
+    <!-- واجهة إضافة الطلبيات والجدول -->
     <div class="box" style="margin-top: 10px;">
         <div class="accordion-title-btn" style="cursor: default;">
             <span>📦 إدارة وحفظ طلبيات المتجر الحالية</span>
@@ -189,21 +193,33 @@
         const primaryColor = '{{ settings.primary_color if settings.primary_color else "#a855f7" }}';
         const secondaryColor = '{{ settings.secondary_color if settings.secondary_color else "#7e22ce" }}';
 
+        // 1. منحنى الأسبوع الحقيقي المرتب بدقة من السبت إلى الجمعة كما طلبتِ
         new Chart(document.getElementById('chartWeek').getContext('2d'), {
             type: 'line',
-            data: { labels: ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'], datasets: [{ data: [0, 0, 0, 0, {{ daily_total if daily_total else 0 }}, 0, 0], borderColor: primaryColor, tension: 0.3, fill: false }] },
+            data: { 
+                labels: ['السبت', 'الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'], 
+                datasets: [{ data: {{ weekly_data }}, borderColor: primaryColor, tension: 0.3, fill: false }] 
+            },
             options: chartOptions
         });
 
+        // 2. منحنى أشهر السنة كاملة الـ 12 شهراً بالأسماء المطلوبة تماماً
         new Chart(document.getElementById('chartMonth').getContext('2d'), {
             type: 'bar',
-            data: { labels: ['جانفي', 'فيفري', 'مارس', 'أفريل', 'ماي', 'جوان', 'جويلية', 'أوت'], datasets: [{ data: [0, 0, 0, 0, 0, {{ monthly_total if monthly_total else 0 }}, 0, 0], backgroundColor: secondaryColor }] },
+            data: { 
+                labels: ['جانفي', 'فيفري', 'مارس', 'أفريل', 'ماي', 'جوان', 'جويلية', 'أوت', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'], 
+                datasets: [{ data: {{ monthly_data }}, backgroundColor: secondaryColor }] 
+            },
             options: chartOptions
         });
 
+        // 3. منحنى السنوات الحالية والتركيز على عام 2026 الحالي
         new Chart(document.getElementById('chartYear').getContext('2d'), {
             type: 'line',
-            data: { labels: ['2024', '2025', '2026'], datasets: [{ data: [0, 0, {{ yearly_total if yearly_total else 0 }}], borderColor: primaryColor, tension: 0.1, fill: false }] },
+            data: { 
+                labels: ['2024', '2025', '2026'], 
+                datasets: [{ data: [0, 0, {{ yearly_total }}], borderColor: primaryColor, tension: 0.1, fill: false }] 
+            },
             options: chartOptions
         });
     </script>
