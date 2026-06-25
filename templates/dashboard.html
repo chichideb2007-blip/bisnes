@@ -25,6 +25,9 @@
         th { background: var(--primary); color: white; padding: 10px; font-weight: 600; font-size: 0.8em; }
         td { padding: 10px; border-bottom: 1px solid #eee; background: #fff; text-align: center; font-size: 0.8em; color: #555; }
         .action-btn { border: none; padding: 5px 8px; border-radius: 4px; cursor: pointer; color: white; font-size: 0.75em; font-weight: bold; }
+        
+        /* تغليف مرن للمنحنيات لضمان عدم اختفائها أو تداخل نصوصها على الهواتف */
+        .chart-container { position: relative; height: 160px; width: 100%; margin-bottom: 15px; }
     </style>
 </head>
 <body>
@@ -43,14 +46,20 @@
                     🗓️ دخل سنة {{ current_year }}:<br><strong>{{ yearly_total }} دج</strong>
                 </div>
                 
-                <label>📈 الأسبوع كاملاً:</label>
-                <canvas id="chartWeek" style="max-height: 130px; margin-bottom: 15px;"></canvas>
+                <label>📈 الأسبوع كاملاً (من السبت للجمعة):</label>
+                <div class="chart-container">
+                    <canvas id="chartWeek"></canvas>
+                </div>
                 
-                <label>📊 أشهر السنة كاملة:</label>
-                <canvas id="chartMonth" style="max-height: 140px; margin-bottom: 15px;"></canvas>
+                <label>📊 أشهر السنة كاملة (12 شهراً):</label>
+                <div class="chart-container" style="height: 180px;">
+                    <canvas id="chartMonth"></canvas>
+                </div>
                 
-                <label>📉 السنوات (تلقائي ديناميكي):</label>
-                <canvas id="chartYear" style="max-height: 130px; margin-bottom: 15px;"></canvas>
+                <label>📉 السنوات التلقائية الذكية:</label>
+                <div class="chart-container">
+                    <canvas id="chartYear"></canvas>
+                </div>
                 
                 <a href="/" class="btn btn-main">تحديث البيانات</a>
                 <a href="/logout" class="btn btn-sub">خروج للرئيسية</a>
@@ -147,7 +156,7 @@
             indicator.textContent = (content.style.display === "block") ? "▲" : "▼";
         }
 
-        // إعدادات مخصصة تمنع إخفاء الكلمات والأسماء على شاشات الهواتف نهائياً
+        // الإعدادات الإجبارية لمنع مكتبة الأشكال البيانية من إخفاء أسماء الأيام أو الأشهر على الهواتف
         const forcedChartOptions = {
             responsive: true,
             maintainAspectRatio: false,
@@ -155,8 +164,8 @@
             scales: {
                 x: {
                     ticks: {
-                        autoSkip: false, // منع تخطي أي اسم إجبارياً
-                        maxRotation: 45, // تدوير خفيف للنصوص لكي تتسع الشاشة
+                        autoSkip: false, // منع تخطي أو إخفاء أي كلمة نهائياً
+                        maxRotation: 45, // تدوير النصوص بزاوية 45 درجة لتتسع الشاشات الضيقة
                         minRotation: 45,
                         font: { size: 9, weight: 'bold' }
                     }
@@ -168,7 +177,7 @@
         const primaryColor = '{{ settings.primary_color if settings.primary_color else "#a855f7" }}';
         const secondaryColor = '{{ settings.secondary_color if settings.secondary_color else "#7e22ce" }}';
 
-        // 1. منحنى الأسبوع كامل الأسماء بدون إخفاء
+        // 1. منحنى الأسبوع الكامل (سبت، أحد، إثنين، ثلاثاء، أربعاء، خميس، جمعة)
         new Chart(document.getElementById('chartWeek').getContext('2d'), {
             type: 'line',
             data: { 
@@ -178,7 +187,7 @@
             options: forcedChartOptions
         });
 
-        // 2. منحنى أشهر السنة كاملة الـ 12 بدون اختصار
+        // 2. منحنى أشهر السنة كاملة الـ 12 شهراً بدون غياب أي شهر
         new Chart(document.getElementById('chartMonth').getContext('2d'), {
             type: 'bar',
             data: { 
@@ -188,7 +197,7 @@
             options: forcedChartOptions
         });
 
-        // 3. منحنى السنوات التلقائي الذكي بناءً على السنة الحالية
+        // 3. منحنى السنوات الديناميكي الشامل المنطلق تلقائياً من السنة الحالية
         const currentYear = parseInt('{{ current_year }}');
         new Chart(document.getElementById('chartYear').getContext('2d'), {
             type: 'line',
