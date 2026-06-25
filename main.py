@@ -10,13 +10,13 @@ url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
 
-# --- دالة مساعدة لجلب الإعدادات ---
+# --- دوال مساعدة ---
 def get_settings():
-    # جلب إعدادات المتجر من جدول settings
+    # جلب إعدادات المتجر
     res = supabase.table("settings").select("*").eq("user_id", "manager_shimo_id").maybe_single().execute()
     return res.data if res.data else {"shop_name": "متجري", "primary_color": "#7e22ce"}
 
-# --- المسارات (Routes) ---
+# --- المسارات ---
 
 @app.route('/')
 def home():
@@ -39,7 +39,7 @@ def orders():
     if not user_id: return redirect(url_for('login'))
     
     if request.method == 'POST':
-        # حفظ الطلب الجديد (تأكد من مطابقة أسماء الحقول في الـ HTML)
+        # استخدام أسماء الأعمدة الصحيحة والمطابقة لجدولك في Supabase
         data = {
             "customer_name": request.form.get('customer_name'),
             "product_name": request.form.get('product_name'),
@@ -50,6 +50,7 @@ def orders():
         supabase.table("orders").insert(data).execute()
         return redirect(url_for('orders'))
     
+    # جلب البيانات
     res = supabase.table("orders").select("*").eq("user_id", user_id).execute()
     return render_template('orders_dashboard.html', orders=res.data or [], settings=get_settings())
 
