@@ -1,407 +1,76 @@
+ 
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة التحكم - إدارة المتجر</title>
-    
+    <title>لوحة التحكم</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
     <style>
         :root {
             --primary: {{ settings.primary_color if settings and settings.primary_color else '#a855f7' }};
             --secondary: {{ settings.secondary_color if settings and settings.secondary_color else '#7e22ce' }};
-            --bg: #f4f7f6;
-            --card-bg: #ffffff;
-            --text-main: #2d3748;
-            --text-muted: #718096;
         }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, sans-serif;
-            background-color: var(--bg);
-            color: var(--text-main);
-            margin: 0;
-            padding: 15px;
-            box-sizing: border-box;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        /* الهيدر */
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: var(--card-bg);
-            padding: 15px 20px;
-            border-radius: 15px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
-            margin-bottom: 20px;
-        }
-
-        header h1 {
-            margin: 0;
-            font-size: 1.3rem;
-            color: var(--primary);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .logout-btn {
-            background: #e53e3e;
-            color: white;
-            text-decoration: none;
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-weight: bold;
-            font-size: 0.9rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        /* كروت الإحصائيات */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .stat-card {
-            background: var(--card-bg);
-            padding: 20px;
-            border-radius: 15px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border-right: 5px solid var(--primary);
-        }
-
-        .stat-info h3 {
-            margin: 0 0 5px 0;
-            font-size: 0.9rem;
-            color: var(--text-muted);
-        }
-
-        .stat-info p {
-            margin: 0;
-            font-size: 1.5rem;
-            font-weight: bold;
-        }
-
-        .stat-icon {
-            font-size: 2rem;
-            color: var(--primary);
-            opacity: 0.3;
-        }
-
-        /* تنظيم المحتوى في الهواتف والحاسوب */
-        .main-content {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        @media (min-width: 900px) {
-            .main-content {
-                display: grid;
-                grid-template-columns: 2fr 1fr;
-            }
-        }
-
-        .card {
-            background: var(--card-bg);
-            padding: 20px;
-            border-radius: 15px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
-            box-sizing: border-box;
-        }
-
-        .card h2 {
-            margin-top: 0;
-            margin-bottom: 15px;
-            font-size: 1.1rem;
-            border-bottom: 2px solid var(--bg);
-            padding-bottom: 8px;
-            color: var(--primary);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        /* عناصر النماذج المدخلة */
-        .form-group {
-            margin-bottom: 15px;
-            text-align: right;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 6px;
-            font-weight: 600;
-            font-size: 0.9rem;
-        }
-
-        .form-group input[type="text"],
-        .form-group input[type="number"] {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            box-sizing: border-box;
-            font-size: 0.95rem;
-            background-color: #fafafa;
-        }
-
-        .color-pickers {
-            display: flex;
-            gap: 15px;
-        }
-
-        .color-field {
-            flex: 1;
-            text-align: center;
-        }
-
-        .color-field input[type="color"] {
-            width: 100%;
-            height: 45px;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            cursor: pointer;
-            background: none;
-            padding: 0;
-        }
-
-        .btn-submit {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            width: 100%;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background 0.2s;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        }
-
-        .btn-submit:hover {
-            background: var(--secondary);
-        }
-
-        /* تصميم الجدول المطور للموبايل */
-        .table-responsive {
-            overflow-x: auto;
-            border-radius: 10px;
-            border: 1px solid #e2e8f0;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            text-align: right;
-        }
-
-        th, td {
-            padding: 12px 15px;
-            border-bottom: 1px solid #e2e8f0;
-            white-space: nowrap;
-        }
-
-        th {
-            background-color: #f8fafc;
-            color: var(--text-main);
-            font-weight: 600;
-        }
-
-        .btn-delete {
-            background: none;
-            border: none;
-            color: #e53e3e;
-            cursor: pointer;
-            font-size: 1.1rem;
-            padding: 5px;
-        }
+        body { font-family: sans-serif; background: #f4f7f6; margin: 0; padding: 10px; }
+        .card { background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h2 { font-size: 1.1rem; color: var(--primary); margin-top: 0; }
+        .form-group { margin-bottom: 10px; }
+        label { display: block; font-size: 0.85rem; margin-bottom: 4px; }
+        input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        .btn-submit { background: var(--primary); color: white; border: none; padding: 12px; width: 100%; border-radius: 8px; font-weight: bold; margin-top: 5px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        th, td { padding: 8px; border-bottom: 1px solid #eee; text-align: right; }
+        .btn-delete { color: red; border: none; background: none; cursor: pointer; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .stat-card { display: flex; justify-content: space-between; align-items: center; border-right: 4px solid var(--primary); }
     </style>
 </head>
 <body>
 
-<div class="container">
-    
-    <header>
-        <h1><i class="fa-solid fa-shop"></i> {{ settings.shop_name if settings and settings.shop_name else "متجري الاحترافي" }}</h1>
-        <a href="/logout" class="logout-btn"><i class="fa-solid fa-right-from-bracket"></i> خروج</a>
-    </header>
-
-    <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-info">
-                <h3>أرباح اليوم</h3>
-                <p>{{ daily_total }} دج</p>
-            </div>
-            <i class="fa-solid fa-calendar-day stat-icon"></i>
-        </div>
-        <div class="stat-card">
-            <div class="stat-info">
-                <h3>أرباح الشهر</h3>
-                <p>{{ monthly_total }} دج</p>
-            </div>
-            <i class="fa-solid fa-calendar-days stat-icon"></i>
-        </div>
-        <div class="stat-card">
-            <div class="stat-info">
-                <h3>أرباح سنة {{ current_year }}</h3>
-                <p>{{ yearly_total }} دج</p>
-            </div>
-            <i class="fa-solid fa-chart-line stat-icon"></i>
-        </div>
-    </div>
-
-    <div class="main-content">
-        
-        <div style="display: flex; flex-direction: column; gap: 20px;">
-            <div class="card">
-                <h2><i class="fa-solid fa-chart-bar"></i> مخطط أرباح الأشهر (سنة {{ current_year }})</h2>
-                <canvas id="monthlyChart" height="120"></canvas>
-            </div>
-
-            <div class="card">
-                <h2><i class="fa-solid fa-list-check"></i> قائمة الطلبيات الأخيرة</h2>
-                <div class="table-responsive">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>الزبون</th>
-                                <th>المنتج</th>
-                                <th>السعر</th>
-                                <th>الهاتف</th>
-                                <th>إجراء</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for order in orders %}
-                            <tr>
-                                <td>{{ order.customer_name }}</td>
-                                <td>{{ order.product_name }}</td>
-                                <td><strong>{{ order.total_price }} دج</strong></td>
-                                <td>{{ order.customer_phone }}</td>
-                                <td>
-                                    <form method="POST" action="/delete-order" style="display:inline;">
-                                        <input type="hidden" name="order_id" value="{{ order.id }}">
-                                        <button type="submit" class="btn-delete" onclick="return confirm('هل أنت متأكد من الحذف؟')">
-                                            <i class="fa-solid fa-trash-can"></i>
-                                        </button>
-                                    </form>
-                                </td>
-                            </tr>
-                            {% else %}
-                            <tr>
-                                <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 20px;">لا توجد طلبيات مسجلة حالياً.</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <div style="display: flex; flex-direction: column; gap: 20px;">
-            <div class="card">
-                <h2><i class="fa-solid fa-circle-plus"></i> إضافة طلبيّة جديدة</h2>
-                <form method="POST" action="/add-order">
-                    <div class="form-group">
-                        <label>اسم الزبون</label>
-                        <input type="text" name="name" required placeholder="أدخل اسم الزبون">
-                    </div>
-                    <div class="form-group">
-                        <label>المنتج</label>
-                        <input type="text" name="product" required placeholder="اسم المنتج">
-                    </div>
-                    <div class="form-group">
-                        <label>السعر (دج)</label>
-                        <input type="number" name="price" step="0.01" required placeholder="0.00">
-                    </div>
-                    <div class="form-group">
-                        <label>رقم الهاتف</label>
-                        <input type="text" name="phone" placeholder="رقم هاتف الزبون">
-                    </div>
-                    <button type="submit" class="btn-submit">حفظ الطلبية</button>
-                </form>
-            </div>
-
-            <div class="card">
-                <h2><i class="fa-solid fa-palette"></i> تخصيص ألوان الهوية</h2>
-                <form method="POST" action="/update-colors">
-                    <div class="form-group color-pickers">
-                        <div class="color-field">
-                            <label>اللون الأساسي</label>
-                            <input type="color" name="primary_color" value="{{ settings.primary_color if settings and settings.primary_color else '#a855f7' }}">
-                        </div>
-                        <div class="color-field">
-                            <label>اللون الثانوي</label>
-                            <input type="color" name="secondary_color" value="{{ settings.secondary_color if settings and settings.secondary_color else '#7e22ce' }}">
-                        </div>
-                    </div>
-                    <button type="submit" class="btn-submit">تطبيق الألوان فوراً</button>
-                </form>
-            </div>
-
-            <div class="card">
-                <h2><i class="fa-solid fa-sliders"></i> إعدادات المتجر والربط</h2>
-                <form method="POST" action="/update-info">
-                    <div class="form-group">
-                        <label>اسم المتجر</label>
-                        <input type="text" name="shop_name" value="{{ settings.shop_name if settings and settings.shop_name else 'متجري الاحترافي' }}">
-                    </div>
-                    <div class="form-group">
-                        <label>Telegram Bot Token</label>
-                        <input type="text" name="bot_token" value="{{ settings.telegram_bot_token if settings and settings.telegram_bot_token else '' }}" placeholder="توكن البوت">
-                    </div>
-                    <div class="form-group">
-                        <label>Telegram Chat ID</label>
-                        <input type="text" name="chat_id" value="{{ settings.telegram_chat_id if settings and settings.telegram_chat_id else '' }}" placeholder="رقم الشات">
-                    </div>
-                    <button type="submit" class="btn-submit">حفظ الإعدادات والمعلومات</button>
-                </form>
-            </div>
-        </div>
-
-    </div>
+<div class="header">
+    <h1>{{ settings.shop_name if settings and settings.shop_name else "متجري" }}</h1>
+    <a href="/logout" style="background:red; color:white; padding:8px; border-radius:5px; text-decoration:none;">خروج</a>
 </div>
 
-<script>
-    const ctx = document.getElementById('monthlyChart').getContext('2d');
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: ['جانفي', 'فيفري', 'مارس', 'أفريل', 'ماي', 'جوان', 'جويلية', 'أوت', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'],
-            datasets: [{
-                label: 'المبيعات (دج)',
-                data: {{ monthly_data | tojson if monthly_data else '[0,0,0,0,0,0,0,0,0,0,0,0]' }},
-                backgroundColor: 'rgba(168, 85, 247, 0.05)',
-                borderColor: '{{ settings.primary_color if settings and settings.primary_color else "#a855f7" }}',
-                borderWidth: 3,
-                tension: 0.3,
-                fill: true
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: { legend: { display: false } },
-            scales: { y: { beginAtZero: true } }
-        }
-    });
-</script>
+<div class="card stat-card">
+    <div><h3>أرباح اليوم</h3><p>{{ daily_total }} دج</p></div>
+    <i class="fa-solid fa-wallet" style="color:var(--primary); font-size: 1.5rem;"></i>
+</div>
+
+<div class="card">
+    <h2><i class="fa-solid fa-list"></i> الطلبيات الأخيرة</h2>
+    <table>
+        <thead><tr><th>الزبون</th><th>السعر</th><th>إجراء</th></tr></thead>
+        <tbody>
+            {% for order in orders %}
+            <tr><td>{{ order.customer_name }}</td><td>{{ order.total_price }}</td>
+                <td><form method="POST" action="/delete-order"><input type="hidden" name="order_id" value="{{ order.id }}"><button type="submit" class="btn-delete"><i class="fa-solid fa-trash"></i></button></form></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <h2>إضافة طلبية</h2>
+    <form method="POST" action="/add-order">
+        <div class="form-group"><label>اسم الزبون</label><input type="text" name="name" required></div>
+        <div class="form-group"><label>السعر</label><input type="number" name="price" required></div>
+        <button type="submit" class="btn-submit">حفظ الطلبية</button>
+    </form>
+</div>
+
+<div class="card">
+    <h2>تخصيص الألوان</h2>
+    <form method="POST" action="/update-colors">
+        <div style="display:flex; gap:10px;">
+            <div style="flex:1;"><label>أساسي</label><input type="color" name="primary_color" value="{{ settings.primary_color }}"></div>
+            <div style="flex:1;"><label>ثانوي</label><input type="color" name="secondary_color" value="{{ settings.secondary_color }}"></div>
+        </div>
+        <button type="submit" class="btn-submit">تطبيق الألوان</button>
+    </form>
+</div>
 
 </body>
 </html>
