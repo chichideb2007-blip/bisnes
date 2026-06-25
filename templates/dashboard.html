@@ -6,7 +6,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --main-color: #7e22ce; }
-        body { font-family: sans-serif; background: #f4f7f6; padding: 15px; }
+        body { font-family: sans-serif; background: #f4f7f6; padding: 15px; margin:0; }
         .tabs { display: flex; gap: 5px; margin-bottom: 20px; }
         .tabs button { flex: 1; padding: 12px; border: none; border-radius: 10px; cursor: pointer; background: #ddd; font-weight: bold; }
         .tabs button.active { background: var(--main-color); color: white; }
@@ -16,6 +16,7 @@
         .btn { width: 100%; padding: 12px; background: var(--main-color); color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 10px; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+        .stat-box { background: #f0f0f0; padding: 15px; border-radius: 10px; margin-bottom: 20px; font-weight: bold; text-align: center; }
     </style>
 </head>
 <body>
@@ -27,19 +28,27 @@
 </div>
 
 <div id="stats" class="page active">
-    <h3>📊 الإحصائيات</h3>
-    <canvas id="chartDays"></canvas>
+    <div class="stat-box">مجموع المصروف اليومي: {{ daily_total }} دج</div>
+    
+    <h3>📊 الأداء اليومي</h3>
+    <canvas id="chartDays" height="100"></canvas>
+    
+    <h3>📅 الأداء الشهري (2026)</h3>
+    <canvas id="chartMonths" height="100"></canvas>
+    
+    <h3>📈 التطور السنوي</h3>
+    <canvas id="chartYears" height="100"></canvas>
+    
     <button class="btn" style="background:red;" onclick="window.location.href='/logout'">تسجيل الخروج</button>
 </div>
 
 <div id="settings" class="page">
     <h3>⚙️ إعدادات المتجر</h3>
     <form action="/update-info" method="POST">
-        <input type="text" name="shop_name" placeholder="اسم المتجر">
-        <input type="text" name="bot_token" placeholder="Bot Token">
-        <input type="text" name="chat_id" placeholder="Telegram Chat ID">
-        <label>لون اللوحة:</label>
-        <input type="color" name="primary_color" id="colorPicker">
+        <input type="text" name="shop_name" value="{{ settings.shop_name }}" placeholder="اسم المتجر">
+        <input type="text" name="bot_token" value="{{ settings.bot_token }}" placeholder="Bot Token">
+        <input type="text" name="chat_id" value="{{ settings.chat_id }}" placeholder="Telegram Chat ID">
+        <input type="color" name="primary_color" value="{{ settings.primary_color }}">
         <button type="submit" class="btn">حفظ الإعدادات</button>
     </form>
 </div>
@@ -54,7 +63,7 @@
         <button type="submit" class="btn" style="background:green;">حفظ الطلبية</button>
     </form>
     <table>
-        <thead><tr><th>الزبون</th><th>المنتج</th><th>السعر</th><th>الهاتف</th><th>تحكم</th></tr></thead>
+        <thead><tr><th>الزبون</th><th>المنتج</th><th>السعر</th><th>الهاتف</th><th>حذف</th></tr></thead>
         <tbody>
             {% for order in orders %}
             <tr>
@@ -65,7 +74,7 @@
                 <td>
                     <form action="/delete-order" method="POST">
                         <input type="hidden" name="order_id" value="{{ order.id }}">
-                        <button type="submit" style="color:red; background:none; border:none; cursor:pointer;">حذف</button>
+                        <button type="submit" style="color:red; background:none; border:none; cursor:pointer;">X</button>
                     </form>
                 </td>
             </tr>
@@ -81,6 +90,16 @@
         document.getElementById(id).classList.add('active');
         if(btn) btn.classList.add('active');
     }
+
+    // تهيئة الرسوم البيانية
+    const ctx1 = document.getElementById('chartDays').getContext('2d');
+    new Chart(ctx1, { type: 'line', data: { labels: ['سبت', 'أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة'], datasets: [{ label: 'المصروف اليومي', data: {{ weekly_data }}, borderColor: '#7e22ce' }] } });
+
+    const ctx2 = document.getElementById('chartMonths').getContext('2d');
+    new Chart(ctx2, { type: 'bar', data: { labels: ['جانفي', 'فيفري', 'مارس', 'أفريل', 'ماي', 'جوان', 'جويلية', 'أوت', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'], datasets: [{ label: 'الأداء الشهري', data: {{ monthly_data }}, backgroundColor: '#7e22ce' }] } });
+
+    const ctx3 = document.getElementById('chartYears').getContext('2d');
+    new Chart(ctx3, { type: 'line', data: { labels: ['2026', '2027', '2028'], datasets: [{ label: 'الأداء السنوي', data: {{ yearly_data }}, borderColor: '#7e22ce' }] } });
 </script>
 </body>
 </html>
