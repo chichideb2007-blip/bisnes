@@ -1,63 +1,22 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html dir="rtl" lang="ar">
 <head>
-    <meta charset="UTF-8">
-    <title>إحصائيات المبيعات</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        :root { --primary-color: {{ settings.get('theme_color', '#4CAF50') }}; }
-        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f4f9; padding: 20px; }
-        .card { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 800px; margin: auto; text-align: center; }
-        canvas { max-height: 400px; }
-        .btn-back { display: inline-block; margin-top: 20px; padding: 10px 20px; background-color: var(--primary-color); color: white; text-decoration: none; border-radius: 5px; }
-    </style>
 </head>
 <body>
-
-<div class="card">
-    <h2>منحنى المبيعات</h2>
+    <h2>الإحصائيات</h2>
+    <canvas id="myChart" width="400" height="200"></canvas>
+    <a href="/dashboard">رجوع</a>
     
-    <canvas id="myChart"></canvas>
-    
-    <div id="noDataMsg" style="display:none; color: red; padding: 20px;">
-        لا توجد طلبات لعرض الإحصائيات حالياً.
-    </div>
-
-    <a href="/dashboard" class="btn-back">العودة للوحة التحكم</a>
-</div>
-
-<script>
-    // جلب البيانات من Flask بأمان
-    const labels = {{ labels | tojson }};
-    const values = {{ values | tojson }};
-
-    // التحقق من وجود بيانات
-    if (values && values.length > 0) {
+    <script>
         const ctx = document.getElementById('myChart').getContext('2d');
         new Chart(ctx, {
             type: 'line',
             data: {
-                labels: labels,
-                datasets: [{
-                    label: 'قيمة المبيعات (دج)',
-                    data: values,
-                    borderColor: 'var(--primary-color)',
-                    backgroundColor: 'rgba(76, 175, 80, 0.2)',
-                    fill: true,
-                    tension: 0.3
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: { y: { beginAtZero: true } }
+                labels: ['2026', '2027', '2028'],
+                datasets: [{ label: 'المصروفات', data: [100, 200, 150] }]
             }
         });
-    } else {
-        // إذا لم توجد بيانات، نخفي الرسم ونظهر الرسالة
-        document.getElementById('myChart').style.display = 'none';
-        document.getElementById('noDataMsg').style.display = 'block';
-    }
-</script>
-
+    </script>
 </body>
 </html>
