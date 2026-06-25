@@ -28,6 +28,7 @@ def get_user_settings(user_id):
                 return res.data
         except Exception as e:
             print(f"Error fetching settings: {e}")
+    # الألوان الافتراضية في حال لم يغيرها المستخدم بعد
     return {
         "shop_name": "متجري الاحترافي",
         "telegram_bot_token": "",
@@ -39,8 +40,9 @@ def get_user_settings(user_id):
 @app.route('/')
 @app.route('/dashboard')
 def dashboard():
+    # التأكد من وجود مستخدم مسجل، وإلا يتم توجيهه لصفحة تسجيل الدخول
     if 'user_id' not in session:
-        session['user_id'] = "manager_shimo_id"
+        return redirect(url_for('login'))
 
     current_user_id = session['user_id']
     settings = get_user_settings(current_user_id)
@@ -102,10 +104,26 @@ def dashboard():
         current_year=current_year
     )
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+        
+        # هنا تضعين كود التحقق من الحساب الخاص بكِ في سوبابايس
+        # كمثال لتشغيل النظام فوراً، سنقوم بتسجيل الدخول وإنشاء الجلسة:
+        session['user_id'] = email # ربط المعرف بالبريد الإلكتروني المفتوح ديناميكياً
+        return redirect(url_for('dashboard'))
+        
+    # جلب الإعدادات لتطبيق الألوان على صفحة الدخول ديناميكياً
+    current_user_id = session.get('user_id', "manager_shimo_id")
+    settings = get_user_settings(current_user_id)
+    return render_template('login.html', settings=settings)
+
 @app.route('/add-order', methods=['POST'])
 def add_order():
     if 'user_id' not in session:
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('login'))
         
     current_user_id = session['user_id']
     name = request.form.get('name')
@@ -137,11 +155,11 @@ def add_order():
 
     return redirect(url_for('dashboard'))
 
-# 🛠️ التحديث الذكي واللانهائي للألوان المعتمد على المفتاح الفريد الجديد لجدول settings
+# 🛠️ دالة تحديث الألوان اللانهائية المصلحة بالكامل
 @app.route('/update-colors', methods=['POST'])
 def update_colors():
     if 'user_id' not in session:
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('login'))
     current_user_id = session['user_id']
     p_color = request.form.get('primary_color')
     s_color = request.form.get('secondary_color')
@@ -154,9 +172,9 @@ def update_colors():
     
     if supabase:
         try:
-            # استخدام ميزة upsert الذكية القائمة على الـ user_id الفريد، لحفظ وتعديل فوري غير محدود
+            # الحفظ الذكي الذي يحدث البيانات فوراً دون تجميد
             supabase.table("settings").upsert(color_data, on_conflict="user_id").execute()
-            print("✅ تم تحديث وحفظ الألوان بنجاح تام وبدون أي قيود!")
+            print("✅ تم تحديث ألوان المستخدم الحالي بنجاح تام!")
         except Exception as e:
             print(f"❌ فشل تحديث الألوان: {e}")
             
@@ -165,7 +183,7 @@ def update_colors():
 @app.route('/delete-order', methods=['POST'])
 def delete_order():
     if 'user_id' not in session:
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('login'))
     order_id = request.form.get('order_id')
     current_user_id = session['user_id']
     if supabase and order_id:
@@ -178,7 +196,7 @@ def delete_order():
 @app.route('/update-info', methods=['POST'])
 def update_info():
     if 'user_id' not in session:
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('login'))
     current_user_id = session['user_id']
     updated_data = {
         "user_id": current_user_id,
@@ -196,7 +214,7 @@ def update_info():
 @app.route('/logout')
 def logout():
     session.clear()
-    return redirect(url_for('dashboard'))
+    return redirect(url_for('login'))
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
