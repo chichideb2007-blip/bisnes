@@ -1,10 +1,27 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+<head>
+    <link rel="stylesheet" href="style.css">
+</head>
 <body>
-    <h1>مرحباً بكِ في نظام شيمو الجديد</h1>
-    <form action="/login" method="POST">
-        <input type="text" name="username" placeholder="اسم المستخدم" required>
-        <button type="submit">دخول</button>
-    </form>
+    <div id="login-screen">
+        <h2>تسجيل الدخول</h2>
+        <input type="text" placeholder="اسم المستخدم">
+        <input type="password" placeholder="كلمة السر">
+        <button onclick="login()">دخول</button>
+    </div>
+
+    <div id="dashboard" style="display:none;">
+        <nav>
+            <button onclick="showSection('stats')">إحصائيات</button>
+            <button onclick="showSection('settings')">إعدادات</button>
+            <button onclick="showSection('orders')">طلبيات</button>
+        </nav>
+        
+        <div id="stats" class="content">إحصائيات هنا (الرسوم البيانية)</div>
+        <div id="settings" class="content">إعدادات المتجر هنا</div>
+        <div id="orders" class="content">جداول الطلبيات هنا</div>
+    </div>
+    <script src="script.js"></script>
 </body>
 </html>
