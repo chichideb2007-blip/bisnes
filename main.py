@@ -5,18 +5,18 @@ import os
 app = Flask(__name__)
 app.secret_key = "shimo-secure-2026"
 
-# إعداد الاتصال بـ Supabase
+# الاتصال بـ Supabase
 url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
 
-# --- دوال مساعدة ---
+# --- دالة مساعدة لجلب الإعدادات (تحل مشكلة UndefinedError) ---
 def get_settings():
-    # جلب إعدادات المتجر
-    res = supabase.table("settings").select("*").eq("user_id", "manager_shimo_id").maybe_single().execute()
-    return res.data if res.data else {"shop_name": "متجري", "primary_color": "#7e22ce"}
-
-# --- المسارات ---
+    try:
+        res = supabase.table("settings").select("*").eq("user_id", "manager_shimo_id").maybe_single().execute()
+        return res.data if res.data else {"shop_name": "متجري", "primary_color": "#7e22ce"}
+    except:
+        return {"shop_name": "متجري", "primary_color": "#7e22ce"}
 
 @app.route('/')
 def home():
@@ -39,18 +39,18 @@ def orders():
     if not user_id: return redirect(url_for('login'))
     
     if request.method == 'POST':
-        # استخدام أسماء الأعمدة الصحيحة والمطابقة لجدولك في Supabase
+        # استخدام أسماء الأعمدة الصحيحة كما في Supabase
         data = {
-            "customer_name": request.form.get('customer_name'),
-            "product_name": request.form.get('product_name'),
+            "customer_name": request.form.get('customer_name', ''),
+            "product_name": request.form.get('product_name', ''),
             "total_price": float(request.form.get('total_price', 0)),
-            "customer_phone": request.form.get('customer_phone'),
+            "customer_phone": request.form.get('customer_phone', ''),
             "user_id": user_id
         }
         supabase.table("orders").insert(data).execute()
         return redirect(url_for('orders'))
     
-    # جلب البيانات
+    # جلب الطلبات
     res = supabase.table("orders").select("*").eq("user_id", user_id).execute()
     return render_template('orders_dashboard.html', orders=res.data or [], settings=get_settings())
 
