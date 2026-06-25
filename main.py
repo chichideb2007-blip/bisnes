@@ -1,42 +1,35 @@
-# 1. إضافة دالة لجلب إعدادات المستخدم من Supabase
-def get_user_bot_settings(user_id):
-    try:
-        response = supabase.table('settings').select('telegram_bot_token', 'telegram_chat_id').eq('user_id', user_id).single().execute()
-        return response.data # يحتوي على التوكن والـ Chat ID الخاص بالعميل
-    except:
-        return None
+from flask import Flask, render_template, request, redirect, session
+from supabase import create_client
+import os
 
-# 2. تعديل دالة إضافة طلبية لتستخدم إعدادات العميل (اختياري: لإرسال تنبيه للبوت)
-@app.route('/add-order', methods=['POST'])
-def add_order():
-    current_user = session.get('user_id')
+app = Flask(__name__)
+app.secret_key = "shimo-secure-2026"
+
+# إعداد Supabase
+supabase = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY"))
+
+@app.route('/dashboard')
+def dashboard():
+    if 'user_id' not in session: return redirect('/login')
+    user_id = session['user_id']
+    
     # جلب إعدادات هذا العميل فقط
-    bot_settings = get_user_bot_settings(current_user)
+    settings = supabase.table('settings').select('*').eq('user_id', user_id).single().execute().data
+    # جلب طلبيات هذا العميل فقط
+    orders = supabase.table('orders').select('*').eq('user_id', user_id).execute().data
     
-    name = request.form.get('name')
-    price = request.form.get('price')
-    
-    # حفظ الطلبية في قاعدة البيانات
-    new_order = {
-        "user_id": current_user, 
-        "customer_name": name,
-        "total_price": price
-    }
-    supabase.table('orders').insert(new_order).execute()
-    
-    # هنا يمكنك إضافة كود إرسال رسالة للبوت الخاص بالعميل باستخدام bot_settings['telegram_bot_token']
-    
-    return redirect('/dashboard')
+    return render_template('dashboard.html', settings=settings, orders=orders)
 
-# 3. تعديل دالة تحديث الإعدادات لكل عميل على حدة
 @app.route('/update-info', methods=['POST'])
 def update_info():
-    current_user = session.get('user_id')
-    updated_data = {
+    user_id = session.get('user_id')
+    data = {
         "shop_name": request.form.get('shop_name'),
-        "telegram_bot_token": request.form.get('bot_token'),
-        "telegram_chat_id": request.form.get('chat_id')
+        "bot_token": request.form.get('bot_token'),
+        "primary_color": request.form.get('primary_color')
     }
-    # تحديث البيانات بناءً على الـ user_id الخاص بالمدير
-    supabase.table('settings').update(updated_data).eq('user_id', current_user).execute()
+    supabase.table('settings').upsert({"user_id": user_id, **data}).execute()
     return redirect('/dashboard')
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
