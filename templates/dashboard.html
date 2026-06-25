@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>لوحة التحكم الكاملة</title>
+    <title>لوحة التحكم الاحترافية</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --main-color: #7e22ce; }
@@ -17,7 +17,7 @@
         .page { display: none; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         .page.active { display: block; }
         
-        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; }
+        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
         .btn { width: 100%; padding: 12px; background: var(--main-color); color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 10px; }
         
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
@@ -34,38 +34,31 @@
 
 <div id="stats" class="page active">
     <h3>📊 الإحصائيات (2026)</h3>
-    <div style="background: #e9d5ff; padding: 15px; border-radius: 8px; margin-bottom: 15px;">مجموع المصروف اليومي: 0.0 دج</div>
     <canvas id="chartDays"></canvas>
-    <canvas id="chartMonths"></canvas>
-    <canvas id="chartYears"></canvas>
     <button class="btn" style="background:red;" onclick="window.location.href='/logout'">تسجيل الخروج</button>
 </div>
 
 <div id="settings" class="page">
     <h3>⚙️ إعدادات المتجر</h3>
     <input type="text" placeholder="اسم المتجر">
-    <input type="text" placeholder="Bot Token">
-    <input type="text" placeholder="Chat ID">
-    <label>اختيار لون اللوحة:</label>
     <input type="color" id="colorPicker" onchange="previewColor()">
-    <button class="btn" onclick="saveSettings()">حفظ وتطبيق الإعدادات</button>
+    <button class="btn" onclick="saveSettings()">حفظ الألوان</button>
 </div>
 
 <div id="orders" class="page">
     <h3>📦 إدارة الطلبيات</h3>
-    <input type="text" id="custName" placeholder="اسم الزبون">
-    <input type="text" id="prodName" placeholder="المنتج">
+    <input type="text" id="cName" placeholder="اسم الزبون">
+    <input type="text" id="prod" placeholder="المنتج">
     <input type="number" id="price" placeholder="السعر">
-    <input type="text" id="phone" placeholder="رقم الهاتف">
     <button class="btn" style="background:green;" onclick="addOrder()">حفظ الطلبية</button>
     <table>
-        <thead><tr><th>الزبون</th><th>المنتج</th><th>السعر</th><th>الهاتف</th><th>تحكم</th></tr></thead>
+        <thead><tr><th>الزبون</th><th>المنتج</th><th>السعر</th><th>تحكم</th></tr></thead>
         <tbody id="orderBody"></tbody>
     </table>
 </div>
 
 <script>
-    // 1. التبديل بين الصفحات
+    // التبديل بين الصفحات
     function switchPage(id, btn) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
@@ -73,47 +66,32 @@
         if(btn) btn.classList.add('active');
     }
 
-    // 2. التحكم بالألوان (حفظ وتطبيق)
-    function previewColor() {
-        let color = document.getElementById('colorPicker').value;
-        document.documentElement.style.setProperty('--main-color', color);
-    }
-    
-    function saveSettings() {
-        let color = document.getElementById('colorPicker').value;
-        localStorage.setItem('siteColor', color);
-        alert('تم حفظ الإعدادات!');
-    }
-
-    window.onload = () => {
-        let savedColor = localStorage.getItem('siteColor');
-        if(savedColor) {
-            document.documentElement.style.setProperty('--main-color', savedColor);
-            document.getElementById('colorPicker').value = savedColor;
-        }
-    }
-
-    // 3. إدارة الطلبيات (إضافة، حذف، تعديل)
+    // إدارة الطلبيات
     function addOrder() {
-        let name = document.getElementById('custName').value;
-        let prod = document.getElementById('prodName').value;
+        let name = document.getElementById('cName').value;
+        let prod = document.getElementById('prod').value;
         let price = document.getElementById('price').value;
-        let phone = document.getElementById('phone').value;
-        let tbody = document.getElementById('orderBody');
-        tbody.innerHTML += `<tr><td>${name}</td><td>${prod}</td><td>${price}</td><td>${phone}</td>
+        if(!name) return alert("يرجى ملء البيانات!");
+        document.getElementById('orderBody').innerHTML += `<tr><td>${name}</td><td>${prod}</td><td>${price}</td>
             <td><button onclick="editRow(this)">تعديل</button> <button style="color:red;" onclick="this.parentElement.parentElement.remove()">حذف</button></td></tr>`;
     }
 
     function editRow(btn) {
-        let row = btn.parentElement.parentElement;
-        let name = prompt("عدل الاسم:", row.cells[0].innerText);
-        if(name) row.cells[0].innerText = name;
+        let name = prompt("عدل الاسم:", btn.parentElement.parentElement.cells[0].innerText);
+        if(name) btn.parentElement.parentElement.cells[0].innerText = name;
     }
 
-    // 4. الرسوم البيانية
-    new Chart(document.getElementById('chartDays'), { type: 'line', data: { labels: ['سبت', 'أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة'], datasets: [{ label: 'الأداء اليومي', data: [0,0,0,0,0,0,0], borderColor: '#7e22ce' }] } });
-    new Chart(document.getElementById('chartMonths'), { type: 'bar', data: { labels: ['جانفي', 'فيفري', 'مارس', 'أفريل', 'ماي', 'جوان', 'جويلية', 'أوت', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'], datasets: [{ label: 'الأداء الشهري', data: [0,0,0,0,0,0,0,0,0,0,0,0], backgroundColor: '#7e22ce' }] } });
-    new Chart(document.getElementById('chartYears'), { type: 'line', data: { labels: ['2026', '2027', '2028'], datasets: [{ label: 'الأداء السنوي', data: [0,0,0], borderColor: '#7e22ce' }] } });
+    // التحكم بالألوان
+    function previewColor() { document.documentElement.style.setProperty('--main-color', document.getElementById('colorPicker').value); }
+    function saveSettings() { localStorage.setItem('siteColor', document.getElementById('colorPicker').value); alert('تم حفظ اللون!'); }
+    
+    window.onload = () => {
+        let saved = localStorage.getItem('siteColor');
+        if(saved) { document.documentElement.style.setProperty('--main-color', saved); document.getElementById('colorPicker').value = saved; }
+    }
+
+    // المنحنى
+    new Chart(document.getElementById('chartDays'), { type: 'line', data: { labels: ['سبت', 'أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة'], datasets: [{ label: 'الأداء', data: [0,0,0,0,0,0,0], borderColor: '#7e22ce' }] } });
 </script>
 </body>
 </html>
