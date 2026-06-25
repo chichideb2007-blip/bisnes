@@ -4,25 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>لوحة التحكم</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --primary-color: #00e5ff; } /* اللون الافتراضي */
-        body { font-family: sans-serif; background: #f9fafb; margin: 0; padding: 10px; }
-        
-        /* التبويبات */
+        body { font-family: sans-serif; background: #f9fafb; padding: 10px; }
         .tabs { display: flex; gap: 5px; margin-bottom: 20px; }
-        .tabs button { flex: 1; padding: 10px; border: none; border-radius: 8px; cursor: pointer; background: #ddd; }
-        .tabs button.active { background: var(--primary-color); color: white; }
-        
+        .tabs button { flex: 1; padding: 10px; border: none; background: #ddd; border-radius: 8px; cursor: pointer; }
+        .tabs button.active { background: #7e22ce; color: white; }
         .tab-content { display: none; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         .tab-content.active { display: block; }
-        
         input { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
-        .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; color: white; font-weight: bold; cursor: pointer; margin-top: 10px; background: var(--primary-color); }
-        
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-        .action-btns { display: flex; gap: 5px; }
+        .btn { width: 100%; padding: 10px; background: #7e22ce; color: white; border: none; border-radius: 8px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -33,75 +23,32 @@
     <button onclick="showTab('orders', this)">الطلبات</button>
 </div>
 
-<!-- قسم الإحصائيات -->
 <div id="stats" class="tab-content active">
-    <h3>إحصائيات سنة 2026</h3>
-    <div style="background: #f3e8ff; padding: 15px; border-radius: 8px; margin-bottom: 10px;">مجموع المصروف اليومي: 0.0 دج</div>
-    <canvas id="chartDays"></canvas>
-    <canvas id="chartMonths"></canvas>
-    <canvas id="chartYears"></canvas>
-    <button class="btn" style="background:red;" onclick="window.location.href='/logout'">خروج من النظام</button>
+    <h3>📊 الإحصائيات</h3>
+    <p>مبيعات اليوم: 0 دج</p>
+    <p>مبيعات الشهر الحالي: 0 دج</p>
+    <p>مبيعات السنة: 0 دج</p>
 </div>
 
-<!-- قسم الإعدادات -->
 <div id="settings" class="tab-content">
+    <h3>⚙️ الإعدادات</h3>
     <input type="text" placeholder="اسم المتجر">
-    <input type="text" placeholder="Bot Token">
-    <input type="text" placeholder="Chat ID">
-    <button class="btn">حفظ المعلومات</button>
-    <label>اللون الرئيسي:</label><input type="color" id="colorPicker" onchange="updateColor()">
-    <button class="btn" onclick="saveColor()">حفظ وتطبيق الألوان</button>
+    <button class="btn">حفظ</button>
 </div>
 
-<!-- قسم الطلبات -->
 <div id="orders" class="tab-content">
-    <input type="text" id="custName" placeholder="اسم الزبون">
-    <input type="text" id="prodName" placeholder="المنتج">
-    <input type="number" id="price" placeholder="السعر">
-    <button class="btn" onclick="addOrder()">حفظ الطلبية وتأكيدها</button>
-    <table>
-        <thead><tr><th>الزبون</th><th>السعر</th><th>إجراءات</th></tr></thead>
-        <tbody id="orderTable"></tbody>
-    </table>
+    <h3>📦 إضافة طلب جديد</h3>
+    <input type="text" placeholder="الاسم">
+    <input type="text" placeholder="السعر">
+    <button class="btn">حفظ</button>
 </div>
 
 <script>
-    // تفعيل التبويبات
     function showTab(tabId, btn) {
         document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
         document.getElementById(tabId).classList.add('active');
         btn.classList.add('active');
-    }
-
-    // حفظ اللون في الذاكرة المحلية (LocalStorage) ليظل ثابتاً
-    function updateColor() {
-        let color = document.getElementById('colorPicker').value;
-        document.documentElement.style.setProperty('--primary-color', color);
-    }
-    
-    function saveColor() {
-        let color = document.getElementById('colorPicker').value;
-        localStorage.setItem('siteColor', color);
-        alert('تم حفظ اللون!');
-    }
-
-    // استرجاع اللون عند تحميل الصفحة
-    window.onload = () => {
-        let savedColor = localStorage.getItem('siteColor');
-        if(savedColor) {
-            document.documentElement.style.setProperty('--primary-color', savedColor);
-        }
-    }
-
-    // إدارة الطلبيات
-    function addOrder() {
-        let name = document.getElementById('custName').value;
-        let price = document.getElementById('price').value;
-        let table = document.getElementById('orderTable');
-        let row = `<tr><td>${name}</td><td>${price}</td>
-        <td class="action-btns"><button onclick="this.parentElement.parentElement.remove()">حذف</button></td></tr>`;
-        table.innerHTML += row;
     }
 </script>
 </body>
