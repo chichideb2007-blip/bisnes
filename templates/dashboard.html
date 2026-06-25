@@ -1,76 +1,28 @@
- 
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة التحكم</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        :root {
-            --primary: {{ settings.primary_color if settings and settings.primary_color else '#a855f7' }};
-            --secondary: {{ settings.secondary_color if settings and settings.secondary_color else '#7e22ce' }};
-        }
-        body { font-family: sans-serif; background: #f4f7f6; margin: 0; padding: 10px; }
-        .card { background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        h2 { font-size: 1.1rem; color: var(--primary); margin-top: 0; }
-        .form-group { margin-bottom: 10px; }
-        label { display: block; font-size: 0.85rem; margin-bottom: 4px; }
-        input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        .btn-submit { background: var(--primary); color: white; border: none; padding: 12px; width: 100%; border-radius: 8px; font-weight: bold; margin-top: 5px; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-        th, td { padding: 8px; border-bottom: 1px solid #eee; text-align: right; }
-        .btn-delete { color: red; border: none; background: none; cursor: pointer; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .stat-card { display: flex; justify-content: space-between; align-items: center; border-right: 4px solid var(--primary); }
-    </style>
-</head>
-<body>
-
-<div class="header">
-    <h1>{{ settings.shop_name if settings and settings.shop_name else "متجري" }}</h1>
-    <a href="/logout" style="background:red; color:white; padding:8px; border-radius:5px; text-decoration:none;">خروج</a>
+<!-- أزرار التبديل -->
+<div class="tabs">
+    <button onclick="showTab('stats')">الإحصائيات</button>
+    <button onclick="showTab('settings')">الإعدادات</button>
+    <button onclick="showTab('orders')">الطلبات</button>
 </div>
 
-<div class="card stat-card">
-    <div><h3>أرباح اليوم</h3><p>{{ daily_total }} دج</p></div>
-    <i class="fa-solid fa-wallet" style="color:var(--primary); font-size: 1.5rem;"></i>
+<!-- محتوى الإحصائيات -->
+<div id="stats" class="tab-content">
+    <h2>الإحصائيات والمصروفات</h2>
+    <div class="stat-card">مجموع المصروف اليومي: 0.0 دج</div>
+    <canvas id="chartDays"></canvas>
+    <canvas id="chartMonths"></canvas>
+    <canvas id="chartYears"></canvas>
 </div>
 
-<div class="card">
-    <h2><i class="fa-solid fa-list"></i> الطلبيات الأخيرة</h2>
-    <table>
-        <thead><tr><th>الزبون</th><th>السعر</th><th>إجراء</th></tr></thead>
-        <tbody>
-            {% for order in orders %}
-            <tr><td>{{ order.customer_name }}</td><td>{{ order.total_price }}</td>
-                <td><form method="POST" action="/delete-order"><input type="hidden" name="order_id" value="{{ order.id }}"><button type="submit" class="btn-delete"><i class="fa-solid fa-trash"></i></button></form></td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<!-- محتوى الإعدادات -->
+<div id="settings" class="tab-content" style="display:none;">
+    <h2>إعدادات المتجر وتخصيص الألوان</h2>
+    <!-- هنا ستكون مدخلات الألوان التي ستغير قيمة --primary و --secondary -->
 </div>
 
-<div class="card">
-    <h2>إضافة طلبية</h2>
-    <form method="POST" action="/add-order">
-        <div class="form-group"><label>اسم الزبون</label><input type="text" name="name" required></div>
-        <div class="form-group"><label>السعر</label><input type="number" name="price" required></div>
-        <button type="submit" class="btn-submit">حفظ الطلبية</button>
-    </form>
-</div>
-
-<div class="card">
-    <h2>تخصيص الألوان</h2>
-    <form method="POST" action="/update-colors">
-        <div style="display:flex; gap:10px;">
-            <div style="flex:1;"><label>أساسي</label><input type="color" name="primary_color" value="{{ settings.primary_color }}"></div>
-            <div style="flex:1;"><label>ثانوي</label><input type="color" name="secondary_color" value="{{ settings.secondary_color }}"></div>
-        </div>
-        <button type="submit" class="btn-submit">تطبيق الألوان</button>
-    </form>
-</div>
-
-</body>
-</html>
+<script>
+function showTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
+    document.getElementById(tabId).style.display = 'block';
+}
+</script>
