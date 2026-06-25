@@ -2,22 +2,18 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>لوحة التحكم الاحترافية</title>
+    <title>لوحة التحكم</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --main-color: #7e22ce; }
-        body { font-family: sans-serif; background: #f4f7f6; margin: 0; padding: 15px; }
-        
+        body { font-family: sans-serif; background: #f4f7f6; padding: 15px; }
         .tabs { display: flex; gap: 5px; margin-bottom: 20px; }
         .tabs button { flex: 1; padding: 12px; border: none; border-radius: 10px; cursor: pointer; background: #ddd; font-weight: bold; }
         .tabs button.active { background: var(--main-color); color: white; }
-        
         .page { display: none; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         .page.active { display: block; }
-        
         input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
         .btn { width: 100%; padding: 12px; background: var(--main-color); color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 10px; }
-        
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
     </style>
@@ -31,32 +27,50 @@
 </div>
 
 <div id="stats" class="page active">
-    <h3>📊 إحصائيات المتجر (منذ 2026)</h3>
-    <div style="margin-bottom: 20px;">
-        <canvas id="chartDays"></canvas>
-        <canvas id="chartMonths"></canvas>
-        <canvas id="chartYears"></canvas>
-    </div>
+    <h3>📊 الإحصائيات</h3>
+    <canvas id="chartDays"></canvas>
     <button class="btn" style="background:red;" onclick="window.location.href='/logout'">تسجيل الخروج</button>
 </div>
 
 <div id="settings" class="page">
     <h3>⚙️ إعدادات المتجر</h3>
-    <input type="text" placeholder="اسم المتجر">
-    <label>لون اللوحة:</label>
-    <input type="color" id="colorPicker" onchange="previewColor()">
-    <button class="btn" onclick="saveSettings()">حفظ الإعدادات</button>
+    <form action="/update-info" method="POST">
+        <input type="text" name="shop_name" placeholder="اسم المتجر">
+        <input type="text" name="bot_token" placeholder="Bot Token">
+        <input type="text" name="chat_id" placeholder="Telegram Chat ID">
+        <label>لون اللوحة:</label>
+        <input type="color" name="primary_color" id="colorPicker">
+        <button type="submit" class="btn">حفظ الإعدادات</button>
+    </form>
 </div>
 
 <div id="orders" class="page">
     <h3>📦 إدارة الطلبيات</h3>
-    <input type="text" id="cName" placeholder="اسم الزبون">
-    <input type="text" id="prod" placeholder="المنتج">
-    <input type="number" id="price" placeholder="السعر">
-    <button class="btn" style="background:green;" onclick="addOrder()">حفظ الطلبية</button>
+    <form action="/add-order" method="POST">
+        <input type="text" name="name" placeholder="اسم الزبون" required>
+        <input type="text" name="product" placeholder="المنتج" required>
+        <input type="number" name="price" placeholder="السعر" required>
+        <input type="text" name="phone" placeholder="رقم الهاتف" required>
+        <button type="submit" class="btn" style="background:green;">حفظ الطلبية</button>
+    </form>
     <table>
-        <thead><tr><th>الزبون</th><th>المنتج</th><th>السعر</th><th>تحكم</th></tr></thead>
-        <tbody id="orderBody"></tbody>
+        <thead><tr><th>الزبون</th><th>المنتج</th><th>السعر</th><th>الهاتف</th><th>تحكم</th></tr></thead>
+        <tbody>
+            {% for order in orders %}
+            <tr>
+                <td>{{ order.customer_name }}</td>
+                <td>{{ order.product_name }}</td>
+                <td>{{ order.total_price }}</td>
+                <td>{{ order.customer_phone }}</td>
+                <td>
+                    <form action="/delete-order" method="POST">
+                        <input type="hidden" name="order_id" value="{{ order.id }}">
+                        <button type="submit" style="color:red; background:none; border:none; cursor:pointer;">حذف</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
     </table>
 </div>
 
@@ -67,33 +81,6 @@
         document.getElementById(id).classList.add('active');
         if(btn) btn.classList.add('active');
     }
-
-    function addOrder() {
-        let name = document.getElementById('cName').value;
-        let prod = document.getElementById('prod').value;
-        let price = document.getElementById('price').value;
-        if(!name) return;
-        document.getElementById('orderBody').innerHTML += `<tr><td>${name}</td><td>${prod}</td><td>${price}</td>
-            <td><button onclick="editRow(this)">تعديل</button> <button style="color:red;" onclick="this.parentElement.parentElement.remove()">حذف</button></td></tr>`;
-    }
-
-    function editRow(btn) {
-        let name = prompt("عدل الاسم:", btn.parentElement.parentElement.cells[0].innerText);
-        if(name) btn.parentElement.parentElement.cells[0].innerText = name;
-    }
-
-    function previewColor() { document.documentElement.style.setProperty('--main-color', document.getElementById('colorPicker').value); }
-    function saveSettings() { localStorage.setItem('siteColor', document.getElementById('colorPicker').value); alert('تم الحفظ!'); }
-    
-    window.onload = () => {
-        let saved = localStorage.getItem('siteColor');
-        if(saved) { document.documentElement.style.setProperty('--main-color', saved); document.getElementById('colorPicker').value = saved; }
-    }
-
-    // الرسوم البيانية
-    new Chart(document.getElementById('chartDays'), { type: 'line', data: { labels: ['سبت', 'أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة'], datasets: [{ label: 'الأداء اليومي', data: [0,0,0,0,0,0,0], borderColor: '#7e22ce' }] } });
-    new Chart(document.getElementById('chartMonths'), { type: 'bar', data: { labels: ['جانفي', 'فيفري', 'مارس', 'أفريل', 'ماي', 'جوان', 'جويلية', 'أوت', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'], datasets: [{ label: 'الأداء الشهري', data: [0,0,0,0,0,0,0,0,0,0,0,0], backgroundColor: '#7e22ce' }] } });
-    new Chart(document.getElementById('chartYears'), { type: 'line', data: { labels: ['2026', '2027', '2028'], datasets: [{ label: 'الأداء السنوي', data: [0,0,0], borderColor: '#7e22ce' }] } });
 </script>
 </body>
 </html>
