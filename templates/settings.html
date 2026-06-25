@@ -1,38 +1,25 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <title>إعدادات المدير</title>
-    <style>
-        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; padding: 20px; }
-        .card { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 500px; margin: auto; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
-        button:hover { background-color: #0056b3; }
-        .nav { margin-bottom: 20px; text-align: center; }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-
-<div class="nav">
-    <a href="/dashboard">الرئيسية</a> | <a href="/orders">الطلبات</a> | <a href="/logout">تسجيل الخروج</a>
-</div>
-
-<div class="card">
-    <h3>إعدادات المتجر والبوت</h3>
-    <form action="/settings" method="POST">
+    <h2>إعدادات المتجر والبوت</h2>
+    
+    <form action="/update_settings" method="POST">
         <label>اسم المتجر:</label>
-        <input type="text" name="store_name" placeholder="أدخل اسم متجرك" required>
+        <input type="text" name="store_name" placeholder="أدخل اسم متجرك">
         
         <label>توكن بوت تلجرام:</label>
-        <input type="text" name="bot_token" placeholder="أدخل التوكن الخاص بك" required>
+        <input type="text" name="telegram_token" placeholder="أدخل التوكن الخاص بك">
         
         <label>لون واجهة لوحة التحكم:</label>
-        <input type="color" name="theme_color" value="#007bff">
+        <input type="color" name="theme_color" id="color-picker">
         
-        <button type="submit">حفظ الإعدادات</button>
+        <button type="submit">حفظ كافة الإعدادات</button>
     </form>
-</div>
 
+    <br>
+    <a href="/dashboard">رجوع للوحة التحكم</a>
 </body>
 </html>
