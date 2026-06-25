@@ -2,77 +2,105 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>لوحة التحكم الشاملة</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم الكاملة</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --primary: #7e22ce; }
-        body { font-family: sans-serif; background: #f4f7f6; padding: 15px; }
+        :root { --primary-color: #7e22ce; }
+        body { font-family: sans-serif; background: #f4f7f6; margin: 0; padding: 15px; }
+        
+        /* التبويبات */
         .tabs { display: flex; gap: 5px; margin-bottom: 20px; }
-        .tabs button { flex: 1; padding: 12px; border: none; border-radius: 8px; cursor: pointer; background: #ddd; }
-        .tabs button.active { background: var(--primary); color: white; }
-        .content { display: none; background: white; padding: 20px; border-radius: 12px; }
-        .content.active { display: block; }
-        .card { background: #f3e8ff; padding: 15px; border-radius: 8px; margin-bottom: 15px; font-weight: bold; }
-        input { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 8px; }
-        .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; color: white; cursor: pointer; margin-top: 5px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .tabs button { flex: 1; padding: 12px; border: none; border-radius: 10px; cursor: pointer; background: #ddd; font-weight: bold; }
+        .tabs button.active { background: var(--primary-color); color: white; }
+        
+        /* المحتوى */
+        .page { display: none; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .page.active { display: block; }
+        
+        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; }
+        .btn { width: 100%; padding: 12px; background: var(--primary-color); color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 10px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
     </style>
 </head>
 <body>
 
 <div class="tabs">
-    <button class="active" onclick="switchTab('stats', this)">الإحصائيات</button>
-    <button onclick="switchTab('settings', this)">الإعدادات</button>
-    <button onclick="switchTab('orders', this)">الطلبيات</button>
+    <button class="active" onclick="switchPage('stats', this)">الإحصائيات</button>
+    <button onclick="switchPage('settings', this)">الإعدادات</button>
+    <button onclick="switchPage('orders', this)">الطلبيات</button>
 </div>
 
-<div id="stats" class="content active">
-    <h3>إحصائيات النظام</h3>
-    <div class="card">مجموع المصروف اليومي: 0.0 دج</div>
+<div id="stats" class="page active">
+    <h3>📊 الإحصائيات (2026)</h3>
+    <div style="background: #e9d5ff; padding: 15px; border-radius: 8px; margin-bottom: 15px;">مجموع المصروف اليومي: 0.0 دج</div>
     <canvas id="chartDays"></canvas>
     <canvas id="chartMonths"></canvas>
     <canvas id="chartYears"></canvas>
     <button class="btn" style="background:red;" onclick="window.location.href='/logout'">تسجيل الخروج</button>
 </div>
 
-<div id="settings" class="content">
+<div id="settings" class="page">
+    <h3>⚙️ إعدادات المتجر</h3>
     <input type="text" placeholder="اسم المتجر">
     <input type="text" placeholder="Bot Token">
     <input type="text" placeholder="Chat ID">
-    <input type="color" id="colorPicker">
-    <button class="btn" style="background:var(--primary);">حفظ الإعدادات</button>
-    <button class="btn" style="background:gray;" onclick="switchTab('stats')">رجوع للوحة التحكم</button>
+    <label>اختيار لون اللوحة:</label>
+    <input type="color" id="colorPicker" onchange="previewColor()">
+    <button class="btn" onclick="saveSettings()">حفظ وتطبيق الإعدادات</button>
 </div>
 
-<div id="orders" class="content">
+<div id="orders" class="page">
+    <h3>📦 إدارة الطلبيات</h3>
     <input type="text" placeholder="اسم الزبون">
     <input type="text" placeholder="المنتج">
     <input type="number" placeholder="السعر">
     <input type="text" placeholder="رقم الهاتف">
     <button class="btn" style="background:green;">حفظ الطلبية</button>
     <table>
-        <thead><tr><th>الزبون</th><th>المنتج</th><th>السعر</th><th>الهاتف</th><th>تحكم</th></tr></thead>
+        <thead><tr><th>الزبون</th><th>السعر</th><th>التحكم</th></tr></thead>
         <tbody>
-            <tr><td>أحمد</td><td>هاتف</td><td>5000</td><td>06000000</td>
-            <td><button style="color:red;">حذف</button></td></tr>
+            <tr><td>أحمد</td><td>5000</td><td><button>تعديل</button> <button style="color:red;">حذف</button></td></tr>
         </tbody>
     </table>
-    <button class="btn" style="background:gray;" onclick="switchTab('stats')">رجوع للوحة التحكم</button>
 </div>
 
 <script>
-    function switchTab(id, btn) {
-        document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+    // التبديل بين الصفحات
+    function switchPage(id, btn) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
         document.getElementById(id).classList.add('active');
         if(btn) btn.classList.add('active');
     }
 
-    // إعداد المنحنيات (أيام/أشهر/سنوات 2026 وما بعدها)
-    new Chart(document.getElementById('chartDays'), { type: 'line', data: { labels: ['سبت', 'أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة'], datasets: [{ label: 'الأيام', data: [0,0,0,0,0,0,0], borderColor: '#7e22ce' }] } });
-    new Chart(document.getElementById('chartMonths'), { type: 'bar', data: { labels: ['جانفي', 'فيفري', 'مارس', 'أفريل', 'ماي', 'جوان', 'جويلية', 'أوت', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'], datasets: [{ label: 'الأشهر', data: [0,0,0,0,0,0,0,0,0,0,0,0], backgroundColor: '#7e22ce' }] } });
-    new Chart(document.getElementById('chartYears'), { type: 'line', data: { labels: ['2026', '2027', '2028'], datasets: [{ label: 'السنوات', data: [0,0,0], borderColor: '#7e22ce' }] } });
+    // حفظ اللون وتطبيقه
+    function previewColor() {
+        let color = document.getElementById('colorPicker').value;
+        document.documentElement.style.setProperty('--primary-color', color);
+    }
+    
+    function saveSettings() {
+        let color = document.getElementById('colorPicker').value;
+        localStorage.setItem('siteColor', color);
+        alert('تم حفظ الإعدادات!');
+    }
+
+    // استعادة اللون
+    window.onload = () => {
+        let savedColor = localStorage.getItem('siteColor');
+        if(savedColor) {
+            document.documentElement.style.setProperty('--primary-color', savedColor);
+            document.getElementById('colorPicker').value = savedColor;
+        }
+    }
+
+    // الرسوم البيانية
+    new Chart(document.getElementById('chartDays'), { type: 'line', data: { labels: ['سبت', 'أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة'], datasets: [{ label: 'الأداء اليومي', data: [0,0,0,0,0,0,0], borderColor: '#7e22ce' }] } });
+    new Chart(document.getElementById('chartMonths'), { type: 'bar', data: { labels: ['جانفي', 'فيفري', 'مارس', 'أفريل', 'ماي', 'جوان', 'جويلية', 'أوت', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'], datasets: [{ label: 'الأداء الشهري', data: [0,0,0,0,0,0,0,0,0,0,0,0], backgroundColor: '#7e22ce' }] } });
+    new Chart(document.getElementById('chartYears'), { type: 'line', data: { labels: ['2026', '2027', '2028'], datasets: [{ label: 'الأداء السنوي', data: [0,0,0], borderColor: '#7e22ce' }] } });
 </script>
 </body>
 </html>
