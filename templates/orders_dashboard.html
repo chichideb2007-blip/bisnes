@@ -1,63 +1,28 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <title>لوحة تحكم الطلبات</title>
-    <style>
-        body { font-family: 'Segoe UI', sans-serif; background-color: #f8f9fa; padding: 20px; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        input { padding: 10px; margin: 5px; border: 1px solid #ccc; border-radius: 5px; width: 200px; }
-        button { padding: 10px 20px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { padding: 12px; border: 1px solid #ddd; text-align: center; }
-        th { background-color: #007bff; color: white; }
-        .btn-delete { color: red; text-decoration: none; font-weight: bold; }
-    </style>
-</head>
+<html dir="rtl" lang="ar">
 <body>
-
-<div class="header">
-    <h2>لوحة تحكم الطلبات</h2>
-    <a href="/logout" style="color: red;">تسجيل الخروج</a>
-</div>
-
-<div class="card">
-    <h3>إضافة طلب جديد</h3>
-    <form action="/add-order" method="POST">
-        <input type="text" name="name" placeholder="اسم الزبون" required>
-        <input type="text" name="details" placeholder="تفاصيل الطلب" required>
-        <input type="number" name="price" placeholder="السعر" required>
-        <button type="submit">إضافة الطلب</button>
-    </form>
-</div>
-
-<div class="card">
-    <table>
-        <thead>
-            <tr>
-                <th>اسم الزبون</th>
-                <th>تفاصيل الطلب</th>
-                <th>السعر</th>
-                <th>الحالة</th>
-                <th>إجراءات</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for o in orders %}
-            <tr>
-                <td>{{ o.customer_name }}</td>
-                <td>{{ o.order_details }}</td>
-                <td>{{ o.price }} دج</td>
-                <td>{{ o.status }}</td>
-                <td>
-                    <a href="/delete-order/{{ o.id }}" class="btn-delete" onclick="return confirm('هل أنت متأكد؟')">حذف</a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
+    <h2>إضافة طلب جديد</h2>
+    <table border="1">
+        <tr>
+            <th>اسم الزبون</th><th>المنتج</th><th>السعر</th><th>الهاتف</th><th>إجراء</th>
+        </tr>
+        <tr>
+            <td><input type="text"></td><td><input type="text"></td>
+            <td><input type="number"></td><td><input type="tel"></td>
+            <td><button>حفظ</button></td>
+        </tr>
     </table>
-</div>
 
+    <hr>
+
+    <h2>الطلبيات المسجلة</h2>
+    <table border="1">
+        <tr>
+            <th>الزبون</th><th>المنتج</th><th>السعر</th><th>الهاتف</th><th>تحكم</th>
+        </tr>
+        <!-- هنا سيتم عرض البيانات -->
+    </table>
+    <br>
+    <a href="/dashboard">رجوع للوحة التحكم</a>
 </body>
 </html>
