@@ -2,34 +2,53 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>إدارة الطلبيات</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة الطلبات</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f9; padding: 20px; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #333; }
+        form { display: grid; gap: 10px; margin-bottom: 30px; }
+        input { padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+        button { padding: 10px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: center; }
+        th { background-color: #f8f9fa; }
+        .back-link { display: block; margin-top: 20px; text-align: center; color: #007bff; text-decoration: none; }
+    </style>
 </head>
 <body>
-    <h1>قسم الطلبيات</h1>
 
-    <!-- الجدول الأول: إضافة طلب -->
-    <h3>إضافة طلب جديد</h3>
-    <form action="/add_order" method="POST">
+<div class="container">
+    <h2>قسم الطلبات</h2>
+    
+    <form action="/orders" method="POST">
         <input type="text" name="customer" placeholder="اسم الزبون" required>
         <input type="text" name="product" placeholder="المنتج" required>
         <input type="number" name="price" placeholder="السعر" required>
-        <input type="tel" name="phone" placeholder="رقم الهاتف" required>
+        <input type="text" name="phone" placeholder="الهاتف" required>
         <button type="submit">حفظ الطلب</button>
     </form>
 
-    <hr>
-
-    <!-- الجدول الثاني: عرض الطلبيات -->
-    <h3>الطلبيات المسجلة</h3>
-    <table border="1">
+    <table>
         <tr>
-            <th>الزبون</th><th>المنتج</th><th>السعر</th><th>الهاتف</th><th>تحكم</th>
+            <th>الزبون</th>
+            <th>المنتج</th>
+            <th>السعر</th>
+            <th>الهاتف</th>
         </tr>
-        <!-- هنا سيتم عرض البيانات لاحقاً -->
+        {% for order in orders %}
+        <tr>
+            <td>{{ order.customer }}</td>
+            <td>{{ order.product }}</td>
+            <td>{{ order.price }}</td>
+            <td>{{ order.phone }}</td>
+        </tr>
+        {% endfor %}
     </table>
-    
-    <br>
-    <a href="/dashboard">رجوع للوحة التحكم</a>
+
+    <a href="/dashboard" class="back-link">رجوع للوحة التحكم</a>
+</div>
+
 </body>
 </html>
