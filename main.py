@@ -10,6 +10,12 @@ url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
 
+# --- الدوال المساعدة ---
+def get_settings():
+    res = supabase.table("settings").select("*").eq("user_id", "manager_shimo_id").maybe_single().execute()
+    return res.data if res.data else {"shop_name": "متجري", "primary_color": "#7e22ce"}
+
+# --- المسارات ---
 @app.route('/')
 def home():
     return redirect(url_for('login'))
@@ -17,20 +23,18 @@ def home():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        # في حالتك هذه، هذا هو المعرف الذي تستخدمينه
         session['user_id'] = "manager_shimo_id"
-        return redirect(url_for('orders'))
+        return redirect(url_for('dashboard'))
     return render_template('login.html')
+
+@app.route('/dashboard')
+def dashboard():
+    return render_template('dashboard.html', settings=get_settings())
 
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-        
-    user_id = session['user_id']
-
+    user_id = session.get('user_id')
     if request.method == 'POST':
-        # إضافة طلب جديد مع مطابقة أسماء الأعمدة في Supabase
         data = {
             "customer_name": request.form.get('customer_name'),
             "product_name": request.form.get('product_name'),
@@ -41,11 +45,35 @@ def orders():
         supabase.table("orders").insert(data).execute()
         return redirect(url_for('orders'))
     
-    # جلب الطلبات الخاصة بالمستخدم فقط
     res = supabase.table("orders").select("*").eq("user_id", user_id).execute()
-    orders_list = res.data if res.data is not None else []
-    
-    return render_template('orders_dashboard.html', orders=orders_list)
+    return render_template('orders_dashboard.html', orders=res.data or [], settings=get_settings())
+
+@app.route('/delete/<int:id>')
+def delete_order(id):
+    supabase.table("orders").delete().eq("id", id).execute()
+    return redirect(url_for('orders'))
+
+@app.route('/stats')
+def stats():
+    return render_template('stats.html', settings=get_settings())
+
+@app.route('/settings', methods=['GET', 'POST'])
+def settings():
+    if request.method == 'POST':
+        # كود حفظ الإعدادات في جدول settings
+        new_settings = {
+            "shop_name": request.form.get('shop_name'),
+            "primary_color": request.form.get('primary_color'),
+            "user_id": "manager_shimo_id"
+        }
+        supabase.table("settings").upsert(new_settings).execute()
+        return redirect(url_for('settings'))
+    return render_template('settings.html', settings=get_settings())
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
