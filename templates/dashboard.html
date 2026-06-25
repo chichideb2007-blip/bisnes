@@ -1,31 +1,17 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html dir="rtl" lang="ar">
 <head>
-    <meta charset="UTF-8">
-    <title>لوحة التحكم</title>
     <style>
-        :root { --main-color: {{ settings.primary_color|default('#7e22ce') }}; }
-        body { font-family: sans-serif; background: #f4f7f6; padding: 20px; }
-        .page { background: white; padding: 20px; border-radius: 15px; margin-bottom: 20px; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        .nav-container { display: flex; justify-content: space-between; padding: 20px; background: #2c3e50; }
+        .nav-container a { color: white; text-decoration: none; padding: 15px; background: #34495e; border-radius: 5px; }
     </style>
 </head>
 <body>
-    <h2>مرحباً في {{ settings.shop_name|default('متجري') }}</h2>
-    
-    <div class="page">
-        <h3>الطلبيات الحالية</h3>
-        <table>
-            <tr><th>الزبون</th><th>المنتج</th><th>السعر</th></tr>
-            {% for o in orders %}
-            <tr>
-                <td>{{ o.customer_name }}</td>
-                <td>{{ o.product_name }}</td>
-                <td>{{ o.total_price }}</td>
-            </tr>
-            {% endfor %}
-        </table>
+    <div class="nav-container">
+        <a href="/stats">الإحصائيات</a>
+        <a href="/settings">الإعدادات</a>
+        <a href="/orders">الطلبيات</a>
     </div>
+    <h1>مرحباً بك في لوحة التحكم</h1>
 </body>
 </html>
