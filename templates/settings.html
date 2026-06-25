@@ -1,25 +1,57 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <meta charset="UTF-8">
+    <title>إعدادات المتجر</title>
+    <style>
+        /* تطبيق اللون المختار من الإعدادات */
+        :root { --primary-color: {{ settings.primary_color|default('#7e22ce') }}; }
+        
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f9fafb; padding: 20px; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        
+        h2 { color: var(--primary-color); text-align: center; margin-bottom: 25px; }
+        
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; }
+        
+        input[type="text"], input[type="color"] { 
+            width: 100%; padding: 12px; border: 2px solid #eee; border-radius: 10px; box-sizing: border-box; 
+        }
+        
+        button { 
+            width: 100%; padding: 15px; background-color: var(--primary-color); color: white; 
+            border: none; border-radius: 10px; font-size: 16px; cursor: pointer; transition: 0.3s;
+        }
+        button:hover { opacity: 0.9; }
+        
+        .nav { text-align: center; margin-bottom: 20px; }
+        .nav a { color: var(--primary-color); text-decoration: none; margin: 0 10px; }
+    </style>
 </head>
 <body>
-    <h2>إعدادات المتجر والبوت</h2>
-    
-    <form action="/update_settings" method="POST">
-        <label>اسم المتجر:</label>
-        <input type="text" name="store_name" placeholder="أدخل اسم متجرك">
-        
-        <label>توكن بوت تلجرام:</label>
-        <input type="text" name="telegram_token" placeholder="أدخل التوكن الخاص بك">
-        
-        <label>لون واجهة لوحة التحكم:</label>
-        <input type="color" name="theme_color" id="color-picker">
-        
-        <button type="submit">حفظ كافة الإعدادات</button>
-    </form>
 
-    <br>
-    <a href="/dashboard">رجوع للوحة التحكم</a>
+<div class="container">
+    <div class="nav">
+        <a href="/dashboard">الرئيسية</a> | <a href="/logout">خروج</a>
+    </div>
+
+    <h2>إعدادات المتجر</h2>
+    
+    <form action="/settings" method="POST">
+        <div class="form-group">
+            <label>اسم المتجر:</label>
+            <input type="text" name="shop_name" value="{{ settings.shop_name }}" required>
+        </div>
+        
+        <div class="form-group">
+            <label>لون هوية المتجر:</label>
+            <input type="color" name="primary_color" value="{{ settings.primary_color }}">
+        </div>
+        
+        <button type="submit">حفظ التغييرات</button>
+    </form>
+</div>
+
 </body>
 </html>
