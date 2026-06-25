@@ -1,17 +1,14 @@
 <!DOCTYPE html>
-<html dir="rtl" lang="ar">
+<html lang="ar" dir="rtl">
 <head>
-    <style>
-        .nav-container { display: flex; justify-content: space-between; padding: 20px; background: #2c3e50; }
-        .nav-container a { color: white; text-decoration: none; padding: 15px; background: #34495e; border-radius: 5px; }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <div class="nav-container">
-        <a href="/stats">الإحصائيات</a>
-        <a href="/settings">الإعدادات</a>
-        <a href="/orders">الطلبيات</a>
+        <a href="/stats">إحصائيات</a>
+        <a href="/settings">إعدادات</a>
+        <a href="/orders">طلبيات</a>
     </div>
-    <h1>مرحباً بك في لوحة التحكم</h1>
+    <h1>لوحة التحكم</h1>
 </body>
 </html>
