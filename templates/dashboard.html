@@ -1,14 +1,42 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <meta charset="UTF-8">
+    <title>إدارة الطلبات</title>
+    <style>
+        :root { --primary-color: {{ settings.primary_color|default('#7e22ce') }}; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; padding: 20px; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        h2 { color: var(--primary-color); text-align: center; }
+        form { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 30px; }
+        input { padding: 15px; border: 2px solid #eee; border-radius: 10px; }
+        button { grid-column: span 2; padding: 15px; background: var(--primary-color); color: white; border: none; border-radius: 10px; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: var(--primary-color); color: white; padding: 15px; }
+        td { padding: 15px; border-bottom: 1px solid #eee; text-align: center; }
+    </style>
 </head>
 <body>
-    <div class="nav-container">
-        <a href="/stats">إحصائيات</a>
-        <a href="/settings">إعدادات</a>
-        <a href="/orders">طلبيات</a>
-    </div>
-    <h1>لوحة التحكم</h1>
+<div class="container">
+    <h2>طلبيات متجر: {{ settings.shop_name }}</h2>
+    <form method="POST">
+        <input type="text" name="customer_name" placeholder="اسم الزبون" required>
+        <input type="text" name="product_name" placeholder="اسم المنتج" required>
+        <input type="number" name="total_price" placeholder="السعر" required>
+        <input type="text" name="customer_phone" placeholder="الهاتف" required>
+        <button type="submit">إضافة الطلب</button>
+    </form>
+    <table>
+        <tr><th>الزبون</th><th>المنتج</th><th>السعر</th><th>إجراء</th></tr>
+        {% for o in orders %}
+        <tr>
+            <td>{{ o.customer_name }}</td>
+            <td>{{ o.product_name }}</td>
+            <td>{{ o.total_price }}</td>
+            <td><a href="/delete/{{ o.id }}" style="color: red;">حذف</a></td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
 </body>
 </html>
