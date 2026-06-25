@@ -4,14 +4,11 @@ from datetime import datetime
 from supabase import create_client, Client
 
 app = Flask(__name__)
-# مفتاح الجلسة لتأمين بيانات المدير
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "shimo-saas-secure-2026")
 
-# الذاكرة الاحتياطية لتأمين الحفظ الفوري للمديرين داخل السيرفر في حال تشنج الاتصال
 if not hasattr(app, 'global_orders'):
     app.global_orders = []
 
-# جلب بيانات الاتصال بـ Supabase من متغيرات البيئة على Render
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_ANON_KEY")
 
@@ -23,7 +20,7 @@ if SUPABASE_URL and SUPABASE_KEY and "your-supabase" not in SUPABASE_URL:
         print(f"Supabase init error: {e}")
 
 def get_user_settings(user_id):
-    """جلب إعدادات الألوان واسم المتجر للمدير الحالي"""
+    """جلب إعدادات الألوان واسم المتجر للمدير الحالي من جدول settings"""
     if supabase:
         try:
             res = supabase.table("settings").select("*").eq("user_id", user_id).maybe_single().execute()
@@ -48,7 +45,6 @@ def dashboard():
     current_user_id = session['user_id']
     settings = get_user_settings(current_user_id)
     
-    # جلب الطلبيات المخصصة للمدير الحالي فقط
     orders = []
     if supabase:
         try:
@@ -61,7 +57,6 @@ def dashboard():
     else:
         orders = [o for o in app.global_orders if o.get('user_id') == current_user_id]
 
-    # جلب السنة الحالية تلقائياً من النظام (ديناميكي) لتبدأ من 2026 وتتغير تلقائياً كل عام
     now = datetime.now()
     current_year = now.year 
 
@@ -69,30 +64,24 @@ def dashboard():
     monthly_total = 0.0
     yearly_total = 0.0
 
-    # مصفوفات لتجهيز بيانات المنحنيات الشاملة (7 أيام للأسبوع و12 شهراً للأشعر)
-    weekly_data = [0.0] * 7  # مرتبة: سبت، أحد، اثنين، ثلاثاء، أربعاء، خميس، جمعة
-    monthly_data = [0.0] * 12 # 12 شهر كاملة من جانفي إلى ديسمبر
+    weekly_data = [0.0] * 7  
+    monthly_data = [0.0] * 12 
 
     for o in orders:
         try:
             price = float(o.get('total_price', 0) or 0)
             created_at_str = o.get('created_at', '')
             if created_at_str:
-                # تنظيف صيغة الوقت القادمة من قاعدة البيانات لقرائتها برمجياً
                 clean_date_str = created_at_str.split('.')[0].replace('Z', '').replace('T', ' ')
                 order_date = datetime.strptime(clean_date_str, "%Y-%m-%d %H:%M:%S")
                 
-                # حساب الإحصائيات للمنحنيات بناءً على السنة الحالية تلقائياً
                 if order_date.year == current_year:
                     yearly_total += price
-                    
-                    # توزيع الأرباح على مصفوفة الأشهر الاثني عشر بدقة
                     monthly_data[order_date.month - 1] += price
                     
                     if order_date.month == now.month:
                         monthly_total += price
                         
-                    # تعديل ترتيب أيام الأسبوع في بايثون لتبدأ الحسابات من يوم السبت كبداية للأسبوع
                     day_idx = (order_date.weekday() + 2) % 7 
                     weekly_data[day_idx] += price
                     
@@ -138,19 +127,17 @@ def add_order():
         "created_at": datetime.utcnow().isoformat()
     }
 
-    # الحفظ في الذاكرة المحلية الفورية أولاً لسرعة التحديث أمام المدير
     app.global_orders.insert(0, new_order)
 
-    # دفع البيانات متزامنة إلى سوبابايس
     if supabase:
         try:
             supabase.table("orders").insert(new_order).execute()
         except Exception as e:
-            print(f"Database insertion error: {e}")
+            print(f"Database error: {e}")
 
     return redirect(url_for('dashboard'))
 
-# 🛠️ دالة إصلاح تغيير الألوان اللانهائي والمضمون 100% لتجاوز قفل الجدول
+# 🛠️ التحديث الذكي واللانهائي للألوان المعتمد على المفتاح الفريد الجديد لجدول settings
 @app.route('/update-colors', methods=['POST'])
 def update_colors():
     if 'user_id' not in session:
@@ -167,18 +154,11 @@ def update_colors():
     
     if supabase:
         try:
-            # التحقق الفوري لو كان للمستخدم سجل إعدادات سابق في سوبابايس
-            check_res = supabase.table("settings").select("id").eq("user_id", current_user_id).maybe_single().execute()
-            if check_res and check_res.data:
-                # إذا وجده، يقوم بعمل تحديث (Update) مباشر وآمن دون حذف، مما يكسر التجميد والقفل تماماً
-                supabase.table("settings").update({"primary_color": p_color, "secondary_color": s_color}).eq("user_id", current_user_id).execute()
-                print("✅ تم تحديث ألوان المدير بنجاح واختراق تجميد البيانات!")
-            else:
-                # إذا كانت هذه أول مرة للمدير، يقوم بعملية الإدخال الجديدة (Insert)
-                supabase.table("settings").insert(color_data).execute()
-                print("✅ تم حفظ الألوان الجديدة للمرة الأولى بنجاح!")
+            # استخدام ميزة upsert الذكية القائمة على الـ user_id الفريد، لحفظ وتعديل فوري غير محدود
+            supabase.table("settings").upsert(color_data, on_conflict="user_id").execute()
+            print("✅ تم تحديث وحفظ الألوان بنجاح تام وبدون أي قيود!")
         except Exception as e:
-            print(f"❌ فشل تحديث الألوان في قاعدة البيانات: {e}")
+            print(f"❌ فشل تحديث الألوان: {e}")
             
     return redirect(url_for('dashboard'))
 
@@ -201,18 +181,14 @@ def update_info():
         return redirect(url_for('dashboard'))
     current_user_id = session['user_id']
     updated_data = {
+        "user_id": current_user_id,
         "shop_name": request.form.get('shop_name'),
         "telegram_bot_token": request.form.get('bot_token'),
         "telegram_chat_id": request.form.get('chat_id')
     }
     if supabase:
         try:
-            check_res = supabase.table("settings").select("id").eq("user_id", current_user_id).maybe_single().execute()
-            if check_res and check_res.data:
-                supabase.table("settings").update(updated_data).eq("user_id", current_user_id).execute()
-            else:
-                updated_data["user_id"] = current_user_id
-                supabase.table("settings").insert(updated_data).execute()
+            supabase.table("settings").upsert(updated_data, on_conflict="user_id").execute()
         except Exception as e:
             print(f"Error updating info: {e}")
     return redirect(url_for('dashboard'))
