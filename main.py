@@ -1,69 +1,84 @@
-import os
-from flask import Flask, render_template, request, redirect, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session
 from supabase import create_client
+import os
 
 app = Flask(__name__)
-# مفتاح سري لتشفير الجلسات (مهم جداً لعمل الموقع)
-app.secret_key = 'shimo_2026_secure_key'
+app.secret_key = "shimo-secure-2026"
 
-# إعداد Supabase مع فحص لتجنب الانهيار إذا لم تكن البيانات موجودة
-url = os.environ.get('SUPABASE_URL', '')
-key = os.environ.get('SUPABASE_KEY', '')
-supabase = create_client(url, key) if url and key else None
+# إعداد الاتصال بـ Supabase
+url = os.environ.get("SUPABASE_URL")
+key = os.environ.get("SUPABASE_KEY")
+supabase = create_client(url, key)
+
+# --- دالة مساعدة لجلب الإعدادات ---
+def get_settings():
+    # جلب إعدادات المتجر من جدول settings
+    res = supabase.table("settings").select("*").eq("user_id", "manager_shimo_id").maybe_single().execute()
+    return res.data if res.data else {"shop_name": "متجري", "primary_color": "#7e22ce"}
+
+# --- المسارات (Routes) ---
 
 @app.route('/')
 def home():
-    return redirect('/login')
+    return redirect(url_for('login'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        # استقبال البيانات من login.html
-        user = request.form.get('username')
-        email = request.form.get('email')
-        
-        # تخزين المستخدم في الجلسة للانتقال للوحة التحكم
-        if user and email:
-            session['user'] = user
-            return redirect('/dashboard')
-        else:
-            return "خطأ: يرجى ملء اسم المستخدم والبريد الإلكتروني!", 400
+        session['user_id'] = "manager_shimo_id"
+        return redirect(url_for('dashboard'))
     return render_template('login.html')
 
 @app.route('/dashboard')
 def dashboard():
-    if 'user' not in session:
-        return redirect('/login')
-    
-    products = []
-    orders = []
-    
-    # جلب البيانات من Supabase
-    if supabase:
-        try:
-            products = supabase.table("products").select("*").execute().data
-            orders = supabase.table("orders").select("*").execute().data
-        except Exception as e:
-            print(f"Database Error: {e}")
-            
-    return render_template('dashboard.html', products=products, orders=orders)
+    return render_template('dashboard.html', settings=get_settings())
 
-@app.route('/add-product', methods=['POST'])
-def add_product():
-    if 'user' not in session: return redirect('/login')
+@app.route('/orders', methods=['GET', 'POST'])
+def orders():
+    user_id = session.get('user_id')
+    if not user_id: return redirect(url_for('login'))
     
-    try:
-        if supabase:
-            data = {
-                "name": request.form.get('name'),
-                "price": float(request.form.get('price', 0)),
-                "stock_quantity": int(request.form.get('stock', 0))
-            }
-            supabase.table("products").insert(data).execute()
-    except Exception as e:
-        print(f"Add Product Error: {e}")
-        
-    return redirect('/dashboard')
+    if request.method == 'POST':
+        # حفظ الطلب الجديد (تأكد من مطابقة أسماء الحقول في الـ HTML)
+        data = {
+            "customer_name": request.form.get('customer_name'),
+            "product_name": request.form.get('product_name'),
+            "total_price": float(request.form.get('total_price', 0)),
+            "customer_phone": request.form.get('customer_phone'),
+            "user_id": user_id
+        }
+        supabase.table("orders").insert(data).execute()
+        return redirect(url_for('orders'))
+    
+    res = supabase.table("orders").select("*").eq("user_id", user_id).execute()
+    return render_template('orders_dashboard.html', orders=res.data or [], settings=get_settings())
+
+@app.route('/delete/<int:id>')
+def delete_order(id):
+    supabase.table("orders").delete().eq("id", id).execute()
+    return redirect(url_for('orders'))
+
+@app.route('/stats')
+def stats():
+    return render_template('stats.html', settings=get_settings())
+
+@app.route('/settings', methods=['GET', 'POST'])
+def settings():
+    if request.method == 'POST':
+        new_settings = {
+            "shop_name": request.form.get('shop_name'),
+            "primary_color": request.form.get('primary_color'),
+            "user_id": "manager_shimo_id"
+        }
+        supabase.table("settings").upsert(new_settings).execute()
+        return redirect(url_for('settings'))
+    return render_template('settings.html', settings=get_settings())
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
