@@ -1,27 +1,34 @@
 <!DOCTYPE html>
-<html dir="rtl" lang="ar">
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>إدارة الطلبيات</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
 <body>
-    <h2>إضافة طلب جديد</h2>
-    <table border="1">
-        <tr>
-            <th>اسم الزبون</th><th>المنتج</th><th>السعر</th><th>الهاتف</th><th>إجراء</th>
-        </tr>
-        <tr>
-            <td><input type="text"></td><td><input type="text"></td>
-            <td><input type="number"></td><td><input type="tel"></td>
-            <td><button>حفظ</button></td>
-        </tr>
-    </table>
+    <h1>قسم الطلبيات</h1>
+
+    <!-- الجدول الأول: إضافة طلب -->
+    <h3>إضافة طلب جديد</h3>
+    <form action="/add_order" method="POST">
+        <input type="text" name="customer" placeholder="اسم الزبون" required>
+        <input type="text" name="product" placeholder="المنتج" required>
+        <input type="number" name="price" placeholder="السعر" required>
+        <input type="tel" name="phone" placeholder="رقم الهاتف" required>
+        <button type="submit">حفظ الطلب</button>
+    </form>
 
     <hr>
 
-    <h2>الطلبيات المسجلة</h2>
+    <!-- الجدول الثاني: عرض الطلبيات -->
+    <h3>الطلبيات المسجلة</h3>
     <table border="1">
         <tr>
             <th>الزبون</th><th>المنتج</th><th>السعر</th><th>الهاتف</th><th>تحكم</th>
         </tr>
-        <!-- هنا سيتم عرض البيانات -->
+        <!-- هنا سيتم عرض البيانات لاحقاً -->
     </table>
+    
     <br>
     <a href="/dashboard">رجوع للوحة التحكم</a>
 </body>
