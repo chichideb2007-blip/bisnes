@@ -1,6 +1,32 @@
-<style>
-    body {
-        /* هنا Flask سيضع اللون المحفوظ من قاعدة البيانات */
-        background-color: {{ saved_color_from_db }}; 
-    }
-</style>
+<head>
+    <style>
+        /* 1. تعريف متغير CSS يستخدم القيمة القادمة من قاعدة البيانات */
+        :root {
+            --main-color: {{ settings.primary_color|default('#7e22ce') }};
+        }
+
+        /* 2. تطبيق المتغير على عناصر الموقع الأساسية */
+        body {
+            background-color: #f4f7f6; /* لون الخلفية */
+        }
+
+        /* الأزرار، العناوين، الجداول ستأخذ اللون المختار تلقائياً */
+        button, .btn-primary {
+            background-color: var(--main-color) !important;
+            color: white;
+        }
+
+        h1, h2, h3 {
+            color: var(--main-color);
+        }
+
+        th {
+            background-color: var(--main-color) !important;
+            color: white;
+        }
+
+        a {
+            color: var(--main-color);
+        }
+    </style>
+</head>
