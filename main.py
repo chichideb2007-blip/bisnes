@@ -5,14 +5,15 @@ import os
 app = Flask(__name__)
 app.secret_key = "shimo-secure-2026"
 
-# تهيئة Supabase
-supabase = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY"))
+# اتصال قاعدة البيانات
+url = os.environ.get("SUPABASE_URL")
+key = os.environ.get("SUPABASE_KEY")
+supabase = create_client(url, key)
 
 @app.route('/')
 def home():
     return redirect(url_for('login'))
 
-# تأكدي أن methods تشمل GET و POST لتجنب خطأ Method Not Allowed
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -22,15 +23,39 @@ def login():
 
 @app.route('/dashboard')
 def dashboard():
-    # التأكد من وجود جلسة دخول
     if 'user_id' not in session:
         return redirect(url_for('login'))
-        
-    return render_template('dashboard.html')
+    
+    # جلب الطلبات
+    res = supabase.table("orders").select("*").eq("user_id", "manager_shimo_id").execute()
+    orders = res.data if res.data else []
+    
+    # جلب الإعدادات
+    set_res = supabase.table("settings").select("*").eq("user_id", "manager_shimo_id").maybe_single().execute()
+    settings = set_res.data if set_res.data else {"shop_name": "متجري", "primary_color": "#7e22ce"}
+    
+    return render_template('dashboard.html', orders=orders, settings=settings)
 
 @app.route('/add-order', methods=['POST'])
 def add_order():
-    # كود إضافة الطلبية
+    data = {
+        "user_id": "manager_shimo_id",
+        "customer_name": request.form.get('name'),
+        "product_name": request.form.get('product'),
+        "total_price": float(request.form.get('price', 0)),
+        "customer_phone": request.form.get('phone')
+    }
+    supabase.table("orders").insert(data).execute()
+    return redirect(url_for('dashboard'))
+
+@app.route('/update-info', methods=['POST'])
+def update_info():
+    data = {
+        "user_id": "manager_shimo_id",
+        "shop_name": request.form.get('shop_name'),
+        "primary_color": request.form.get('primary_color')
+    }
+    supabase.table("settings").upsert(data).execute()
     return redirect(url_for('dashboard'))
 
 @app.route('/logout')
@@ -39,5 +64,4 @@ def logout():
     return redirect(url_for('login'))
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=5000)
