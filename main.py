@@ -5,7 +5,6 @@ import os
 app = Flask(__name__)
 app.secret_key = "shimo-secure-2026"
 
-# إعداد Supabase
 url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
@@ -17,43 +16,25 @@ def home():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        return redirect(url_for('dashboard'))
+        session['user_id'] = "manager_shimo_id"
+        return redirect(url_for('orders'))
     return render_template('login.html')
 
-@app.route('/dashboard')
-def dashboard():
-    return render_template('dashboard.html')
-
-# --- دالة إضافة الطلب (التي كانت ناقصة عندك) ---
-@app.route('/add_order', methods=['POST'])
-def add_order():
-    customer = request.form.get('customer')
-    product = request.form.get('product')
-    price = request.form.get('price')
-    phone = request.form.get('phone')
-    
-    if customer and product and price and phone:
-        supabase.table("orders").insert({
-            "customer": customer,
-            "product": product,
-            "price": float(price),
-            "phone": phone
-        }).execute()
-    return redirect(url_for('orders'))
-
-@app.route('/orders')
+@app.route('/orders', methods=['GET', 'POST'])
 def orders():
-    # جلب البيانات لعرضها في الجدول
-    response = supabase.table("orders").select("*").execute()
-    return render_template('orders_dashboard.html', orders=response.data)
-
-@app.route('/settings', methods=['GET', 'POST'])
-def settings():
-    return render_template('settings.html')
-
-@app.route('/stats')
-def stats():
-    return render_template('stats.html')
+    if request.method == 'POST':
+        # حفظ الطلب الجديد
+        data = {
+            "customer_name": request.form.get('customer_name'),
+            "product_name": request.form.get('product_name'),
+            "total_price": float(request.form.get('total_price', 0))
+        }
+        supabase.table("orders").insert(data).execute()
+        return redirect(url_for('orders'))
+    
+    # جلب الطلبات
+    res = supabase.table("orders").select("*").execute()
+    return render_template('users.html', orders=res.data)
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
