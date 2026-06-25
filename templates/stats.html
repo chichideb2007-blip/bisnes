@@ -1,22 +1,50 @@
 <!DOCTYPE html>
-<html dir="rtl" lang="ar">
+<html lang="ar" dir="rtl">
 <head>
+    <meta charset="UTF-8">
+    <title>الإحصائيات</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { --primary-color: {{ settings.primary_color|default('#7e22ce') }}; }
+        body { font-family: sans-serif; background: #f9fafb; padding: 20px; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h2 { color: var(--primary-color); text-align: center; }
+        .stats-box { background: #f3f4f6; padding: 20px; border-radius: 10px; margin-bottom: 20px; text-align: center; font-size: 1.2em; font-weight: bold; }
+        .chart-container { margin-bottom: 40px; }
+    </style>
 </head>
 <body>
-    <h2>الإحصائيات</h2>
-    <canvas id="myChart" width="400" height="200"></canvas>
-    <a href="/dashboard">رجوع</a>
-    
-    <script>
-        const ctx = document.getElementById('myChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: ['2026', '2027', '2028'],
-                datasets: [{ label: 'المصروفات', data: [100, 200, 150] }]
-            }
-        });
-    </script>
+
+<div class="container">
+    <h2>لوحة الإحصائيات</h2>
+    <div class="stats-box">
+        مجموع المصروف اليومي: <span id="dailyTotal">0</span> دج
+    </div>
+
+    <div class="chart-container">
+        <canvas id="dailyChart"></canvas>
+    </div>
+    <div class="chart-container">
+        <canvas id="monthlyChart"></canvas>
+    </div>
+    <div class="chart-container">
+        <canvas id="yearlyChart"></canvas>
+    </div>
+</div>
+
+<script>
+    // هذه الأكواد تقوم برسم المنحنيات
+    const ctx1 = document.getElementById('dailyChart').getContext('2d');
+    new Chart(ctx1, {
+        type: 'line',
+        data: {
+            labels: ['اليوم 1', 'اليوم 2', 'اليوم 3'],
+            datasets: [{ label: 'المصروف اليومي', data: [100, 200, 150], borderColor: '{{ settings.primary_color }}' }]
+        }
+    });
+
+    // يمكنكِ تكرار نفس الكود لـ monthlyChart و yearlyChart 
+    // مع تغيير البيانات (labels و data) حسب ما تجلبينه من قاعدة البيانات
+</script>
 </body>
 </html>
