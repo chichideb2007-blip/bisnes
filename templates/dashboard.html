@@ -3,18 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة التحكم الاحترافية</title>
+    <title>لوحة التحكم</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --primary: {{ settings.primary_color if settings and settings.primary_color else '#7e22ce' }}; --secondary: #a855f7; }
+        :root { --primary: #7e22ce; }
         body { font-family: sans-serif; background: #f9fafb; margin: 0; padding: 10px; }
         .tabs { display: flex; gap: 5px; margin-bottom: 15px; }
         .tabs button { flex: 1; padding: 10px; border: none; background: #ddd; border-radius: 8px; cursor: pointer; }
         .tabs button.active { background: var(--primary); color: white; }
         .tab-content { display: none; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         .tab-content.active { display: block; }
-        input, select { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
-        .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; color: white; font-weight: bold; margin-bottom: 5px; }
+        input { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; color: white; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
     </style>
 </head>
 <body>
@@ -22,36 +24,38 @@
 <div class="tabs">
     <button class="active" onclick="showTab(event, 'stats')">الإحصائيات</button>
     <button onclick="showTab(event, 'settings')">الإعدادات</button>
-    <button onclick="showTab(event, 'orders')">الطلبيات</button>
+    <button onclick="showTab(event, 'orders')">الطلبات</button>
 </div>
 
 <div id="stats" class="tab-content active">
-    <h3>مجموع المصروف اليومي: 0.0 دج</h3>
+    <h3>إحصائيات سنة 2026</h3>
     <canvas id="chartDays"></canvas>
     <canvas id="chartMonths"></canvas>
     <canvas id="chartYears"></canvas>
-    <button class="btn" style="background:red;" onclick="window.location.href='/logout'">تسجيل الخروج</button>
+    <button class="btn" style="background:red;" onclick="window.location.href='/logout'">خروج من النظام</button>
 </div>
 
 <div id="settings" class="tab-content">
-    <input type="text" placeholder="اسم المتجر الحالي">
-    <input type="text" placeholder="معرف بوت تلجرام (Bot Token)">
-    <input type="text" placeholder="معرف شات تلجرام (Chat ID)">
-    <button class="btn" style="background:var(--primary);">حفظ معلومات المتجر</button>
-    <hr>
-    <label>تخصيص اللون الأساسي:</label><input type="color" name="primary">
-    <label>تخصيص اللون الثانوي:</label><input type="color" name="secondary">
-    <button class="btn" style="background:var(--primary);">حفظ وتطبيق الألوان</button>
+    <input type="text" placeholder="اسم المتجر">
+    <input type="text" placeholder="Bot Token">
+    <input type="text" placeholder="Chat ID">
+    <button class="btn" style="background:var(--primary);">حفظ المعلومات</button>
+    <label>اللون الأساسي:</label><input type="color" id="primaryColor">
+    <button class="btn" style="background:var(--primary);" onclick="applyColor()">حفظ وتطبيق الألوان</button>
+    <button class="btn" style="background:gray;" onclick="showTab(event, 'stats')">رجوع للوحة التحكم</button>
 </div>
 
 <div id="orders" class="tab-content">
-    <input type="text" placeholder="اسم الزبون الكامل">
-    <input type="text" placeholder="المنتج أو السلعة المطلوبة">
-    <input type="number" placeholder="السعر الفعلي للطلبية (دج)">
-    <input type="text" placeholder="رقم هاتف الزبون">
-    <button class="btn" style="background:green;">حفظ الطلبية وتأكيدها</button>
-    <hr>
-    <p>جدول الطلبيات المسجلة...</p>
+    <input type="text" id="custName" placeholder="اسم الزبون">
+    <input type="text" id="prodName" placeholder="المنتج">
+    <input type="number" id="price" placeholder="السعر">
+    <input type="text" id="phone" placeholder="رقم الهاتف">
+    <button class="btn" style="background:green;" onclick="addOrder()">حفظ الطلبية</button>
+    <table>
+        <thead><tr><th>الزبون</th><th>المنتج</th><th>السعر</th><th>الهاتف</th></tr></thead>
+        <tbody id="orderTable"></tbody>
+    </table>
+    <button class="btn" style="background:gray;" onclick="showTab(event, 'stats')">رجوع للوحة التحكم</button>
 </div>
 
 <script>
@@ -59,9 +63,27 @@
         document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
         document.getElementById(tabId).classList.add('active');
-        evt.currentTarget.classList.add('active');
+        if(evt.currentTarget) evt.currentTarget.classList.add('active');
     }
-    // هنا سيتم ربط الرسوم البيانية بالبيانات الحقيقية لاحقاً
+    
+    function applyColor() {
+        let color = document.getElementById('primaryColor').value;
+        document.documentElement.style.setProperty('--primary', color);
+    }
+
+    function addOrder() {
+        let name = document.getElementById('custName').value;
+        let prod = document.getElementById('prodName').value;
+        let price = document.getElementById('price').value;
+        let phone = document.getElementById('phone').value;
+        let row = `<tr><td>${name}</td><td>${prod}</td><td>${price}</td><td>${phone}</td></tr>`;
+        document.getElementById('orderTable').innerHTML += row;
+    }
+
+    // إعداد المنحنيات (أيام، أشهر، سنوات)
+    new Chart(document.getElementById('chartDays'), { type: 'line', data: { labels: ['سبت', 'أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة'], datasets: [{ label: 'الأيام', data: [0,0,0,0,0,0,0], borderColor: '#7e22ce' }] } });
+    new Chart(document.getElementById('chartMonths'), { type: 'bar', data: { labels: ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'], datasets: [{ label: 'الأشهر', data: [0,0,0,0,0,0,0,0,0,0,0,0], backgroundColor: '#7e22ce' }] } });
+    new Chart(document.getElementById('chartYears'), { type: 'line', data: { labels: ['2026'], datasets: [{ label: 'السنوات', data: [0], borderColor: '#7e22ce' }] } });
 </script>
 </body>
 </html>
