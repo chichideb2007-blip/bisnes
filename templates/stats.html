@@ -5,24 +5,36 @@
     <title>إحصائيات المتجر</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --primary-color: {{ settings.primary_color|default('#7e22ce') }}; }
-        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; padding: 20px; }
+        :root { --primary-color: {{ settings.primary_color|default('#7e22ce') }}; --bg-color: #f4f7f6; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg-color); padding: 20px; }
         .container { max-width: 900px; margin: auto; }
+        
+        /* أزرار التنقل */
+        .nav-buttons { margin-bottom: 20px; text-align: center; }
+        .nav-buttons a { background: var(--primary-color); color: white; padding: 10px 20px; border-radius: 10px; text-decoration: none; margin: 5px; display: inline-block; }
+
+        /* البطاقات والمنحنيات */
         .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); margin-bottom: 20px; text-align: center; }
-        .chart-container { background: white; padding: 20px; border-radius: 20px; margin-bottom: 30px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        .chart-box { background: white; padding: 20px; border-radius: 20px; margin-bottom: 30px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        h1 { color: var(--primary-color); }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="card">
-        <h3>مجموع المصروف اليومي</h3>
-        <h1 id="dailyTotal" style="color: var(--primary-color);">جاري التحميل...</h1>
+    <div class="nav-buttons">
+        <a href="{{ url_for('dashboard') }}">لوحة التحكم</a>
+        <a href="{{ url_for('login') }}">تسجيل الدخول</a>
     </div>
 
-    <div class="chart-container"><canvas id="dailyChart"></canvas></div>
-    <div class="chart-container"><canvas id="monthlyChart"></canvas></div>
-    <div class="chart-container"><canvas id="yearlyChart"></canvas></div>
+    <div class="card">
+        <h3>مجموع المصروف اليومي</h3>
+        <h1 id="dailyTotal">0 دج</h1>
+    </div>
+
+    <div class="chart-box"><h4>إحصائية الأيام</h4><canvas id="dailyChart"></canvas></div>
+    <div class="chart-box"><h4>إحصائية الشهور</h4><canvas id="monthlyChart"></canvas></div>
+    <div class="chart-box"><h4>إحصائية السنوات (من 2026)</h4><canvas id="yearlyChart"></canvas></div>
 </div>
 
 <script>
@@ -30,23 +42,28 @@
     fetch('/api/stats')
     .then(res => res.json())
     .then(data => {
-        // 1. حساب المجموع اليومي
+        // حساب المجموع (كمثال لليوم)
         const today = new Date().toISOString().split('T')[0];
-        const dailySum = data.filter(o => o.created_at.startsWith(today))
-                             .reduce((sum, o) => sum + (o.total_price || 0), 0);
+        const dailySum = data.filter(o => o.created_at && o.created_at.startsWith(today))
+                             .reduce((sum, o) => sum + (parseFloat(o.total_price) || 0), 0);
         document.getElementById('dailyTotal').innerText = dailySum + ' دج';
 
-        // 2. إعداد الرسوم البيانية (Chart.js)
-        // ملاحظة: هنا ستقومين ببرمجة توزيع الـ data على المصفوفات الثلاثة
-        // هذا مجرد هيكل للرسم، يمكنك تطويره لاحقاً
-        const ctx = document.getElementById('dailyChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'],
-                datasets: [{ label: 'المصروف اليومي', data: [/* ضعي البيانات هنا */], borderColor: '{{ settings.primary_color }}' }]
-            }
-        });
+        // دالة إنشاء المنحنى
+        function createChart(id, label, dataPoints) {
+            const ctx = document.getElementById(id).getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو'], // أمثلة
+                    datasets: [{ label: label, data: dataPoints, borderColor: '{{ settings.primary_color }}', tension: 0.4 }]
+                }
+            });
+        }
+
+        // رسم المنحنيات (استبدلي البيانات بـ data من الـ fetch)
+        createChart('dailyChart', 'المبيعات اليومية', [15, 20, 10, 30, 25, 40]);
+        createChart('monthlyChart', 'المبيعات الشهرية', [100, 200, 150, 400, 300, 500]);
+        createChart('yearlyChart', 'المبيعات السنوية (2026)', [5000, 7000, 9000]);
     });
 </script>
 
