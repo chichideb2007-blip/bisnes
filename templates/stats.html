@@ -2,49 +2,77 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>الإحصائيات</title>
+    <title>إحصائيات المتجر</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary-color: {{ settings.primary_color|default('#7e22ce') }}; }
-        body { font-family: sans-serif; background: #f9fafb; padding: 20px; }
-        .container { max-width: 1000px; margin: auto; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        h2 { color: var(--primary-color); text-align: center; }
-        .stats-box { background: #f3f4f6; padding: 20px; border-radius: 10px; margin-bottom: 20px; text-align: center; font-size: 1.2em; font-weight: bold; }
-        .chart-container { margin-bottom: 40px; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; padding: 20px; }
+        
+        .container { max-width: 900px; margin: auto; }
+        
+        /* البطاقة العلوية للمصروف اليومي */
+        .summary-card {
+            background: white; padding: 25px; border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center; margin-bottom: 30px; border-right: 5px solid var(--primary-color);
+        }
+        .summary-card h2 { color: var(--primary-color); margin: 0; }
+
+        /* حاويات المنحنيات */
+        .chart-grid { display: grid; grid-template-columns: 1fr; gap: 30px; }
+        .chart-box { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        
+        .nav-links { text-align: center; margin-bottom: 20px; }
+        .nav-links a { color: var(--primary-color); text-decoration: none; margin: 0 10px; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>لوحة الإحصائيات</h2>
-    <div class="stats-box">
-        مجموع المصروف اليومي: <span id="dailyTotal">0</span> دج
+    <div class="nav-links">
+        <a href="{{ url_for('dashboard') }}">لوحة التحكم</a> | <a href="{{ url_for('settings') }}">الإعدادات</a>
     </div>
 
-    <div class="chart-container">
-        <canvas id="dailyChart"></canvas>
+    <div class="summary-card">
+        <h3>مجموع المصروف اليومي</h3>
+        <h2 id="dailyTotal">0 دج</h2>
     </div>
-    <div class="chart-container">
-        <canvas id="monthlyChart"></canvas>
-    </div>
-    <div class="chart-container">
-        <canvas id="yearlyChart"></canvas>
+
+    <div class="chart-grid">
+        <div class="chart-box">
+            <h4>إحصائية الأيام (آخر 7 أيام)</h4>
+            <canvas id="dailyChart"></canvas>
+        </div>
+        <div class="chart-box">
+            <h4>إحصائية الشهور</h4>
+            <canvas id="monthlyChart"></canvas>
+        </div>
+        <div class="chart-box">
+            <h4>إحصائية السنوات (من 2026)</h4>
+            <canvas id="yearlyChart"></canvas>
+        </div>
     </div>
 </div>
 
 <script>
-    // هذه الأكواد تقوم برسم المنحنيات
-    const ctx1 = document.getElementById('dailyChart').getContext('2d');
-    new Chart(ctx1, {
+    // إعداد المنحنى اليومي كمثال
+    const ctx = document.getElementById('dailyChart').getContext('2d');
+    new Chart(ctx, {
         type: 'line',
         data: {
-            labels: ['اليوم 1', 'اليوم 2', 'اليوم 3'],
-            datasets: [{ label: 'المصروف اليومي', data: [100, 200, 150], borderColor: '{{ settings.primary_color }}' }]
+            labels: ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'],
+            datasets: [{
+                label: 'المصروف',
+                data: [120, 190, 300, 500, 200, 300, 400],
+                borderColor: '{{ settings.primary_color }}',
+                tension: 0.4
+            }]
         }
     });
 
-    // يمكنكِ تكرار نفس الكود لـ monthlyChart و yearlyChart 
-    // مع تغيير البيانات (labels و data) حسب ما تجلبينه من قاعدة البيانات
+    // يمكنك إضافة نفس الكود لـ monthlyChart و yearlyChart
+    // مع تغيير الـ labels والـ data
 </script>
+
 </body>
 </html>
