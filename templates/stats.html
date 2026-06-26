@@ -7,71 +7,47 @@
     <style>
         :root { --primary-color: {{ settings.primary_color|default('#7e22ce') }}; }
         body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; padding: 20px; }
-        
         .container { max-width: 900px; margin: auto; }
-        
-        /* البطاقة العلوية للمصروف اليومي */
-        .summary-card {
-            background: white; padding: 25px; border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            text-align: center; margin-bottom: 30px; border-right: 5px solid var(--primary-color);
-        }
-        .summary-card h2 { color: var(--primary-color); margin: 0; }
-
-        /* حاويات المنحنيات */
-        .chart-grid { display: grid; grid-template-columns: 1fr; gap: 30px; }
-        .chart-box { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
-        
-        .nav-links { text-align: center; margin-bottom: 20px; }
-        .nav-links a { color: var(--primary-color); text-decoration: none; margin: 0 10px; font-weight: bold; }
+        .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); margin-bottom: 20px; text-align: center; }
+        .chart-container { background: white; padding: 20px; border-radius: 20px; margin-bottom: 30px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="nav-links">
-        <a href="{{ url_for('dashboard') }}">لوحة التحكم</a> | <a href="{{ url_for('settings') }}">الإعدادات</a>
-    </div>
-
-    <div class="summary-card">
+    <div class="card">
         <h3>مجموع المصروف اليومي</h3>
-        <h2 id="dailyTotal">0 دج</h2>
+        <h1 id="dailyTotal" style="color: var(--primary-color);">جاري التحميل...</h1>
     </div>
 
-    <div class="chart-grid">
-        <div class="chart-box">
-            <h4>إحصائية الأيام (آخر 7 أيام)</h4>
-            <canvas id="dailyChart"></canvas>
-        </div>
-        <div class="chart-box">
-            <h4>إحصائية الشهور</h4>
-            <canvas id="monthlyChart"></canvas>
-        </div>
-        <div class="chart-box">
-            <h4>إحصائية السنوات (من 2026)</h4>
-            <canvas id="yearlyChart"></canvas>
-        </div>
-    </div>
+    <div class="chart-container"><canvas id="dailyChart"></canvas></div>
+    <div class="chart-container"><canvas id="monthlyChart"></canvas></div>
+    <div class="chart-container"><canvas id="yearlyChart"></canvas></div>
 </div>
 
 <script>
-    // إعداد المنحنى اليومي كمثال
-    const ctx = document.getElementById('dailyChart').getContext('2d');
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'],
-            datasets: [{
-                label: 'المصروف',
-                data: [120, 190, 300, 500, 200, 300, 400],
-                borderColor: '{{ settings.primary_color }}',
-                tension: 0.4
-            }]
-        }
-    });
+    // جلب البيانات من main.py
+    fetch('/api/stats')
+    .then(res => res.json())
+    .then(data => {
+        // 1. حساب المجموع اليومي
+        const today = new Date().toISOString().split('T')[0];
+        const dailySum = data.filter(o => o.created_at.startsWith(today))
+                             .reduce((sum, o) => sum + (o.total_price || 0), 0);
+        document.getElementById('dailyTotal').innerText = dailySum + ' دج';
 
-    // يمكنك إضافة نفس الكود لـ monthlyChart و yearlyChart
-    // مع تغيير الـ labels والـ data
+        // 2. إعداد الرسوم البيانية (Chart.js)
+        // ملاحظة: هنا ستقومين ببرمجة توزيع الـ data على المصفوفات الثلاثة
+        // هذا مجرد هيكل للرسم، يمكنك تطويره لاحقاً
+        const ctx = document.getElementById('dailyChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'],
+                datasets: [{ label: 'المصروف اليومي', data: [/* ضعي البيانات هنا */], borderColor: '{{ settings.primary_color }}' }]
+            }
+        });
+    });
 </script>
 
 </body>
