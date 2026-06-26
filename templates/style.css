@@ -1,34 +1,78 @@
+/* استيراد خطوط احترافية من Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
+
 :root {
-    --primary: #1e3a8a;
-    --bg: #f8fafc;
-    --card: #ffffff;
-    --text: #1e293b;
+    --primary-color: #0f172a;    /* أزرق غامق جداً (فخم) */
+    --accent-color: #3b82f6;     /* أزرق ساطع للأزرار */
+    --bg-color: #f1f5f9;         /* رمادي فاتح جداً */
+    --card-bg: #ffffff;          /* أبيض للبطاقات */
+    --text-main: #1e293b;        /* لون النص الأساسي */
 }
 
 body {
-    background-color: var(--bg);
-    color: var(--text);
-    font-family: 'Segoe UI', sans-serif;
+    font-family: 'Tajawal', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-main);
     margin: 0;
+    padding: 0;
+    direction: rtl; /* لضمان دعم اللغة العربية */
+}
+
+/* تنسيق الحاويات والبطاقات */
+.container {
+    max-width: 1000px;
+    margin: 20px auto;
     padding: 20px;
 }
 
 .card {
-    background: var(--card);
-    padding: 25px;
-    border-radius: 16px;
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 24px;
     margin-bottom: 20px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e2e8f0;
 }
 
+/* تنسيق الأزرار الاحترافي */
 .btn {
-    background: var(--primary);
-    color: white;
-    padding: 10px 20px;
+    background-color: var(--accent-color);
+    color: #ffffff;
+    padding: 12px 24px;
     border-radius: 8px;
     text-decoration: none;
+    font-weight: 700;
+    transition: all 0.3s ease;
     display: inline-block;
-    transition: 0.3s;
+    text-align: center;
 }
 
-.btn:hover { background: #3b82f6; }
+.btn:hover {
+    background-color: #2563eb;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+/* تنسيق شريط التنقل */
+.navbar {
+    background-color: var(--primary-color);
+    padding: 15px;
+    color: white;
+    text-align: center;
+}
+
+.navbar a {
+    color: white;
+    margin: 0 10px;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+/* تنسيق حقول الإدخال */
+input {
+    width: 100%;
+    padding: 12px;
+    margin: 8px 0;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    box-sizing: border-box;
+}
