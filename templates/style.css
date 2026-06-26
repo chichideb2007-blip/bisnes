@@ -1,18 +1,15 @@
-/* 1. نظام الألوان الهادئة (Serene & Modern) */
+/* 1. نظام المتغيرات اللونية (التحكم المركزي) */
 :root {
-    /* ألوان ثابتة للراحة */
-    --page-bg: #f1f5f9;      /* رمادي فاتح جداً للخلفية */
-    --card-bg: #ffffff;      /* أبيض نقي للبطاقات */
+    --page-bg: #f1f5f9;      /* رمادي فاتح للخلفية */
+    --card-bg: #ffffff;      /* أبيض للبطاقات */
     --text-color: #334155;   /* رمادي غامق للنصوص */
-    --border-color: #e2e8f0; /* حدود خفيفة للبطاقات */
-    
-    /* ألوان يمكنك التحكم بها وتغييرها بسهولة */
-    --btn-color: #3b82f6;    /* لون الأزرار (أزرق هادئ) */
-    --btn-hover: #2563eb;    /* لون الزر عند تمرير الماوس */
+    --border-color: #e2e8f0; /* حدود خفيفة */
+    --btn-color: #3b82f6;    /* أزرق هادئ للأزرار */
+    --btn-hover: #2563eb;    /* لون الزر عند التفاعل */
     --header-color: #1e293b; /* لون العناوين */
 }
 
-/* 2. تنسيق عام للجسم (تنسيق مريح للعين) */
+/* 2. تنسيق عام للجسم */
 body {
     background-color: var(--page-bg);
     color: var(--text-color);
@@ -24,10 +21,12 @@ body {
     min-height: 100vh;
 }
 
-/* 3. تنسيق البطاقات (يستخدم في login و dashboard) */
+/* 3. تنسيق البطاقات (Glassmorphism خفيف) */
 .card, .login-card, .glass-card {
-    background: var(--card-bg);
-    border: 1px solid var(--border-color);
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
     border-radius: 20px;
     padding: 30px;
     box-shadow: 0 4px 6px rgba(0,0,0,0.05);
@@ -46,6 +45,7 @@ button, .nav-btn, .btn {
     font-weight: bold;
     text-decoration: none;
     display: inline-block;
+    width: 100%;
 }
 
 button:hover, .nav-btn:hover {
@@ -56,20 +56,40 @@ button:hover, .nav-btn:hover {
 /* 5. تنسيق العناوين */
 h1, h2, h3 {
     color: var(--header-color);
+    text-align: center;
 }
 
-/* 6. تنسيق الحقول (Inputs) */
-input {
+/* 6. تنسيق احترافي وموحد لجميع حقول الإدخال */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"] {
     width: 100%;
-    padding: 12px;
-    margin: 8px 0;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    background: var(--page-bg);
+    padding: 14px;
+    margin: 10px 0;
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--card-bg);
+    color: var(--text-color);
+    font-size: 16px;
+    transition: all 0.3s ease;
     box-sizing: border-box;
 }
 
 input:focus {
     outline: none;
     border-color: var(--btn-color);
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.2);
+}
+
+/* 7. تنسيق الروابط داخل البطاقات */
+.auth-link {
+    text-align: center;
+    margin-top: 15px;
+}
+
+.auth-link a {
+    color: var(--btn-color);
+    text-decoration: none;
+    font-weight: bold;
 }
