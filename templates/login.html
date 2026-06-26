@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تسجيل الدخول - لوحة التحكم</title>
+    <title>تسجيل الدخول - لوحة الإدارة</title>
     <style>
         /* تصميم الخلفية المتدرجة (Gradient) */
         body {
@@ -30,17 +30,17 @@
             color: white;
         }
 
-        h2 { margin-bottom: 30px; font-weight: 300; }
+        h2 { margin-bottom: 25px; font-weight: 300; }
 
         input {
             width: 100%;
             padding: 15px;
-            margin: 10px 0;
+            margin: 8px 0;
             border: none;
             border-radius: 12px;
             background: rgba(255, 255, 255, 0.2);
             color: white;
-            box-sizing: border-box; /* لمنع خروج الحقول عن الإطار */
+            box-sizing: border-box;
             outline: none;
             font-size: 16px;
         }
@@ -73,6 +73,7 @@
         <h2>تسجيل الدخول</h2>
         <form action="{{ url_for('login') }}" method="POST">
             <input type="text" name="username" placeholder="اسم المستخدم" required>
+            <input type="email" name="email" placeholder="البريد الإلكتروني" required>
             <input type="password" name="password" placeholder="كلمة المرور" required>
             <button type="submit">دخول إلى لوحة التحكم</button>
         </form>
