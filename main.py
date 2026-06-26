@@ -1,46 +1,34 @@
 from flask import Flask, render_template, request, redirect, url_for, session
-from supabase import create_client
-import os
-from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = "shimo-secure-2026"
+app.secret_key = "shimo_2026_key"
 
-# إعداد Supabase
-url = os.environ.get('SUPABASE_URL')
-key = os.environ.get('SUPABASE_KEY')
-supabase = create_client(url, key)
-
-# --- المسارات ---
-
+# المسار الرئيسي - تحويل تلقائي لصفحة تسجيل الدخول
 @app.route('/')
 def home():
     return redirect(url_for('login'))
 
-@app.route('/login', methods=['GET', 'POST'])
+# صفحة تسجيل الدخول
+@app.route('/login')
 def login():
-    if request.method == 'POST':
-        # منطق تسجيل الدخول هنا
-        return redirect(url_for('dashboard'))
     return render_template('login.html')
 
-# إضافة هذا المسار لحل الخطأ (تأكدي من وجود ملف register.html)
-@app.route('/register')
-def register():
-    return render_template('register.html')
-
+# لوحة التحكم الرئيسية
 @app.route('/dashboard')
 def dashboard():
     return render_template('dashboard.html')
 
+# صفحة الطلبيات
 @app.route('/orders')
 def orders():
     return render_template('orders.html')
 
+# صفحة الإحصائيات
 @app.route('/stats')
 def stats():
     return render_template('stats.html')
 
+# صفحة الإعدادات
 @app.route('/settings')
 def settings():
     return render_template('settings.html')
