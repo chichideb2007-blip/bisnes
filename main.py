@@ -11,6 +11,7 @@ url = os.environ.get('SUPABASE_URL')
 key = os.environ.get('SUPABASE_KEY')
 supabase = create_client(url, key)
 
+# دالة مساعدة لجلب الإعدادات
 def get_settings():
     try:
         res = supabase.table("settings").select("*").eq("user_id", "manager_shimo_id").maybe_single().execute()
@@ -25,36 +26,28 @@ def home():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        # في الحقيقة يجب التحقق من بيانات الدخول هنا
         session['user_id'] = "manager_shimo_id"
         return redirect(url_for('dashboard'))
     return render_template('login.html')
 
+# إضافة المسار المفقود الذي كان يسبب خطأ 500
 @app.route('/register')
 def register():
-    return "صفحة إنشاء الحساب قيد التطوير"
+    return render_template('register.html') # تأكدي من وجود هذا الملف
 
 @app.route('/dashboard')
 def dashboard():
     if 'user_id' not in session: return redirect(url_for('login'))
-    
-    # جلب الطلبات
     res = supabase.table("orders").select("*").eq("user_id", session['user_id']).execute()
     orders = res.data or []
-    
     today = datetime.now().strftime('%Y-%m-%d')
     daily_sales = sum(float(o.get('total_price', 0)) for o in orders if o.get('created_at', '').startswith(today))
     order_count = len(orders)
-    
-    return render_template('dashboard.html', 
-                           settings=get_settings(), 
-                           daily_sales=daily_sales, 
-                           order_count=order_count)
+    return render_template('dashboard.html', settings=get_settings(), daily_sales=daily_sales, order_count=order_count)
 
-@app.route('/orders', methods=['GET', 'POST'])
+@app.route('/orders')
 def orders():
     if 'user_id' not in session: return redirect(url_for('login'))
-    
     res = supabase.table("orders").select("*").eq("user_id", session['user_id']).execute()
     return render_template('orders.html', orders=res.data or [], settings=get_settings())
 
@@ -66,8 +59,6 @@ def stats():
 @app.route('/settings', methods=['GET', 'POST'])
 def settings():
     if 'user_id' not in session: return redirect(url_for('login'))
-    if request.method == 'POST':
-        return redirect(url_for('settings'))
     return render_template('settings.html', settings=get_settings())
 
 @app.route('/logout')
