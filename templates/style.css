@@ -1,15 +1,75 @@
-body { font-family: Arial, sans-serif; text-align: center; background: #f4f4f4; }
-.nav-container { 
-    display: flex; 
-    justify-content: center; 
-    gap: 20px; 
-    background: #333; 
-    padding: 20px; 
+/* 1. نظام الألوان الهادئة (Serene & Modern) */
+:root {
+    /* ألوان ثابتة للراحة */
+    --page-bg: #f1f5f9;      /* رمادي فاتح جداً للخلفية */
+    --card-bg: #ffffff;      /* أبيض نقي للبطاقات */
+    --text-color: #334155;   /* رمادي غامق للنصوص */
+    --border-color: #e2e8f0; /* حدود خفيفة للبطاقات */
+    
+    /* ألوان يمكنك التحكم بها وتغييرها بسهولة */
+    --btn-color: #3b82f6;    /* لون الأزرار (أزرق هادئ) */
+    --btn-hover: #2563eb;    /* لون الزر عند تمرير الماوس */
+    --header-color: #1e293b; /* لون العناوين */
 }
-.nav-container a { 
-    color: white; 
-    text-decoration: none; 
-    padding: 15px; 
-    background: #444; 
-    border-radius: 5px; 
+
+/* 2. تنسيق عام للجسم (تنسيق مريح للعين) */
+body {
+    background-color: var(--page-bg);
+    color: var(--text-color);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* 3. تنسيق البطاقات (يستخدم في login و dashboard) */
+.card, .login-card, .glass-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    margin: 10px;
+}
+
+/* 4. تنسيق الأزرار الموحد */
+button, .nav-btn, .btn {
+    background-color: var(--btn-color);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: bold;
+    text-decoration: none;
+    display: inline-block;
+}
+
+button:hover, .nav-btn:hover {
+    background-color: var(--btn-hover);
+    transform: translateY(-2px);
+}
+
+/* 5. تنسيق العناوين */
+h1, h2, h3 {
+    color: var(--header-color);
+}
+
+/* 6. تنسيق الحقول (Inputs) */
+input {
+    width: 100%;
+    padding: 12px;
+    margin: 8px 0;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--page-bg);
+    box-sizing: border-box;
+}
+
+input:focus {
+    outline: none;
+    border-color: var(--btn-color);
 }
