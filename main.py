@@ -14,9 +14,9 @@ supabase = create_client(url, key)
 def get_settings():
     try:
         res = supabase.table("settings").select("*").eq("user_id", "manager_shimo_id").maybe_single().execute()
-        return res.data if res.data else {"shop_name": "متجري", "primary_color": "#7e22ce"}
+        return res.data if res.data else {"shop_name": "متجري", "primary_color": "#2563eb"}
     except:
-        return {"shop_name": "متجري", "primary_color": "#7e22ce"}
+        return {"shop_name": "متجري", "primary_color": "#2563eb"}
 
 @app.route('/')
 def home():
@@ -25,20 +25,22 @@ def home():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        session['user_id'] = "manager_shimo_id" # تجربة سريعة للوصول
+        # في الحقيقة يجب التحقق من بيانات الدخول هنا
+        session['user_id'] = "manager_shimo_id"
         return redirect(url_for('dashboard'))
     return render_template('login.html')
 
-# مسار إنشاء الحساب الجديد (لحل خطأ 500)
 @app.route('/register')
 def register():
-    return "صفحة إنشاء الحساب قيد التطوير..."
+    return "صفحة إنشاء الحساب قيد التطوير"
 
 @app.route('/dashboard')
 def dashboard():
     if 'user_id' not in session: return redirect(url_for('login'))
     
-    orders = supabase.table("orders").select("*").eq("user_id", session['user_id']).execute().data or []
+    # جلب الطلبات
+    res = supabase.table("orders").select("*").eq("user_id", session['user_id']).execute()
+    orders = res.data or []
     
     today = datetime.now().strftime('%Y-%m-%d')
     daily_sales = sum(float(o.get('total_price', 0)) for o in orders if o.get('created_at', '').startswith(today))
@@ -52,21 +54,19 @@ def dashboard():
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     if 'user_id' not in session: return redirect(url_for('login'))
-    if request.method == 'POST':
-        # (منطق إضافة الطلبات كما كان لديكِ سابقاً)
-        return redirect(url_for('orders'))
     
     res = supabase.table("orders").select("*").eq("user_id", session['user_id']).execute()
     return render_template('orders.html', orders=res.data or [], settings=get_settings())
 
 @app.route('/stats')
 def stats():
+    if 'user_id' not in session: return redirect(url_for('login'))
     return render_template('stats.html', settings=get_settings())
 
 @app.route('/settings', methods=['GET', 'POST'])
 def settings():
+    if 'user_id' not in session: return redirect(url_for('login'))
     if request.method == 'POST':
-        # (منطق حفظ الإعدادات)
         return redirect(url_for('settings'))
     return render_template('settings.html', settings=get_settings())
 
