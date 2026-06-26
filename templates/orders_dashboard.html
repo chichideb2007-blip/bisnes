@@ -4,48 +4,58 @@
     <meta charset="UTF-8">
     <title>إدارة الطلبات</title>
     <style>
-        /* نستخدم اللون الذي اخترتِه في الإعدادات */
         :root { --primary-color: {{ settings.primary_color|default('#7e22ce') }}; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; padding: 20px; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
         
-        body { font-family: sans-serif; background-color: #f4f7f6; padding: 20px; }
-        .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h2 { color: var(--primary-color); text-align: center; margin-bottom: 25px; }
         
-        h2 { color: var(--primary-color); text-align: center; }
+        /* تنسيق الجداول */
+        table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
+        th { background: var(--primary-color); color: white; padding: 15px; }
+        td { padding: 15px; border-bottom: 1px solid #eee; text-align: center; }
         
-        /* تنسيق النموذج */
-        form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 30px; }
-        input { padding: 12px; border: 1px solid #ccc; border-radius: 8px; }
-        button { grid-column: span 2; padding: 12px; background-color: var(--primary-color); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; }
+        input { width: 90%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; }
         
-        /* تنسيق الجدول */
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: center; }
-        th { background-color: var(--primary-color); color: white; }
-        
-        .delete-btn { color: red; text-decoration: none; font-weight: bold; }
-        .nav { margin-bottom: 20px; text-align: center; }
+        .btn-add { background: #10b981; color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; }
+        .btn-delete { color: #ef4444; font-weight: bold; text-decoration: none; }
+        .nav-links { text-align: center; margin-bottom: 20px; }
+        .nav-links a { color: var(--primary-color); text-decoration: none; margin: 0 10px; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="nav">
-        <a href="{{ url_for('dashboard') }}">الرئيسية</a> | 
-        <a href="{{ url_for('stats') }}">الإحصائيات</a> | 
-        <a href="{{ url_for('settings') }}">الإعدادات</a> | 
-        <a href="{{ url_for('logout') }}">خروج</a>
+    <div class="nav-links">
+        <a href="{{ url_for('dashboard') }}">لوحة التحكم</a> | <a href="{{ url_for('logout') }}">خروج</a>
     </div>
 
-    <h2>طلبيات متجر: {{ settings.shop_name|default('متجري') }}</h2>
+    <h2>طلبيات متجر: {{ settings.shop_name }}</h2>
 
     <form action="{{ url_for('orders') }}" method="POST">
-        <input type="text" name="customer_name" placeholder="اسم الزبون" required>
-        <input type="text" name="product_name" placeholder="اسم المنتج" required>
-        <input type="number" name="total_price" placeholder="السعر" required>
-        <input type="text" name="customer_phone" placeholder="رقم الهاتف" required>
-        <button type="submit">إضافة الطلب</button>
+        <table>
+            <thead>
+                <tr>
+                    <th>اسم الزبون</th>
+                    <th>المنتج</th>
+                    <th>السعر</th>
+                    <th>رقم الهاتف</th>
+                    <th>إجراء</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><input type="text" name="customer_name" required></td>
+                    <td><input type="text" name="product_name" required></td>
+                    <td><input type="number" name="total_price" step="0.01" required></td>
+                    <td><input type="text" name="customer_phone" required></td>
+                    <td><button type="submit" class="btn-add">إضافة</button></td>
+                </tr>
+            </tbody>
+        </table>
     </form>
 
+    <h3>الطلبات المسجلة</h3>
     <table>
         <thead>
             <tr>
@@ -53,7 +63,7 @@
                 <th>المنتج</th>
                 <th>السعر</th>
                 <th>الهاتف</th>
-                <th>إجراء</th>
+                <th>إجراءات</th>
             </tr>
         </thead>
         <tbody>
@@ -61,10 +71,11 @@
             <tr>
                 <td>{{ o.customer_name }}</td>
                 <td>{{ o.product_name }}</td>
-                <td>{{ o.total_price }}</td>
+                <td>{{ o.total_price }} دج</td>
                 <td>{{ o.customer_phone }}</td>
                 <td>
-                    <a href="{{ url_for('delete_order', id=o.id) }}" class="delete-btn" onclick="return confirm('هل أنت متأكد؟')">حذف</a>
+                    <a href="#" style="color: blue; margin-left: 10px;">تعديل</a>
+                    <a href="{{ url_for('delete_order', id=o.id) }}" class="btn-delete" onclick="return confirm('هل أنت متأكد؟')">حذف</a>
                 </td>
             </tr>
             {% endfor %}
