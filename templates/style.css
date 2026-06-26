@@ -1,95 +1,52 @@
-/* 1. نظام المتغيرات اللونية (التحكم المركزي) */
+/* نظام الألوان الاحترافي */
 :root {
-    --page-bg: #f1f5f9;      /* رمادي فاتح للخلفية */
-    --card-bg: #ffffff;      /* أبيض للبطاقات */
-    --text-color: #334155;   /* رمادي غامق للنصوص */
-    --border-color: #e2e8f0; /* حدود خفيفة */
-    --btn-color: #3b82f6;    /* أزرق هادئ للأزرار */
-    --btn-hover: #2563eb;    /* لون الزر عند التفاعل */
-    --header-color: #1e293b; /* لون العناوين */
+    --primary-color: #1e3a8a; /* أزرق داكن فخم */
+    --bg-color: #f8fafc;      /* رمادي فاتح جداً */
+    --card-bg: #ffffff;       /* أبيض للبطاقات */
+    --text-main: #1e293b;     /* نص غامق وواضح */
+    --accent: #3b82f6;        /* أزرق ساطع للأزرار */
 }
 
-/* 2. تنسيق عام للجسم */
 body {
-    background-color: var(--page-bg);
-    color: var(--text-color);
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    font-family: 'Segoe UI', sans-serif;
     margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
+    padding: 20px;
 }
 
-/* 3. تنسيق البطاقات (Glassmorphism خفيف) */
-.card, .login-card, .glass-card {
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 20px;
-    padding: 30px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-    margin: 10px;
-}
-
-/* 4. تنسيق الأزرار الموحد */
-button, .nav-btn, .btn {
-    background-color: var(--btn-color);
-    color: white;
-    padding: 12px 24px;
-    border-radius: 12px;
-    border: none;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-weight: bold;
-    text-decoration: none;
-    display: inline-block;
-    width: 100%;
-}
-
-button:hover, .nav-btn:hover {
-    background-color: var(--btn-hover);
-    transform: translateY(-2px);
-}
-
-/* 5. تنسيق العناوين */
-h1, h2, h3 {
-    color: var(--header-color);
-    text-align: center;
-}
-
-/* 6. تنسيق احترافي وموحد لجميع حقول الإدخال */
-input[type="text"],
-input[type="email"],
-input[type="password"],
-input[type="number"] {
-    width: 100%;
-    padding: 14px;
-    margin: 10px 0;
-    border: 2px solid var(--border-color);
-    border-radius: 12px;
+/* تصميم البطاقات (Glassmorphism خفيف) */
+.card {
     background: var(--card-bg);
-    color: var(--text-color);
-    font-size: 16px;
-    transition: all 0.3s ease;
-    box-sizing: border-box;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+    border: 1px solid #e2e8f0;
 }
 
-input:focus {
-    outline: none;
-    border-color: var(--btn-color);
-    box-shadow: 0 0 8px rgba(59, 130, 246, 0.2);
-}
-
-/* 7. تنسيق الروابط داخل البطاقات */
-.auth-link {
-    text-align: center;
-    margin-top: 15px;
-}
-
-.auth-link a {
-    color: var(--btn-color);
+/* تنسيق الأزرار الاحترافي */
+.btn {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
     text-decoration: none;
-    font-weight: bold;
+    font-weight: 600;
+    transition: 0.3s;
+    display: inline-block;
+}
+
+.btn:hover {
+    background-color: var(--accent);
+}
+
+/* تنسيق الحقول */
+input {
+    width: 100%;
+    padding: 12px;
+    margin: 8px 0;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    box-sizing: border-box;
 }
