@@ -11,11 +11,13 @@ url = os.environ.get('SUPABASE_URL')
 key = os.environ.get('SUPABASE_KEY')
 supabase = create_client(url, key)
 
-# --- دوال مساعدة ---
-def get_user_orders():
-    if 'user_id' not in session: return []
-    res = supabase.table("orders").select("*").eq("user_id", session['user_id']).execute()
-    return res.data or []
+# --- دالة جلب البيانات ---
+def get_db_data(table):
+    try:
+        res = supabase.table(table).select("*").execute()
+        return res.data if res.data else []
+    except:
+        return []
 
 # --- المسارات ---
 
@@ -26,7 +28,6 @@ def home():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        # (هنا يمكنك إضافة منطق التحقق من كلمة السر لاحقاً)
         session['user_id'] = "manager_shimo_id"
         return redirect(url_for('dashboard'))
     return render_template('login.html')
@@ -34,18 +35,16 @@ def login():
 @app.route('/dashboard')
 def dashboard():
     if 'user_id' not in session: return redirect(url_for('login'))
-    orders = get_user_orders()
+    orders = get_db_data("orders")
+    # حساب المبيعات اليومية
     today = datetime.now().strftime('%Y-%m-%d')
     daily_sales = sum(float(o.get('total_price', 0)) for o in orders if o.get('created_at', '').startswith(today))
     return render_template('dashboard.html', daily_sales=daily_sales, order_count=len(orders))
 
-@app.route('/orders', methods=['GET', 'POST'])
+@app.route('/orders')
 def orders():
     if 'user_id' not in session: return redirect(url_for('login'))
-    if request.method == 'POST':
-        # منطق إضافة طلب جديد (سيتم ربطه بالـ HTML لاحقاً)
-        return redirect(url_for('orders'))
-    return render_template('orders.html', orders=get_user_orders())
+    return render_template('orders.html', orders=get_db_data("orders"))
 
 @app.route('/stats')
 def stats():
@@ -63,4 +62,6 @@ def logout():
     return redirect(url_for('login'))
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    # تأكدي أن المنفذ 5000 متاح على Render
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
