@@ -22,6 +22,7 @@ def login():
         return redirect(url_for('dashboard'))
     return render_template('login.html')
 
+# إضافة مسار التسجيل الذي كان يسبب الخطأ
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     return render_template('register.html')
@@ -30,14 +31,14 @@ def register():
 def dashboard():
     return render_template('dashboard.html')
 
-@app.route('/orders')
+@app.route('/orders', methods=['GET', 'POST'])
 def orders():
-    # تأكدي أن جدول 'orders' موجود في Supabase
+    # جلب البيانات من Supabase
     try:
         res = supabase.table("orders").select("*").execute()
         return render_template('orders_dashboard.html', orders=res.data)
     except Exception as e:
-        return f"خطأ في جلب البيانات: {str(e)}"
+        return f"خطأ: {str(e)}"
 
 @app.route('/stats')
 def stats():
@@ -47,5 +48,11 @@ def stats():
 def settings():
     return render_template('settings.html')
 
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
