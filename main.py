@@ -5,7 +5,7 @@ import os
 app = Flask(__name__)
 app.secret_key = "shimo-secure-2026"
 
-# إعداد Supabase - تأكدي أن هذه المتغيرات مضبوطة في إعدادات Render
+# إعداد Supabase
 url = os.environ.get('SUPABASE_URL')
 key = os.environ.get('SUPABASE_KEY')
 supabase = create_client(url, key)
@@ -17,38 +17,46 @@ def home():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        session['user'] = 'admin' # تسجيل دخول مبدئي
         return redirect(url_for('dashboard'))
     return render_template('login.html')
 
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    return render_template('register.html')
+
 @app.route('/dashboard')
 def dashboard():
-    if 'user' not in session: return redirect(url_for('login'))
-    # جلب الإحصائيات (تأكدي من أسماء الجداول في Supabase)
-    orders = supabase.table("orders").select("*").execute().data
-    return render_template('dashboard.html', orders=orders, total_price=sum(o['total_price'] for o in orders))
+    return render_template('dashboard.html')
+
+# هذه الوظيفة لحذف الطلبيات التي تظهر في HTML
+@app.route('/delete_order/<int:order_id>')
+def delete_order(order_id):
+    supabase.table("orders").delete().eq("id", order_id).execute()
+    return redirect(url_for('orders'))
 
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
-    if 'user' not in session: return redirect(url_for('login'))
     if request.method == 'POST':
         # إضافة طلب جديد
-        data = {"customer_name": request.form['customer_name'], "product_name": request.form['product_name'], "total_price": float(request.form['total_price'])}
+        data = {
+            "customer_name": request.form.get('customer_name'),
+            "product_name": request.form.get('product_name'),
+            "total_price": request.form.get('total_price'),
+            "customer_phone": request.form.get('customer_phone')
+        }
         supabase.table("orders").insert(data).execute()
-    orders = supabase.table("orders").select("*").execute().data
-    return render_template('orders_dashboard.html', orders=orders, total=sum(o['total_price'] for o in orders))
-
-@app.route('/settings', methods=['GET', 'POST'])
-def settings():
-    if 'user' not in session: return redirect(url_for('login'))
-    # جلب إعدادات المتجر
-    settings_data = supabase.table("settings").select("*").eq("id", 1).execute().data
-    s = settings_data[0] if settings_data else {"shop_name": "متجري", "telegram_bot": ""}
-    return render_template('settings.html', settings=s)
+        return redirect(url_for('orders'))
+    
+    res = supabase.table("orders").select("*").execute()
+    return render_template('orders_dashboard.html', orders=res.data)
 
 @app.route('/stats')
 def stats():
     return render_template('stats.html')
+
+@app.route('/settings', methods=['GET', 'POST'])
+def settings():
+    return render_template('settings.html')
 
 @app.route('/logout')
 def logout():
@@ -56,4 +64,5 @@ def logout():
     return redirect(url_for('login'))
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
