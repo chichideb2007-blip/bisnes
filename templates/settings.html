@@ -2,75 +2,69 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>إعدادات الموقع</title>
+    <title>إعدادات المتجر</title>
     <style>
-        :root { --primary-color: #007bff; }
-        body { font-family: Arial, sans-serif; padding: 20px; background-color: #f4f7f6; transition: background 0.3s; }
-        .container { max-width: 500px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); border-top: 5px solid var(--primary-color); }
-        h2 { color: #333; text-align: center; }
-        label { display: block; margin-top: 15px; font-weight: bold; }
-        input { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
-        .btn-group { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
-        button { padding: 12px; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; }
-        .btn-save-info { background-color: #28a745; }
-        .btn-save-color { background-color: var(--primary-color); }
-        .btn-logout { background-color: #dc3545; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #f4f4f9; padding: 20px; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #333; }
+        label { display: block; margin-top: 15px; font-weight: bold; color: #555; }
+        input { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        .btn-group { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+        button { padding: 12px; border: none; border-radius: 8px; cursor: pointer; color: white; font-weight: bold; transition: 0.3s; }
+        .btn-save { background-color: #28a745; }
+        .btn-color { background-color: #17a2b8; }
         .btn-back { background-color: #6c757d; }
-        a { text-decoration: none; color: white; }
+        .btn-logout { background-color: #dc3545; }
+        button:hover { opacity: 0.9; }
     </style>
 </head>
 <body>
 
-<div class="container" id="mainContainer">
-    <h2>⚙️ إعدادات الموقع</h2>
+<div class="container">
+    <h2>⚙️ إعدادات المتجر والبوت</h2>
     
     <form action="/settings" method="POST">
-        <label>اسم المتجر أو البوت:</label>
-        <input type="text" name="store_name" placeholder="أدخلي الاسم">
+        <label>اسم المتجر:</label>
+        <input type="text" name="store_name" placeholder="أدخلي اسم المتجر">
+
+        <label>اسم البوت:</label>
+        <input type="text" name="bot_name" placeholder="أدخلي اسم البوت">
 
         <label>توكن أو رابط تيلجرام:</label>
-        <input type="text" name="telegram_token" placeholder="أدخلي التوكن">
+        <input type="text" name="telegram_token" placeholder="أدخلي التوكن أو الرابط">
 
         <div class="btn-group">
-            <button type="submit" class="btn-save-info">حفظ المعلومات</button>
+            <button type="submit" class="btn-save">حفظ المعلومات</button>
         </div>
     </form>
 
     <hr>
 
     <label>اختيار لون الموقع:</label>
-    <input type="color" id="colorPicker" onchange="updatePreview(this.value)">
+    <input type="color" id="siteColor">
     <div class="btn-group">
-        <button onclick="saveColor()" class="btn-save-color">حفظ الألوان</button>
-    </div>
-
-    <hr>
-
-    <div class="btn-group">
-        <button class="btn-back"><a href="{{ url_for('dashboard') }}">الرجوع للوحة التحكم</a></button>
-        <button class="btn-logout"><a href="{{ url_for('logout') }}">تسجيل الخروج</a></button>
+        <button onclick="saveColor()" class="btn-color">حفظ اللون المختار</button>
+        <button class="btn-back" onclick="window.location.href='{{ url_for('dashboard') }}'">الرجوع للوحة التحكم</button>
+        <button class="btn-logout" onclick="window.location.href='{{ url_for('logout') }}'">تسجيل الخروج</button>
     </div>
 </div>
 
 <script>
-    // تغيير لون الواجهة فوراً عند الاختيار
-    function updatePreview(color) {
-        document.documentElement.style.setProperty('--primary-color', color);
-    }
-
-    // حفظ اللون في المتصفح
     function saveColor() {
-        const color = document.getElementById('colorPicker').value;
+        const color = document.getElementById('siteColor').value;
+        // حفظ اللون في ذاكرة المتصفح
         localStorage.setItem('siteTheme', color);
-        alert("تم حفظ اللون الجديد بنجاح!");
+        // تطبيق اللون فوراً على الخلفية
+        document.body.style.backgroundColor = color;
+        alert("تم حفظ اللون وتطبيقه بنجاح!");
     }
 
-    // استرجاع اللون عند فتح الصفحة
+    // استرجاع اللون عند تحميل الصفحة
     window.onload = () => {
         const savedColor = localStorage.getItem('siteTheme');
         if (savedColor) {
-            document.documentElement.style.setProperty('--primary-color', savedColor);
-            document.getElementById('colorPicker').value = savedColor;
+            document.body.style.backgroundColor = savedColor;
+            document.getElementById('siteColor').value = savedColor;
         }
     };
 </script>
