@@ -5,7 +5,7 @@ import os
 app = Flask(__name__)
 app.secret_key = "shimo_secure_key_2026"
 
-# إعدادات Supabase
+# إعدادات Supabase (تأكدي من وجودها في Render)
 url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
@@ -18,7 +18,7 @@ def login():
         return redirect(url_for('dashboard'))
     return render_template('login.html')
 
-# 2. مسار التسجيل (تم إضافته لحل خطأ BuildError)
+# 2. مسار التسجيل
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     return render_template('register.html')
@@ -28,7 +28,7 @@ def register():
 def dashboard():
     return render_template('dashboard.html')
 
-# 4. مسار الطلبيات (إضافة + عرض + حذف)
+# 4. إدارة الطلبيات (إضافة + عرض)
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     if request.method == 'POST':
@@ -41,34 +41,34 @@ def orders():
             }
             supabase.table("orders").insert(data).execute()
         except Exception as e:
-            print(f"Error saving: {e}")
+            print(f"Error: {e}")
         return redirect(url_for('orders'))
     
     response = supabase.table("orders").select("*").execute()
     return render_template('orders_dashboard.html', orders=response.data)
 
-# مسار حذف الطلبية
+# 5. مسار الحذف (هام جداً لزر الحذف)
 @app.route('/delete_order/<int:order_id>')
 def delete_order(order_id):
-    supabase.table("orders").delete().eq("id", order_id).execute()
+    try:
+        supabase.table("orders").delete().eq("id", order_id).execute()
+    except Exception as e:
+        print(f"Error deleting: {e}")
     return redirect(url_for('orders'))
 
-# 5. الإحصائيات (مجموع المبيعات أوتوماتيكياً)
+# 6. مسار الإحصائيات (الحساب التلقائي)
 @app.route('/stats')
 def stats():
     response = supabase.table("orders").select("total_price").execute()
     total_sales = sum(float(o.get('total_price', 0)) for o in response.data)
     return render_template('stats.html', total_sales=total_sales)
 
-# 6. الإعدادات (تستقبل بيانات المتجر والألوان)
+# 7. الإعدادات
 @app.route('/settings', methods=['GET', 'POST'])
 def settings():
-    if request.method == 'POST':
-        # هنا يمكنك حفظ بيانات الإعدادات في Supabase إذا أردتِ لاحقاً
-        return redirect(url_for('settings'))
     return render_template('settings.html')
 
-# 7. تسجيل الخروج
+# 8. تسجيل الخروج
 @app.route('/logout')
 def logout():
     return redirect(url_for('login'))
