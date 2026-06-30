@@ -13,7 +13,9 @@
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th, td { border: 1px solid #eee; padding: 12px; text-align: center; }
         th { background-color: #f8f9fa; }
-        .btn-delete { background-color: #dc3545; color: white; padding: 6px 12px; text-decoration: none; border-radius: 4px; font-size: 14px; display: inline-block; }
+        
+        /* زر الحذف الجديد بنظام الـ Form */
+        .btn-delete { background-color: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 14px; }
     </style>
 </head>
 <body>
@@ -46,9 +48,9 @@
             <td>{{ order.total_price }}</td>
             <td>{{ order.customer_phone }}</td>
             <td>
-                <a href="{{ url_for('delete_order', order_id=order.id) }}" 
-                   class="btn-delete"
-                   onclick="return confirm('هل أنتِ متأكدة من حذف الطلبية؟');">حذف</a>
+                <form action="{{ url_for('delete_order', order_id=order.id) }}" method="POST" onsubmit="return confirm('هل أنتِ متأكدة من حذف هذه الطلبية؟');">
+                    <button type="submit" class="btn-delete">حذف</button>
+                </form>
             </td>
         </tr>
         {% endfor %}
