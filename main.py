@@ -5,7 +5,7 @@ import os
 app = Flask(__name__)
 app.secret_key = "shimo_secure_key_2026"
 
-# إعدادات Supabase
+# إعدادات Supabase (تأكدي من وجودها في إعدادات Render)
 url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
@@ -18,20 +18,21 @@ def login():
         return redirect(url_for('dashboard'))
     return render_template('login.html')
 
-# 2. مسار التسجيل (لحل خطأ BuildError)
+# 2. مسار التسجيل
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     return render_template('register.html')
 
-# 3. لوحة التحكم
+# 3. لوحة التحكم الرئيسية
 @app.route('/dashboard')
 def dashboard():
     return render_template('dashboard.html')
 
-# 4. الطلبيات (إضافة وعرض)
+# 4. مسار الطلبيات
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     if request.method == 'POST':
+        # حفظ طلبية جديدة
         data = {
             "customer_name": request.form.get('customer_name'),
             "product_name": request.form.get('product_name'),
@@ -41,19 +42,20 @@ def orders():
         supabase.table("orders").insert(data).execute()
         return redirect(url_for('orders'))
     
+    # جلب وعرض الطلبيات
     response = supabase.table("orders").select("*").execute()
     return render_template('orders_dashboard.html', orders=response.data)
 
-# 5. الإحصائيات (حساب المجموع بدقة)
+# 5. مسار الإحصائيات (الحساب الدقيق للمبيعات)
 @app.route('/stats')
 def stats():
     response = supabase.table("orders").select("total_price").execute()
     orders = response.data
-    # حساب مجموع المبيعات
-    daily_total = sum(float(o.get('total_price', 0)) for o in orders)
-    return render_template('stats.html', daily_total=daily_total)
+    # حساب مجموع المبيعات الكلي
+    total_sales = sum(float(o.get('total_price', 0)) for o in orders)
+    return render_template('stats.html', daily_total=total_sales)
 
-# 6. الإعدادات
+# 6. مسار الإعدادات
 @app.route('/settings', methods=['GET', 'POST'])
 def settings():
     if request.method == 'POST':
