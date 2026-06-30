@@ -10,22 +10,26 @@ url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
 
-# 1. مسار تسجيل الدخول
+# 1. الصفحة الرئيسية واللوج إن
 @app.route('/', methods=['GET', 'POST'])
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     return render_template('login.html')
 
-# 2. لوحة التحكم الرئيسية
+# 2. صفحة التسجيل (لتجنب خطأ BuildError)
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    return render_template('register.html')
+
+# 3. لوحة التحكم الرئيسية
 @app.route('/dashboard')
 def dashboard():
     return render_template('dashboard.html')
 
-# 3. الطلبيات (معالجة الجدولين)
+# 4. الطلبيات
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     if request.method == 'POST':
-        # إضافة طلب جديد
         data = {
             "customer_name": request.form.get('customer_name'),
             "product_name": request.form.get('product_name'),
@@ -35,25 +39,20 @@ def orders():
         supabase.table("orders").insert(data).execute()
         return redirect(url_for('orders'))
     
-    # جلب الطلبيات لعرضها في الجدول
     response = supabase.table("orders").select("*").execute()
     return render_template('orders_dashboard.html', orders=response.data)
 
-# 4. الإحصائيات (المنحنيات الثلاثة والمصروف اليومي)
+# 5. الإحصائيات
 @app.route('/stats')
 def stats():
-    # المنطق الخاص بجلب البيانات للمنحنيات (أيام، أشهر، سنوات)
     return render_template('stats.html')
 
-# 5. الإعدادات (اسم المتجر، تيلجرام، والألوان)
+# 6. الإعدادات
 @app.route('/settings', methods=['GET', 'POST'])
 def settings():
-    if request.method == 'POST':
-        # حفظ الإعدادات والألوان
-        return redirect(url_for('settings'))
     return render_template('settings.html')
 
-# 6. زر الخروج
+# 7. تسجيل الخروج
 @app.route('/logout')
 def logout():
     return redirect(url_for('login'))
