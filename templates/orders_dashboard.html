@@ -2,25 +2,40 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>الطلبيات</title>
+    <title>إدارة الطلبيات</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: center; }
+        th { background-color: #f2f2f2; }
+        input { width: 100%; padding: 8px; margin: 5px 0; box-sizing: border-box; }
+        button { background-color: #28a745; color: white; padding: 10px; border: none; cursor: pointer; border-radius: 5px; }
+        .btn-delete { background-color: #dc3545; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; }
+    </style>
 </head>
 <body>
+
+<div class="container">
     <h1>إدارة الطلبيات</h1>
-    
+
     <form action="/orders" method="POST">
         <input type="text" name="customer_name" placeholder="اسم الزبون" required>
         <input type="text" name="product_name" placeholder="اسم المنتج" required>
-        <input type="number" name="total_price" placeholder="السعر" required>
+        <input type="number" step="0.01" name="total_price" placeholder="السعر" required>
         <input type="text" name="customer_phone" placeholder="رقم الهاتف" required>
         <button type="submit">حفظ الطلبية</button>
     </form>
 
     <hr>
 
-    <h2>الطلبيات المسجلة</h2>
-    <table border="1">
+    <table>
         <tr>
-            <th>الزبون</th><th>المنتج</th><th>السعر</th><th>الهاتف</th>
+            <th>الزبون</th>
+            <th>المنتج</th>
+            <th>السعر</th>
+            <th>الهاتف</th>
+            <th>إجراء</th>
         </tr>
         {% for order in orders %}
         <tr>
@@ -28,11 +43,18 @@
             <td>{{ order.product_name }}</td>
             <td>{{ order.total_price }}</td>
             <td>{{ order.customer_phone }}</td>
+            <td>
+                <a href="{{ url_for('delete_order', order_id=order.id) }}" 
+                   class="btn-delete" 
+                   onclick="return confirm('هل أنتِ متأكدة من حذف هذه الطلبية؟')">حذف</a>
+            </td>
         </tr>
         {% endfor %}
     </table>
-    
+
     <br>
-    <a href="{{ url_for('dashboard') }}">رجوع للوحة التحكم</a>
+    <a href="{{ url_for('dashboard') }}">الرجوع للوحة التحكم</a>
+</div>
+
 </body>
 </html>
