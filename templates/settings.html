@@ -2,70 +2,78 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>إعدادات المتجر</title>
+    <title>إعدادات الموقع المتقدمة</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #f4f4f9; padding: 20px; }
-        .container { max-width: 500px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        h2 { text-align: center; color: #333; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: var(--bg-color, #f4f4f9); padding: 20px; transition: background 0.3s; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        
+        /* تقسيم الصفحة لعمودين */
+        .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        h2 { text-align: center; grid-column: span 2; }
+        
+        .section-box { border: 1px solid #ddd; padding: 20px; border-radius: 10px; background: #fff; }
         label { display: block; margin-top: 15px; font-weight: bold; color: #555; }
         input { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        
         .btn-group { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
         button { padding: 12px; border: none; border-radius: 8px; cursor: pointer; color: white; font-weight: bold; transition: 0.3s; }
-        .btn-save { background-color: #28a745; }
-        .btn-color { background-color: #17a2b8; }
-        .btn-back { background-color: #6c757d; }
-        .btn-logout { background-color: #dc3545; }
-        button:hover { opacity: 0.9; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>⚙️ إعدادات المتجر والبوت</h2>
-    
-    <form action="/settings" method="POST">
-        <label>اسم المتجر:</label>
-        <input type="text" name="store_name" placeholder="أدخلي اسم المتجر">
-
-        <label>اسم البوت:</label>
-        <input type="text" name="bot_name" placeholder="أدخلي اسم البوت">
-
-        <label>توكن أو رابط تيلجرام:</label>
-        <input type="text" name="telegram_token" placeholder="أدخلي التوكن أو الرابط">
-
-        <div class="btn-group">
-            <button type="submit" class="btn-save">حفظ المعلومات</button>
+    <h2>⚙️ إعدادات الموقع المتقدمة</h2>
+    <div class="settings-grid">
+        
+        <div class="section-box">
+            <h3>معلومات المتجر</h3>
+            <form action="/settings" method="POST">
+                <label>اسم المتجر:</label>
+                <input type="text" name="store_name" placeholder="أدخلي اسم المتجر">
+                <label>اسم البوت:</label>
+                <input type="text" name="bot_name" placeholder="أدخلي اسم البوت">
+                <label>توكن تيلجرام:</label>
+                <input type="text" name="telegram_token" placeholder="أدخلي التوكن أو الرابط">
+                <div class="btn-group">
+                    <button type="submit" style="background-color: #28a745;">حفظ المعلومات</button>
+                </div>
+            </form>
         </div>
-    </form>
 
-    <hr>
-
-    <label>اختيار لون الموقع:</label>
-    <input type="color" id="siteColor">
-    <div class="btn-group">
-        <button onclick="saveColor()" class="btn-color">حفظ اللون المختار</button>
-        <button class="btn-back" onclick="window.location.href='{{ url_for('dashboard') }}'">الرجوع للوحة التحكم</button>
-        <button class="btn-logout" onclick="window.location.href='{{ url_for('logout') }}'">تسجيل الخروج</button>
+        <div class="section-box">
+            <h3>تخصيص الألوان</h3>
+            <label>لون الأزرار والعناوين:</label>
+            <input type="color" id="primaryColorPicker">
+            <label>لون خلفية الواجهة:</label>
+            <input type="color" id="bgColorPicker">
+            
+            <div class="btn-group">
+                <button onclick="saveAndApplyColors()" style="background-color: #17a2b8;">حفظ وتطبيق الألوان</button>
+                <button onclick="window.location.href='{{ url_for('dashboard') }}'" style="background-color: #6c757d;">رجوع للوحة التحكم</button>
+                <button onclick="window.location.href='{{ url_for('logout') }}'" style="background-color: #dc3545;">تسجيل خروج</button>
+            </div>
+        </div>
     </div>
 </div>
 
 <script>
-    function saveColor() {
-        const color = document.getElementById('siteColor').value;
-        // حفظ اللون في ذاكرة المتصفح
-        localStorage.setItem('siteTheme', color);
-        // تطبيق اللون فوراً على الخلفية
-        document.body.style.backgroundColor = color;
-        alert("تم حفظ اللون وتطبيقه بنجاح!");
+    function saveAndApplyColors() {
+        const primary = document.getElementById('primaryColorPicker').value;
+        const bg = document.getElementById('bgColorPicker').value;
+        
+        localStorage.setItem('primaryColor', primary);
+        localStorage.setItem('bgColor', bg);
+        
+        // تطبيق فوري
+        document.body.style.backgroundColor = bg;
+        alert("تم حفظ وتطبيق الألوان بنجاح!");
     }
 
-    // استرجاع اللون عند تحميل الصفحة
+    // استرجاع عند التحميل
     window.onload = () => {
-        const savedColor = localStorage.getItem('siteTheme');
-        if (savedColor) {
-            document.body.style.backgroundColor = savedColor;
-            document.getElementById('siteColor').value = savedColor;
-        }
+        const p = localStorage.getItem('primaryColor');
+        const b = localStorage.getItem('bgColor');
+        if(b) document.body.style.backgroundColor = b;
     };
 </script>
 
