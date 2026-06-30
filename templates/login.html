@@ -3,25 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <title>تسجيل الدخول</title>
-    <!-- ربط ملف الـ CSS الموحد -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
+        .login-box { width: 300px; margin: auto; padding: 20px; border: 1px solid #ccc; border-radius: 10px; }
+        input { display: block; width: 100%; margin: 10px 0; padding: 10px; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background-color: #28a745; color: white; border: none; cursor: pointer; }
+    </style>
 </head>
 <body>
 
-<div class="login-card">
-    <h2>تسجيل الدخول</h2>
-    <form action="{{ url_for('login') }}" method="POST">
-        <input type="text" name="username" placeholder="اسم المستخدم" required>
-        <input type="email" name="email" placeholder="البريد الإلكتروني" required>
-        <input type="password" name="password" placeholder="كلمة المرور" required>
-        <button type="submit">دخول إلى لوحة التحكم</button>
-    </form>
-    
-    <!-- رابط إنشاء الحساب -->
-    <div style="margin-top: 20px; text-align: center;">
-        <p>ليس لديك حساب؟ <a href="{{ url_for('register') }}" style="color: var(--btn-color);">إنشاء حساب جديد</a></p>
+    <div class="login-box">
+        <h2>تسجيل الدخول</h2>
+        <form action="/login" method="POST">
+            <input type="text" name="username" placeholder="اسم المستخدم" required>
+            <input type="password" name="password" placeholder="كلمة المرور" required>
+            <button type="submit">دخول إلى لوحة التحكم</button>
+        </form>
+        
+        <br>
+        <a href="{{ url_for('register') }}">حساب جديد</a>
     </div>
-</div>
 
 </body>
 </html>
