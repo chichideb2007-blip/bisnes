@@ -1,45 +1,6 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة التحكم</title>
-    <!-- ربط ملف التنسيق الموحد -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body>
-
-<!-- شريط التنقل العلوي -->
-<div class="card" style="margin-bottom: 20px; text-align: center;">
-    <h2>لوحة تحكم متجري</h2>
-    <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-        <a href="{{ url_for('orders') }}" class="btn">الطلبيات</a>
-        <a href="{{ url_for('stats') }}" class="btn">الإحصائيات</a>
-        <a href="{{ url_for('settings') }}" class="btn">الإعدادات</a>
-        <a href="{{ url_for('logout') }}" class="btn" style="background-color: #ef4444;">خروج</a>
-    </div>
+<div class="nav-container">
+    <a href="{{ url_for('orders') }}">الطلبيات</a>
+    <a href="{{ url_for('stats') }}">الإحصائيات</a>
+    <a href="{{ url_for('settings') }}">الإعدادات</a>
+    <a href="{{ url_for('logout') }}" style="background-color: #e74c3c;">خروج</a>
 </div>
-
-<!-- بطاقات البيانات (تتطابق الآن مع main.py) -->
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; max-width: 1000px; margin: auto;">
-    
-    <div class="card">
-        <h3>مجموع المصروف اليومي</h3>
-        <!-- daily_sales كما هو موجود في main.py -->
-        <div style="font-size: 28px; font-weight: bold;">{{ daily_sales }} دج</div>
-    </div>
-    
-    <div class="card">
-        <h3>عدد الطلبات المسجلة</h3>
-        <!-- order_count كما هو موجود في main.py -->
-        <div style="font-size: 28px; font-weight: bold;">{{ order_count }} طلب</div>
-    </div>
-    
-    <div class="card">
-        <h3>الحالة</h3>
-        <div style="font-size: 20px; color: #10b981;">نظام مفعل</div>
-    </div>
-</div>
-
-</body>
-</html>
