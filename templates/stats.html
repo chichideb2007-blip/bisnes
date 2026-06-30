@@ -1,29 +1,55 @@
-<script>
-    // 1. منحنى الأيام (من السبت إلى الجمعة)
-    new Chart(document.getElementById('daysChart'), {
-        type: 'line',
-        data: {
-            labels: ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'],
-            datasets: [{
-                label: 'مبيعات الأيام',
-                data: [0, 0, 0, 0, 0, 0, {{ daily_total }}], // سيتم استبدال الأصفار بالبيانات لاحقاً
-                borderColor: '#007bff',
-                fill: false
-            }]
-        }
-    });
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>إحصائيات المتجر</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: sans-serif; background: #f4f7f6; padding: 20px; }
+        .card { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .nav-btn { padding: 10px 20px; margin: 5px; border-radius: 5px; text-decoration: none; color: white; display: inline-block; }
+    </style>
+</head>
+<body>
 
-    // 2. منحنى الأشهر (من جانفي إلى ديسمبر)
-    new Chart(document.getElementById('monthsChart'), {
-        type: 'line',
-        data: {
-            labels: ['جانفي', 'فيفري', 'مارس', 'أفريل', 'ماي', 'جوان', 'جويلية', 'أوت', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'],
-            datasets: [{
-                label: 'مبيعات الأشهر',
-                data: [0, 0, {{ daily_total }}, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
-                borderColor: '#28a745',
-                fill: false
-            }]
-        }
-    });
-</script>
+    <div class="card">
+        <h2>مجموع المبيعات الكلي: {{ total_sales }} دج</h2>
+    </div>
+
+    <div class="card"><canvas id="daysChart"></canvas></div>
+    <div class="card"><canvas id="monthsChart"></canvas></div>
+    <div class="card"><canvas id="yearsChart"></canvas></div>
+
+    <a href="{{ url_for('dashboard') }}" class="nav-btn" style="background: #28a745;">الرجوع للوحة التحكم</a>
+    <a href="{{ url_for('login') }}" class="nav-btn" style="background: #dc3545;">تسجيل الخروج</a>
+
+    <script>
+        // 1. منحنى الأيام
+        new Chart(document.getElementById('daysChart'), {
+            type: 'line',
+            data: {
+                labels: ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'],
+                datasets: [{ label: 'مبيعات الأيام', data: [0,0,0,0,0,0,0], borderColor: 'blue', fill: false }]
+            }
+        });
+
+        // 2. منحنى الأشهر
+        new Chart(document.getElementById('monthsChart'), {
+            type: 'line',
+            data: {
+                labels: ['جانفي', 'فيفري', 'مارس', 'أفريل', 'ماي', 'جوان', 'جويلية', 'أوت', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'],
+                datasets: [{ label: 'مبيعات الأشهر', data: [0,0,0,0,0,0,0,0,0,0,0,0], borderColor: 'green', fill: false }]
+            }
+        });
+
+        // 3. منحنى السنوات
+        new Chart(document.getElementById('yearsChart'), {
+            type: 'line',
+            data: {
+                labels: ['2026', '2027', '2028'],
+                datasets: [{ label: 'المبيعات السنوية', data: [{{ total_sales }}, 0, 0], borderColor: 'red', fill: false }]
+            }
+        });
+    </script>
+</body>
+</html>
