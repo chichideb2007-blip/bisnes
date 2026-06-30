@@ -4,14 +4,16 @@
     <meta charset="UTF-8">
     <title>إدارة الطلبيات</title>
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; }
-        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: center; }
-        th { background-color: #f2f2f2; }
-        input { width: 100%; padding: 8px; margin: 5px 0; box-sizing: border-box; }
-        button { background-color: #28a745; color: white; padding: 10px; border: none; cursor: pointer; border-radius: 5px; }
-        .btn-delete { background-color: #dc3545; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #f9f9f9; padding: 20px; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #333; }
+        form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        input { padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
+        button { grid-column: span 2; padding: 12px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #eee; padding: 12px; text-align: center; }
+        th { background-color: #f8f9fa; }
+        .btn-delete { background-color: #dc3545; color: white; padding: 6px 12px; text-decoration: none; border-radius: 4px; font-size: 14px; }
     </style>
 </head>
 <body>
@@ -53,7 +55,9 @@
     </table>
 
     <br>
-    <a href="{{ url_for('dashboard') }}">الرجوع للوحة التحكم</a>
+    <div style="text-align: center;">
+        <a href="{{ url_for('dashboard') }}">الرجوع للوحة التحكم</a>
+    </div>
 </div>
 
 </body>
