@@ -2,12 +2,12 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>الإحصائيات</title>
+    <title>إحصائيات المتجر</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: Arial; padding: 20px; background: #f4f4f4; }
-        .card { background: white; padding: 20px; margin: 10px; border-radius: 10px; }
-        .btn { padding: 10px; border-radius: 5px; text-decoration: none; color: white; }
+        body { font-family: sans-serif; background: #f4f7f6; padding: 20px; }
+        .card { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .nav-btn { padding: 10px 20px; margin: 5px; border-radius: 5px; text-decoration: none; color: white; display: inline-block; }
     </style>
 </head>
 <body>
@@ -16,29 +16,27 @@
         <h2>مجموع المصروف اليومي: {{ daily_total }} دج</h2>
     </div>
 
-    <div style="width: 80%; margin: auto;">
-        <canvas id="myChart"></canvas>
+    <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+        <div class="card" style="width: 45%;"><canvas id="daysChart"></canvas></div>
+        <div class="card" style="width: 45%;"><canvas id="monthsChart"></canvas></div>
     </div>
+    <div class="card"><canvas id="yearsChart"></canvas></div>
 
     <hr>
-    <a href="{{ url_for('dashboard') }}" class="btn" style="background: green;">الرجوع للوحة التحكم</a>
-    <a href="{{ url_for('login') }}" class="btn" style="background: red;">تسجيل الخروج</a>
+    <a href="{{ url_for('dashboard') }}" class="nav-btn" style="background: #28a745;">الرجوع للوحة التحكم</a>
+    <a href="{{ url_for('login') }}" class="nav-btn" style="background: #dc3545;">تسجيل الخروج</a>
 
     <script>
-        // إعداد المنحنى البياني
-        const ctx = document.getElementById('myChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: ['الأيام', 'الأشهر', 'السنوات (2026)'],
-                datasets: [{
-                    label: 'المبيعات',
-                    data: [{{ daily_total }}, 0, 0], // هنا يتم ربط البيانات
-                    borderColor: 'blue',
-                    fill: false
-                }]
-            }
-        });
+        // دالة رسم المنحنيات
+        function createChart(id, label, data) {
+            new Chart(document.getElementById(id), {
+                type: 'line',
+                data: { labels: ['يناير', 'فبراير', 'مارس'], datasets: [{ label: label, data: data, borderColor: 'blue' }] }
+            });
+        }
+        createChart('daysChart', 'مبيعات الأيام', [{{ daily_total }}, 0, 0]);
+        createChart('monthsChart', 'مبيعات الأشهر', [{{ daily_total }}, 0, 0]);
+        createChart('yearsChart', 'مبيعات السنوية (2026)', [{{ daily_total }}, 0, 0]);
     </script>
 </body>
 </html>
