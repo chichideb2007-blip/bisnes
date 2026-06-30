@@ -2,86 +2,37 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>إدارة الطلبات</title>
-    <style>
-        :root { --primary-color: {{ settings.primary_color|default('#7e22ce') }}; }
-        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; padding: 20px; }
-        .container { max-width: 900px; margin: auto; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        
-        h2 { color: var(--primary-color); text-align: center; margin-bottom: 25px; }
-        
-        /* تنسيق الجداول */
-        table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
-        th { background: var(--primary-color); color: white; padding: 15px; }
-        td { padding: 15px; border-bottom: 1px solid #eee; text-align: center; }
-        
-        input { width: 90%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; }
-        
-        .btn-add { background: #10b981; color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; }
-        .btn-delete { color: #ef4444; font-weight: bold; text-decoration: none; }
-        .nav-links { text-align: center; margin-bottom: 20px; }
-        .nav-links a { color: var(--primary-color); text-decoration: none; margin: 0 10px; font-weight: bold; }
-    </style>
+    <title>الطلبيات</title>
 </head>
 <body>
-
-<div class="container">
-    <div class="nav-links">
-        <a href="{{ url_for('dashboard') }}">لوحة التحكم</a> | <a href="{{ url_for('logout') }}">خروج</a>
-    </div>
-
-    <h2>طلبيات متجر: {{ settings.shop_name }}</h2>
-
-    <form action="{{ url_for('orders') }}" method="POST">
-        <table>
-            <thead>
-                <tr>
-                    <th>اسم الزبون</th>
-                    <th>المنتج</th>
-                    <th>السعر</th>
-                    <th>رقم الهاتف</th>
-                    <th>إجراء</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><input type="text" name="customer_name" required></td>
-                    <td><input type="text" name="product_name" required></td>
-                    <td><input type="number" name="total_price" step="0.01" required></td>
-                    <td><input type="text" name="customer_phone" required></td>
-                    <td><button type="submit" class="btn-add">إضافة</button></td>
-                </tr>
-            </tbody>
-        </table>
+    <h1>إدارة الطلبيات</h1>
+    
+    <form action="/orders" method="POST">
+        <input type="text" name="customer_name" placeholder="اسم الزبون" required>
+        <input type="text" name="product_name" placeholder="اسم المنتج" required>
+        <input type="number" name="total_price" placeholder="السعر" required>
+        <input type="text" name="customer_phone" placeholder="رقم الهاتف" required>
+        <button type="submit">حفظ الطلبية</button>
     </form>
 
-    <h3>الطلبات المسجلة</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>الزبون</th>
-                <th>المنتج</th>
-                <th>السعر</th>
-                <th>الهاتف</th>
-                <th>إجراءات</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for o in orders %}
-            <tr>
-                <td>{{ o.customer_name }}</td>
-                <td>{{ o.product_name }}</td>
-                <td>{{ o.total_price }} دج</td>
-                <td>{{ o.customer_phone }}</td>
-                <td>
-                    <a href="#" style="color: blue; margin-left: 10px;">تعديل</a>
-                    <a href="{{ url_for('delete_order', id=o.id) }}" class="btn-delete" onclick="return confirm('هل أنت متأكد؟')">حذف</a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
+    <hr>
 
+    <h2>الطلبيات المسجلة</h2>
+    <table border="1">
+        <tr>
+            <th>الزبون</th><th>المنتج</th><th>السعر</th><th>الهاتف</th>
+        </tr>
+        {% for order in orders %}
+        <tr>
+            <td>{{ order.customer_name }}</td>
+            <td>{{ order.product_name }}</td>
+            <td>{{ order.total_price }}</td>
+            <td>{{ order.customer_phone }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    
+    <br>
+    <a href="{{ url_for('dashboard') }}">رجوع للوحة التحكم</a>
 </body>
 </html>
