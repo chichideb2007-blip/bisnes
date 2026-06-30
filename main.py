@@ -1,3 +1,4 @@
+
 from flask import Flask, render_template, request, redirect, url_for
 from supabase import create_client
 import os
@@ -5,7 +6,7 @@ import os
 app = Flask(__name__)
 app.secret_key = "shimo_secure_key_2026"
 
-# إعدادات Supabase (تأكدي من وجودها في Render)
+# إعدادات Supabase
 url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
@@ -28,7 +29,7 @@ def register():
 def dashboard():
     return render_template('dashboard.html')
 
-# 4. إدارة الطلبيات (إضافة + عرض)
+# 4. مسار الطلبيات (إضافة + عرض)
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     if request.method == 'POST':
@@ -41,14 +42,14 @@ def orders():
             }
             supabase.table("orders").insert(data).execute()
         except Exception as e:
-            print(f"Error: {e}")
+            print(f"Error saving: {e}")
         return redirect(url_for('orders'))
     
     response = supabase.table("orders").select("*").execute()
     return render_template('orders_dashboard.html', orders=response.data)
 
-# 5. مسار الحذف (هام جداً لزر الحذف)
-@app.route('/delete_order/<int:order_id>')
+# 5. مسار الحذف (معدل ليعمل مع طريقة POST من النموذج)
+@app.route('/delete_order/<int:order_id>', methods=['POST'])
 def delete_order(order_id):
     try:
         supabase.table("orders").delete().eq("id", order_id).execute()
@@ -56,7 +57,7 @@ def delete_order(order_id):
         print(f"Error deleting: {e}")
     return redirect(url_for('orders'))
 
-# 6. مسار الإحصائيات (الحساب التلقائي)
+# 6. الإحصائيات
 @app.route('/stats')
 def stats():
     response = supabase.table("orders").select("total_price").execute()
