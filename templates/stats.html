@@ -1,65 +1,31 @@
 <!DOCTYPE html>
-<html dir="rtl" lang="ar">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <title>إحصائيات المتجر</title>
-    <!-- ربط ملف الـ CSS الموحد -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <!-- مكتبة Chart.js للرسم البياني -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+        .card { display: inline-block; width: 200px; padding: 20px; margin: 10px; border-radius: 10px; color: white; }
+        .orders-card { background-color: #28a745; }
+        .money-card { background-color: #007bff; }
+    </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="card">
-        <h1>📊 إحصائيات المتجر</h1>
-        <a href="{{ url_for('dashboard') }}" class="btn">رجوع للوحة التحكم</a>
+    <h1>📊 إحصائيات المتجر</h1>
+
+    <div class="card orders-card">
+        <h3>عدد الطلبيات</h3>
+        <p style="font-size: 24px;">{{ total_orders }}</p>
     </div>
 
-    <!-- البطاقات الثلاث للمنحنيات -->
-    <div class="card">
-        <h3>مبيعات الأيام (آخر 7 أيام)</h3>
-        <canvas id="dailyChart"></canvas>
+    <div class="card money-card">
+        <h3>مجموع الأرباح</h3>
+        <p style="font-size: 24px;">{{ total_revenue }} دج</p>
     </div>
-    <div class="card">
-        <h3>مبيعات الأشهر (سنة 2026)</h3>
-        <canvas id="monthlyChart"></canvas>
-    </div>
-    <div class="card">
-        <h3>مبيعات السنوات</h3>
-        <canvas id="yearlyChart"></canvas>
-    </div>
-</div>
 
-<script>
-    // إعداد البيانات (يمكنك ربطها لاحقاً ببيانات Supabase الحقيقية)
-    const ctx1 = document.getElementById('dailyChart').getContext('2d');
-    new Chart(ctx1, {
-        type: 'line',
-        data: {
-            labels: ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'],
-            datasets: [{ label: 'المبيعات (دج)', data: [1200, 1900, 3000, 500, 2000, 3000, 4500], borderColor: '#3b82f6', tension: 0.3 }]
-        }
-    });
-
-    const ctx2 = document.getElementById('monthlyChart').getContext('2d');
-    new Chart(ctx2, {
-        type: 'bar',
-        data: {
-            labels: ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو'],
-            datasets: [{ label: 'المبيعات الشهرية', data: [12000, 19000, 30000, 50000, 20000, 45000], backgroundColor: '#1e3a8a' }]
-        }
-    });
-
-    const ctx3 = document.getElementById('yearlyChart').getContext('2d');
-    new Chart(ctx3, {
-        type: 'pie',
-        data: {
-            labels: ['2026'],
-            datasets: [{ data: [150000], backgroundColor: ['#3b82f6'] }]
-        }
-    });
-</script>
+    <br><br>
+    <a href="{{ url_for('dashboard') }}">الرجوع للوحة التحكم</a>
 
 </body>
 </html>
