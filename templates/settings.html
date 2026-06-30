@@ -4,62 +4,75 @@
     <meta charset="UTF-8">
     <title>إعدادات الموقع</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; padding: 20px; background-color: #f4f7f6; }
-        .container { max-width: 500px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        :root { --primary-color: #007bff; }
+        body { font-family: Arial, sans-serif; padding: 20px; background-color: #f4f7f6; transition: background 0.3s; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); border-top: 5px solid var(--primary-color); }
         h2 { color: #333; text-align: center; }
         label { display: block; margin-top: 15px; font-weight: bold; }
         input { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
-        .btn-group { margin-top: 20px; display: flex; gap: 10px; flex-direction: column; }
+        .btn-group { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
         button { padding: 12px; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; }
-        .btn-save { background-color: #28a745; }
-        .btn-color { background-color: #007bff; }
+        .btn-save-info { background-color: #28a745; }
+        .btn-save-color { background-color: var(--primary-color); }
         .btn-logout { background-color: #dc3545; }
-        a { text-decoration: none; color: white; display: block; text-align: center; }
+        .btn-back { background-color: #6c757d; }
+        a { text-decoration: none; color: white; }
     </style>
 </head>
 <body>
 
-<div class="container">
+<div class="container" id="mainContainer">
     <h2>⚙️ إعدادات الموقع</h2>
     
     <form action="/settings" method="POST">
         <label>اسم المتجر أو البوت:</label>
-        <input type="text" name="store_name" placeholder="أدخلي اسم المتجر هنا">
+        <input type="text" name="store_name" placeholder="أدخلي الاسم">
 
-        <label>رابط أو توكن تلجرام:</label>
-        <input type="text" name="telegram_token" placeholder="أدخلي التوكن هنا">
+        <label>توكن أو رابط تيلجرام:</label>
+        <input type="text" name="telegram_token" placeholder="أدخلي التوكن">
 
         <div class="btn-group">
-            <button type="submit" class="btn-save">حفظ المعلومات</button>
+            <button type="submit" class="btn-save-info">حفظ المعلومات</button>
         </div>
     </form>
 
     <hr>
 
     <label>اختيار لون الموقع:</label>
-    <input type="color" id="colorPicker">
+    <input type="color" id="colorPicker" onchange="updatePreview(this.value)">
     <div class="btn-group">
-        <button onclick="saveColor()" class="btn-color">حفظ الألوان</button>
+        <button onclick="saveColor()" class="btn-save-color">حفظ الألوان</button>
     </div>
 
     <hr>
 
     <div class="btn-group">
-        <button class="btn-logout">
-            <a href="{{ url_for('logout') }}">تسجيل الخروج</a>
-        </button>
+        <button class="btn-back"><a href="{{ url_for('dashboard') }}">الرجوع للوحة التحكم</a></button>
+        <button class="btn-logout"><a href="{{ url_for('logout') }}">تسجيل الخروج</a></button>
     </div>
-
-    <br>
-    <a href="{{ url_for('dashboard') }}" style="color: #666;">الرجوع للوحة التحكم</a>
 </div>
 
 <script>
+    // تغيير لون الواجهة فوراً عند الاختيار
+    function updatePreview(color) {
+        document.documentElement.style.setProperty('--primary-color', color);
+    }
+
+    // حفظ اللون في المتصفح
     function saveColor() {
         const color = document.getElementById('colorPicker').value;
-        alert("تم حفظ اللون: " + color);
-        // يمكنك لاحقاً إضافة كود هنا لإرسال اللون لقاعدة البيانات
+        localStorage.setItem('siteTheme', color);
+        alert("تم حفظ اللون الجديد بنجاح!");
     }
+
+    // استرجاع اللون عند فتح الصفحة
+    window.onload = () => {
+        const savedColor = localStorage.getItem('siteTheme');
+        if (savedColor) {
+            document.documentElement.style.setProperty('--primary-color', savedColor);
+            document.getElementById('colorPicker').value = savedColor;
+        }
+    };
 </script>
 
 </body>
