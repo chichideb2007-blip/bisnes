@@ -1,4 +1,3 @@
-
 from flask import Flask, render_template, request, redirect, url_for
 from supabase import create_client
 import os
@@ -6,7 +5,7 @@ import os
 app = Flask(__name__)
 app.secret_key = "shimo_secure_key_2026"
 
-# إعدادات Supabase
+# إعدادات Supabase (تأكدي من وجودها في Render)
 url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
@@ -45,13 +44,15 @@ def orders():
             print(f"Error saving: {e}")
         return redirect(url_for('orders'))
     
+    # جلب البيانات من Supabase
     response = supabase.table("orders").select("*").execute()
     return render_template('orders_dashboard.html', orders=response.data)
 
-# 5. مسار الحذف (معدل ليعمل مع طريقة POST من النموذج)
+# 5. مسار الحذف (النسخة النهائية الصحيحة)
 @app.route('/delete_order/<int:order_id>', methods=['POST'])
 def delete_order(order_id):
     try:
+        # الحذف من جدول orders بناءً على العمود 'id'
         supabase.table("orders").delete().eq("id", order_id).execute()
     except Exception as e:
         print(f"Error deleting: {e}")
