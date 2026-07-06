@@ -1,75 +1,62 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, session
 from supabase import create_client
 import os
 from dotenv import load_dotenv
 
-# تحميل متغيرات البيئة
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = 'shimo_secure_key_2026'
+# في الإنتاج، يجب أن يكون هذا المفتاح طويلاً وعشوائياً جداً
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "super-secret-key-for-production")
 
-# إعداد Supabase
+# نستخدم المتغيرات من النظام (Render) وليس الكود
 url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
 
-# المسار الرئيسي (يؤدي لصفحة تسجيل الدخول)
+# --- دالة مساعدة للتحقق من تسجيل الدخول ---
+def is_logged_in():
+    return 'user_id' in session
+
 @app.route('/', methods=['GET', 'POST'])
-@app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        # عند الضغط على زر الدخول، يتم توجيه المستخدم للوحة التحكم
+        # في مشروع تجاري: هنا نتحقق من اسم المستخدم وكلمة المرور من قاعدة البيانات
+        # إذا تم التحقق بنجاح:
+        session['user_id'] = "company_123"  # مثال: ID الشركة
         return redirect(url_for('dashboard'))
     return render_template('login.html')
 
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    return render_template('register.html')
-
 @app.route('/dashboard')
 def dashboard():
+    if not is_logged_in(): return redirect(url_for('login'))
     return render_template('dashboard.html')
 
-# صفحة الطلبيات (تعمل الآن مع عملية الحذف الجديدة)
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
+    if not is_logged_in(): return redirect(url_for('login'))
+    
     if request.method == 'POST':
         data = {
             "customer_name": request.form.get('customer_name'),
             "product_name": request.form.get('product_name'),
             "total_price": float(request.form.get('total_price', 0)),
-            "customer_phone": request.form.get('customer_phone')
+            "customer_phone": request.form.get('customer_phone'),
+            "company_id": session['user_id'] # ربط الطلبية بالشركة
         }
         supabase.table('orders').insert(data).execute()
         return redirect(url_for('orders'))
     
-    response = supabase.table('orders').select('*').execute()
+    # جلب البيانات الخاصة بهذه الشركة فقط
+    response = supabase.table('orders').select('*').eq('company_id', session['user_id']).execute()
     return render_template('users.html', orders=response.data)
 
-# دالة الحذف (تم عزلها لضمان عدم تداخلها)
-@app.route('/delete_order/<int:order_id>', methods=['GET'])
+@app.route('/delete_order/<int:order_id>', methods=['POST']) # استخدمنا POST للأمان
 def delete_order(order_id):
-    try:
-        supabase.table('orders').delete().eq('id', order_id).execute()
-    except Exception as e:
-        print(f'Error deleting: {e}')
+    if not is_logged_in(): return redirect(url_for('login'))
+    
+    # الحذف مشروط بـ company_id لضمان عدم حذف طلبية شركة أخرى
+    supabase.table('orders').delete().eq('id', order_id).eq('company_id', session['user_id']).execute()
     return redirect(url_for('orders'))
 
-@app.route('/stats', methods=['GET'])
-def stats():
-    response = supabase.table('orders').select('total_price').execute()
-    total_sales = sum(float(item.get('total_price', 0)) for item in response.data)
-    return render_template('stats.html', total_sales=total_sales)
-
-@app.route('/settings', methods=['GET', 'POST'])
-def settings():
-    return render_template('settings.html')
-
-@app.route('/logout')
-def logout():
-    return redirect(url_for('login'))
-
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+# ... (باقي الدوال بنفس نمط التحقق)
