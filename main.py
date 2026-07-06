@@ -48,17 +48,11 @@ def orders():
     response = supabase.table('orders').select('*').execute()
     return render_template('orders_dashboard.html', orders=response.data)
 
-# 5. مسار الحذف (النسخة المعدلة)
-@app.route('/delete_order/<int:order_id>', methods=['POST'])
+# 5. مسار الحذف (تم التعديل ليصبح GET لتسهيل العمل)
+@app.route('/delete_order/<int:order_id>', methods=['GET'])
 def delete_order(order_id):
     try:
-        # تنفيذ عملية الحذف والتأكد من النتائج
-        response = supabase.table('orders').delete().eq('id', order_id).execute()
-        
-        # التحقق من وجود أخطاء في الاستجابة
-        if hasattr(response, 'error') and response.error:
-            print(f'Supabase Error: {response.error}')
-            
+        supabase.table('orders').delete().eq('id', order_id).execute()
     except Exception as e:
         print(f'Error deleting: {e}')
         
