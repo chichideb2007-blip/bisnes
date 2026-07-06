@@ -3,7 +3,6 @@ from supabase import create_client
 import os
 from dotenv import load_dotenv
 
-# تحميل متغيرات البيئة
 load_dotenv()
 
 app = Flask(__name__)
@@ -15,7 +14,6 @@ key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
 
 @app.route('/', methods=['GET', 'POST'])
-@app.route('/login', methods=['GET', 'POST'])
 def login():
     return render_template('login.html')
 
@@ -42,16 +40,15 @@ def orders():
     response = supabase.table('orders').select('*').execute()
     return render_template('users.html', orders=response.data)
 
-# --- التعديل الأساسي هنا ---
+# --- دالة الحذف مستقلة ومعدلة ---
 @app.route('/delete_order/<int:order_id>', methods=['GET'])
 def delete_order(order_id):
     try:
-        # تنفيذ عملية الحذف في Supabase
         supabase.table('orders').delete().eq('id', order_id).execute()
     except Exception as e:
         print(f'Error deleting: {e}')
     return redirect(url_for('orders'))
-# ---------------------------
+# -------------------------------
 
 @app.route('/stats', methods=['GET'])
 def stats():
