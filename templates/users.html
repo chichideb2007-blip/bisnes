@@ -1,44 +1,52 @@
 <!DOCTYPE html>
-<html dir="rtl" lang="ar">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>لوحة التحكم</title>
+    <title>إدارة الطلبيات</title>
+    <!-- استعارة التنسيق من base.html إذا كان مرتبطاً به -->
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; }
-        .navbar { background-color: #f4f4f4; padding: 15px; text-align: left; margin-bottom: 20px; border-radius: 5px; }
-        .navbar a { margin-right: 15px; text-decoration: none; color: blue; font-weight: bold; }
-        .navbar a.logout { color: red; }
+        body { font-family: Arial, sans-serif; padding: 20px; text-align: center; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
-        th { background-color: #f2f2f2; }
-        .form-container { margin-bottom: 30px; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        th { background-color: #f4f4f4; }
+        .btn-delete { 
+            background-color: #d9534f; 
+            color: white; 
+            padding: 5px 10px; 
+            text-decoration: none; 
+            border-radius: 4px;
+            font-size: 13px;
+            display: inline-block;
+        }
+        .btn-delete:hover { background-color: #c9302c; }
     </style>
 </head>
 <body>
 
-    <div class="navbar">
-        <a href="/stats">عرض الإحصائيات</a>
-        <a href="/logout" class="logout">تسجيل الخروج</a>
-    </div>
-
-    <h1>لوحة تحكم الطلبات</h1>
+    <nav class="navbar">
+        <a href="{{ url_for('stats') }}">عرض الإحصائيات</a>
+        <a href="{{ url_for('logout') }}" style="color: red;">تسجيل الخروج</a>
+    </nav>
 
     <div class="form-container">
-        <h3>إضافة طلب جديد</h3>
-        <form action="/add" method="POST">
+        <h1>إضافة طلب جديد</h1>
+        <form action="{{ url_for('orders') }}" method="POST">
             <input type="text" name="customer_name" placeholder="اسم الزبون" required>
-            <input type="text" name="product_name" placeholder="المنتج" required>
-            <input type="number" name="total_price" placeholder="السعر" required>
+            <input type="text" name="product_name" placeholder="اسم المنتج" required>
+            <input type="number" name="total_price" step="0.01" placeholder="السعر" required>
+            <input type="text" name="customer_phone" placeholder="رقم الهاتف" required>
             <button type="submit">إضافة</button>
         </form>
     </div>
 
+    <h1>قائمة الطلبيات</h1>
     <table>
         <thead>
             <tr>
                 <th>اسم الزبون</th>
-                <th>المنتج</th>
+                <th>اسم المنتج</th>
                 <th>السعر</th>
+                <th>رقم الهاتف</th>
                 <th>إجراء</th>
             </tr>
         </thead>
@@ -48,14 +56,18 @@
                 <td>{{ item.customer_name }}</td>
                 <td>{{ item.product_name }}</td>
                 <td>{{ item.total_price }}</td>
-                <td><a href="/delete/{{ item.id }}" style="color: red;">حذف</a></td>
+                <td>{{ item.customer_phone }}</td>
+                <td>
+                    <!-- الرابط المعدل ليتطابق مع دالة الحذف في main.py -->
+                    <a href="{{ url_for('delete_order', order_id=item.id) }}" 
+                       class="btn-delete" 
+                       onclick="return confirm('هل أنت متأكدة من حذف هذه الطلبية؟')">
+                       حذف
+                    </a>
+                </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
-
-    <br>
-    <h3>إجمالي الأرباح الحالية: {{ total }} دج</h3>
-
 </body>
 </html>
