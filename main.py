@@ -3,9 +3,9 @@ from supabase import create_client
 import os
 
 app = Flask(__name__)
-app.secret_key = "shimo_secure_key_2026"
+app.secret_key = 'shimo_secure_key_2026'
 
-# إعدادات Supabase (تأكدي من وجودها في Render)
+# إعداد Supabase
 url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
@@ -28,7 +28,7 @@ def register():
 def dashboard():
     return render_template('dashboard.html')
 
-# 4. مسار الطلبيات (إضافة + عرض)
+# 4. مسار الطلبيات (إضافة وعرض)
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     if request.method == 'POST':
@@ -39,30 +39,36 @@ def orders():
                 "total_price": float(request.form.get('total_price', 0)),
                 "customer_phone": request.form.get('customer_phone')
             }
-            supabase.table("orders").insert(data).execute()
+            supabase.table('orders').insert(data).execute()
         except Exception as e:
-            print(f"Error saving: {e}")
+            print(f'Error saving: {e}')
         return redirect(url_for('orders'))
     
-    # جلب البيانات من Supabase
-    response = supabase.table("orders").select("*").execute()
+    # جلب الطلبيات من Supabase
+    response = supabase.table('orders').select('*').execute()
     return render_template('orders_dashboard.html', orders=response.data)
 
-# 5. مسار الحذف (النسخة النهائية الصحيحة)
+# 5. مسار الحذف (النسخة المعدلة)
 @app.route('/delete_order/<int:order_id>', methods=['POST'])
 def delete_order(order_id):
     try:
-        # الحذف من جدول orders بناءً على العمود 'id'
-        supabase.table("orders").delete().eq("id", order_id).execute()
+        # تنفيذ عملية الحذف والتأكد من النتائج
+        response = supabase.table('orders').delete().eq('id', order_id).execute()
+        
+        # التحقق من وجود أخطاء في الاستجابة
+        if hasattr(response, 'error') and response.error:
+            print(f'Supabase Error: {response.error}')
+            
     except Exception as e:
-        print(f"Error deleting: {e}")
+        print(f'Error deleting: {e}')
+        
     return redirect(url_for('orders'))
 
 # 6. الإحصائيات
-@app.route('/stats')
+@app.route('/stats', methods=['GET'])
 def stats():
-    response = supabase.table("orders").select("total_price").execute()
-    total_sales = sum(float(o.get('total_price', 0)) for o in response.data)
+    response = supabase.table('orders').select('total_price').execute()
+    total_sales = sum(float(item.get('total_price', 0)) for item in response.data)
     return render_template('stats.html', total_sales=total_sales)
 
 # 7. الإعدادات
@@ -76,5 +82,5 @@ def logout():
     return redirect(url_for('login'))
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
