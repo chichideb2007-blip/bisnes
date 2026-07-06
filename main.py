@@ -44,7 +44,9 @@ def orders():
         supabase.table('orders').insert(data).execute()
         return redirect(url_for('orders'))
     
-    response = supabase.table('orders').select('*').eq('company_id', company_id).execute()
+    # استبدلي السطر 47 بهذا السطر الجديد:
+    response = supabase.table('orders').select('*').filter('company_id', 'eq', str(company_id)).execute()
+
     return render_template('users.html', orders=response.data)
 
 @app.route('/delete_order/<int:order_id>', methods=['POST'])
