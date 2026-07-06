@@ -2,34 +2,37 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>إدارة الطلبيات</title>
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; text-align: center; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 10px; }
-        th { background-color: #f4f4f4; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; text-align: center; background-color: #f9f9f9; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background-color: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        th, td { border: 1px solid #eee; padding: 12px; text-align: center; }
+        th { background-color: #333; color: white; }
         .btn-delete { 
             background-color: #d9534f; 
             color: white; 
-            padding: 5px 10px; 
+            padding: 6px 12px; 
             text-decoration: none; 
             border-radius: 4px;
-            font-size: 14px;
+            font-size: 13px;
+            display: inline-block;
         }
         .btn-delete:hover { background-color: #c9302c; }
+        h1 { color: #333; }
     </style>
 </head>
 <body>
 
-    <h1>إدارة الطلبيات</h1>
+    <h1>قائمة الطلبيات المسجلة</h1>
 
     <table>
         <thead>
             <tr>
-                <th>الزبون</th>
-                <th>المنتج</th>
+                <th>اسم الزبون</th>
+                <th>اسم المنتج</th>
                 <th>السعر</th>
-                <th>الهاتف</th>
+                <th>رقم الهاتف</th>
                 <th>إجراء</th>
             </tr>
         </thead>
@@ -41,9 +44,9 @@
                 <td>{{ order.total_price }}</td>
                 <td>{{ order.customer_phone }}</td>
                 <td>
-                    <a href="{{ url_for('delete_order', order_id=order.id) }}" 
+                    <a href="/delete_order/{{ order.id }}" 
                        class="btn-delete" 
-                       onclick="return confirm('هل أنت متأكدة من حذف هذه الطلبية؟')">
+                       onclick="return confirm('هل أنتِ متأكدة من حذف هذه الطلبية نهائياً؟')">
                        حذف
                     </a>
                 </td>
