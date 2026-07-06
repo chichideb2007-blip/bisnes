@@ -3,6 +3,7 @@ from supabase import create_client
 import os
 from dotenv import load_dotenv
 
+# تحميل متغيرات البيئة
 load_dotenv()
 
 app = Flask(__name__)
@@ -13,8 +14,13 @@ url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
 
+# المسار الرئيسي (يؤدي لصفحة تسجيل الدخول)
 @app.route('/', methods=['GET', 'POST'])
+@app.route('/login', methods=['GET', 'POST'])
 def login():
+    if request.method == 'POST':
+        # عند الضغط على زر الدخول، يتم توجيه المستخدم للوحة التحكم
+        return redirect(url_for('dashboard'))
     return render_template('login.html')
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -25,6 +31,7 @@ def register():
 def dashboard():
     return render_template('dashboard.html')
 
+# صفحة الطلبيات (تعمل الآن مع عملية الحذف الجديدة)
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     if request.method == 'POST':
@@ -40,7 +47,7 @@ def orders():
     response = supabase.table('orders').select('*').execute()
     return render_template('users.html', orders=response.data)
 
-# --- دالة الحذف مستقلة ومعدلة ---
+# دالة الحذف (تم عزلها لضمان عدم تداخلها)
 @app.route('/delete_order/<int:order_id>', methods=['GET'])
 def delete_order(order_id):
     try:
@@ -48,7 +55,6 @@ def delete_order(order_id):
     except Exception as e:
         print(f'Error deleting: {e}')
     return redirect(url_for('orders'))
-# -------------------------------
 
 @app.route('/stats', methods=['GET'])
 def stats():
