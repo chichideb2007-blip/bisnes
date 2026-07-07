@@ -1,54 +1,65 @@
-<!DOCTYPE html>
+<!DO<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>الإحصائيات</title>
+    <title>الإحصائيات المتقدمة</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; }
-        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-        .total-box { background: #007bff; color: white; padding: 20px; text-align: center; border-radius: 10px; margin-bottom: 20px; }
-        canvas { max-width: 100%; margin-top: 20px; }
-        .back-link { display: inline-block; margin-top: 20px; color: #007bff; text-decoration: none; }
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f7f6; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 10px; }
+        .chart-container { margin-bottom: 40px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        h2 { text-align: center; color: #333; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="total-box">
-            <h2>إجمالي المبيعات: {{ total }} دج</h2>
-        </div>
 
-        <h3>رسم بياني للطلبيات</h3>
-        <canvas id="myChart"></canvas>
-        
-        <br>
-        <a href="/dashboard" class="back-link">العودة للوحة التحكم</a>
+<div class="container">
+    <h2>لوحة الإحصائيات</h2>
+
+    <div class="chart-container">
+        <h3>المبيعات حسب الأيام</h3>
+        <canvas id="dailyChart"></canvas>
     </div>
 
-    <script>
-        const ctx = document.getElementById('myChart').getContext('2d');
-        const myChart = new Chart(ctx, {
-            type: 'bar', // نوع الرسم البياني (يمكنك تغييره لـ 'line')
+    <div class="chart-container">
+        <h3>المبيعات حسب الأشهر</h3>
+        <canvas id="monthlyChart"></canvas>
+    </div>
+
+    <div class="chart-container">
+        <h3>المبيعات حسب السنوات</h3>
+        <canvas id="yearlyChart"></canvas>
+    </div>
+
+    <a href="/dashboard">العودة للوحة التحكم</a>
+</div>
+
+<script>
+    // دالة لإنشاء المنحنيات
+    function createChart(ctx, label, dataDict, type = 'line') {
+        const labels = Object.keys(dataDict);
+        const dataValues = Object.values(dataDict);
+        
+        new Chart(ctx, {
+            type: type,
             data: {
-                // توليد أسماء الطلبيات ديناميكياً
-                labels: [{% for order in orders %}"طلب {{ loop.index }}",{% endfor %}],
+                labels: labels,
                 datasets: [{
-                    label: 'قيمة الطلبية (دج)',
-                    // جلب الأسعار ديناميكياً من main.py
-                    data: {{ prices | tojson }}, 
-                    backgroundColor: 'rgba(54, 162, 235, 0.5)',
-                    borderColor: 'rgba(54, 162, 235, 1)',
-                    borderWidth: 1
+                    label: label,
+                    data: dataValues,
+                    borderColor: '#007bff',
+                    backgroundColor: 'rgba(0, 123, 255, 0.2)',
+                    fill: true
                 }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: { beginAtZero: true }
-                }
             }
         });
-    </script>
+    }
+
+    // تمرير البيانات من Flask إلى JS
+    createChart(document.getElementById('dailyChart').getContext('2d'), 'مبيعات يومية', {{ daily | tojson }});
+    createChart(document.getElementById('monthlyChart').getContext('2d'), 'مبيعات شهرية', {{ monthly | tojson }});
+    createChart(document.getElementById('yearlyChart').getContext('2d'), 'مبيعات سنوية', {{ yearly | tojson }});
+</script>
+
 </body>
 </html>
