@@ -2,61 +2,53 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة إدارة الطلبيات</title>
+    <title>لوحة الطلبيات</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; }
-        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-        h2 { color: #333; }
-        form { display: flex; flex-direction: column; gap: 10px; margin-bottom: 30px; }
-        input { padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
-        button { padding: 10px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .total-box { background: #e9ecef; padding: 15px; border-radius: 5px; text-align: center; font-size: 1.2em; font-weight: bold; margin-bottom: 20px; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { padding: 12px; border: 1px solid #ddd; text-align: center; }
         th { background-color: #f8f9fa; }
-        .back-link { display: inline-block; margin-top: 20px; color: #007bff; text-decoration: none; }
+        .btn-delete { color: white; background-color: red; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; }
     </style>
 </head>
 <body>
+    <div class="container">
+        <div class="total-box">
+            المجموع الكلي للطلبيات: {{ total }} دج
+        </div>
 
-<div class="container">
-    <h2>إضافة طلبية جديدة</h2>
-    <form method="POST">
-        <input type="text" name="customer_name" placeholder="اسم الزبون" required>
-        <input type="text" name="customer_phone" placeholder="رقم الهاتف" required>
-        <input type="text" name="product_name" placeholder="اسم المنتج" required>
-        <input type="number" step="0.01" name="total_price" placeholder="السعر الإجمالي" required>
-        <button type="submit">حفظ المعلومات</button>
-    </form>
-
-    <hr>
-
-    <h2>جدول الطلبيات المسجلة</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>اسم الزبون</th>
-                <th>رقم الهاتف</th>
-                <th>المنتج</th>
-                <th>السعر</th>
-                <th>الحالة</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for order in orders %}
-            <tr>
-                <td>{{ order.customer_name }}</td>
-                <td>{{ order.customer_phone }}</td>
-                <td>{{ order.product_name }}</td>
-                <td>{{ order.total_price }}</td>
-                <td>{{ order.status }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    <a href="/dashboard" class="back-link">← العودة إلى لوحة التحكم</a>
-</div>
-
+        <h2>جدول الطلبيات</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>اسم الزبون</th>
+                    <th>رقم الهاتف</th>
+                    <th>المنتج</th>
+                    <th>السعر</th>
+                    <th>حذف</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr>
+                    <td>{{ order.customer_name }}</td>
+                    <td>{{ order.customer_phone }}</td>
+                    <td>{{ order.product_name }}</td>
+                    <td>{{ order.total_price }}</td>
+                    <td>
+                        <form action="/delete_order" method="POST">
+                            <input type="hidden" name="order_id" value="{{ order.id }}">
+                            <button type="submit" class="btn-delete">حذف</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <br>
+        <a href="/dashboard">العودة للداشبورد</a>
+    </div>
 </body>
 </html>
