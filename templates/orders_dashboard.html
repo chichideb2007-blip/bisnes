@@ -2,53 +2,76 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>لوحة الطلبيات</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; }
-        .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-        .total-box { background: #e9ecef; padding: 15px; border-radius: 5px; text-align: center; font-size: 1.2em; font-weight: bold; margin-bottom: 20px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { padding: 12px; border: 1px solid #ddd; text-align: center; }
-        th { background-color: #f8f9fa; }
-        .btn-delete { color: white; background-color: red; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background-color: #f4f7f6; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        
+        /* تنسيق النموذج */
+        .order-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; padding: 20px; background: #f9f9f9; border-radius: 8px; border: 1px solid #eee; }
+        input { padding: 12px; border: 1px solid #ccc; border-radius: 5px; width: 100%; box-sizing: border-box; }
+        button { padding: 12px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        button:hover { background-color: #218838; }
+
+        /* تنسيق الجدول */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 15px; border-bottom: 1px solid #ddd; text-align: center; }
+        th { background-color: #007bff; color: white; }
+        
+        .btn-delete { color: white; background-color: #dc3545; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; }
+        .total-box { font-size: 1.5em; color: #333; margin-bottom: 20px; text-align: center; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+        
+        a { display: inline-block; margin-top: 20px; text-decoration: none; color: #007bff; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="total-box">
-            المجموع الكلي للطلبيات: {{ total }} دج
-        </div>
 
-        <h2>جدول الطلبيات</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>اسم الزبون</th>
-                    <th>رقم الهاتف</th>
-                    <th>المنتج</th>
-                    <th>السعر</th>
-                    <th>حذف</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for order in orders %}
-                <tr>
-                    <td>{{ order.customer_name }}</td>
-                    <td>{{ order.customer_phone }}</td>
-                    <td>{{ order.product_name }}</td>
-                    <td>{{ order.total_price }}</td>
-                    <td>
-                        <form action="/delete_order" method="POST">
-                            <input type="hidden" name="order_id" value="{{ order.id }}">
-                            <button type="submit" class="btn-delete">حذف</button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        <br>
-        <a href="/dashboard">العودة للداشبورد</a>
+<div class="container">
+    <div class="total-box">
+        المجموع الكلي: {{ total }} دج
     </div>
+
+    <h3>إضافة طلبية جديدة</h3>
+    <form method="POST" class="order-form">
+        <input type="text" name="customer_name" placeholder="اسم الزبون" required>
+        <input type="text" name="customer_phone" placeholder="رقم الهاتف" required>
+        <input type="text" name="product_name" placeholder="اسم المنتج" required>
+        <input type="number" step="0.01" name="total_price" placeholder="السعر الإجمالي" required>
+        <button type="submit">حفظ الطلبية</button>
+    </form>
+
+    <h3>الطلبيات الحالية</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>الزبون</th>
+                <th>الهاتف</th>
+                <th>المنتج</th>
+                <th>السعر</th>
+                <th>إجراء</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for order in orders %}
+            <tr>
+                <td>{{ order.customer_name }}</td>
+                <td>{{ order.customer_phone }}</td>
+                <td>{{ order.product_name }}</td>
+                <td>{{ order.total_price }} دج</td>
+                <td>
+                    <form action="/delete_order" method="POST">
+                        <input type="hidden" name="order_id" value="{{ order.id }}">
+                        <button type="submit" class="btn-delete">حذف</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <a href="/dashboard">← العودة للوحة التحكم</a>
+</div>
+
 </body>
 </html>
