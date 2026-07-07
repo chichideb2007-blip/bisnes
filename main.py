@@ -3,12 +3,14 @@ from flask import Flask, render_template, request, redirect, url_for
 from supabase import create_client
 
 app = Flask(__name__)
-app.secret_key = 'secret_key_123'
+app.secret_key = 'your_secret_key_here'
 
 # إعداد الاتصال بـ Supabase
 url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
+
+# --- الروابط (Routes) ---
 
 @app.route('/')
 def home():
@@ -17,8 +19,16 @@ def home():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
+        # أضيفي هنا منطق التحقق إذا كنتِ تريدين
         return redirect(url_for('dashboard'))
     return render_template('login.html')
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    # تمت إضافة هذا الرابط لحل مشكلة الـ BuildUrlError
+    if request.method == 'POST':
+        return redirect(url_for('login'))
+    return render_template('register.html')
 
 @app.route('/dashboard')
 def dashboard():
@@ -29,7 +39,6 @@ def dashboard():
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     if request.method == 'POST':
-        # جلب البيانات من النموذج
         data = {
             "customer_name": request.form.get("customer_name"),
             "customer_phone": request.form.get("customer_phone"),
@@ -40,7 +49,6 @@ def orders():
         supabase.table("orders").insert(data).execute()
         return redirect(url_for('orders'))
     
-    # جلب البيانات من الجدول
     response = supabase.table("orders").select("*").execute()
     return render_template('orders_dashboard.html', orders=response.data)
 
