@@ -32,12 +32,11 @@ def orders():
     response = supabase.table("orders").select("*").execute()
     orders_data = response.data
     
-    # حساب المجموع الكلي (بفرض أن العمود اسمه 'price')
-    total_sales = sum(float(order.get('price', 0)) for order in orders_data)
+    # حساب المجموع الكلي
+    total_sales = sum(float(order.get('total_price', 0)) for order in orders_data)
     
     return render_template('orders_dashboard.html', orders=orders_data, total=total_sales)
 
-# مسار حذف الطلبية
 @app.route('/delete_order', methods=['POST'])
 def delete_order():
     order_id = request.form.get('order_id')
@@ -47,12 +46,16 @@ def delete_order():
 
 @app.route('/stats')
 def stats():
-    # جلب البيانات للإحصائيات
     response = supabase.table("orders").select("*").execute()
     orders_data = response.data
-    total_sales = sum(float(order.get('price', 0)) for order in orders_data)
     
-    return render_template('stats.html', total=total_sales, orders=orders_data)
+    # حساب المجموع لعرضه في الإحصائيات
+    total_sales = sum(float(order.get('total_price', 0)) for order in orders_data)
+    
+    # تجهيز قائمة الأسعار للرسوم البيانية (Chart.js)
+    prices = [float(order.get('total_price', 0)) for order in orders_data]
+    
+    return render_template('stats.html', total=total_sales, prices=prices, orders=orders_data)
 
 @app.route('/register')
 def register():
