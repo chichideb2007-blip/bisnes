@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for
 from supabase import create_client
 import os
 
+# تعريف المسارات: ملفات HTML في مجلد templates والملفات الثابتة في static
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.secret_key = 'your_secret_key'
 
@@ -10,15 +11,19 @@ url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
 
+# --- المسارات (Routes) ---
+
 @app.route('/')
 def home():
     return redirect(url_for('login'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    if request.method == 'POST':
+        # عند الضغط على "دخول"، سيقوم النظام بتحويلك إلى صفحة الداشبورد
+        return redirect(url_for('dashboard'))
     return render_template('login.html')
 
-# إضافة المسارات المفقودة التي تسبب الخطأ
 @app.route('/register')
 def register():
     return render_template('register.html')
@@ -33,7 +38,13 @@ def stats():
 
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
-    return render_template('orders_dashboard.html')
+    # جلب الطلبات من Supabase مع معالجة بسيطة للأخطاء
+    try:
+        response = supabase.table("orders").select("*").execute()
+        orders_data = response.data
+    except:
+        orders_data = []
+    return render_template('orders_dashboard.html', orders=orders_data)
 
 if __name__ == '__main__':
     app.run(debug=True)
