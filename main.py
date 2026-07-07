@@ -7,6 +7,7 @@ from collections import defaultdict
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.secret_key = 'your_secret_key'
 
+# إعداد Supabase
 url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
@@ -29,8 +30,8 @@ def dashboard():
 
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
-    # عند إضافة طلبية جديدة (POST)
     if request.method == 'POST':
+        # إضافة طلبية جديدة
         data = {
             "customer_name": request.form.get("customer_name"),
             "customer_phone": request.form.get("customer_phone"),
@@ -40,7 +41,6 @@ def orders():
         supabase.table("orders").insert(data).execute()
         return redirect(url_for('orders'))
 
-    # جلب البيانات للعرض
     response = supabase.table("orders").select("*").execute()
     orders_data = response.data
     total_sales = sum(float(order.get('total_price', 0)) for order in orders_data)
@@ -57,26 +57,24 @@ def delete_order():
 @app.route('/stats')
 def stats():
     response = supabase.table("orders").select("*").execute()
-    orders_data = response.data
+    orders = response.data
     
-    # تحضير بيانات المنحنيات (تجميع حسب التاريخ)
-    # هذا المنطق يفترض وجود حقل 'created_at' في قاعدة البيانات
-    daily_sales = defaultdict(float)
-    monthly_sales = defaultdict(float)
-    yearly_sales = defaultdict(float)
+    # تحضير القواميس للمنحنيات
+    daily = defaultdict(float)
+    monthly = defaultdict(float)
+    yearly = defaultdict(float)
     
-    for order in orders_data:
+    for order in orders:
+        # استخراج التاريخ (استخدام created_at إذا وجد، وإلا تاريخ اليوم)
         date_str = order.get('created_at', datetime.now().isoformat())[:10]
-        date_obj = datetime.strptime(date_str, '%Y-%m-%d')
+        dt = datetime.strptime(date_str, '%Y-%m-%d')
         
-        daily_sales[date_str] += float(order.get('total_price', 0))
-        monthly_sales[date_obj.strftime('%m-%Y')] += float(order.get('total_price', 0))
-        yearly_sales[date_obj.strftime('%Y')] += float(order.get('total_price', 0))
-    
-    return render_template('stats.html', 
-                           daily=dict(daily_sales), 
-                           monthly=dict(monthly_sales), 
-                           yearly=dict(yearly_sales))
+        # تجميع القيم حسب اليوم، الشهر، والسنة
+        daily[dt.strftime('%A')] += float(order.get('total_price', 0))
+        monthly[dt.strftime('%B')] += float(order.get('total_price', 0))
+        yearly[dt.strftime('%Y')] += float(order.get('total_price', 0))
+        
+    return render_template('stats.html', daily=dict(daily), monthly=dict(monthly), yearly=dict(yearly))
 
 @app.route('/register')
 def register():
