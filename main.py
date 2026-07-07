@@ -1,55 +1,71 @@
+import os
 from flask import Flask, render_template, request, redirect, url_for, session
 from supabase import create_client
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'default-secret-key')
+# تأكدي من ضبط FLASK_SECRET_KEY في إعدادات Environment في Render
+app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'shimo-secret-key-2026')
 
+# إعداد Supabase
 url = os.environ.get('SUPABASE_URL')
 key = os.environ.get('SUPABASE_KEY')
 supabase = create_client(url, key)
 
+# 1. الصفحة الرئيسية
 @app.route('/')
 def home():
     return redirect(url_for('login'))
 
+# 2. تسجيل الدخول
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        # تعيين جلسة ثابتة كما في كودك الأصلي
-        session['user_id'] = 'aeebc99-9c0b-4efb-8b6d-8bb9bd88a11'
-        return redirect(url_for('orders'))
+        session['user_id'] = 'admin_user'
+        return redirect(url_for('dashboard'))
     return render_template('login.html')
 
+# 3. التسجيل (تمت إضافته لحل خطأ BuildError)
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    return render_template('register.html')
+
+# 4. لوحة التحكم
+@app.route('/dashboard')
+def dashboard():
+    return render_template('dashboard.html')
+
+# 5. إدارة الطلبيات
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
-    user_id = session.get('user_id')
-    if not user_id:
-        return redirect(url_for('login'))
-        
     if request.method == 'POST':
         data = {
             "customer_name": request.form.get('customer_name'),
             "product_name": request.form.get('product_name'),
-            "total_price": float(request.form.get('total_price', 0)),
-            "customer_phone": request.form.get('customer_phone'),
-            "company_id": user_id
+            "total_price": float(request.form.get('total_price', 0))
         }
         supabase.table("orders").insert(data).execute()
         return redirect(url_for('orders'))
     
-    # جلب البيانات
-    response = supabase.table("orders").select("*").eq("company_id", user_id).execute()
-    return render_template('orders_dashboard.html', orders=response.data)
+    res = supabase.table("orders").select("*").execute()
+    return render_template('orders_dashboard.html', orders=res.data)
 
-@app.route('/delete_order/<order_id>')
+# 6. حذف طلبية
+@app.route('/delete_order/<int:order_id>')
 def delete_order(order_id):
     supabase.table("orders").delete().eq("id", order_id).execute()
     return redirect(url_for('orders'))
 
-# باقي الدوال (register, stats, settings) تظل كما هي في كودك
+# 7. الإعدادات
+@app.route('/settings')
+def settings():
+    return render_template('settings.html')
+
+# 8. تسجيل الخروج
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
 if __name__ == '__main__':
-    app.run()
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
