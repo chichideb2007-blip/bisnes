@@ -3,58 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>إدارة الطلبيات</title>
+    <title>لوحة إدارة الطلبيات</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; text-align: center; background-color: #f9f9f9; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; background-color: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        th, td { border: 1px solid #eee; padding: 12px; text-align: center; }
-        th { background-color: #333; color: white; }
-        .btn-delete { 
-            background-color: #d9534f; 
-            color: white; 
-            padding: 6px 12px; 
-            text-decoration: none; 
-            border-radius: 4px;
-            font-size: 13px;
-            display: inline-block;
-        }
-        .btn-delete:hover { background-color: #c9302c; }
-        h1 { color: #333; }
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h2 { color: #333; }
+        form { display: flex; flex-direction: column; gap: 10px; margin-bottom: 30px; }
+        input { padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+        button { padding: 10px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: center; }
+        th { background-color: #f8f9fa; }
+        .back-link { display: inline-block; margin-top: 20px; color: #007bff; text-decoration: none; }
     </style>
 </head>
 <body>
 
-    <h1>قائمة الطلبيات المسجلة</h1>
+<div class="container">
+    <h2>إضافة طلبية جديدة</h2>
+    <form method="POST">
+        <input type="text" name="customer_name" placeholder="اسم الزبون" required>
+        <input type="text" name="customer_phone" placeholder="رقم الهاتف" required>
+        <input type="text" name="product_name" placeholder="اسم المنتج" required>
+        <input type="number" step="0.01" name="total_price" placeholder="السعر الإجمالي" required>
+        <button type="submit">حفظ المعلومات</button>
+    </form>
 
+    <hr>
+
+    <h2>جدول الطلبيات المسجلة</h2>
     <table>
         <thead>
             <tr>
                 <th>اسم الزبون</th>
-                <th>اسم المنتج</th>
-                <th>السعر</th>
                 <th>رقم الهاتف</th>
-                <th>إجراء</th>
+                <th>المنتج</th>
+                <th>السعر</th>
+                <th>الحالة</th>
             </tr>
         </thead>
         <tbody>
             {% for order in orders %}
             <tr>
                 <td>{{ order.customer_name }}</td>
+                <td>{{ order.customer_phone }}</td>
                 <td>{{ order.product_name }}</td>
                 <td>{{ order.total_price }}</td>
-                <td>{{ order.customer_phone }}</td>
-                <td>
-                    <!-- الرابط هنا الآن يطابق المسار الجديد في main.py -->
-                    <a href="{{ url_for('delete_order', order_id=order.id) }}" 
-                       class="btn-delete" 
-                       onclick="return confirm('هل أنتِ متأكدة من حذف هذه الطلبية نهائياً؟')">
-                       حذف
-                    </a>
-                </td>
+                <td>{{ order.status }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+
+    <a href="/dashboard" class="back-link">← العودة إلى لوحة التحكم</a>
+</div>
 
 </body>
 </html>
