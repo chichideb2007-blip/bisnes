@@ -8,7 +8,7 @@
         body { font-family: Arial, sans-serif; background-color: #f4f4f9; padding: 20px; }
         .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 10px; }
         .chart-box { margin-bottom: 40px; }
-        h2 { text-align: center; }
+        h2 { text-align: center; color: #333; }
     </style>
 </head>
 <body>
@@ -31,7 +31,7 @@
         <canvas id="yearlyChart"></canvas>
     </div>
 
-    <a href="/dashboard">العودة للوحة التحكم</a>
+    <a href="/dashboard" style="display: block; text-align: center; margin-top: 20px;">العودة للوحة التحكم</a>
 </div>
 
 <script>
@@ -40,21 +40,21 @@
         new Chart(document.getElementById(canvasId), {
             type: 'line',
             data: {
-                labels: Object.keys(chartData), // التواريخ أو الأشهر أو السنوات
+                labels: Object.keys(chartData), 
                 datasets: [{
                     label: labelName,
-                    data: Object.values(chartData), // المبالغ المالية
+                    data: Object.values(chartData),
                     borderColor: '#007bff',
-                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                    backgroundColor: 'rgba(0, 123, 255, 0.2)',
                     fill: true,
-                    tension: 0.3
+                    tension: 0.4
                 }]
             },
             options: { responsive: true }
         });
     }
 
-    // ربط البيانات القادمة من main.py باستخدام الفلتر | tojson
+    // الربط مع البيانات القادمة من main.py
     createChart('dailyChart', 'مبيعات الأيام', {{ daily | tojson }});
     createChart('monthlyChart', 'مبيعات الأشهر', {{ monthly | tojson }});
     createChart('yearlyChart', 'مبيعات السنوات', {{ yearly | tojson }});
