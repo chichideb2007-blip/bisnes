@@ -2,12 +2,12 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>الإحصائيات</title>
+    <title>الإحصائيات المتقدمة</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: Arial, sans-serif; background-color: #f4f4f9; padding: 20px; }
-        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 10px; }
-        .chart-box { margin-bottom: 40px; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .chart-box { margin-bottom: 50px; padding: 20px; border: 1px solid #eee; border-radius: 8px; }
         h2 { text-align: center; color: #333; }
     </style>
 </head>
@@ -17,12 +17,12 @@
     <h2>التقارير والإحصائيات</h2>
 
     <div class="chart-box">
-        <h3>المبيعات حسب الأيام</h3>
+        <h3>المبيعات حسب أيام الأسبوع</h3>
         <canvas id="dailyChart"></canvas>
     </div>
 
     <div class="chart-box">
-        <h3>المبيعات حسب الأشهر</h3>
+        <h3>المبيعات حسب أشهر السنة</h3>
         <canvas id="monthlyChart"></canvas>
     </div>
 
@@ -31,33 +31,41 @@
         <canvas id="yearlyChart"></canvas>
     </div>
 
-    <a href="/dashboard" style="display: block; text-align: center; margin-top: 20px;">العودة للوحة التحكم</a>
+    <a href="/dashboard" style="display: block; text-align: center; margin-top: 20px; text-decoration: none; color: #007bff;">← العودة للوحة التحكم</a>
 </div>
 
 <script>
-    // دالة إنشاء الرسوم البيانية
+    // دالة إنشاء الرسوم البيانية المتطورة
     function createChart(canvasId, labelName, chartData) {
-        new Chart(document.getElementById(canvasId), {
+        const ctx = document.getElementById(canvasId).getContext('2d');
+        new Chart(ctx, {
             type: 'line',
             data: {
-                labels: Object.keys(chartData), 
+                labels: Object.keys(chartData), // الأيام/الأشهر/السنوات
                 datasets: [{
                     label: labelName,
-                    data: Object.values(chartData),
+                    data: Object.values(chartData), // القيم المالية
                     borderColor: '#007bff',
                     backgroundColor: 'rgba(0, 123, 255, 0.2)',
                     fill: true,
-                    tension: 0.4
+                    tension: 0.4, // لجعل المنحنى مموجاً مثل الصورة التي أرسلتِها
+                    pointRadius: 5
                 }]
             },
-            options: { responsive: true }
+            options: {
+                responsive: true,
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
         });
     }
 
-    // الربط مع البيانات القادمة من main.py
-    createChart('dailyChart', 'مبيعات الأيام', {{ daily | tojson }});
-    createChart('monthlyChart', 'مبيعات الأشهر', {{ monthly | tojson }});
-    createChart('yearlyChart', 'مبيعات السنوات', {{ yearly | tojson }});
+    // ربط البيانات الديناميكية القادمة من main.py
+    // تأكدي أن المتغيرات daily, monthly, yearly مرسلة من دالة stats في main.py
+    createChart('dailyChart', 'المبيعات اليومية', {{ daily | tojson }});
+    createChart('monthlyChart', 'المبيعات الشهرية', {{ monthly | tojson }});
+    createChart('yearlyChart', 'المبيعات السنوية', {{ yearly | tojson }});
 </script>
 
 </body>
