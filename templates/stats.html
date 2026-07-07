@@ -1,32 +1,32 @@
-<!DO<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>الإحصائيات المتقدمة</title>
+    <title>الإحصائيات</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f7f6; }
-        .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 10px; }
-        .chart-container { margin-bottom: 40px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
-        h2 { text-align: center; color: #333; }
+        body { font-family: Arial, sans-serif; background-color: #f4f4f9; padding: 20px; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 10px; }
+        .chart-box { margin-bottom: 40px; }
+        h2 { text-align: center; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>لوحة الإحصائيات</h2>
+    <h2>التقارير والإحصائيات</h2>
 
-    <div class="chart-container">
+    <div class="chart-box">
         <h3>المبيعات حسب الأيام</h3>
         <canvas id="dailyChart"></canvas>
     </div>
 
-    <div class="chart-container">
+    <div class="chart-box">
         <h3>المبيعات حسب الأشهر</h3>
         <canvas id="monthlyChart"></canvas>
     </div>
 
-    <div class="chart-container">
+    <div class="chart-box">
         <h3>المبيعات حسب السنوات</h3>
         <canvas id="yearlyChart"></canvas>
     </div>
@@ -35,30 +35,29 @@
 </div>
 
 <script>
-    // دالة لإنشاء المنحنيات
-    function createChart(ctx, label, dataDict, type = 'line') {
-        const labels = Object.keys(dataDict);
-        const dataValues = Object.values(dataDict);
-        
-        new Chart(ctx, {
-            type: type,
+    // دالة إنشاء الرسوم البيانية
+    function createChart(canvasId, labelName, chartData) {
+        new Chart(document.getElementById(canvasId), {
+            type: 'line',
             data: {
-                labels: labels,
+                labels: Object.keys(chartData), // التواريخ أو الأشهر أو السنوات
                 datasets: [{
-                    label: label,
-                    data: dataValues,
+                    label: labelName,
+                    data: Object.values(chartData), // المبالغ المالية
                     borderColor: '#007bff',
-                    backgroundColor: 'rgba(0, 123, 255, 0.2)',
-                    fill: true
+                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                    fill: true,
+                    tension: 0.3
                 }]
-            }
+            },
+            options: { responsive: true }
         });
     }
 
-    // تمرير البيانات من Flask إلى JS
-    createChart(document.getElementById('dailyChart').getContext('2d'), 'مبيعات يومية', {{ daily | tojson }});
-    createChart(document.getElementById('monthlyChart').getContext('2d'), 'مبيعات شهرية', {{ monthly | tojson }});
-    createChart(document.getElementById('yearlyChart').getContext('2d'), 'مبيعات سنوية', {{ yearly | tojson }});
+    // ربط البيانات القادمة من main.py باستخدام الفلتر | tojson
+    createChart('dailyChart', 'مبيعات الأيام', {{ daily | tojson }});
+    createChart('monthlyChart', 'مبيعات الأشهر', {{ monthly | tojson }});
+    createChart('yearlyChart', 'مبيعات السنوات', {{ yearly | tojson }});
 </script>
 
 </body>
