@@ -2,7 +2,6 @@ from flask import Flask, render_template, request, redirect, url_for
 from supabase import create_client
 import os
 
-# تعريف المسارات بدقة
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.secret_key = 'your_secret_key'
 
@@ -17,7 +16,15 @@ def home():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    if request.method == 'POST':
+        # مؤقتاً، عند الضغط على دخول سيوجهك للداشبورد
+        return redirect(url_for('dashboard'))
     return render_template('login.html')
+
+@app.route('/register')
+def register():
+    # تمت إضافة هذه الدالة لمنع الخطأ
+    return render_template('register.html')
 
 @app.route('/dashboard')
 def dashboard():
@@ -26,8 +33,12 @@ def dashboard():
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     # جلب الطلبات من Supabase
-    response = supabase.table("orders").select("*").execute()
-    return render_template('orders_dashboard.html', orders=response.data)
+    try:
+        response = supabase.table("orders").select("*").execute()
+        orders_data = response.data
+    except:
+        orders_data = []
+    return render_template('orders_dashboard.html', orders=orders_data)
 
 if __name__ == '__main__':
     app.run(debug=True)
