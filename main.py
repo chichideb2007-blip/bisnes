@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for
 from supabase import create_client
 import os
 
-# تعريف المسارات: ملفات HTML في مجلد templates والملفات الثابتة في static
+# تعريف المسارات: تم وضع مجلد static في الخارج ليراه Flask بشكل صحيح
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.secret_key = 'your_secret_key'
 
@@ -11,7 +11,7 @@ url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
 
-# --- المسارات (Routes) ---
+# --- المسارات الأساسية (يجب أن تكون متطابقة مع روابطك في HTML) ---
 
 @app.route('/')
 def home():
@@ -20,7 +20,6 @@ def home():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        # عند الضغط على "دخول"، سيقوم النظام بتحويلك إلى صفحة الداشبورد
         return redirect(url_for('dashboard'))
     return render_template('login.html')
 
@@ -36,9 +35,12 @@ def dashboard():
 def stats():
     return render_template('stats.html')
 
+@app.route('/settings')
+def settings():
+    return render_template('settings.html')
+
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
-    # جلب الطلبات من Supabase مع معالجة بسيطة للأخطاء
     try:
         response = supabase.table("orders").select("*").execute()
         orders_data = response.data
