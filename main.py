@@ -2,16 +2,15 @@ from flask import Flask, render_template, request, redirect, url_for
 from supabase import create_client
 import os
 
-# إعداد التطبيق والمسارات
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.secret_key = 'your_secret_key'
 
-# إعداد Supabase (تأكدي من إضافة المتغيرات في إعدادات Render)
+# إعداد Supabase
 url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
 
-# --- المسارات كاملة ---
+# --- المسارات (Routes) ---
 
 @app.route('/')
 def home():
@@ -20,21 +19,44 @@ def home():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        # عند الضغط على دخول، ينتقل للداشبورد
         return redirect(url_for('dashboard'))
     return render_template('login.html')
-
-@app.route('/register')
-def register():
-    return render_template('register.html')
 
 @app.route('/dashboard')
 def dashboard():
     return render_template('dashboard.html')
 
+@app.route('/orders', methods=['GET', 'POST'])
+def orders():
+    # جلب البيانات
+    response = supabase.table("orders").select("*").execute()
+    orders_data = response.data
+    
+    # حساب المجموع الكلي (بفرض أن العمود اسمه 'price')
+    total_sales = sum(float(order.get('price', 0)) for order in orders_data)
+    
+    return render_template('orders_dashboard.html', orders=orders_data, total=total_sales)
+
+# مسار حذف الطلبية
+@app.route('/delete_order', methods=['POST'])
+def delete_order():
+    order_id = request.form.get('order_id')
+    if order_id:
+        supabase.table("orders").delete().eq("id", order_id).execute()
+    return redirect(url_for('orders'))
+
 @app.route('/stats')
 def stats():
-    return render_template('stats.html')
+    # جلب البيانات للإحصائيات
+    response = supabase.table("orders").select("*").execute()
+    orders_data = response.data
+    total_sales = sum(float(order.get('price', 0)) for order in orders_data)
+    
+    return render_template('stats.html', total=total_sales, orders=orders_data)
+
+@app.route('/register')
+def register():
+    return render_template('register.html')
 
 @app.route('/settings')
 def settings():
@@ -42,17 +64,7 @@ def settings():
 
 @app.route('/logout')
 def logout():
-    # تسجيل الخروج يعيد التوجيه لصفحة الدخول
     return redirect(url_for('login'))
-
-@app.route('/orders', methods=['GET', 'POST'])
-def orders():
-    try:
-        response = supabase.table("orders").select("*").execute()
-        orders_data = response.data
-    except:
-        orders_data = []
-    return render_template('orders_dashboard.html', orders=orders_data)
 
 if __name__ == '__main__':
     app.run(debug=True)
