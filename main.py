@@ -3,27 +3,39 @@ from supabase import create_client
 import os
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key_here'
+# تأكدي من إعداد SECRET_KEY في Render كمتغير بيئي
+app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key_here")
 
-# التأكد من تحميل المتغيرات
+# إعداد Supabase
 url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
 
-# --- المسارات ---
+@app.route('/')
+def home():
+    return redirect(url_for('login'))
 
-@app.route('/login', methods=['POST'])
+@app.route('/login', methods=['GET', 'POST'])
 def login():
-    email = request.form.get('email')
-    password = request.form.get('password')
-    # جلب المستخدم
-    user = supabase.table("users").select("*").eq("email", email).eq("password", password).execute()
-    
-    if user.data:
-        # تخزين الـ UUID كما هو من قاعدة البيانات (حتى لا يحدث خطأ في النوع)
-        session['company_id'] = user.data[0]['company_id'] 
-        return redirect(url_for('dashboard'))
-    return "بيانات الدخول خاطئة"
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+        try:
+            # البحث عن المستخدم
+            user = supabase.table("users").select("*").eq("email", email).eq("password", password).execute()
+            if user.data:
+                # تحويل القيمة لنص لضمان التوافق مع نوع العمود في قاعدة البيانات
+                session['company_id'] = str(user.data[0]['company_id'])
+                return redirect(url_for('dashboard'))
+            return "بيانات الدخول خاطئة"
+        except Exception as e:
+            return f"خطأ في الاتصال: {e}"
+    return render_template('login.html')
+
+@app.route('/dashboard')
+def dashboard():
+    if 'company_id' not in session: return redirect(url_for('login'))
+    return render_template('dashboard.html')
 
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
@@ -31,17 +43,20 @@ def orders():
     comp_id = session['company_id']
     
     if request.method == 'POST':
-        # حفظ طلبية
-        new_order = {
-            "customer_name": request.form.get("customer_name"),
-            "product": request.form.get("product"),
-            "price": request.form.get("price"),
-            "company_id": comp_id # نرسل الـ UUID الأصلي المستخرج من الجلسة
-        }
-        supabase.table("orders").insert(new_order).execute()
-        return redirect(url_for('orders'))
-    
-    # جلب الطلبيات
+        try:
+            # إضافة الطلبية مع التأكد من إرسال company_id كنص
+            new_order = {
+                "customer_name": request.form.get("customer_name"),
+                "product": request.form.get("product"),
+                "price": request.form.get("price"),
+                "company_id": comp_id
+            }
+            supabase.table("orders").insert(new_order).execute()
+            return redirect(url_for('orders'))
+        except Exception as e:
+            return f"خطأ أثناء الحفظ: {e}"
+
+    # جلب الطلبات
     response = supabase.table("orders").select("*").eq("company_id", comp_id).execute()
     return render_template('orders_dashboard.html', orders=response.data or [])
 
@@ -49,9 +64,21 @@ def orders():
 def stats():
     if 'company_id' not in session: return redirect(url_for('login'))
     comp_id = session['company_id']
-    
-    # جلب الإحصائيات (تأكدنا من وجود [] في حالة الفراغ لمنع الانهيار)
-    response = supabase.table("orders").select("*").eq("company_id", comp_id).execute()
-    return render_template('stats.html', orders=response.data or [])
+    try:
+        response = supabase.table("orders").select("*").eq("company_id", comp_id).execute()
+        return render_template('stats.html', orders=response.data or [])
+    except Exception as e:
+        return f"خطأ في الإحصائيات: {e}"
 
-# ... باقي المسارات (home, dashboard, logout) كما هي لديك
+@app.route('/settings')
+def settings():
+    if 'company_id' not in session: return redirect(url_for('login'))
+    return render_template('settings.html')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+if __name__ == '__main__':
+    app.run(debug=True)
