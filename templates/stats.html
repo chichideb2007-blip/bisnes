@@ -2,19 +2,26 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>الإحصائيات المتقدمة</title>
+    <title>الإحصائيات والتقارير</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: Arial, sans-serif; background-color: #f4f4f9; padding: 20px; }
-        .container { max-width: 900px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .chart-box { margin-bottom: 50px; padding: 20px; border: 1px solid #eee; border-radius: 8px; }
-        h2 { text-align: center; color: #333; }
+        .nav-buttons { text-align: center; margin-bottom: 20px; }
+        .button { padding: 10px 20px; text-decoration: none; color: white; background-color: #007bff; border-radius: 5px; margin: 0 5px; }
+        .logout { background-color: #dc3545; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .chart-box { margin-bottom: 40px; }
     </style>
 </head>
 <body>
 
+<div class="nav-buttons">
+    <a href="/dashboard" class="button">لوحة التحكم</a>
+    <a href="/logout" class="button logout">تسجيل الخروج</a>
+</div>
+
 <div class="container">
-    <h2>التقارير والإحصائيات</h2>
+    <h2>الإحصائيات والتقارير</h2>
 
     <div class="chart-box">
         <h3>المبيعات حسب أيام الأسبوع</h3>
@@ -30,39 +37,29 @@
         <h3>المبيعات حسب السنوات</h3>
         <canvas id="yearlyChart"></canvas>
     </div>
-
-    <a href="/dashboard" style="display: block; text-align: center; margin-top: 20px; text-decoration: none; color: #007bff;">← العودة للوحة التحكم</a>
 </div>
 
 <script>
-    // دالة إنشاء الرسوم البيانية المتطورة
     function createChart(canvasId, labelName, chartData) {
         const ctx = document.getElementById(canvasId).getContext('2d');
         new Chart(ctx, {
             type: 'line',
             data: {
-                labels: Object.keys(chartData), // الأيام/الأشهر/السنوات
+                labels: Object.keys(chartData),
                 datasets: [{
                     label: labelName,
-                    data: Object.values(chartData), // القيم المالية
+                    data: Object.values(chartData),
                     borderColor: '#007bff',
                     backgroundColor: 'rgba(0, 123, 255, 0.2)',
                     fill: true,
-                    tension: 0.4, // لجعل المنحنى مموجاً مثل الصورة التي أرسلتِها
-                    pointRadius: 5
+                    tension: 0.4
                 }]
             },
-            options: {
-                responsive: true,
-                scales: {
-                    y: { beginAtZero: true }
-                }
-            }
+            options: { responsive: true, scales: { y: { beginAtZero: true } } }
         });
     }
 
-    // ربط البيانات الديناميكية القادمة من main.py
-    // تأكدي أن المتغيرات daily, monthly, yearly مرسلة من دالة stats في main.py
+    // ربط البيانات الحقيقية القادمة من Flask
     createChart('dailyChart', 'المبيعات اليومية', {{ daily | tojson }});
     createChart('monthlyChart', 'المبيعات الشهرية', {{ monthly | tojson }});
     createChart('yearlyChart', 'المبيعات السنوية', {{ yearly | tojson }});
