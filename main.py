@@ -4,10 +4,8 @@ import os
 from datetime import datetime
 
 app = Flask(__name__)
-# تأكدي من إعداد SECRET_KEY في إعدادات Render
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key_here")
 
-# إعداد Supabase
 url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
@@ -26,7 +24,6 @@ def login():
         try:
             user = supabase.table("users").select("*").eq("email", email).eq("password", password).execute()
             if user.data:
-                # تخزين الـ ID كنص لضمان التوافق مع قاعدة البيانات
                 session['company_id'] = str(user.data[0]['company_id'])
                 return redirect(url_for('dashboard'))
             return "بيانات الدخول خاطئة"
@@ -46,10 +43,11 @@ def orders():
     
     if request.method == 'POST':
         try:
+            # تم تعديل 'price' إلى 'total_price' ليطابق قاعدة البيانات
             new_order = {
                 "customer_name": request.form.get("customer_name"),
                 "product": request.form.get("product"),
-                "price": float(request.form.get("price", 0)),
+                "total_price": float(request.form.get("price", 0)), 
                 "company_id_text": comp_id 
             }
             supabase.table("orders").insert(new_order).execute()
@@ -78,8 +76,8 @@ def stats():
         yearly = {}
 
         for o in orders:
-            price = float(o.get('price', 0))
-            # استخدام تاريخ الطلبية إذا كان موجوداً، وإلا تاريخ اليوم
+            # تم تعديل o.get('price') إلى o.get('total_price') ليطابق قاعدة البيانات
+            price = float(o.get('total_price', 0))
             date_val = datetime.now() 
             
             daily[days[date_val.weekday()]] += price
