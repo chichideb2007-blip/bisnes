@@ -6,6 +6,7 @@ from datetime import datetime
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key_here")
 
+# إعداد Supabase
 url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
@@ -43,12 +44,14 @@ def orders():
     
     if request.method == 'POST':
         try:
-            # تم تعديل 'price' إلى 'total_price' ليطابق قاعدة البيانات
+            # هنا التعديل الجوهري: مطابقة أسماء الأعمدة في Supabase بدقة
             new_order = {
                 "customer_name": request.form.get("customer_name"),
-                "product": request.form.get("product"),
-                "total_price": float(request.form.get("price", 0)), 
-                "company_id_text": comp_id 
+                "customer_phone": request.form.get("customer_phone"),
+                "product_name": request.form.get("product"), # مطابق للجدول
+                "total_price": float(request.form.get("price", 0)), # مطابق للجدول
+                "company_id_text": comp_id,
+                "status": "قيد الانتظار"
             }
             supabase.table("orders").insert(new_order).execute()
             return redirect(url_for('orders'))
@@ -67,7 +70,6 @@ def stats():
         response = supabase.table("orders").select("*").eq("company_id_text", comp_id).execute()
         orders = response.data or []
 
-        # تهيئة القواميس للبيانات
         days = ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"]
         months = ["جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان", "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
         
@@ -76,7 +78,7 @@ def stats():
         yearly = {}
 
         for o in orders:
-            # تم تعديل o.get('price') إلى o.get('total_price') ليطابق قاعدة البيانات
+            # استخدام total_price بدلاً من price
             price = float(o.get('total_price', 0))
             date_val = datetime.now() 
             
