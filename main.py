@@ -1,17 +1,15 @@
 from flask import Flask, render_template, request, redirect, url_for, session
 from supabase import create_client
 import os
+from datetime import datetime
+from collections import defaultdict
 
 app = Flask(__name__)
-# تأكدي من إعداد SECRET_KEY في إعدادات Render
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key_here")
 
-# إعداد Supabase
 url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
-
-# --- المسارات ---
 
 @app.route('/')
 def home():
@@ -22,14 +20,11 @@ def login():
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
-        try:
-            user = supabase.table("users").select("*").eq("email", email).eq("password", password).execute()
-            if user.data:
-                session['company_id'] = str(user.data[0]['company_id'])
-                return redirect(url_for('dashboard'))
-            return "بيانات الدخول خاطئة"
-        except Exception as e:
-            return f"خطأ في الاتصال: {e}"
+        user = supabase.table("users").select("*").eq("email", email).eq("password", password).execute()
+        if user.data:
+            session['company_id'] = str(user.data[0]['company_id'])
+            return redirect(url_for('dashboard'))
+        return "بيانات الدخول خاطئة"
     return render_template('login.html')
 
 @app.route('/dashboard')
@@ -41,13 +36,12 @@ def dashboard():
 def orders():
     if 'company_id' not in session: return redirect(url_for('login'))
     comp_id = session['company_id']
-    
     if request.method == 'POST':
         new_order = {
             "customer_name": request.form.get("customer_name"),
             "product": request.form.get("product"),
-            "price": request.form.get("price"),
-            "company_id_text": comp_id 
+            "price": float(request.form.get("price", 0)),
+            "company_id_text": comp_id
         }
         supabase.table("orders").insert(new_order).execute()
         return redirect(url_for('orders'))
@@ -58,26 +52,27 @@ def orders():
 @app.route('/stats')
 def stats():
     if 'company_id' not in session: return redirect(url_for('login'))
-    comp_id = session['company_id']
-    
-    try:
-        # جلب البيانات بالعمود الجديد
-        response = supabase.table("orders").select("*").eq("company_id_text", comp_id).execute()
-        orders_data = response.data or []
-        
-        # إرسال متغيرات فارغة لتجنب انهيار stats.html
-        return render_template('stats.html', 
-                               orders=orders_data, 
-                               daily={}, 
-                               monthly={}, 
-                               yearly={})
-    except Exception as e:
-        return f"خطأ في تحميل الإحصائيات: {e}"
+    comp_id = str(session['company_id'])
+    response = supabase.table("orders").select("*").eq("company_id_text", comp_id).execute()
+    orders = response.data or []
 
-@app.route('/settings')
-def settings():
-    if 'company_id' not in session: return redirect(url_for('login'))
-    return render_template('settings.html')
+    # تهيئة البيانات
+    days = ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"]
+    months = ["جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان", "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
+    
+    daily = {d: 0 for d in days}
+    monthly = {m: 0 for m in months}
+    yearly = defaultdict(float)
+
+    for o in orders:
+        # إذا لم يوجد تاريخ، نستخدم تاريخ اليوم للطلب
+        date = datetime.now() 
+        price = float(o.get('price', 0))
+        daily[days[date.weekday()]] += price
+        monthly[months[date.month - 1]] += price
+        yearly[str(date.year)] += price
+
+    return render_template('stats.html', daily=daily, monthly=monthly, yearly=dict(yearly), orders=orders)
 
 @app.route('/logout')
 def logout():
