@@ -4,11 +4,15 @@ import os
 from datetime import datetime
 
 app = Flask(__name__)
+# تأكدي من إعداد SECRET_KEY في إعدادات Render
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key_here")
 
+# إعداد Supabase
 url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
+
+# --- المسارات ---
 
 @app.route('/')
 def home():
@@ -22,6 +26,7 @@ def login():
         try:
             user = supabase.table("users").select("*").eq("email", email).eq("password", password).execute()
             if user.data:
+                # تخزين الـ ID كنص لضمان التوافق مع قاعدة البيانات
                 session['company_id'] = str(user.data[0]['company_id'])
                 return redirect(url_for('dashboard'))
             return "بيانات الدخول خاطئة"
@@ -38,15 +43,19 @@ def dashboard():
 def orders():
     if 'company_id' not in session: return redirect(url_for('login'))
     comp_id = session['company_id']
+    
     if request.method == 'POST':
-        new_order = {
-            "customer_name": request.form.get("customer_name"),
-            "product": request.form.get("product"),
-            "price": float(request.form.get("price", 0)),
-            "company_id_text": comp_id 
-        }
-        supabase.table("orders").insert(new_order).execute()
-        return redirect(url_for('orders'))
+        try:
+            new_order = {
+                "customer_name": request.form.get("customer_name"),
+                "product": request.form.get("product"),
+                "price": float(request.form.get("price", 0)),
+                "company_id_text": comp_id 
+            }
+            supabase.table("orders").insert(new_order).execute()
+            return redirect(url_for('orders'))
+        except Exception as e:
+            return f"خطأ في إضافة الطلبية: {e}"
     
     response = supabase.table("orders").select("*").eq("company_id_text", comp_id).execute()
     return render_template('orders_dashboard.html', orders=response.data or [])
@@ -55,28 +64,32 @@ def orders():
 def stats():
     if 'company_id' not in session: return redirect(url_for('login'))
     comp_id = session['company_id']
-    response = supabase.table("orders").select("*").eq("company_id_text", comp_id).execute()
-    orders = response.data or []
-
-    # تهيئة القواميس للبيانات
-    days = ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"]
-    months = ["جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان", "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
     
-    daily = {d: 0 for d in days}
-    monthly = {m: 0 for m in months}
-    yearly = {}
+    try:
+        response = supabase.table("orders").select("*").eq("company_id_text", comp_id).execute()
+        orders = response.data or []
 
-    # الحساب التلقائي
-    for o in orders:
-        price = float(o.get('price', 0))
-        date = datetime.now() # استبدليها بـ o.get('created_at') إذا كان لديكِ تاريخ في الجدول
+        # تهيئة القواميس للبيانات
+        days = ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"]
+        months = ["جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان", "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
         
-        daily[days[date.weekday()]] += price
-        monthly[months[date.month - 1]] += price
-        year = str(date.year)
-        yearly[year] = yearly.get(year, 0) + price
+        daily = {d: 0 for d in days}
+        monthly = {m: 0 for m in months}
+        yearly = {}
 
-    return render_template('stats.html', daily=daily, monthly=monthly, yearly=yearly, orders=orders)
+        for o in orders:
+            price = float(o.get('price', 0))
+            # استخدام تاريخ الطلبية إذا كان موجوداً، وإلا تاريخ اليوم
+            date_val = datetime.now() 
+            
+            daily[days[date_val.weekday()]] += price
+            monthly[months[date_val.month - 1]] += price
+            year = str(date_val.year)
+            yearly[year] = yearly.get(year, 0) + price
+
+        return render_template('stats.html', daily=daily, monthly=monthly, yearly=yearly, orders=orders)
+    except Exception as e:
+        return f"خطأ في تحميل الإحصائيات: {e}"
 
 @app.route('/settings')
 def settings():
