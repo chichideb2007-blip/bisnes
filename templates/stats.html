@@ -40,6 +40,7 @@
 </div>
 
 <script>
+    // الدالة المسؤولة عن رسم المنحنيات
     function createChart(canvasId, labelName, chartData) {
         const ctx = document.getElementById(canvasId).getContext('2d');
         new Chart(ctx, {
@@ -55,11 +56,14 @@
                     tension: 0.4
                 }]
             },
-            options: { responsive: true, scales: { y: { beginAtZero: true } } }
+            options: { 
+                responsive: true, 
+                scales: { y: { beginAtZero: true } } 
+            }
         });
     }
 
-    // ربط البيانات الحقيقية القادمة من Flask
+    // استلام البيانات المرسلة من ملف main.py
     createChart('dailyChart', 'المبيعات اليومية', {{ daily | tojson }});
     createChart('monthlyChart', 'المبيعات الشهرية', {{ monthly | tojson }});
     createChart('yearlyChart', 'المبيعات السنوية', {{ yearly | tojson }});
