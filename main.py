@@ -1,15 +1,18 @@
 from flask import Flask, render_template, request, redirect, url_for, session
 from supabase import create_client
 import os
+from datetime import datetime
 
 app = Flask(__name__)
-# تأكدي من إعداد SECRET_KEY في Render كمتغير بيئي
+# اجعلي هذا المفتاح طويلاً وسرياً
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key_here")
 
 # إعداد Supabase
 url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
+
+# --- المسارات ---
 
 @app.route('/')
 def home():
@@ -24,7 +27,7 @@ def login():
             # البحث عن المستخدم
             user = supabase.table("users").select("*").eq("email", email).eq("password", password).execute()
             if user.data:
-                # تحويل القيمة لنص لضمان التوافق مع نوع العمود في قاعدة البيانات
+                # نخزن الـ ID كنص صريح لتجنب مشاكل التوافق
                 session['company_id'] = str(user.data[0]['company_id'])
                 return redirect(url_for('dashboard'))
             return "بيانات الدخول خاطئة"
@@ -43,32 +46,26 @@ def orders():
     comp_id = session['company_id']
     
     if request.method == 'POST':
-        try:
-            # إضافة الطلبية مع التأكد من إرسال company_id كنص
-            new_order = {
-                "customer_name": request.form.get("customer_name"),
-                "product": request.form.get("product"),
-                "price": request.form.get("price"),
-                "company_id": comp_id
-            }
-            supabase.table("orders").insert(new_order).execute()
-            return redirect(url_for('orders'))
-        except Exception as e:
-            return f"خطأ أثناء الحفظ: {e}"
-
-    # جلب الطلبات
-    response = supabase.table("orders").select("*").eq("company_id", comp_id).execute()
+        # نستخدم العمود الجديد: company_id_text
+        new_order = {
+            "customer_name": request.form.get("customer_name"),
+            "product": request.form.get("product"),
+            "price": request.form.get("price"),
+            "company_id_text": comp_id 
+        }
+        supabase.table("orders").insert(new_order).execute()
+        return redirect(url_for('orders'))
+    
+    # جلب الطلبيات بالعمود الجديد
+    response = supabase.table("orders").select("*").eq("company_id_text", comp_id).execute()
     return render_template('orders_dashboard.html', orders=response.data or [])
 
 @app.route('/stats')
 def stats():
     if 'company_id' not in session: return redirect(url_for('login'))
     comp_id = session['company_id']
-    try:
-        response = supabase.table("orders").select("*").eq("company_id", comp_id).execute()
-        return render_template('stats.html', orders=response.data or [])
-    except Exception as e:
-        return f"خطأ في الإحصائيات: {e}"
+    response = supabase.table("orders").select("*").eq("company_id_text", comp_id).execute()
+    return render_template('stats.html', orders=response.data or [])
 
 @app.route('/settings')
 def settings():
