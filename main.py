@@ -2,7 +2,6 @@ from flask import Flask, render_template, request, redirect, url_for, session
 from supabase import create_client
 import os
 from datetime import datetime
-from collections import defaultdict
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key_here")
@@ -20,11 +19,14 @@ def login():
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
-        user = supabase.table("users").select("*").eq("email", email).eq("password", password).execute()
-        if user.data:
-            session['company_id'] = str(user.data[0]['company_id'])
-            return redirect(url_for('dashboard'))
-        return "بيانات الدخول خاطئة"
+        try:
+            user = supabase.table("users").select("*").eq("email", email).eq("password", password).execute()
+            if user.data:
+                session['company_id'] = str(user.data[0]['company_id'])
+                return redirect(url_for('dashboard'))
+            return "بيانات الدخول خاطئة"
+        except Exception as e:
+            return f"خطأ في الاتصال: {e}"
     return render_template('login.html')
 
 @app.route('/dashboard')
@@ -41,7 +43,7 @@ def orders():
             "customer_name": request.form.get("customer_name"),
             "product": request.form.get("product"),
             "price": float(request.form.get("price", 0)),
-            "company_id_text": comp_id
+            "company_id_text": comp_id 
         }
         supabase.table("orders").insert(new_order).execute()
         return redirect(url_for('orders'))
@@ -52,27 +54,34 @@ def orders():
 @app.route('/stats')
 def stats():
     if 'company_id' not in session: return redirect(url_for('login'))
-    comp_id = str(session['company_id'])
+    comp_id = session['company_id']
     response = supabase.table("orders").select("*").eq("company_id_text", comp_id).execute()
     orders = response.data or []
 
-    # تهيئة البيانات
+    # تهيئة القواميس للبيانات
     days = ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"]
     months = ["جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان", "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
     
     daily = {d: 0 for d in days}
     monthly = {m: 0 for m in months}
-    yearly = defaultdict(float)
+    yearly = {}
 
+    # الحساب التلقائي
     for o in orders:
-        # إذا لم يوجد تاريخ، نستخدم تاريخ اليوم للطلب
-        date = datetime.now() 
         price = float(o.get('price', 0))
+        date = datetime.now() # استبدليها بـ o.get('created_at') إذا كان لديكِ تاريخ في الجدول
+        
         daily[days[date.weekday()]] += price
         monthly[months[date.month - 1]] += price
-        yearly[str(date.year)] += price
+        year = str(date.year)
+        yearly[year] = yearly.get(year, 0) + price
 
-    return render_template('stats.html', daily=daily, monthly=monthly, yearly=dict(yearly), orders=orders)
+    return render_template('stats.html', daily=daily, monthly=monthly, yearly=yearly, orders=orders)
+
+@app.route('/settings')
+def settings():
+    if 'company_id' not in session: return redirect(url_for('login'))
+    return render_template('settings.html')
 
 @app.route('/logout')
 def logout():
