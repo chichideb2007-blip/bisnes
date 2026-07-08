@@ -1,10 +1,9 @@
 from flask import Flask, render_template, request, redirect, url_for, session
 from supabase import create_client
 import os
-from datetime import datetime
 
 app = Flask(__name__)
-# اجعلي هذا المفتاح طويلاً وسرياً
+# تأكدي من إعداد SECRET_KEY في إعدادات Render
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key_here")
 
 # إعداد Supabase
@@ -24,10 +23,8 @@ def login():
         email = request.form.get('email')
         password = request.form.get('password')
         try:
-            # البحث عن المستخدم
             user = supabase.table("users").select("*").eq("email", email).eq("password", password).execute()
             if user.data:
-                # نخزن الـ ID كنص صريح لتجنب مشاكل التوافق
                 session['company_id'] = str(user.data[0]['company_id'])
                 return redirect(url_for('dashboard'))
             return "بيانات الدخول خاطئة"
@@ -46,7 +43,6 @@ def orders():
     comp_id = session['company_id']
     
     if request.method == 'POST':
-        # نستخدم العمود الجديد: company_id_text
         new_order = {
             "customer_name": request.form.get("customer_name"),
             "product": request.form.get("product"),
@@ -56,7 +52,6 @@ def orders():
         supabase.table("orders").insert(new_order).execute()
         return redirect(url_for('orders'))
     
-    # جلب الطلبيات بالعمود الجديد
     response = supabase.table("orders").select("*").eq("company_id_text", comp_id).execute()
     return render_template('orders_dashboard.html', orders=response.data or [])
 
@@ -64,8 +59,20 @@ def orders():
 def stats():
     if 'company_id' not in session: return redirect(url_for('login'))
     comp_id = session['company_id']
-    response = supabase.table("orders").select("*").eq("company_id_text", comp_id).execute()
-    return render_template('stats.html', orders=response.data or [])
+    
+    try:
+        # جلب البيانات بالعمود الجديد
+        response = supabase.table("orders").select("*").eq("company_id_text", comp_id).execute()
+        orders_data = response.data or []
+        
+        # إرسال متغيرات فارغة لتجنب انهيار stats.html
+        return render_template('stats.html', 
+                               orders=orders_data, 
+                               daily={}, 
+                               monthly={}, 
+                               yearly={})
+    except Exception as e:
+        return f"خطأ في تحميل الإحصائيات: {e}"
 
 @app.route('/settings')
 def settings():
