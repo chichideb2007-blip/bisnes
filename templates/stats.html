@@ -5,7 +5,7 @@
     <title>الإحصائيات والتقارير</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f4f9; padding: 20px; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f9; padding: 20px; }
         .nav-buttons { text-align: center; margin-bottom: 20px; }
         .button { padding: 10px 20px; text-decoration: none; color: white; background-color: #007bff; border-radius: 5px; margin: 0 5px; }
         .logout { background-color: #dc3545; }
@@ -40,16 +40,20 @@
 </div>
 
 <script>
-    // الدالة المسؤولة عن رسم المنحنيات
-    function createChart(canvasId, labelName, chartData) {
+    function createChart(canvasId, labelName, chartData, customOrder) {
         const ctx = document.getElementById(canvasId).getContext('2d');
+        
+        // ترتيب البيانات يدوياً حسب القائمة المرسلة (customOrder)
+        const labels = customOrder;
+        const values = customOrder.map(label => chartData[label] || 0);
+
         new Chart(ctx, {
             type: 'line',
             data: {
-                labels: Object.keys(chartData),
+                labels: labels,
                 datasets: [{
                     label: labelName,
-                    data: Object.values(chartData),
+                    data: values,
                     borderColor: '#007bff',
                     backgroundColor: 'rgba(0, 123, 255, 0.2)',
                     fill: true,
@@ -63,10 +67,17 @@
         });
     }
 
-    // استلام البيانات المرسلة من ملف main.py
-    createChart('dailyChart', 'المبيعات اليومية', {{ daily | tojson }});
-    createChart('monthlyChart', 'المبيعات الشهرية', {{ monthly | tojson }});
-    createChart('yearlyChart', 'المبيعات السنوية', {{ yearly | tojson }});
+    // تعريف الترتيب الصحيح
+    const daysOrder = ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"];
+    const monthsOrder = ["جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان", "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
+
+    // رسم المنحنيات مع الترتيب
+    createChart('dailyChart', 'المبيعات اليومية', {{ daily | tojson }}, daysOrder);
+    createChart('monthlyChart', 'المبيعات الشهرية', {{ monthly | tojson }}, monthsOrder);
+    
+    // السنوات يتم ترتيبها تلقائياً بناءً على البيانات الموجودة
+    const years = Object.keys({{ yearly | tojson }}).sort();
+    createChart('yearlyChart', 'المبيعات السنوية', {{ yearly | tojson }}, years);
 </script>
 
 </body>
