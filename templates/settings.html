@@ -13,7 +13,7 @@
         input { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
         .btn-group { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
         button, .btn-link { padding: 12px; border: none; border-radius: 8px; cursor: pointer; color: white; font-weight: bold; text-align: center; text-decoration: none; transition: 0.3s; }
-        .btn-whatsapp { background-color: #25d366; }
+        .btn-telegram { background-color: #0088cc; } /* لون تيلجرام */
         .btn-save-color { background-color: #17a2b8; }
         .btn-back { background-color: #6c757d; }
         .btn-logout { background-color: #dc3545; }
@@ -26,21 +26,18 @@
     
     <div class="settings-grid">
         <div class="section-box">
-            <h3>إعدادات واتساب والمتجر</h3>
+            <h3>إعدادات تيلجرام والمتجر</h3>
             <form action="/update_settings" method="POST">
                 <label>اسم المتجر:</label>
                 <input type="text" name="store_name" placeholder="أدخلي اسم المتجر" required>
 
-                <label>Instance ID:</label>
-                <input type="text" name="instance_id" placeholder="أدخل Instance ID" required>
+                <label>توكن البوت (API Token):</label>
+                <input type="text" name="token" placeholder="أدخل التوكن من BotFather" required>
                 
-                <label>Token:</label>
-                <input type="text" name="token" placeholder="أدخل التوكين" required>
+                <label>رقم التعريف (Chat ID):</label>
+                <input type="text" name="phone" placeholder="أدخل الـ Chat ID الخاص بك" required>
                 
-                <label>رقم هاتف المدير (213...):</label>
-                <input type="text" name="phone" placeholder="مثال: 213612345678" required>
-                
-                <button type="submit" class="btn-whatsapp">حفظ الإعدادات</button>
+                <button type="submit" class="btn-telegram">حفظ إعدادات تيلجرام</button>
             </form>
         </div>
 
