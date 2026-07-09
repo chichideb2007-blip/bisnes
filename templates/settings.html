@@ -26,8 +26,11 @@
     
     <div class="settings-grid">
         <div class="section-box">
-            <h3>إعدادات واتساب (Ultramsg)</h3>
+            <h3>إعدادات واتساب والمتجر</h3>
             <form action="/update_settings" method="POST">
+                <label>اسم المتجر:</label>
+                <input type="text" name="store_name" placeholder="أدخلي اسم المتجر" required>
+
                 <label>Instance ID:</label>
                 <input type="text" name="instance_id" placeholder="أدخل Instance ID" required>
                 
@@ -37,7 +40,7 @@
                 <label>رقم هاتف المدير (213...):</label>
                 <input type="text" name="phone" placeholder="مثال: 213612345678" required>
                 
-                <button type="submit" class="btn-whatsapp">حفظ إعدادات الواتساب</button>
+                <button type="submit" class="btn-whatsapp">حفظ الإعدادات</button>
             </form>
         </div>
 
@@ -56,15 +59,12 @@
 </div>
 
 <script>
-    // حفظ لون الخلفية
     function saveBgColor() {
         const bg = document.getElementById('bgColorPicker').value;
         localStorage.setItem('settingsBgColor', bg);
         document.body.style.backgroundColor = bg;
         alert("تم حفظ لون الخلفية!");
     }
-
-    // استرجاع اللون عند التحميل
     window.onload = () => {
         const savedBg = localStorage.getItem('settingsBgColor');
         if(savedBg) {
