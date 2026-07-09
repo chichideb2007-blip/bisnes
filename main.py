@@ -13,10 +13,9 @@ url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
 
-# --- دالة إرسال الإشعار عبر تيلجرام (معدلة للحماية من الأخطاء) ---
+# --- دالة إرسال الإشعار عبر تيلجرام ---
 def send_telegram_notification(comp_id, order_details):
     try:
-        # جلب إعدادات الشركة
         settings = supabase.table("company_settings").select("*").eq("company_id_text", comp_id).single().execute()
         if not settings.data: return
 
@@ -24,9 +23,7 @@ def send_telegram_notification(comp_id, order_details):
         chat_id = settings.data.get('manager_phone')
         store_name = settings.data.get('store_name', 'متجرك')
         
-        # إذا لم يتم ضبط التوكن أو الـ Chat ID، لا نحاول الإرسال
-        if not telegram_token or not chat_id:
-            return
+        if not telegram_token or not chat_id: return
 
         url_api = f"https://api.telegram.org/bot{telegram_token}/sendMessage"
         body_text = (f"🔔 تنبيه طلبية جديدة من: {store_name}\n\n"
@@ -36,10 +33,9 @@ def send_telegram_notification(comp_id, order_details):
                      f"💰 السعر: {order_details['total_price']} دج")
         
         payload = {"chat_id": chat_id, "text": body_text}
-        # إضافة timeout لضمان عدم تعليق الموقع
         requests.post(url_api, data=payload, timeout=5)
     except Exception as e:
-        print(f"تنبيه: فشل إرسال تيلجرام: {e}")
+        print(f"خطأ في إرسال التنبيه: {e}")
 
 # --- المسارات ---
 
@@ -75,11 +71,10 @@ def update_settings():
     data_to_save = {
         "store_name": request.form.get("store_name"),
         "whatsapp_token": request.form.get("token"),
-        "manager_phone": request.form.get("phone"),
-        "whatsapp_instance": "telegram"
+        "manager_phone": request.form.get("phone")
     }
     
-    # محاولة تحديث البيانات الموجودة، إذا فشل التحديث (بسبب عدم وجود سطر سابق) نقوم بالإدراج
+    # تحديث البيانات أو إدراجها إذا كانت جديدة
     try:
         supabase.table("company_settings").update(data_to_save).eq("company_id_text", comp_id).execute()
     except:
@@ -110,11 +105,8 @@ def orders():
                 supabase.table("inventory").update({"quantity": prod_query.data['quantity'] - 1}).eq("id", prod_query.data['id']).execute()
                 supabase.table("orders").insert(order_data).execute()
                 
-                # إرسال التنبيه - الحماية تضمن أنه حتى لو فشل، لن يتوقف النظام
-                try:
-                    send_telegram_notification(comp_id, order_data)
-                except Exception as e:
-                    print(f"خطأ غير مؤثر في التنبيه: {e}")
+                # إرسال التنبيه
+                send_telegram_notification(comp_id, order_data)
                 
                 return redirect(url_for('orders'))
             return "خطأ: المنتج غير متوفر!"
