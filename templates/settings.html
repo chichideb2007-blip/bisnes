@@ -2,64 +2,69 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>إعدادات الموقع</title>
+    <title>إعدادات المنصة</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #f4f4f9; padding: 20px; transition: background 0.3s; }
-        .container { max-width: 800px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .container { max-width: 900px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
-        h2 { text-align: center; grid-column: span 2; }
+        h2 { text-align: center; grid-column: span 2; color: #333; }
         .section-box { border: 1px solid #ddd; padding: 20px; border-radius: 10px; background: #fff; }
         label { display: block; margin-top: 15px; font-weight: bold; color: #555; }
         input { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
         .btn-group { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
-        button { padding: 12px; border: none; border-radius: 8px; cursor: pointer; color: white; font-weight: bold; transition: 0.3s; }
+        button, .btn-link { padding: 12px; border: none; border-radius: 8px; cursor: pointer; color: white; font-weight: bold; text-align: center; text-decoration: none; transition: 0.3s; }
+        .btn-whatsapp { background-color: #25d366; }
+        .btn-save-color { background-color: #17a2b8; }
+        .btn-back { background-color: #6c757d; }
+        .btn-logout { background-color: #dc3545; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>⚙️ إعدادات الموقع</h2>
+    <h2>⚙️ إعدادات المنصة الشاملة</h2>
+    
     <div class="settings-grid">
-        
         <div class="section-box">
-            <h3>معلومات المتجر</h3>
-            <form action="/settings" method="POST">
-                <label>اسم المتجر:</label>
-                <input type="text" name="store_name" placeholder="أدخلي اسم المتجر">
-                <label>اسم البوت:</label>
-                <input type="text" name="bot_name" placeholder="أدخلي اسم البوت">
-                <label>توكن أو رابط تيلجرام:</label>
-                <input type="text" name="telegram_token" placeholder="أدخلي التوكن أو الرابط">
-                <div class="btn-group">
-                    <button type="submit" style="background-color: #28a745;">حفظ المعلومات</button>
-                </div>
+            <h3>إعدادات واتساب (Ultramsg)</h3>
+            <form action="/update_settings" method="POST">
+                <label>Instance ID:</label>
+                <input type="text" name="instance_id" placeholder="أدخل Instance ID" required>
+                
+                <label>Token:</label>
+                <input type="text" name="token" placeholder="أدخل التوكين" required>
+                
+                <label>رقم هاتف المدير (213...):</label>
+                <input type="text" name="phone" placeholder="مثال: 213612345678" required>
+                
+                <button type="submit" class="btn-whatsapp">حفظ إعدادات الواتساب</button>
             </form>
         </div>
 
         <div class="section-box">
-            <h3>تخصيص لون الخلفية</h3>
-            <label>اختاري لون خلفية هذه الصفحة:</label>
+            <h3>تخصيص المظهر</h3>
+            <label>لون خلفية الصفحة:</label>
             <input type="color" id="bgColorPicker">
             
             <div class="btn-group">
-                <button onclick="saveBgColor()" style="background-color: #17a2b8;">حفظ وتطبيق اللون</button>
-                <button onclick="window.location.href='{{ url_for('dashboard') }}'" style="background-color: #6c757d;">رجوع للوحة التحكم</button>
-                <button onclick="window.location.href='{{ url_for('logout') }}'" style="background-color: #dc3545;">تسجيل خروج</button>
+                <button onclick="saveBgColor()" class="btn-save-color">حفظ وتطبيق اللون</button>
+                <a href="{{ url_for('dashboard') }}" class="btn-link btn-back">العودة للوحة التحكم</a>
+                <a href="{{ url_for('logout') }}" class="btn-link btn-logout">تسجيل خروج</a>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    // حفظ وتطبيق لون الخلفية لهذه الصفحة فقط
+    // حفظ لون الخلفية
     function saveBgColor() {
         const bg = document.getElementById('bgColorPicker').value;
         localStorage.setItem('settingsBgColor', bg);
         document.body.style.backgroundColor = bg;
-        alert("تم حفظ وتطبيق لون الخلفية بنجاح!");
+        alert("تم حفظ لون الخلفية!");
     }
 
-    // استرجاع لون الخلفية عند فتح صفحة الإعدادات فقط
+    // استرجاع اللون عند التحميل
     window.onload = () => {
         const savedBg = localStorage.getItem('settingsBgColor');
         if(savedBg) {
