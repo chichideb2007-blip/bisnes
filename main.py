@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, session
 from supabase import create_client
 import os
 from datetime import datetime
+import json
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key_here")
@@ -29,23 +30,8 @@ def login():
                 return redirect(url_for('dashboard'))
             return "بيانات الدخول خاطئة"
         except Exception as e:
-            return f"<h1>خطأ في تسجيل الدخول:</h1> <pre>{str(e)}</pre>"
+            return f"خطأ في الاتصال: {e}"
     return render_template('login.html')
-
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if request.method == 'POST':
-        try:
-            new_user = {
-                "email": request.form.get('email'),
-                "password": request.form.get('password'),
-                "company_id": request.form.get('company_id')
-            }
-            supabase.table("users").insert(new_user).execute()
-            return "تم التسجيل بنجاح! <a href='/login'>العودة لتسجيل الدخول</a>"
-        except Exception as e:
-            return f"<h1>خطأ في التسجيل:</h1> <pre>{str(e)}</pre>"
-    return render_template('register.html')
 
 @app.route('/dashboard')
 def dashboard():
@@ -69,16 +55,10 @@ def orders():
             supabase.table("orders").insert(new_order).execute()
             return redirect(url_for('orders'))
         except Exception as e:
-            return f"<h1>خطأ في الإضافة:</h1> <pre>{str(e)}</pre>"
+            return f"خطأ في الإضافة: {e}"
     
     response = supabase.table("orders").select("*").eq("company_id_text", comp_id).execute()
     return render_template('orders_dashboard.html', orders=response.data or [])
-
-@app.route('/delete_order/<int:order_id>')
-def delete_order(order_id):
-    if 'company_id' not in session: return redirect(url_for('login'))
-    supabase.table("orders").delete().eq("id", order_id).execute()
-    return redirect(url_for('orders'))
 
 @app.route('/stats')
 def stats():
@@ -87,10 +67,38 @@ def stats():
     try:
         response = supabase.table("orders").select("*").eq("company_id_text", comp_id).execute()
         orders = response.data or []
-        # إحصائيات بسيطة
-        return render_template('stats.html', orders=orders)
+
+        days_names = ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"]
+        months_names = ["جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان", "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
+        
+        daily_stats = {d: 0 for d in days_names}
+        monthly_stats = {m: 0 for m in months_names}
+        yearly_stats = {}
+        daily_total = 0
+        today = datetime.now().date()
+
+        for o in orders:
+            # التأكد من وجود عمود created_at، وإلا نستخدم الوقت الحالي
+            created_at_str = o.get('created_at', datetime.now().isoformat())
+            created_at = datetime.fromisoformat(created_at_str.replace('Z', ''))
+            price = float(o.get('total_price', 0))
+            
+            daily_stats[days_names[created_at.weekday()]] += price
+            monthly_stats[months_names[created_at.month - 1]] += price
+            year = str(created_at.year)
+            yearly_stats[year] = yearly_stats.get(year, 0) + price
+            
+            if created_at.date() == today:
+                daily_total += price
+
+        # نستخدم json.dumps لتحويل القواميس لنص يفهمه الـ HTML/JS
+        return render_template('stats.html', 
+                               daily=json.dumps(daily_stats), 
+                               monthly=json.dumps(monthly_stats), 
+                               yearly=json.dumps(yearly_stats), 
+                               daily_total=daily_total)
     except Exception as e:
-        return f"<h1>خطأ في الإحصائيات:</h1> <pre>{str(e)}</pre>"
+        return f"خطأ في الإحصائيات: {e}"
 
 @app.route('/settings')
 def settings():
