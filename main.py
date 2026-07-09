@@ -5,6 +5,7 @@ from datetime import datetime
 import json
 
 app = Flask(__name__)
+# تأكدي من إعداد SECRET_KEY في إعدادات Render (Environment Variables)
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key_here")
 
 # إعداد Supabase
@@ -53,6 +54,12 @@ def dashboard():
     if 'company_id' not in session: return redirect(url_for('login'))
     return render_template('dashboard.html')
 
+# المسار الخاص بالإعدادات (تمت إضافته لحل خطأ الـ BuildError)
+@app.route('/settings')
+def settings():
+    if 'company_id' not in session: return redirect(url_for('login'))
+    return render_template('settings.html')
+
 # المسار الذكي: إضافة طلبية + خصم تلقائي من المخزون
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
@@ -62,13 +69,12 @@ def orders():
     if request.method == 'POST':
         try:
             prod_name = request.form.get("product")
-            qty_sold = 1 # يمكن تعديلها
+            qty_sold = 1 
             
             # 1. التحقق من المخزون وخصمه
             prod_query = supabase.table("inventory").select("*").eq("company_id_text", comp_id).eq("name", prod_name).single().execute()
             
             if prod_query.data and prod_query.data['quantity'] >= qty_sold:
-                # تحديث المخزن
                 new_qty = prod_query.data['quantity'] - qty_sold
                 supabase.table("inventory").update({"quantity": new_qty}).eq("id", prod_query.data['id']).execute()
                 
@@ -87,7 +93,6 @@ def orders():
         except Exception as e:
             return f"خطأ في العملية: {e}"
     
-    # جلب الطلبيات الخاصة بالشركة فقط
     response = supabase.table("orders").select("*").eq("company_id_text", comp_id).execute()
     return render_template('orders_dashboard.html', orders=response.data or [])
 
@@ -104,14 +109,21 @@ def stats():
     response = supabase.table("orders").select("*").eq("company_id_text", comp_id).execute()
     orders = response.data or []
     
-    # تحضير البيانات للرسم البياني
     yearly_stats = {}
     for o in orders:
         price = float(o.get('total_price', 0))
-        year = str(datetime.fromisoformat(o.get('created_at', datetime.now().isoformat()).replace('Z', '')).year)
+        # استخدام التاريخ الفعلي للطلبية
+        created_at = datetime.fromisoformat(o.get('created_at', datetime.now().isoformat()).replace('Z', ''))
+        year = str(created_at.year)
         yearly_stats[year] = yearly_stats.get(year, 0) + price
 
     return render_template('stats.html', yearly=json.dumps(dict(sorted(yearly_stats.items()))))
+
+@app.route('/webhook', methods=['GET', 'POST'])
+def webhook():
+    if request.method == 'GET':
+        return request.args.get('hub.challenge')
+    return 'OK', 200
 
 @app.route('/logout')
 def logout():
