@@ -73,25 +73,29 @@ def stats():
         
         daily_stats = {d: 0 for d in days_names}
         monthly_stats = {m: 0 for m in months_names}
-        yearly_stats = {}
+        
+        # تثبيت سنوات معينة لضمان استقرار المنحنى (من 2026 إلى 2030)
+        years_range = [str(y) for y in range(2026, 2031)]
+        yearly_stats = {y: 0 for y in years_range}
+        
         daily_total = 0
         today = datetime.now().date()
 
         for o in orders:
-            # التأكد من وجود عمود created_at، وإلا نستخدم الوقت الحالي
             created_at_str = o.get('created_at', datetime.now().isoformat())
             created_at = datetime.fromisoformat(created_at_str.replace('Z', ''))
             price = float(o.get('total_price', 0))
             
             daily_stats[days_names[created_at.weekday()]] += price
             monthly_stats[months_names[created_at.month - 1]] += price
+            
             year = str(created_at.year)
-            yearly_stats[year] = yearly_stats.get(year, 0) + price
+            if year in yearly_stats:
+                yearly_stats[year] += price
             
             if created_at.date() == today:
                 daily_total += price
 
-        # نستخدم json.dumps لتحويل القواميس لنص يفهمه الـ HTML/JS
         return render_template('stats.html', 
                                daily=json.dumps(daily_stats), 
                                monthly=json.dumps(monthly_stats), 
