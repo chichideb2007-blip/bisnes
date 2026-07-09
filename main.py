@@ -74,7 +74,6 @@ def update_settings():
         "manager_phone": request.form.get("phone")
     }
     
-    # تحديث البيانات أو إدراجها إذا كانت جديدة
     try:
         supabase.table("company_settings").update(data_to_save).eq("company_id_text", comp_id).execute()
     except:
@@ -83,36 +82,37 @@ def update_settings():
         
     return "تم حفظ الإعدادات بنجاح! <a href='/dashboard'>العودة للوحة التحكم</a>"
 
-@app.route('/orders', methods=['GET', 'POST'])
-def orders():
+@app.route('/orders', methods=['POST'])
+def orders_post():
     if 'company_id' not in session: return redirect(url_for('login'))
     comp_id = session['company_id']
     
-    if request.method == 'POST':
-        try:
-            order_data = {
-                "customer_name": request.form.get("customer_name"),
-                "customer_phone": request.form.get("customer_phone"),
-                "product_name": request.form.get("product"),
-                "total_price": float(request.form.get("price", 0)),
-                "company_id_text": comp_id,
-                "status": "مكتملة"
-            }
-            
-            prod_query = supabase.table("inventory").select("*").eq("company_id_text", comp_id).eq("name", order_data["product_name"]).single().execute()
-            
-            if prod_query.data and prod_query.data['quantity'] >= 1:
-                supabase.table("inventory").update({"quantity": prod_query.data['quantity'] - 1}).eq("id", prod_query.data['id']).execute()
-                supabase.table("orders").insert(order_data).execute()
-                
-                # إرسال التنبيه
-                send_telegram_notification(comp_id, order_data)
-                
-                return redirect(url_for('orders'))
-            return "خطأ: المنتج غير متوفر!"
-        except Exception as e: return f"خطأ تقني: {e}"
-    
-    response = supabase.table("orders").select("*").eq("company_id_text", comp_id).execute()
+    try:
+        order_data = {
+            "customer_name": request.form.get("customer_name"),
+            "customer_phone": request.form.get("customer_phone"),
+            "product_name": request.form.get("product"),
+            "total_price": float(request.form.get("price", 0)),
+            "company_id_text": comp_id
+        }
+        
+        # البحث عن المنتج وتحديث الكمية
+        prod = supabase.table("inventory").select("id, quantity").eq("company_id_text", comp_id).eq("name", order_data["product_name"]).single().execute()
+        
+        if prod.data and prod.data['quantity'] >= 1:
+            supabase.table("inventory").update({"quantity": prod.data['quantity'] - 1}).eq("id", prod.data['id']).execute()
+            supabase.table("orders").insert(order_data).execute()
+            try: send_telegram_notification(comp_id, order_data)
+            except: pass
+            return redirect(url_for('orders'))
+        return "خطأ: المنتج غير متوفر!"
+    except Exception as e:
+        return f"<h1>خطأ في حفظ الطلبية (يجب إصلاحه في سوبابيس):</h1><p>{str(e)}</p>"
+
+@app.route('/orders')
+def orders():
+    if 'company_id' not in session: return redirect(url_for('login'))
+    response = supabase.table("orders").select("*").eq("company_id_text", session['company_id']).execute()
     return render_template('orders_dashboard.html', orders=response.data or [])
 
 @app.route('/delete_order/<int:order_id>')
