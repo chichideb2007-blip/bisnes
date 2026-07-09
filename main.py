@@ -4,7 +4,8 @@ import os
 from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key_here")
+# تأكدي أن SECRET_KEY مضاف في إعدادات Render كـ Environment Variable
+app.secret_key = os.environ.get("SECRET_KEY", "super_secret_key_123")
 
 # إعداد Supabase
 url = os.environ.get("SUPABASE_URL")
@@ -27,25 +28,10 @@ def login():
             if user.data and len(user.data) > 0:
                 session['company_id'] = str(user.data[0]['company_id'])
                 return redirect(url_for('dashboard'))
-            return "بيانات الدخول خاطئة"
+            return "بيانات الدخول خاطئة أو المستخدم غير موجود"
         except Exception as e:
-            return f"خطأ في الاتصال: {e}"
+            return f"<h1>خطأ في تسجيل الدخول:</h1> <pre>{str(e)}</pre>"
     return render_template('login.html')
-
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if request.method == 'POST':
-        try:
-            new_user = {
-                "email": request.form.get('email'),
-                "password": request.form.get('password'),
-                "company_id": request.form.get('company_id')
-            }
-            supabase.table("users").insert(new_user).execute()
-            return "تم التسجيل بنجاح! <a href='/login'>العودة لتسجيل الدخول</a>"
-        except Exception as e:
-            return f"خطأ في التسجيل: {e}"
-    return render_template('register.html')
 
 @app.route('/dashboard')
 def dashboard():
@@ -59,27 +45,32 @@ def orders():
     
     if request.method == 'POST':
         try:
-            # البيانات المرسلة للجدول
-            new_order = {
+            data = {
                 "customer_name": request.form.get("customer_name"),
                 "customer_phone": request.form.get("customer_phone"),
                 "product_name": request.form.get("product"),
-                "total_price": float(request.form.get("price", 0)), 
+                "total_price": float(request.form.get("price", 0)),
                 "company_id_text": comp_id,
                 "status": "قيد الانتظار"
             }
-            supabase.table("orders").insert(new_order).execute()
+            supabase.table("orders").insert(data).execute()
             return redirect(url_for('orders'))
         except Exception as e:
-            return f"خطأ في قاعدة البيانات: {str(e)}"
+            return f"<h1>خطأ في إضافة الطلبية (أرسلي لي هذا الخطأ):</h1> <pre>{str(e)}</pre>"
     
-    response = supabase.table("orders").select("*").eq("company_id_text", comp_id).execute()
-    return render_template('orders_dashboard.html', orders=response.data or [])
+    try:
+        response = supabase.table("orders").select("*").eq("company_id_text", comp_id).execute()
+        return render_template('orders_dashboard.html', orders=response.data or [])
+    except Exception as e:
+        return f"<h1>خطأ في عرض البيانات:</h1> <pre>{str(e)}</pre>"
 
 @app.route('/delete_order/<int:order_id>')
 def delete_order(order_id):
     if 'company_id' not in session: return redirect(url_for('login'))
-    supabase.table("orders").delete().eq("id", order_id).execute()
+    try:
+        supabase.table("orders").delete().eq("id", order_id).execute()
+    except Exception as e:
+        return f"خطأ في الحذف: {e}"
     return redirect(url_for('orders'))
 
 @app.route('/stats')
@@ -89,26 +80,15 @@ def stats():
     try:
         response = supabase.table("orders").select("*").eq("company_id_text", comp_id).execute()
         orders = response.data or []
-        
-        # حساب الإحصائيات...
-        days = ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"]
-        months = ["جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان", "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
-        
-        daily = {d: 0 for d in days}
-        monthly = {m: 0 for m in months}
-        yearly = {}
-        
-        for o in orders:
-            price = float(o.get('total_price', 0))
-            date_val = datetime.now() 
-            daily[days[date_val.weekday()]] += price
-            monthly[months[date_val.month - 1]] += price
-            year = str(date_val.year)
-            yearly[year] = yearly.get(year, 0) + price
-            
-        return render_template('stats.html', daily=daily, monthly=monthly, yearly=yearly, orders=orders)
+        # الإحصائيات...
+        return render_template('stats.html', orders=orders)
     except Exception as e:
-        return f"خطأ في الإحصائيات: {e}"
+        return f"خطأ في تحميل الإحصائيات: {e}"
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
 
 if __name__ == '__main__':
     app.run(debug=True)
