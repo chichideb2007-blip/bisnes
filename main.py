@@ -13,19 +13,21 @@ url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
 
-# --- دالة إرسال الإشعار الذكية ---
+# --- دالة إرسال الإشعار الذكية (معدلة لتشمل اسم المتجر) ---
 def send_whatsapp_notification(comp_id, order_details):
     try:
         # جلب إعدادات الشركة من الجدول
         settings = supabase.table("company_settings").select("*").eq("company_id_text", comp_id).single().execute()
         if not settings.data: return
 
+        # الحصول على اسم المتجر (أو اسم افتراضي إذا لم يتم ضبطه)
+        store_name = settings.data.get('store_name', 'متجرك')
         instance_id = settings.data['whatsapp_instance']
         token = settings.data['whatsapp_token']
         manager_phone = settings.data['manager_phone']
         
         url_api = f"https://api.ultramsg.com/{instance_id}/messages/chat"
-        body_text = (f"🔔 تنبيه طلبية جديدة!\n\n"
+        body_text = (f"🔔 تنبيه طلبية جديدة من: {store_name}\n\n"
                      f"👤 العميل: {order_details['customer_name']}\n"
                      f"📞 الهاتف: {order_details['customer_phone']}\n"
                      f"📦 المنتج: {order_details['product_name']}\n"
@@ -66,8 +68,10 @@ def settings():
 def update_settings():
     if 'company_id' not in session: return redirect(url_for('login'))
     comp_id = session['company_id']
+    
     new_settings = {
         "company_id_text": comp_id,
+        "store_name": request.form.get("store_name"),      # إضافة اسم المتجر
         "whatsapp_instance": request.form.get("instance_id"),
         "whatsapp_token": request.form.get("token"),
         "manager_phone": request.form.get("phone")
