@@ -1,7 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, session
 from supabase import create_client
 import os
-from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key_here")
@@ -23,8 +22,9 @@ def login():
         email = request.form.get('email')
         password = request.form.get('password')
         try:
+            # التحقق من المستخدم
             user = supabase.table("users").select("*").eq("email", email).eq("password", password).execute()
-            if user.data:
+            if user.data and len(user.data) > 0:
                 session['company_id'] = str(user.data[0]['company_id'])
                 return redirect(url_for('dashboard'))
             return "بيانات الدخول خاطئة"
@@ -32,25 +32,19 @@ def login():
             return f"خطأ في الاتصال: {e}"
     return render_template('login.html')
 
-# المسار الجديد للتسجيل
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
-        company_id = request.form.get('company_id') # معرف الشركة
-        
         try:
             new_user = {
-                "email": email,
-                "password": password,
-                "company_id": company_id
+                "email": request.form.get('email'),
+                "password": request.form.get('password'),
+                "company_id": request.form.get('company_id')
             }
             supabase.table("users").insert(new_user).execute()
-            return "تم إنشاء الحساب بنجاح! <a href='/login'>العودة لتسجيل الدخول</a>"
+            return "تم التسجيل بنجاح! <a href='/login'>العودة لتسجيل الدخول</a>"
         except Exception as e:
             return f"خطأ في التسجيل: {e}"
-            
     return render_template('register.html')
 
 @app.route('/dashboard')
@@ -65,10 +59,11 @@ def orders():
     
     if request.method == 'POST':
         try:
+            # مطابقة أعمدة Supabase حرفياً
             new_order = {
                 "customer_name": request.form.get("customer_name"),
                 "customer_phone": request.form.get("customer_phone"),
-                "product_name": request.form.get("product"),
+                "product_name": request.form.get("product"), 
                 "total_price": float(request.form.get("price", 0)), 
                 "company_id_text": comp_id,
                 "status": "قيد الانتظار"
@@ -86,9 +81,6 @@ def delete_order(order_id):
     if 'company_id' not in session: return redirect(url_for('login'))
     supabase.table("orders").delete().eq("id", order_id).execute()
     return redirect(url_for('orders'))
-
-# --- باقي المسارات (stats, settings, logout) ---
-# (نفس الكود السابق الذي يعمل جيداً)
 
 if __name__ == '__main__':
     app.run(debug=True)
