@@ -5,6 +5,7 @@ from datetime import datetime
 import json
 
 app = Flask(__name__)
+# تأكدي أن SECRET_KEY موجود في إعدادات Render كـ Environment Variable
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key_here")
 
 # إعداد Supabase
@@ -73,10 +74,7 @@ def stats():
         
         daily_stats = {d: 0 for d in days_names}
         monthly_stats = {m: 0 for m in months_names}
-        
-        # تثبيت سنوات معينة لضمان استقرار المنحنى (من 2026 إلى 2030)
-        years_range = [str(y) for y in range(2026, 2031)]
-        yearly_stats = {y: 0 for y in years_range}
+        yearly_stats = {} # فارغ ليتم ملؤه ديناميكياً
         
         daily_total = 0
         today = datetime.now().date()
@@ -86,20 +84,24 @@ def stats():
             created_at = datetime.fromisoformat(created_at_str.replace('Z', ''))
             price = float(o.get('total_price', 0))
             
+            # تحديث الأيام والشهور
             daily_stats[days_names[created_at.weekday()]] += price
             monthly_stats[months_names[created_at.month - 1]] += price
             
+            # تحديث السنوات ديناميكياً
             year = str(created_at.year)
-            if year in yearly_stats:
-                yearly_stats[year] += price
+            yearly_stats[year] = yearly_stats.get(year, 0) + price
             
             if created_at.date() == today:
                 daily_total += price
 
+        # ترتيب السنوات تصاعدياً ليكون المنحنى مرتباً
+        sorted_yearly = dict(sorted(yearly_stats.items()))
+
         return render_template('stats.html', 
                                daily=json.dumps(daily_stats), 
                                monthly=json.dumps(monthly_stats), 
-                               yearly=json.dumps(yearly_stats), 
+                               yearly=json.dumps(sorted_yearly), 
                                daily_total=daily_total)
     except Exception as e:
         return f"خطأ في الإحصائيات: {e}"
