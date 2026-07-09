@@ -13,30 +13,30 @@ url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
 
-# --- دالة إرسال الإشعار الذكية (معدلة لتشمل اسم المتجر) ---
-def send_whatsapp_notification(comp_id, order_details):
+# --- دالة إرسال الإشعار عبر تيلجرام ---
+def send_telegram_notification(comp_id, order_details):
     try:
-        # جلب إعدادات الشركة من الجدول
+        # جلب إعدادات الشركة
         settings = supabase.table("company_settings").select("*").eq("company_id_text", comp_id).single().execute()
         if not settings.data: return
 
-        # الحصول على اسم المتجر (أو اسم افتراضي إذا لم يتم ضبطه)
+        # البيانات من قاعدة البيانات
+        telegram_token = settings.data.get('whatsapp_token') # نستخدم نفس العمود لتخزين توكن البوت
+        chat_id = settings.data.get('manager_phone')         # نستخدم نفس العمود لتخزين الـ Chat ID
         store_name = settings.data.get('store_name', 'متجرك')
-        instance_id = settings.data['whatsapp_instance']
-        token = settings.data['whatsapp_token']
-        manager_phone = settings.data['manager_phone']
         
-        url_api = f"https://api.ultramsg.com/{instance_id}/messages/chat"
+        url_api = f"https://api.telegram.org/bot{telegram_token}/sendMessage"
+        
         body_text = (f"🔔 تنبيه طلبية جديدة من: {store_name}\n\n"
                      f"👤 العميل: {order_details['customer_name']}\n"
                      f"📞 الهاتف: {order_details['customer_phone']}\n"
                      f"📦 المنتج: {order_details['product_name']}\n"
                      f"💰 السعر: {order_details['total_price']} دج")
         
-        payload = {"token": token, "to": manager_phone, "body": body_text}
+        payload = {"chat_id": chat_id, "text": body_text}
         requests.post(url_api, data=payload)
     except Exception as e:
-        print(f"خطأ في إرسال واتساب: {e}")
+        print(f"خطأ في إرسال تيلجرام: {e}")
 
 # --- المسارات ---
 
@@ -71,13 +71,12 @@ def update_settings():
     
     new_settings = {
         "company_id_text": comp_id,
-        "store_name": request.form.get("store_name"),      # إضافة اسم المتجر
-        "whatsapp_instance": request.form.get("instance_id"),
-        "whatsapp_token": request.form.get("token"),
-        "manager_phone": request.form.get("phone")
+        "store_name": request.form.get("store_name"),
+        "whatsapp_token": request.form.get("token"), # هنا نضع توكن البوت
+        "manager_phone": request.form.get("phone")   # هنا نضع الـ Chat ID
     }
     supabase.table("company_settings").upsert(new_settings).execute()
-    return "تم حفظ الإعدادات بنجاح! <a href='/dashboard'>العودة للوحة التحكم</a>"
+    return "تم حفظ إعدادات تيلجرام بنجاح! <a href='/dashboard'>العودة للوحة التحكم</a>"
 
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
@@ -100,7 +99,8 @@ def orders():
             if prod_query.data and prod_query.data['quantity'] >= 1:
                 supabase.table("inventory").update({"quantity": prod_query.data['quantity'] - 1}).eq("id", prod_query.data['id']).execute()
                 supabase.table("orders").insert(order_data).execute()
-                send_whatsapp_notification(comp_id, order_data)
+                # استدعاء دالة التيلجرام الجديدة
+                send_telegram_notification(comp_id, order_data)
                 return redirect(url_for('orders'))
             return "خطأ: المنتج غير متوفر!"
         except Exception as e: return f"خطأ: {e}"
