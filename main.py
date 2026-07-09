@@ -10,8 +10,6 @@ url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
 
-# --- المسارات ---
-
 @app.route('/')
 def home():
     return redirect(url_for('login'))
@@ -22,7 +20,6 @@ def login():
         email = request.form.get('email')
         password = request.form.get('password')
         try:
-            # التحقق من المستخدم
             user = supabase.table("users").select("*").eq("email", email).eq("password", password).execute()
             if user.data and len(user.data) > 0:
                 session['company_id'] = str(user.data[0]['company_id'])
@@ -59,19 +56,20 @@ def orders():
     
     if request.method == 'POST':
         try:
-            # مطابقة أعمدة Supabase حرفياً
-            new_order = {
+            # البيانات التي سيتم إدخالها
+            data = {
                 "customer_name": request.form.get("customer_name"),
                 "customer_phone": request.form.get("customer_phone"),
-                "product_name": request.form.get("product"), 
+                "product_name": request.form.get("product"),
                 "total_price": float(request.form.get("price", 0)), 
                 "company_id_text": comp_id,
                 "status": "قيد الانتظار"
             }
-            supabase.table("orders").insert(new_order).execute()
+            supabase.table("orders").insert(data).execute()
             return redirect(url_for('orders'))
         except Exception as e:
-            return f"خطأ في إضافة الطلبية: {e}"
+            # هذا الجزء سيعرض الخطأ الحقيقي على الشاشة بدلاً من 500
+            return f"<h1>خطأ في قاعدة البيانات:</h1> <pre>{str(e)}</pre>"
     
     response = supabase.table("orders").select("*").eq("company_id_text", comp_id).execute()
     return render_template('orders_dashboard.html', orders=response.data or [])
@@ -79,7 +77,10 @@ def orders():
 @app.route('/delete_order/<int:order_id>')
 def delete_order(order_id):
     if 'company_id' not in session: return redirect(url_for('login'))
-    supabase.table("orders").delete().eq("id", order_id).execute()
+    try:
+        supabase.table("orders").delete().eq("id", order_id).execute()
+    except Exception as e:
+        return f"خطأ في الحذف: {e}"
     return redirect(url_for('orders'))
 
 if __name__ == '__main__':
