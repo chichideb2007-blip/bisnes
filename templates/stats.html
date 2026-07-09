@@ -7,7 +7,7 @@
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f9; padding: 20px; }
         .nav-buttons { text-align: center; margin-bottom: 20px; }
-        .button { padding: 10px 20px; text-decoration: none; color: white; background-color: #007bff; border-radius: 5px; margin: 0 5px; }
+        .button { padding: 10px 20px; text-decoration: none; color: white; background: #007bff; border-radius: 5px; margin: 5px; }
         .logout { background-color: #dc3545; }
         .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         .chart-box { margin-bottom: 40px; }
@@ -16,23 +16,23 @@
 <body>
 
 <div class="nav-buttons">
-    <a href="/dashboard" class="button">لوحة التحكم</a>
-    <a href="/logout" class="button logout">تسجيل الخروج</a>
+    <a href="{{ url_for('dashboard') }}" class="button">لوحة التحكم</a>
+    <a href="{{ url_for('logout') }}" class="button logout">تسجيل الخروج</a>
 </div>
 
 <div class="container">
     <h2>الإحصائيات والتقارير</h2>
-
+    
     <div class="chart-box">
         <h3>المبيعات حسب أيام الأسبوع</h3>
         <canvas id="dailyChart"></canvas>
     </div>
-
+    
     <div class="chart-box">
         <h3>المبيعات حسب أشهر السنة</h3>
         <canvas id="monthlyChart"></canvas>
     </div>
-
+    
     <div class="chart-box">
         <h3>المبيعات حسب السنوات</h3>
         <canvas id="yearlyChart"></canvas>
@@ -40,12 +40,20 @@
 </div>
 
 <script>
-    function createChart(canvasId, labelName, chartData, customOrder) {
+    // دالة إنشاء الرسوم البيانية مع الترتيب الصحيح
+    function createChart(canvasId, labelName, chartData, orderArray = null) {
         const ctx = document.getElementById(canvasId).getContext('2d');
         
-        // ترتيب البيانات يدوياً حسب القائمة المرسلة (customOrder)
-        const labels = customOrder;
-        const values = customOrder.map(label => chartData[label] || 0);
+        // ترتيب البيانات إذا تم توفير قائمة ترتيب (للأيام والشهور)
+        let labels, values;
+        if (orderArray) {
+            labels = orderArray;
+            values = orderArray.map(label => chartData[label] || 0);
+        } else {
+            // للسنوات: لا نحتاج ترتيب ثابت، نستخدم ما وصل من قاعدة البيانات
+            labels = Object.keys(chartData);
+            values = Object.values(chartData);
+        }
 
         new Chart(ctx, {
             type: 'line',
@@ -60,24 +68,23 @@
                     tension: 0.4
                 }]
             },
-            options: { 
-                responsive: true, 
-                scales: { y: { beginAtZero: true } } 
-            }
+            options: { responsive: true, scales: { y: { beginAtZero: true } } }
         });
     }
 
-    // تعريف الترتيب الصحيح
+    // البيانات القادمة من الفلاسك
+    const dailyData = {{ daily | safe }};
+    const monthlyData = {{ monthly | safe }};
+    const yearlyData = {{ yearly | safe }};
+
+    // القوائم المرجعية للترتيب
     const daysOrder = ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"];
     const monthsOrder = ["جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان", "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
 
-    // رسم المنحنيات مع الترتيب
-    createChart('dailyChart', 'المبيعات اليومية', {{ daily | tojson }}, daysOrder);
-    createChart('monthlyChart', 'المبيعات الشهرية', {{ monthly | tojson }}, monthsOrder);
-    
-    // السنوات يتم ترتيبها تلقائياً بناءً على البيانات الموجودة
-    const years = Object.keys({{ yearly | tojson }}).sort();
-    createChart('yearlyChart', 'المبيعات السنوية', {{ yearly | tojson }}, years);
+    // رسم المنحنيات
+    createChart('dailyChart', 'المبيعات اليومية', dailyData, daysOrder);
+    createChart('monthlyChart', 'المبيعات الشهرية', monthlyData, monthsOrder);
+    createChart('yearlyChart', 'المبيعات السنوية', yearlyData); // لا نمرر ترتيب هنا لتكون ديناميكية
 </script>
 
 </body>
