@@ -5,7 +5,7 @@ from datetime import datetime
 import json
 
 app = Flask(__name__)
-# تأكدي أن SECRET_KEY موجود في إعدادات Render كـ Environment Variable
+# تأكدي من ضبط SECRET_KEY في إعدادات Render (Environment Variables)
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key_here")
 
 # إعداد Supabase
@@ -34,6 +34,21 @@ def login():
             return f"خطأ في الاتصال: {e}"
     return render_template('login.html')
 
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        try:
+            new_user = {
+                "email": request.form.get('email'),
+                "password": request.form.get('password'),
+                "company_id": request.form.get('company_id')
+            }
+            supabase.table("users").insert(new_user).execute()
+            return "تم التسجيل بنجاح! <a href='/login'>العودة لتسجيل الدخول</a>"
+        except Exception as e:
+            return f"خطأ في التسجيل: {e}"
+    return render_template('register.html')
+
 @app.route('/dashboard')
 def dashboard():
     if 'company_id' not in session: return redirect(url_for('login'))
@@ -61,6 +76,15 @@ def orders():
     response = supabase.table("orders").select("*").eq("company_id_text", comp_id).execute()
     return render_template('orders_dashboard.html', orders=response.data or [])
 
+@app.route('/delete_order/<int:order_id>')
+def delete_order(order_id):
+    if 'company_id' not in session: return redirect(url_for('login'))
+    try:
+        supabase.table("orders").delete().eq("id", order_id).execute()
+    except Exception as e:
+        return f"خطأ في الحذف: {e}"
+    return redirect(url_for('orders'))
+
 @app.route('/stats')
 def stats():
     if 'company_id' not in session: return redirect(url_for('login'))
@@ -74,12 +98,13 @@ def stats():
         
         daily_stats = {d: 0 for d in days_names}
         monthly_stats = {m: 0 for m in months_names}
-        yearly_stats = {} # فارغ ليتم ملؤه ديناميكياً
+        yearly_stats = {} 
         
         daily_total = 0
         today = datetime.now().date()
 
         for o in orders:
+            # استخراج التاريخ من created_at أو استخدام الوقت الحالي
             created_at_str = o.get('created_at', datetime.now().isoformat())
             created_at = datetime.fromisoformat(created_at_str.replace('Z', ''))
             price = float(o.get('total_price', 0))
