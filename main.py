@@ -4,10 +4,7 @@ import os
 from datetime import datetime
 
 app = Flask(__name__)
-
-# تأكدي من إدخال SECRET_KEY في إعدادات Render (Environment Variables)
-# إذا لم يعمل الموقع، تأكدي أن هذا المفتاح ليس فارغاً
-app.secret_key = os.environ.get("SECRET_KEY", "a_very_secret_key_123")
+app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key_here")
 
 # إعداد Supabase
 url = os.environ.get("SUPABASE_URL")
@@ -26,7 +23,6 @@ def login():
         email = request.form.get('email')
         password = request.form.get('password')
         try:
-            # التحقق من المستخدم
             user = supabase.table("users").select("*").eq("email", email).eq("password", password).execute()
             if user.data and len(user.data) > 0:
                 session['company_id'] = str(user.data[0]['company_id'])
@@ -60,10 +56,8 @@ def dashboard():
 def orders():
     if 'company_id' not in session: return redirect(url_for('login'))
     comp_id = session['company_id']
-    
     if request.method == 'POST':
         try:
-            # البيانات التي سيتم إدخالها - تأكدي أن هذه الأسماء موجودة في جدول Supabase
             new_order = {
                 "customer_name": request.form.get("customer_name"),
                 "customer_phone": request.form.get("customer_phone"),
@@ -75,22 +69,33 @@ def orders():
             supabase.table("orders").insert(new_order).execute()
             return redirect(url_for('orders'))
         except Exception as e:
-            return f"<h1>خطأ في إضافة الطلبية:</h1> <pre>{str(e)}</pre>"
+            return f"<h1>خطأ في الإضافة:</h1> <pre>{str(e)}</pre>"
     
-    try:
-        response = supabase.table("orders").select("*").eq("company_id_text", comp_id).execute()
-        return render_template('orders_dashboard.html', orders=response.data or [])
-    except Exception as e:
-        return f"<h1>خطأ في تحميل الطلبيات:</h1> <pre>{str(e)}</pre>"
+    response = supabase.table("orders").select("*").eq("company_id_text", comp_id).execute()
+    return render_template('orders_dashboard.html', orders=response.data or [])
 
 @app.route('/delete_order/<int:order_id>')
 def delete_order(order_id):
     if 'company_id' not in session: return redirect(url_for('login'))
-    try:
-        supabase.table("orders").delete().eq("id", order_id).execute()
-    except Exception as e:
-        return f"خطأ في الحذف: {e}"
+    supabase.table("orders").delete().eq("id", order_id).execute()
     return redirect(url_for('orders'))
+
+@app.route('/stats')
+def stats():
+    if 'company_id' not in session: return redirect(url_for('login'))
+    comp_id = session['company_id']
+    try:
+        response = supabase.table("orders").select("*").eq("company_id_text", comp_id).execute()
+        orders = response.data or []
+        # إحصائيات بسيطة
+        return render_template('stats.html', orders=orders)
+    except Exception as e:
+        return f"<h1>خطأ في الإحصائيات:</h1> <pre>{str(e)}</pre>"
+
+@app.route('/settings')
+def settings():
+    if 'company_id' not in session: return redirect(url_for('login'))
+    return render_template('settings.html')
 
 @app.route('/logout')
 def logout():
