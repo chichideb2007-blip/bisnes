@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, session
 from supabase import create_client
 import os
+from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key_here")
@@ -9,6 +10,8 @@ app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key_here")
 url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
+
+# --- المسارات ---
 
 @app.route('/')
 def home():
@@ -56,8 +59,8 @@ def orders():
     
     if request.method == 'POST':
         try:
-            # البيانات التي سيتم إدخالها
-            data = {
+            # البيانات المرسلة للجدول
+            new_order = {
                 "customer_name": request.form.get("customer_name"),
                 "customer_phone": request.form.get("customer_phone"),
                 "product_name": request.form.get("product"),
@@ -65,11 +68,10 @@ def orders():
                 "company_id_text": comp_id,
                 "status": "قيد الانتظار"
             }
-            supabase.table("orders").insert(data).execute()
+            supabase.table("orders").insert(new_order).execute()
             return redirect(url_for('orders'))
         except Exception as e:
-            # هذا الجزء سيعرض الخطأ الحقيقي على الشاشة بدلاً من 500
-            return f"<h1>خطأ في قاعدة البيانات:</h1> <pre>{str(e)}</pre>"
+            return f"خطأ في قاعدة البيانات: {str(e)}"
     
     response = supabase.table("orders").select("*").eq("company_id_text", comp_id).execute()
     return render_template('orders_dashboard.html', orders=response.data or [])
@@ -77,11 +79,36 @@ def orders():
 @app.route('/delete_order/<int:order_id>')
 def delete_order(order_id):
     if 'company_id' not in session: return redirect(url_for('login'))
-    try:
-        supabase.table("orders").delete().eq("id", order_id).execute()
-    except Exception as e:
-        return f"خطأ في الحذف: {e}"
+    supabase.table("orders").delete().eq("id", order_id).execute()
     return redirect(url_for('orders'))
+
+@app.route('/stats')
+def stats():
+    if 'company_id' not in session: return redirect(url_for('login'))
+    comp_id = session['company_id']
+    try:
+        response = supabase.table("orders").select("*").eq("company_id_text", comp_id).execute()
+        orders = response.data or []
+        
+        # حساب الإحصائيات...
+        days = ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"]
+        months = ["جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان", "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
+        
+        daily = {d: 0 for d in days}
+        monthly = {m: 0 for m in months}
+        yearly = {}
+        
+        for o in orders:
+            price = float(o.get('total_price', 0))
+            date_val = datetime.now() 
+            daily[days[date_val.weekday()]] += price
+            monthly[months[date_val.month - 1]] += price
+            year = str(date_val.year)
+            yearly[year] = yearly.get(year, 0) + price
+            
+        return render_template('stats.html', daily=daily, monthly=monthly, yearly=yearly, orders=orders)
+    except Exception as e:
+        return f"خطأ في الإحصائيات: {e}"
 
 if __name__ == '__main__':
     app.run(debug=True)
