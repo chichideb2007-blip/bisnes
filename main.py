@@ -20,9 +20,8 @@ def send_telegram_notification(comp_id, order_details):
         settings = supabase.table("company_settings").select("*").eq("company_id_text", comp_id).single().execute()
         if not settings.data: return
 
-        # البيانات من قاعدة البيانات
-        telegram_token = settings.data.get('whatsapp_token') # نستخدم نفس العمود لتخزين توكن البوت
-        chat_id = settings.data.get('manager_phone')         # نستخدم نفس العمود لتخزين الـ Chat ID
+        telegram_token = settings.data.get('whatsapp_token')
+        chat_id = settings.data.get('manager_phone')
         store_name = settings.data.get('store_name', 'متجرك')
         
         url_api = f"https://api.telegram.org/bot{telegram_token}/sendMessage"
@@ -69,11 +68,13 @@ def update_settings():
     if 'company_id' not in session: return redirect(url_for('login'))
     comp_id = session['company_id']
     
+    # التعديل هنا: أضفنا قيمة "telegram" لـ whatsapp_instance لتجاوز خطأ قاعدة البيانات
     new_settings = {
         "company_id_text": comp_id,
         "store_name": request.form.get("store_name"),
-        "whatsapp_token": request.form.get("token"), # هنا نضع توكن البوت
-        "manager_phone": request.form.get("phone")   # هنا نضع الـ Chat ID
+        "whatsapp_instance": "telegram", 
+        "whatsapp_token": request.form.get("token"),
+        "manager_phone": request.form.get("phone")
     }
     supabase.table("company_settings").upsert(new_settings).execute()
     return "تم حفظ إعدادات تيلجرام بنجاح! <a href='/dashboard'>العودة للوحة التحكم</a>"
@@ -99,7 +100,6 @@ def orders():
             if prod_query.data and prod_query.data['quantity'] >= 1:
                 supabase.table("inventory").update({"quantity": prod_query.data['quantity'] - 1}).eq("id", prod_query.data['id']).execute()
                 supabase.table("orders").insert(order_data).execute()
-                # استدعاء دالة التيلجرام الجديدة
                 send_telegram_notification(comp_id, order_data)
                 return redirect(url_for('orders'))
             return "خطأ: المنتج غير متوفر!"
