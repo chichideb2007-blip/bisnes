@@ -13,9 +13,10 @@ url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
 
-# --- دالة إرسال الإشعار عبر تيلجرام (مع حماية إضافية) ---
+# --- دالة إرسال الإشعار عبر تيلجرام (معدلة للحماية من الأخطاء) ---
 def send_telegram_notification(comp_id, order_details):
     try:
+        # جلب إعدادات الشركة
         settings = supabase.table("company_settings").select("*").eq("company_id_text", comp_id).single().execute()
         if not settings.data: return
 
@@ -23,7 +24,7 @@ def send_telegram_notification(comp_id, order_details):
         chat_id = settings.data.get('manager_phone')
         store_name = settings.data.get('store_name', 'متجرك')
         
-        # التأكد من وجود البيانات قبل الإرسال
+        # إذا لم يتم ضبط التوكن أو الـ Chat ID، لا نحاول الإرسال
         if not telegram_token or not chat_id:
             return
 
@@ -35,7 +36,8 @@ def send_telegram_notification(comp_id, order_details):
                      f"💰 السعر: {order_details['total_price']} دج")
         
         payload = {"chat_id": chat_id, "text": body_text}
-        requests.post(url_api, data=payload, timeout=5) # إضافة timeout لعدم تعليق الموقع
+        # إضافة timeout لضمان عدم تعليق الموقع
+        requests.post(url_api, data=payload, timeout=5)
     except Exception as e:
         print(f"تنبيه: فشل إرسال تيلجرام: {e}")
 
@@ -74,10 +76,10 @@ def update_settings():
         "store_name": request.form.get("store_name"),
         "whatsapp_token": request.form.get("token"),
         "manager_phone": request.form.get("phone"),
-        "whatsapp_instance": "telegram" # نثبت القيمة لتجاوز الخطأ
+        "whatsapp_instance": "telegram"
     }
     
-    # محاولة تحديث البيانات الموجودة، إذا لم توجد نقوم بإدراجها
+    # محاولة تحديث البيانات الموجودة، إذا فشل التحديث (بسبب عدم وجود سطر سابق) نقوم بالإدراج
     try:
         supabase.table("company_settings").update(data_to_save).eq("company_id_text", comp_id).execute()
     except:
