@@ -4,6 +4,7 @@ import os
 import requests
 from datetime import datetime
 import json
+import uuid  # <-- ضروري جداً لتسمية الصور بأسماء فريدة
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key_here")
@@ -82,7 +83,7 @@ def update_settings():
         
     return "تم حفظ الإعدادات بنجاح! <a href='/dashboard'>العودة للوحة التحكم</a>"
 
-# --- إدارة المنتجات (المخزن) ---
+# --- إدارة المنتجات (المخزن) مع رفع الصور ---
 
 @app.route('/products', methods=['GET', 'POST'])
 def products():
@@ -90,11 +91,27 @@ def products():
     comp_id = session['company_id']
     
     if request.method == 'POST':
+        # 1. استقبال ملف الصورة
+        image_file = request.files.get('product_image')
+        image_url = ""
+        
+        if image_file and image_file.filename != '':
+            # توليد اسم فريد للصورة لمنع التعارض
+            file_ext = image_file.filename.split('.')[-1]
+            unique_filename = f"{uuid.uuid4()}.{file_ext}"
+            
+            # رفع الصورة إلى الـ Bucket المسمى 'product-images'
+            supabase.storage.from_("product-images").upload(unique_filename, image_file.read())
+            
+            # الحصول على الرابط العام للصورة
+            image_url = supabase.storage.from_("product-images").get_public_url(unique_filename)
+        
+        # 2. حفظ بيانات المنتج في قاعدة البيانات
         new_prod = {
             "name": request.form.get("name"),
             "quantity": int(request.form.get("quantity", 0)),
             "price": float(request.form.get("price", 0)),
-            "image_url": request.form.get("image_url"),
+            "image_url": image_url, 
             "company_id_text": comp_id
         }
         supabase.table("inventory").insert(new_prod).execute()
