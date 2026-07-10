@@ -4,7 +4,7 @@ import os
 import requests
 from datetime import datetime
 import json
-import uuid  # <-- ضروري جداً لتسمية الصور بأسماء فريدة
+import uuid  # تأكدي من وجود هذا الاستيراد في الأعلى
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key_here")
@@ -19,20 +19,16 @@ def send_telegram_notification(comp_id, order_details):
     try:
         settings = supabase.table("company_settings").select("*").eq("company_id_text", comp_id).single().execute()
         if not settings.data: return
-
         telegram_token = settings.data.get('whatsapp_token')
         chat_id = settings.data.get('manager_phone')
         store_name = settings.data.get('store_name', 'متجرك')
-        
         if not telegram_token or not chat_id: return
-
         url_api = f"https://api.telegram.org/bot{telegram_token}/sendMessage"
         body_text = (f"🔔 تنبيه طلبية جديدة من: {store_name}\n\n"
                      f"👤 العميل: {order_details['customer_name']}\n"
                      f"📞 الهاتف: {order_details['customer_phone']}\n"
                      f"📦 المنتج: {order_details['product_name']}\n"
                      f"💰 السعر: {order_details['total_price']} دج")
-        
         payload = {"chat_id": chat_id, "text": body_text}
         requests.post(url_api, data=payload, timeout=5)
     except Exception as e:
@@ -68,22 +64,19 @@ def settings():
 def update_settings():
     if 'company_id' not in session: return redirect(url_for('login'))
     comp_id = session['company_id']
-    
     data_to_save = {
         "store_name": request.form.get("store_name"),
         "whatsapp_token": request.form.get("token"),
         "manager_phone": request.form.get("phone")
     }
-    
     try:
         supabase.table("company_settings").update(data_to_save).eq("company_id_text", comp_id).execute()
     except:
         data_to_save["company_id_text"] = comp_id
         supabase.table("company_settings").insert(data_to_save).execute()
-        
     return "تم حفظ الإعدادات بنجاح! <a href='/dashboard'>العودة للوحة التحكم</a>"
 
-# --- إدارة المنتجات (المخزن) مع رفع الصور ---
+# --- إدارة المنتجات (المخزن) ---
 
 @app.route('/products', methods=['GET', 'POST'])
 def products():
@@ -91,32 +84,32 @@ def products():
     comp_id = session['company_id']
     
     if request.method == 'POST':
-        # 1. استقبال ملف الصورة
+        # استقبال ملف الصورة
         image_file = request.files.get('product_image')
         image_url = ""
         
         if image_file and image_file.filename != '':
-            # توليد اسم فريد للصورة لمنع التعارض
-            file_ext = image_file.filename.split('.')[-1]
-            unique_filename = f"{uuid.uuid4()}.{file_ext}"
-            
-            # رفع الصورة إلى الـ Bucket المسمى 'product-images'
-            supabase.storage.from_("product-images").upload(unique_filename, image_file.read())
-            
-            # الحصول على الرابط العام للصورة
-            image_url = supabase.storage.from_("product-images").get_public_url(unique_filename)
+            try:
+                # توليد اسم فريد للصورة لمنع التعارض
+                unique_filename = f"{uuid.uuid4()}_{image_file.filename}"
+                # رفع الصورة إلى Supabase Storage
+                supabase.storage.from_("product-images").upload(unique_filename, image_file.read())
+                image_url = supabase.storage.from_("product-images").get_public_url(unique_filename)
+            except Exception as e:
+                return f"خطأ في رفع الصورة: {e}"
         
-        # 2. حفظ بيانات المنتج في قاعدة البيانات
+        # حفظ بيانات المنتج في قاعدة البيانات
         new_prod = {
             "name": request.form.get("name"),
             "quantity": int(request.form.get("quantity", 0)),
             "price": float(request.form.get("price", 0)),
-            "image_url": image_url, 
+            "image_url": image_url,
             "company_id_text": comp_id
         }
         supabase.table("inventory").insert(new_prod).execute()
         return redirect(url_for('products'))
     
+    # جلب وعرض المنتجات
     response = supabase.table("inventory").select("*").eq("company_id_text", comp_id).execute()
     return render_template('products.html', products=response.data or [])
 
@@ -126,32 +119,22 @@ def delete_product(prod_id):
     supabase.table("inventory").delete().eq("id", prod_id).eq("company_id_text", session['company_id']).execute()
     return redirect(url_for('products'))
 
-# --- إدارة الطلبيات ---
-
+# --- إدارة الطلبيات (باقي الكود كما هو) ---
 @app.route('/orders', methods=['POST'])
 def orders_post():
     if 'company_id' not in session: return redirect(url_for('login'))
     comp_id = session['company_id']
-    
     try:
         product_name = request.form.get("product")
         customer_name = request.form.get("customer_name")
         customer_phone = request.form.get("customer_phone")
         total_price = float(request.form.get("price", 0))
-
         prod_query = supabase.table("inventory").select("*").eq("company_id_text", comp_id).eq("name", product_name).execute()
-        
         if prod_query.data and len(prod_query.data) > 0:
             product = prod_query.data[0]
             if product['quantity'] >= 1:
                 supabase.table("inventory").update({"quantity": product['quantity'] - 1}).eq("id", product['id']).execute()
-                order_data = {
-                    "customer_name": customer_name,
-                    "customer_phone": customer_phone,
-                    "product_name": product_name,
-                    "total_price": total_price,
-                    "company_id_text": comp_id
-                }
+                order_data = {"customer_name": customer_name, "customer_phone": customer_phone, "product_name": product_name, "total_price": total_price, "company_id_text": comp_id}
                 supabase.table("orders").insert(order_data).execute()
                 try: send_telegram_notification(comp_id, order_data)
                 except: pass
@@ -179,7 +162,6 @@ def stats():
     comp_id = session['company_id']
     response = supabase.table("orders").select("*").eq("company_id_text", comp_id).execute()
     orders = response.data or []
-    
     yearly_stats = {}
     for o in orders:
         price = float(o.get('total_price', 0))
