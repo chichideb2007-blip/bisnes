@@ -82,6 +82,35 @@ def update_settings():
         
     return "تم حفظ الإعدادات بنجاح! <a href='/dashboard'>العودة للوحة التحكم</a>"
 
+# --- إدارة المنتجات (المخزن) ---
+
+@app.route('/products', methods=['GET', 'POST'])
+def products():
+    if 'company_id' not in session: return redirect(url_for('login'))
+    comp_id = session['company_id']
+    
+    if request.method == 'POST':
+        new_prod = {
+            "name": request.form.get("name"),
+            "quantity": int(request.form.get("quantity", 0)),
+            "price": float(request.form.get("price", 0)),
+            "image_url": request.form.get("image_url"),
+            "company_id_text": comp_id
+        }
+        supabase.table("inventory").insert(new_prod).execute()
+        return redirect(url_for('products'))
+    
+    response = supabase.table("inventory").select("*").eq("company_id_text", comp_id).execute()
+    return render_template('products.html', products=response.data or [])
+
+@app.route('/delete_product/<int:prod_id>')
+def delete_product(prod_id):
+    if 'company_id' not in session: return redirect(url_for('login'))
+    supabase.table("inventory").delete().eq("id", prod_id).eq("company_id_text", session['company_id']).execute()
+    return redirect(url_for('products'))
+
+# --- إدارة الطلبيات ---
+
 @app.route('/orders', methods=['POST'])
 def orders_post():
     if 'company_id' not in session: return redirect(url_for('login'))
@@ -93,17 +122,12 @@ def orders_post():
         customer_phone = request.form.get("customer_phone")
         total_price = float(request.form.get("price", 0))
 
-        # 1. البحث عن المنتج في المخزن
         prod_query = supabase.table("inventory").select("*").eq("company_id_text", comp_id).eq("name", product_name).execute()
         
         if prod_query.data and len(prod_query.data) > 0:
             product = prod_query.data[0]
-            
             if product['quantity'] >= 1:
-                # 2. خصم الكمية
                 supabase.table("inventory").update({"quantity": product['quantity'] - 1}).eq("id", product['id']).execute()
-                
-                # 3. حفظ الطلبية
                 order_data = {
                     "customer_name": customer_name,
                     "customer_phone": customer_phone,
@@ -112,19 +136,13 @@ def orders_post():
                     "company_id_text": comp_id
                 }
                 supabase.table("orders").insert(order_data).execute()
-                
-                # 4. إرسال التنبيه
                 try: send_telegram_notification(comp_id, order_data)
                 except: pass
-                
                 return redirect(url_for('orders'))
-            else:
-                return "خطأ: المنتج موجود ولكن الكمية صفر!"
-        else:
-            return f"خطأ: المنتج '{product_name}' غير موجود في المخزن! تأكدي من تطابق الاسم."
-            
+            return "خطأ: الكمية غير متوفرة!"
+        return "خطأ: المنتج غير موجود!"
     except Exception as e:
-        return f"<h1>خطأ أثناء حفظ الطلبية وتحديث المخزن:</h1><p>{str(e)}</p>"
+        return f"خطأ: {str(e)}"
 
 @app.route('/orders')
 def orders():
