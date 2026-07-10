@@ -65,4 +65,79 @@ def settings():
 
 @app.route('/update_settings', methods=['POST'])
 def update_settings():
-    if '
+    if 'company_id' not in session: return redirect(url_for('login'))
+    comp_id = session['company_id']
+    
+    data_to_save = {
+        "store_name": request.form.get("store_name"),
+        "whatsapp_token": request.form.get("token"),
+        "manager_phone": request.form.get("phone")
+    }
+    
+    try:
+        supabase.table("company_settings").update(data_to_save).eq("company_id_text", comp_id).execute()
+    except:
+        data_to_save["company_id_text"] = comp_id
+        supabase.table("company_settings").insert(data_to_save).execute()
+        
+    return "تم حفظ الإعدادات بنجاح! <a href='/dashboard'>العودة للوحة التحكم</a>"
+
+@app.route('/orders', methods=['POST'])
+def orders_post():
+    if 'company_id' not in session: return redirect(url_for('login'))
+    comp_id = session['company_id']
+    
+    try:
+        # حفظ الطلبية مباشرة بدون البحث عن المنتج في المخزن (للتجربة)
+        order_data = {
+            "customer_name": request.form.get("customer_name"),
+            "customer_phone": request.form.get("customer_phone"),
+            "product_name": request.form.get("product"),
+            "total_price": float(request.form.get("price", 0)),
+            "company_id_text": comp_id
+        }
+        
+        supabase.table("orders").insert(order_data).execute()
+        
+        # محاولة إرسال تيلجرام (اختياري)
+        try: send_telegram_notification(comp_id, order_data)
+        except: pass
+        
+        return "تم حفظ الطلبية بنجاح! <a href='/orders'>العودة</a>"
+            
+    except Exception as e:
+        return f"<h1>الخطأ الحقيقي الذي يمنع الحفظ هو:</h1><p>{str(e)}</p>"
+
+@app.route('/orders')
+def orders():
+    if 'company_id' not in session: return redirect(url_for('login'))
+    response = supabase.table("orders").select("*").eq("company_id_text", session['company_id']).execute()
+    return render_template('orders_dashboard.html', orders=response.data or [])
+
+@app.route('/delete_order/<int:order_id>')
+def delete_order(order_id):
+    if 'company_id' not in session: return redirect(url_for('login'))
+    supabase.table("orders").delete().eq("id", order_id).eq("company_id_text", session['company_id']).execute()
+    return redirect(url_for('orders'))
+
+@app.route('/stats')
+def stats():
+    if 'company_id' not in session: return redirect(url_for('login'))
+    comp_id = session['company_id']
+    response = supabase.table("orders").select("*").eq("company_id_text", comp_id).execute()
+    orders = response.data or []
+    
+    yearly_stats = {}
+    for o in orders:
+        price = float(o.get('total_price', 0))
+        created_at = datetime.fromisoformat(o.get('created_at', datetime.now().isoformat()).replace('Z', ''))
+        yearly_stats[str(created_at.year)] = yearly_stats.get(str(created_at.year), 0) + price
+    return render_template('stats.html', yearly=json.dumps(dict(sorted(yearly_stats.items()))))
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+if __name__ == '__main__':
+    app.run(debug=True)
