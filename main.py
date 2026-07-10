@@ -88,25 +88,43 @@ def orders_post():
     comp_id = session['company_id']
     
     try:
-        # حفظ الطلبية مباشرة بدون البحث عن المنتج في المخزن (للتجربة)
-        order_data = {
-            "customer_name": request.form.get("customer_name"),
-            "customer_phone": request.form.get("customer_phone"),
-            "product_name": request.form.get("product"),
-            "total_price": float(request.form.get("price", 0)),
-            "company_id_text": comp_id
-        }
+        product_name = request.form.get("product")
+        customer_name = request.form.get("customer_name")
+        customer_phone = request.form.get("customer_phone")
+        total_price = float(request.form.get("price", 0))
+
+        # 1. البحث عن المنتج في المخزن
+        prod_query = supabase.table("inventory").select("*").eq("company_id_text", comp_id).eq("name", product_name).execute()
         
-        supabase.table("orders").insert(order_data).execute()
-        
-        # محاولة إرسال تيلجرام (اختياري)
-        try: send_telegram_notification(comp_id, order_data)
-        except: pass
-        
-        return "تم حفظ الطلبية بنجاح! <a href='/orders'>العودة</a>"
+        if prod_query.data and len(prod_query.data) > 0:
+            product = prod_query.data[0]
+            
+            if product['quantity'] >= 1:
+                # 2. خصم الكمية
+                supabase.table("inventory").update({"quantity": product['quantity'] - 1}).eq("id", product['id']).execute()
+                
+                # 3. حفظ الطلبية
+                order_data = {
+                    "customer_name": customer_name,
+                    "customer_phone": customer_phone,
+                    "product_name": product_name,
+                    "total_price": total_price,
+                    "company_id_text": comp_id
+                }
+                supabase.table("orders").insert(order_data).execute()
+                
+                # 4. إرسال التنبيه
+                try: send_telegram_notification(comp_id, order_data)
+                except: pass
+                
+                return redirect(url_for('orders'))
+            else:
+                return "خطأ: المنتج موجود ولكن الكمية صفر!"
+        else:
+            return f"خطأ: المنتج '{product_name}' غير موجود في المخزن! تأكدي من تطابق الاسم."
             
     except Exception as e:
-        return f"<h1>الخطأ الحقيقي الذي يمنع الحفظ هو:</h1><p>{str(e)}</p>"
+        return f"<h1>خطأ أثناء حفظ الطلبية وتحديث المخزن:</h1><p>{str(e)}</p>"
 
 @app.route('/orders')
 def orders():
