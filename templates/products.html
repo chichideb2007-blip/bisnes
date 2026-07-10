@@ -1,47 +1,76 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html dir="rtl" lang="ar">
 <head>
     <meta charset="UTF-8">
-    <title>إدارة المخزن</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة المخزون</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
     <style>
-        body { font-family: Arial, sans-serif; margin: 30px; background-color: #f4f4f4; text-align: center; }
-        .container { background: white; padding: 20px; border-radius: 8px; max-width: 800px; margin: 0 auto; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 10px; }
-        th { background-color: #f2f2f2; }
-        input { padding: 8px; width: 100px; }
-        .btn { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; color: white; background-color: #4CAF50; }
+        body { background-color: #f8f9fa; }
+        .container { max-width: 900px; }
+        .card { box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 10px; }
     </style>
 </head>
-<body>
-    <div class="container">
-        <h2>مخزن المنتجات الخاص بك</h2>
-        <table>
-            <thead>
+<body class="container mt-5">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>إدارة المخزون والمنتجات</h2>
+        <a href="/dashboard" class="btn btn-secondary">العودة للوحة التحكم</a>
+    </div>
+
+    <form action="/products" method="POST" class="card p-4 mb-5">
+        <h5 class="mb-3 text-primary">إضافة منتج جديد للمخزن</h5>
+        <div class="row g-3">
+            <div class="col-md-3">
+                <input type="text" name="name" class="form-control" placeholder="اسم المنتج" required>
+            </div>
+            <div class="col-md-2">
+                <input type="number" name="quantity" class="form-control" placeholder="الكمية" required>
+            </div>
+            <div class="col-md-2">
+                <input type="number" step="0.01" name="price" class="form-control" placeholder="السعر" required>
+            </div>
+            <div class="col-md-3">
+                <input type="text" name="image_url" class="form-control" placeholder="رابط صورة المنتج">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">إضافة</button>
+            </div>
+        </div>
+    </form>
+
+    <div class="card p-4">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
                 <tr>
-                    <th>اسم المنتج</th>
-                    <th>الكمية</th>
+                    <th>الصورة</th>
+                    <th>المنتج</th>
+                    <th>الكمية المتوفرة</th>
                     <th>السعر</th>
                 </tr>
             </thead>
             <tbody>
                 {% for p in products %}
                 <tr>
-                    <td>{{ p.name }}</td>
-                    <td>{{ p.quantity }}</td>
-                    <td>{{ p.price }}</td>
+                    <td>
+                        {% if p.image_url %}
+                            <img src="{{ p.image_url }}" width="50" class="rounded" alt="صورة المنتج">
+                        {% else %}
+                            <span class="text-muted">لا يوجد</span>
+                        {% endif %}
+                    </td>
+                    <td><strong>{{ p.name }}</strong></td>
+                    <td>
+                        <span class="badge {{ 'bg-success' if p.quantity > 5 else 'bg-warning' }}">
+                            {{ p.quantity }}
+                        </span>
+                    </td>
+                    <td>{{ p.price }} دج</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
-
-        <h3 style="margin-top:30px;">إضافة منتج جديد</h3>
-        <form action="/add_product" method="POST">
-            <input type="text" name="name" placeholder="اسم المنتج" required>
-            <input type="number" name="quantity" placeholder="الكمية" required>
-            <input type="number" name="price" placeholder="السعر" required>
-            <button type="submit" class="btn">إضافة</button>
-        </form>
     </div>
+
 </body>
 </html>
