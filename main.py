@@ -39,7 +39,7 @@ def get_gemini_response(company_id, user_message):
     )
     return response.text
 
-# --- مسار التسجيل (مع نظام تصحيح الأخطاء) ---
+# --- مسار التسجيل ---
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -48,22 +48,16 @@ def register():
         store_name = request.form.get('store_name')
         
         try:
-            print(f"DEBUG: Attempting to insert: {email}, {store_name}")
-            
-            response = supabase.table("companies").insert({
+            supabase.table("companies").insert({
                 "email": email,
                 "password": password,
                 "store_name": store_name,
                 "instagram_token": str(uuid.uuid4()),
                 "telegram_token": str(uuid.uuid4())
             }).execute()
-            
             return "تم تسجيل شركتك بنجاح! يمكنك الآن تسجيل الدخول."
-            
         except Exception as e:
-            error_message = f"Error Type: {type(e).__name__}, Details: {str(e)}"
-            print(f"DEBUG ERROR: {error_message}")
-            return error_message, 400
+            return f"حدث خطأ أثناء التسجيل: {str(e)}", 400
             
     return render_template('register.html')
 
@@ -77,11 +71,34 @@ def login():
         
         if response.data and response.data['password'] == password:
             session['company_id'] = response.data['id']
-            return redirect(url_for('products'))
+            return redirect(url_for('inventory')) # تم التوجيه مباشرة لصفحة المخزون
         else:
             return "بيانات الدخول غير صحيحة!", 401
             
     return render_template('login.html')
+
+# --- مسار إدارة المخزون (المدمج حديثاً) ---
+@app.route('/inventory', methods=['GET', 'POST'])
+def inventory():
+    if 'company_id' not in session: return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        # إضافة منتج جديد
+        name = request.form.get('name')
+        quantity = request.form.get('quantity')
+        price = request.form.get('price')
+        
+        supabase.table("inventory").insert({
+            "company_id": session['company_id'],
+            "name": name,
+            "quantity": quantity,
+            "price": price
+        }).execute()
+        return redirect(url_for('inventory'))
+    
+    # جلب المنتجات
+    response = supabase.table("inventory").select("*").eq("company_id", session['company_id']).execute()
+    return render_template('inventory.html', products=response.data or [])
 
 # --- مسار الـ Webhook ---
 @app.route('/webhook/<token>', methods=['POST'])
@@ -100,13 +117,6 @@ def telegram_webhook(token):
     requests.post(f"https://api.telegram.org/bot{token}/sendMessage", 
                   json={"chat_id": chat_id, "text": ai_reply})
     return "OK", 200
-
-# --- صفحة المنتجات ---
-@app.route('/products')
-def products():
-    if 'company_id' not in session: return redirect(url_for('login'))
-    response = supabase.table("inventory").select("*").eq("company_id", session['company_id']).execute()
-    return render_template('products.html', products=response.data or [])
 
 if __name__ == '__main__':
     app.run(debug=True)
