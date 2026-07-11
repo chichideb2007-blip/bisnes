@@ -1,26 +1,16 @@
 from flask import Flask, render_template, request, redirect, url_for, session
 from supabase import create_client
 from google import genai
-import os
-import requests
-import uuid
-import json
+import os, uuid, requests
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key_here")
 
 # إعداد Supabase
-url = os.environ.get("SUPABASE_URL")
-key = os.environ.get("SUPABASE_KEY")
-supabase = create_client(url, key)
+supabase = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY"))
 
 # إعداد العميل لـ Gemini
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
-
-# --- المسار الرئيسي ---
-@app.route('/')
-def home():
-    return redirect(url_for('register'))
 
 # --- دالة الذكاء الاصطناعي ---
 def get_gemini_response(company_id, user_message):
@@ -33,37 +23,38 @@ def get_gemini_response(company_id, user_message):
     )
     return response.text
 
-# --- مسار التسجيل ---
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password') 
-        store_name = request.form.get('store_name')
-        try:
-            supabase.table("companies").insert({
-                "email": email, "password": password, "store_name": store_name,
-                "instagram_token": str(uuid.uuid4()), "telegram_token": str(uuid.uuid4())
-            }).execute()
-            return "تم التسجيل بنجاح! يمكنك الآن تسجيل الدخول."
-        except Exception as e:
-            return f"خطأ: {str(e)}", 400
-    return render_template('register.html')
+# --- المسارات الرئيسية ---
+@app.route('/')
+def home(): return redirect(url_for('login'))
 
-# --- مسار تسجيل الدخول ---
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
-        response = supabase.table("companies").select("*").eq("email", email).single().execute()
-        if response.data and response.data['password'] == password:
-            session['company_id'] = response.data['id']
-            return redirect(url_for('inventory'))
-        return "بيانات الدخول غير صحيحة!", 401
-    return render_template('login.html')
+@app.route('/dashboard')
+def dashboard():
+    if 'company_id' not in session: return redirect(url_for('login'))
+    return render_template('dashboard.html')
 
-# --- مسار إدارة المخزون ---
+# --- 1. إدارة الطلبيات ---
+@app.route('/orders', methods=['GET', 'POST'])
+def orders():
+    if 'company_id' not in session: return redirect(url_for('login'))
+    if request.method == 'POST':
+        supabase.table("orders").insert({
+            "company_id": session['company_id'],
+            "customer_name": request.form.get('customer_name'),
+            "phone": request.form.get('phone'),
+            "product_name": request.form.get('product_name'),
+            "price": request.form.get('price')
+        }).execute()
+        return redirect(url_for('orders'))
+    res = supabase.table("orders").select("*").eq("company_id", session['company_id']).execute()
+    return render_template('orders_dashboard.html', orders=res.data or [])
+
+# --- 2. الإحصائيات ---
+@app.route('/statistics')
+def statistics():
+    if 'company_id' not in session: return redirect(url_for('login'))
+    return render_template('stats.html')
+
+# --- 3. إدارة المخزون ---
 @app.route('/inventory', methods=['GET', 'POST'])
 def inventory():
     if 'company_id' not in session: return redirect(url_for('login'))
@@ -75,24 +66,56 @@ def inventory():
             "price": request.form.get('price')
         }).execute()
         return redirect(url_for('inventory'))
-    
-    response = supabase.table("inventory").select("*").eq("company_id", session['company_id']).execute()
-    return render_template('products.html', products=response.data or [])
+    res = supabase.table("inventory").select("*").eq("company_id", session['company_id']).execute()
+    return render_template('products.html', products=res.data or [])
 
-# --- مسار البحث ---
-@app.route('/search_products', methods=['GET'])
-def search_products():
+# --- 4. الإعدادات ---
+@app.route('/settings', methods=['GET', 'POST'])
+def settings():
     if 'company_id' not in session: return redirect(url_for('login'))
-    query = request.args.get('q')
-    response = supabase.table("inventory").select("*").eq("company_id", session['company_id']).ilike("name", f"%{query}%").execute()
-    return render_template('products.html', products=response.data or [])
+    if request.method == 'POST':
+        supabase.table("companies").update({
+            "store_name": request.form.get('store_name'),
+            "telegram_token": request.form.get('telegram_token')
+        }).eq("id", session['company_id']).execute()
+        return redirect(url_for('settings'))
+    res = supabase.table("companies").select("*").eq("id", session['company_id']).single().execute()
+    return render_template('settings.html', settings=res.data)
 
-# --- مسار الحذف ---
-@app.route('/delete_product/<int:product_id>')
-def delete_product(product_id):
-    if 'company_id' not in session: return redirect(url_for('login'))
-    supabase.table("inventory").delete().eq("id", product_id).execute()
-    return redirect(url_for('inventory'))
+# --- مسارات التسجيل والدخول ---
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        supabase.table("companies").insert({
+            "email": request.form.get('email'),
+            "password": request.form.get('password'),
+            "store_name": request.form.get('store_name'),
+            "instagram_token": str(uuid.uuid4()),
+            "telegram_token": str(uuid.uuid4())
+        }).execute()
+        return "تم التسجيل بنجاح!"
+    return render_template('register.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        res = supabase.table("companies").select("*").eq("email", request.form.get('email')).single().execute()
+        if res.data and res.data['password'] == request.form.get('password'):
+            session['company_id'] = res.data['id']
+            return redirect(url_for('dashboard'))
+    return render_template('login.html')
+
+# --- مسار الـ Webhook (للذكاء الاصطناعي) ---
+@app.route('/webhook/<token>', methods=['POST'])
+def telegram_webhook(token):
+    company = supabase.table("companies").select("*").eq("telegram_token", token).single().execute()
+    if not company.data: return "Invalid Token", 403
+    data = request.get_json()
+    if 'message' in data:
+        chat_id = data['message']['chat']['id']
+        ai_reply = get_gemini_response(company.data['id'], data['message'].get('text', ''))
+        requests.post(f"https://api.telegram.org/bot{token}/sendMessage", json={"chat_id": chat_id, "text": ai_reply})
+    return "OK", 200
 
 if __name__ == '__main__':
     app.run(debug=True)
