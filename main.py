@@ -36,7 +36,7 @@ def stats(): return render_template('stats.html')
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     if request.method == 'POST':
-        # تم الدمج: استخدام customer_phone وإضافة company_id_text لمنع أخطاء قاعدة البيانات
+        # تم الدمج: استخدام customer_phone ليتطابق مع اسم العمود في Supabase
         supabase.table("orders").insert({
             "company_id": session['company_id'],
             "company_id_text": str(session['company_id']),
