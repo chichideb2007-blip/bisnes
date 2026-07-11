@@ -49,7 +49,7 @@ def orders():
     res = supabase.table("orders").select("*").eq("company_id", session['company_id']).execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
 
-# --- 2. الإحصائيات (تم تعديل اسم الدالة إلى stats هنا ليتوافق مع الـ HTML) ---
+# --- 2. الإحصائيات ---
 @app.route('/statistics')
 def stats():
     if 'company_id' not in session: return redirect(url_for('login'))
@@ -92,7 +92,7 @@ def settings():
     res = supabase.table("companies").select("*").eq("id", session['company_id']).single().execute()
     return render_template('settings.html', settings=res.data)
 
-# --- مسارات التسجيل والدخول ---
+# --- مسارات التسجيل والدخول وخروج ---
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -114,6 +114,11 @@ def login():
             session['company_id'] = res.data['id']
             return redirect(url_for('dashboard'))
     return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.pop('company_id', None) # مسح الجلسة عند تسجيل الخروج
+    return redirect(url_for('login'))
 
 # --- مسار الـ Webhook (للذكاء الاصطناعي) ---
 @app.route('/webhook/<token>', methods=['POST'])
