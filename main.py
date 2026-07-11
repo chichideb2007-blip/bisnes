@@ -49,9 +49,9 @@ def orders():
     res = supabase.table("orders").select("*").eq("company_id", session['company_id']).execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
 
-# --- 2. الإحصائيات ---
+# --- 2. الإحصائيات (تم تعديل اسم الدالة إلى stats هنا ليتوافق مع الـ HTML) ---
 @app.route('/statistics')
-def statistics():
+def stats():
     if 'company_id' not in session: return redirect(url_for('login'))
     return render_template('stats.html')
 
