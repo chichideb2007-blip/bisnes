@@ -1,12 +1,13 @@
 from flask import Flask, render_template, request, redirect, url_for, session
 from supabase import create_client
-from google import genai  # المكتبة الجديدة
+from google import genai
 import os
 import requests
 import uuid
 import json
 
 app = Flask(__name__)
+# تأكدي من إعداد SECRET_KEY في إعدادات Render
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key_here")
 
 # إعداد Supabase
@@ -17,9 +18,13 @@ supabase = create_client(url, key)
 # إعداد العميل الجديد لـ Gemini
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
+# --- المسار الرئيسي ---
+@app.route('/')
+def home():
+    return redirect(url_for('register'))
+
 # --- دالة الذكاء الاصطناعي (Gemini) ---
 def get_gemini_response(company_id, user_message):
-    # جلب منتجات الشركة
     products = supabase.table("inventory").select("name, price, quantity").eq("company_id", company_id).execute()
     prod_list = str(products.data)
     
@@ -31,14 +36,13 @@ def get_gemini_response(company_id, user_message):
     - لا تقترح أي منتج غير موجود في القائمة.
     """
     
-    # الاستدعاء بالطريقة الجديدة
     response = client.models.generate_content(
         model='gemini-1.5-flash',
         contents=system_instruction + "\nرسالة الزبون: " + user_message
     )
     return response.text
 
-# --- مسار التسجيل (Register) ---
+# --- مسار التسجيل ---
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -60,7 +64,7 @@ def register():
             
     return render_template('register.html')
 
-# --- مسار الـ Webhook (لاستقبال رسائل تيلجرام) ---
+# --- مسار الـ Webhook ---
 @app.route('/webhook/<token>', methods=['POST'])
 def telegram_webhook(token):
     company = supabase.table("companies").select("*").eq("telegram_token", token).single().execute()
@@ -69,16 +73,13 @@ def telegram_webhook(token):
     comp_id = company.data['id']
     data = request.get_json()
     
-    # التحقق من وجود رسالة
     if 'message' not in data: return "OK", 200
     
     chat_id = data['message']['chat']['id']
     user_text = data['message'].get('text', '')
     
-    # الحصول على رد Gemini الجديد
     ai_reply = get_gemini_response(comp_id, user_text)
     
-    # إرسال الرد للعميل
     requests.post(f"https://api.telegram.org/bot{token}/sendMessage", 
                   json={"chat_id": chat_id, "text": ai_reply})
     return "OK", 200
