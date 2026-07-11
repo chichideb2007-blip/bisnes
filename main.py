@@ -106,5 +106,9 @@ def search_products():
     response = supabase.table("inventory").select("*").eq("company_id", session['company_id']).ilike("name", f"%{query}%").execute()
     return render_template('product.html', products=response.data or [])
 
-# --- مسار الحذف ---
-@app.route('/delete_
+# مسار حذف منتج
+@app.route('/delete_product/<int:product_id>')
+def delete_product(product_id):
+    if 'company_id' not in session: return redirect(url_for('login'))
+    supabase.table("inventory").delete().eq("id", product_id).execute()
+    return redirect(url_for('inventory'))
