@@ -71,19 +71,18 @@ def login():
         
         if response.data and response.data['password'] == password:
             session['company_id'] = response.data['id']
-            return redirect(url_for('inventory')) # تم التوجيه مباشرة لصفحة المخزون
+            return redirect(url_for('inventory'))
         else:
             return "بيانات الدخول غير صحيحة!", 401
             
     return render_template('login.html')
 
-# --- مسار إدارة المخزون (المدمج حديثاً) ---
+# --- مسار إدارة المخزون ---
 @app.route('/inventory', methods=['GET', 'POST'])
 def inventory():
     if 'company_id' not in session: return redirect(url_for('login'))
     
     if request.method == 'POST':
-        # إضافة منتج جديد
         name = request.form.get('name')
         quantity = request.form.get('quantity')
         price = request.form.get('price')
@@ -96,27 +95,16 @@ def inventory():
         }).execute()
         return redirect(url_for('inventory'))
     
-    # جلب المنتجات
     response = supabase.table("inventory").select("*").eq("company_id", session['company_id']).execute()
-    return render_template('inventory.html', products=response.data or [])
+    return render_template('product.html', products=response.data or [])
 
-# --- مسار الـ Webhook ---
-@app.route('/webhook/<token>', methods=['POST'])
-def telegram_webhook(token):
-    company = supabase.table("companies").select("*").eq("telegram_token", token).single().execute()
-    if not company.data: return "Invalid Token", 403
-    
-    comp_id = company.data['id']
-    data = request.get_json()
-    if 'message' not in data: return "OK", 200
-    
-    chat_id = data['message']['chat']['id']
-    user_text = data['message'].get('text', '')
-    ai_reply = get_gemini_response(comp_id, user_text)
-    
-    requests.post(f"https://api.telegram.org/bot{token}/sendMessage", 
-                  json={"chat_id": chat_id, "text": ai_reply})
-    return "OK", 200
+# --- مسار البحث ---
+@app.route('/search_products', methods=['GET'])
+def search_products():
+    if 'company_id' not in session: return redirect(url_for('login'))
+    query = request.args.get('q')
+    response = supabase.table("inventory").select("*").eq("company_id", session['company_id']).ilike("name", f"%{query}%").execute()
+    return render_template('product.html', products=response.data or [])
 
-if __name__ == '__main__':
-    app.run(debug=True)
+# --- مسار الحذف ---
+@app.route('/delete_
