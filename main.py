@@ -58,12 +58,34 @@ def delete_order(order_id):
 def products():
     if request.method == 'POST':
         c_id = session.get('company_id')
+        
+        # 1. معالجة رفع الصورة
+        image_url = None
+        if 'product_image' in request.files:
+            file = request.files['product_image']
+            if file and file.filename != '':
+                # إنشاء اسم فريد للملف
+                file_ext = file.filename.split('.')[-1]
+                file_name = f"{uuid.uuid4()}.{file_ext}"
+                
+                # رفع الملف إلى Supabase Storage (Bucket باسم 'products')
+                supabase.storage.from_("products").upload(
+                    path=file_name,
+                    file=file.read(),
+                    file_options={"content-type": f"image/{file_ext}"}
+                )
+                
+                # الحصول على الرابط العام
+                image_url = supabase.storage.from_("products").get_public_url(file_name)
+
+        # 2. حفظ البيانات في الجدول
         new_product = {
             "company_id": c_id,
             "company_id_text": str(c_id),
             "name": request.form.get('name'),
             "quantity": int(request.form.get('quantity') or 0),
-            "price": float(request.form.get('price') or 0)
+            "price": float(request.form.get('price') or 0),
+            "image_url": image_url # إضافة رابط الصورة
         }
         supabase.table("inventory").insert(new_product).execute()
         return redirect(url_for('products'))
