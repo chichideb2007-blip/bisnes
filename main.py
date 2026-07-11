@@ -36,7 +36,6 @@ def stats(): return render_template('stats.html')
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     if request.method == 'POST':
-        # تم الدمج: استخدام customer_phone ليتطابق مع اسم العمود في Supabase
         supabase.table("orders").insert({
             "company_id": session['company_id'],
             "company_id_text": str(session['company_id']),
@@ -49,6 +48,11 @@ def orders():
     
     res = supabase.table("orders").select("*").eq("company_id", session['company_id']).execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
+
+@app.route('/delete_order/<int:order_id>')
+def delete_order(order_id):
+    supabase.table("orders").delete().eq("id", order_id).execute()
+    return redirect(url_for('orders'))
 
 @app.route('/products', methods=['GET', 'POST'])
 def products():
