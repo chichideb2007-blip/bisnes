@@ -58,11 +58,30 @@ def register():
                 "instagram_token": str(uuid.uuid4()),
                 "telegram_token": str(uuid.uuid4())
             }).execute()
-            return "تم تسجيل شركتك بنجاح! يمكنك الآن تسجيل الدخول."
+            return "تم تسجيل شركتك بنجاح! يمكنك الآن تسجيل الدخول عبر /login"
         except Exception as e:
             return f"حدث خطأ أثناء التسجيل: {str(e)}", 400
             
     return render_template('register.html')
+
+# --- مسار تسجيل الدخول المدمج ---
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+        
+        # البحث عن الشركة في قاعدة البيانات
+        response = supabase.table("companies").select("*").eq("email", email).single().execute()
+        
+        # التحقق من وجود الشركة ومطابقة كلمة السر
+        if response.data and response.data['password'] == password:
+            session['company_id'] = response.data['id']
+            return redirect(url_for('products'))
+        else:
+            return "بيانات الدخول غير صحيحة! تأكد من البريد وكلمة السر.", 401
+            
+    return render_template('login.html')
 
 # --- مسار الـ Webhook ---
 @app.route('/webhook/<token>', methods=['POST'])
@@ -84,11 +103,7 @@ def telegram_webhook(token):
                   json={"chat_id": chat_id, "text": ai_reply})
     return "OK", 200
 
-# --- لوحة التحكم ---
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    return render_template('login.html')
-
+# --- صفحة المنتجات ---
 @app.route('/products')
 def products():
     if 'company_id' not in session: return redirect(url_for('login'))
