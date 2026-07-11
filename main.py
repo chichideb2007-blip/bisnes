@@ -7,7 +7,6 @@ import uuid
 import json
 
 app = Flask(__name__)
-# تأكدي من إعداد SECRET_KEY في إعدادات Render
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key_here")
 
 # إعداد Supabase
@@ -31,18 +30,16 @@ def get_gemini_response(company_id, user_message):
     system_instruction = f"""
     أنت مساعد مبيعات ذكي لمتجر جزائري.
     قائمة منتجاتنا: {prod_list}.
-    - أجب الزبون بنفس اللغة التي استخدمها (دارجة، فرنسية، أو مزيج).
+    - أجب الزبون بنفس اللغة التي استخدمها.
     - إذا أراد الشراء، اطلب منه (الاسم، العنوان، رقم الهاتف).
-    - لا تقترح أي منتج غير موجود في القائمة.
     """
-    
     response = client.models.generate_content(
         model='gemini-1.5-flash',
         contents=system_instruction + "\nرسالة الزبون: " + user_message
     )
     return response.text
 
-# --- مسار التسجيل ---
+# --- مسار التسجيل (مع نظام تصحيح الأخطاء) ---
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -51,35 +48,38 @@ def register():
         store_name = request.form.get('store_name')
         
         try:
-            supabase.table("companies").insert({
+            print(f"DEBUG: Attempting to insert: {email}, {store_name}")
+            
+            response = supabase.table("companies").insert({
                 "email": email,
                 "password": password,
                 "store_name": store_name,
                 "instagram_token": str(uuid.uuid4()),
                 "telegram_token": str(uuid.uuid4())
             }).execute()
-            return "تم تسجيل شركتك بنجاح! يمكنك الآن تسجيل الدخول عبر /login"
+            
+            return "تم تسجيل شركتك بنجاح! يمكنك الآن تسجيل الدخول."
+            
         except Exception as e:
-            return f"حدث خطأ أثناء التسجيل: {str(e)}", 400
+            error_message = f"Error Type: {type(e).__name__}, Details: {str(e)}"
+            print(f"DEBUG ERROR: {error_message}")
+            return error_message, 400
             
     return render_template('register.html')
 
-# --- مسار تسجيل الدخول المدمج ---
+# --- مسار تسجيل الدخول ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
-        
-        # البحث عن الشركة في قاعدة البيانات
         response = supabase.table("companies").select("*").eq("email", email).single().execute()
         
-        # التحقق من وجود الشركة ومطابقة كلمة السر
         if response.data and response.data['password'] == password:
             session['company_id'] = response.data['id']
             return redirect(url_for('products'))
         else:
-            return "بيانات الدخول غير صحيحة! تأكد من البريد وكلمة السر.", 401
+            return "بيانات الدخول غير صحيحة!", 401
             
     return render_template('login.html')
 
@@ -91,12 +91,10 @@ def telegram_webhook(token):
     
     comp_id = company.data['id']
     data = request.get_json()
-    
     if 'message' not in data: return "OK", 200
     
     chat_id = data['message']['chat']['id']
     user_text = data['message'].get('text', '')
-    
     ai_reply = get_gemini_response(comp_id, user_text)
     
     requests.post(f"https://api.telegram.org/bot{token}/sendMessage", 
