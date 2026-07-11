@@ -1,9 +1,9 @@
 from flask import Flask, render_template, request, redirect, url_for, session
 from supabase import create_client
+from google import genai  # المكتبة الجديدة
 import os
 import requests
 import uuid
-import google.generativeai as genai
 import json
 
 app = Flask(__name__)
@@ -14,23 +14,28 @@ url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
 
-# إعداد Gemini
-genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
+# إعداد العميل الجديد لـ Gemini
+client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
 # --- دالة الذكاء الاصطناعي (Gemini) ---
 def get_gemini_response(company_id, user_message):
+    # جلب منتجات الشركة
     products = supabase.table("inventory").select("name, price, quantity").eq("company_id", company_id).execute()
     prod_list = str(products.data)
     
     system_instruction = f"""
     أنت مساعد مبيعات ذكي لمتجر جزائري.
     قائمة منتجاتنا: {prod_list}.
-    - أجب الزبون بنفس اللغة التي استخدمها.
-    - إذا أراد الشراء، اطلب (الاسم، العنوان، رقم الهاتف).
-    - لا تقترح منتجاً غير موجود.
+    - أجب الزبون بنفس اللغة التي استخدمها (دارجة، فرنسية، أو مزيج).
+    - إذا أراد الشراء، اطلب منه (الاسم، العنوان، رقم الهاتف).
+    - لا تقترح أي منتج غير موجود في القائمة.
     """
-    model = genai.GenerativeModel('gemini-1.5-flash')
-    response = model.generate_content(system_instruction + "\nرسالة الزبون: " + user_message)
+    
+    # الاستدعاء بالطريقة الجديدة
+    response = client.models.generate_content(
+        model='gemini-1.5-flash',
+        contents=system_instruction + "\nرسالة الزبون: " + user_message
+    )
     return response.text
 
 # --- مسار التسجيل (Register) ---
@@ -41,14 +46,13 @@ def register():
         password = request.form.get('password') 
         store_name = request.form.get('store_name')
         
-        # إنشاء شركة جديدة
         try:
             supabase.table("companies").insert({
                 "email": email,
                 "password": password,
                 "store_name": store_name,
                 "instagram_token": str(uuid.uuid4()),
-                "telegram_token": str(uuid.uuid4()) # أضفناها لتسهيل الربط لاحقاً
+                "telegram_token": str(uuid.uuid4())
             }).execute()
             return "تم تسجيل شركتك بنجاح! يمكنك الآن تسجيل الدخول."
         except Exception as e:
@@ -56,7 +60,7 @@ def register():
             
     return render_template('register.html')
 
-# --- مسار الـ Webhook (تيلجرام كمرحلة أولى للربط) ---
+# --- مسار الـ Webhook (لاستقبال رسائل تيلجرام) ---
 @app.route('/webhook/<token>', methods=['POST'])
 def telegram_webhook(token):
     company = supabase.table("companies").select("*").eq("telegram_token", token).single().execute()
@@ -64,11 +68,17 @@ def telegram_webhook(token):
     
     comp_id = company.data['id']
     data = request.get_json()
+    
+    # التحقق من وجود رسالة
+    if 'message' not in data: return "OK", 200
+    
     chat_id = data['message']['chat']['id']
     user_text = data['message'].get('text', '')
     
+    # الحصول على رد Gemini الجديد
     ai_reply = get_gemini_response(comp_id, user_text)
     
+    # إرسال الرد للعميل
     requests.post(f"https://api.telegram.org/bot{token}/sendMessage", 
                   json={"chat_id": chat_id, "text": ai_reply})
     return "OK", 200
@@ -76,7 +86,6 @@ def telegram_webhook(token):
 # --- لوحة التحكم ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    # هنا ستضعين منطق التحقق من الباسورد لاحقاً
     return render_template('login.html')
 
 @app.route('/products')
