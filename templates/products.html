@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>إدارة المخزون</title>
+    <title>إدارة المخزون - لوحة التحكم</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
     <style>
-        body { background-color: #f8f9fa; }
-        .container { max-width: 950px; }
+        body { background-color: #f4f4f9; padding-bottom: 50px; }
         .card { box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 10px; margin-bottom: 30px; }
+        .table-container { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
     </style>
 </head>
 <body class="container mt-5">
@@ -16,31 +16,32 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>إدارة المخزون والمنتجات</h2>
         <div>
-            <a href="/dashboard" class="btn btn-secondary btn-sm">لوحة التحكم</a>
-            <a href="/logout" class="btn btn-danger btn-sm">تسجيل الخروج</a>
+            <a href="/products" class="btn btn-secondary">الرجوع للوحة التحكم</a>
         </div>
     </div>
 
-    <form action="/products" method="POST" enctype="multipart/form-data" class="card p-4 mb-5">
+    <div class="card p-4 mb-5">
         <h5 class="mb-3 text-primary">إضافة منتج جديد</h5>
-        <div class="row g-3">
-            <div class="col-12 col-md-3">
-                <input type="text" name="name" class="form-control" placeholder="اسم المنتج" required>
+        <form method="POST" enctype="multipart/form-data">
+            <div class="row g-3">
+                <div class="col-12 col-md-3">
+                    <input type="text" name="name" class="form-control" placeholder="اسم المنتج" required>
+                </div>
+                <div class="col-6 col-md-2">
+                    <input type="number" name="quantity" class="form-control" placeholder="الكمية" required>
+                </div>
+                <div class="col-6 col-md-2">
+                    <input type="number" step="0.01" name="price" class="form-control" placeholder="السعر" required>
+                </div>
+                <div class="col-12 col-md-3">
+                    <input type="file" name="product_image" class="form-control" accept="image/*">
+                </div>
+                <div class="col-12 col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">حفظ المعلومات</button>
+                </div>
             </div>
-            <div class="col-6 col-md-2">
-                <input type="number" name="quantity" class="form-control" placeholder="الكمية" required>
-            </div>
-            <div class="col-6 col-md-2">
-                <input type="number" step="0.01" name="price" class="form-control" placeholder="السعر" required>
-            </div>
-            <div class="col-12 col-md-3">
-                <input type="file" name="product_image" class="form-control" accept="image/*">
-            </div>
-            <div class="col-12 col-md-2">
-                <button type="submit" class="btn btn-primary w-100">إضافة</button>
-            </div>
-        </div>
-    </form>
+        </form>
+    </div>
 
     <form action="/search_products" method="GET" class="mb-4">
         <div class="input-group">
@@ -50,15 +51,15 @@
         </div>
     </form>
 
-    <div class="card p-3">
-        <table class="table table-hover align-middle">
+    <div class="table-container">
+        <table class="table table-hover align-middle text-center">
             <thead class="table-light">
                 <tr>
                     <th>صورة</th>
                     <th>المنتج</th>
                     <th>الكمية</th>
                     <th>السعر</th>
-                    <th>حذف</th>
+                    <th>إجراءات</th>
                 </tr>
             </thead>
             <tbody>
@@ -68,19 +69,21 @@
                         {% if p.image_url %}
                             <img src="{{ p.image_url }}" width="45" class="rounded" alt="صورة">
                         {% else %}
-                            <small class="text-muted">لا يوجد</small>
+                            <span class="text-muted small">لا يوجد</span>
                         {% endif %}
                     </td>
                     <td><strong>{{ p.name }}</strong></td>
-                    <td><span class="badge {{ 'bg-success' if p.quantity > 5 else 'bg-warning' }}">{{ p.quantity }}</span></td>
+                    <td>
+                        <span class="badge {{ 'bg-success' if p.quantity > 5 else 'bg-warning' }}">{{ p.quantity }}</span>
+                    </td>
                     <td>{{ p.price }} دج</td>
                     <td>
-                        <a href="/delete_product/{{ p.id }}" class="btn btn-outline-danger btn-sm" onclick="return confirm('هل أنت متأكد من الحذف؟')">🗑️</a>
+                        <a href="/delete_product/{{ p.id }}" class="btn btn-outline-danger btn-sm" onclick="return confirm('هل أنت متأكد من الحذف؟')">حذف</a>
                     </td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="5" class="text-center text-muted">لا توجد نتائج مطابقة.</td>
+                    <td colspan="5" class="text-center text-muted">لم يتم العثور على منتجات.</td>
                 </tr>
                 {% endfor %}
             </tbody>
