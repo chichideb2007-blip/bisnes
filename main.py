@@ -4,6 +4,7 @@ from google import genai
 import os, uuid, requests
 
 app = Flask(__name__)
+# تأكدي من إعداد متغير البيئة SECRET_KEY في موقع Render
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key_here")
 
 # إعداد Supabase
@@ -54,10 +55,11 @@ def statistics():
     if 'company_id' not in session: return redirect(url_for('login'))
     return render_template('stats.html')
 
-# --- 3. إدارة المخزون ---
-@app.route('/inventory', methods=['GET', 'POST'])
-def inventory():
+# --- 3. إدارة المنتجات ---
+@app.route('/products', methods=['GET', 'POST'])
+def products():
     if 'company_id' not in session: return redirect(url_for('login'))
+    
     if request.method == 'POST':
         supabase.table("inventory").insert({
             "company_id": session['company_id'],
@@ -65,9 +67,17 @@ def inventory():
             "quantity": request.form.get('quantity'),
             "price": request.form.get('price')
         }).execute()
-        return redirect(url_for('inventory'))
+        return redirect(url_for('products'))
+    
     res = supabase.table("inventory").select("*").eq("company_id", session['company_id']).execute()
     return render_template('products.html', products=res.data or [])
+
+# --- مسار حذف المنتج ---
+@app.route('/delete_product/<int:product_id>')
+def delete_product(product_id):
+    if 'company_id' not in session: return redirect(url_for('login'))
+    supabase.table("inventory").delete().eq("id", product_id).execute()
+    return redirect(url_for('products'))
 
 # --- 4. الإعدادات ---
 @app.route('/settings', methods=['GET', 'POST'])
@@ -105,7 +115,7 @@ def login():
             return redirect(url_for('dashboard'))
     return render_template('login.html')
 
-# --- مسار الـ Webhook ---
+# --- مسار الـ Webhook (للذكاء الاصطناعي) ---
 @app.route('/webhook/<token>', methods=['POST'])
 def telegram_webhook(token):
     company = supabase.table("companies").select("*").eq("telegram_token", token).single().execute()
