@@ -105,7 +105,7 @@ def login():
             return redirect(url_for('dashboard'))
     return render_template('login.html')
 
-# --- مسار الـ Webhook (للذكاء الاصطناعي) ---
+# --- مسار الـ Webhook ---
 @app.route('/webhook/<token>', methods=['POST'])
 def telegram_webhook(token):
     company = supabase.table("companies").select("*").eq("telegram_token", token).single().execute()
