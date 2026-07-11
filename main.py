@@ -30,12 +30,17 @@ def home(): return redirect(url_for('login'))
 @app.route('/dashboard')
 def dashboard(): return render_template('dashboard.html')
 
+# --- إضافة مسار الإحصائيات ---
+@app.route('/statistics')
+def stats():
+    return render_template('stats.html')
+
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     if request.method == 'POST':
         supabase.table("orders").insert({
             "company_id": session['company_id'],
-            "company_id_text": str(session['company_id']), # أضفنا هذا لتفادي الخطأ
+            "company_id_text": str(session['company_id']),
             "customer_name": request.form.get('customer_name'),
             "phone": request.form.get('phone'),
             "product_name": request.form.get('product_name'),
@@ -51,7 +56,7 @@ def products():
         c_id = session.get('company_id')
         new_product = {
             "company_id": c_id,
-            "company_id_text": str(c_id), # يحل مشكلة الـ Not-Null
+            "company_id_text": str(c_id),
             "name": request.form.get('name'),
             "quantity": int(request.form.get('quantity') or 0),
             "price": float(request.form.get('price') or 0)
