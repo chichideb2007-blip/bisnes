@@ -3,4 +3,3 @@ supabase
 google-genai
 requests
 gunicorn
-google.generativeai
