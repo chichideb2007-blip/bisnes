@@ -36,7 +36,7 @@ def stats(): return render_template('stats.html')
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     if request.method == 'POST':
-        # تم تعديل اسم الحقل هنا ليكون customer_phone ليطابق قاعدة البيانات
+        # تم الدمج: استخدام customer_phone وإضافة company_id_text لمنع أخطاء قاعدة البيانات
         supabase.table("orders").insert({
             "company_id": session['company_id'],
             "company_id_text": str(session['company_id']),
@@ -47,7 +47,6 @@ def orders():
         }).execute()
         return redirect(url_for('orders'))
     
-    # تم تعديل الفلترة أيضاً لتطابق العمود الصحيح إذا كنت تبحث برقم الهاتف
     res = supabase.table("orders").select("*").eq("company_id", session['company_id']).execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
 
