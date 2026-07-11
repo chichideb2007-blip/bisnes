@@ -1,5 +1,4 @@
 flask
 supabase
-requests
-gunicorn
 google-genai
+requests
