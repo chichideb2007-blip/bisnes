@@ -14,6 +14,7 @@ def check_session():
     if request.endpoint in ['login', 'register', 'static', 'home']: return
     if 'company_id' not in session: return redirect(url_for('login'))
 
+# --- الدوال الأخرى تبقى كما هي ---
 def get_gemini_response(company_id, user_message):
     products = supabase.table("inventory").select("name, price, quantity").eq("company_id", company_id).execute()
     prod_list = str(products.data)
@@ -30,19 +31,19 @@ def home(): return redirect(url_for('login'))
 @app.route('/dashboard')
 def dashboard(): return render_template('dashboard.html')
 
-# --- إضافة مسار الإحصائيات ---
 @app.route('/statistics')
-def stats():
-    return render_template('stats.html')
+def stats(): return render_template('stats.html')
 
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     if request.method == 'POST':
+        # --- تعديل: التأكد من اسم العمود المطابق لجدول Supabase ---
+        # إذا كان العمود في Supabase اسمه customer_phone، نستخدم هذا الاسم هنا:
         supabase.table("orders").insert({
             "company_id": session['company_id'],
             "company_id_text": str(session['company_id']),
             "customer_name": request.form.get('customer_name'),
-            "phone": request.form.get('phone'),
+            "customer_phone": request.form.get('phone'), # <--- عدلت الاسم هنا
             "product_name": request.form.get('product_name'),
             "price": request.form.get('price')
         }).execute()
@@ -67,6 +68,7 @@ def products():
     res = supabase.table("inventory").select("*").eq("company_id", session['company_id']).execute()
     return render_template('products.html', products=res.data or [])
 
+# ... باقي المسارات (delete_product, settings, login, logout) تبقى كما هي ...
 @app.route('/delete_product/<int:product_id>')
 def delete_product(product_id):
     supabase.table("inventory").delete().eq("id", product_id).execute()
