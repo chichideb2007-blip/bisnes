@@ -73,13 +73,15 @@ def products():
             if file and file.filename != '':
                 file_ext = file.filename.split('.')[-1]
                 file_name = f"{uuid.uuid4()}.{file_ext}"
+                
                 try:
-                    supabase.storage.from_("products").upload(
+                    # تم التعديل: استخدام 'product' بدلاً من 'products'
+                    supabase.storage.from_("product").upload(
                         path=file_name,
                         file=file.read(),
                         file_options={"content-type": f"image/{file_ext}"}
                     )
-                    image_url = supabase.storage.from_("products").get_public_url(file_name)
+                    image_url = supabase.storage.from_("product").get_public_url(file_name)
                 except Exception as e:
                     print(f"Error uploading image: {e}")
                     image_url = None 
