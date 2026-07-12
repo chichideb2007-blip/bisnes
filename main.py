@@ -36,7 +36,7 @@ def stats(): return render_template('stats.html')
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     if request.method == 'POST':
-        # استخدام total_price والحالة الافتراضية للتطابق مع قاعدة البيانات
+        # دمج التصحيح: استخدام total_price وstatus لتجنب أخطاء القاعدة
         supabase.table("orders").insert({
             "company_id": session['company_id'],
             "company_id_text": str(session['company_id']),
@@ -66,12 +66,18 @@ def products():
             if file and file.filename != '':
                 file_ext = file.filename.split('.')[-1]
                 file_name = f"{uuid.uuid4()}.{file_ext}"
-                supabase.storage.from_("products").upload(
-                    path=file_name,
-                    file=file.read(),
-                    file_options={"content-type": f"image/{file_ext}"}
-                )
-                image_url = supabase.storage.from_("products").get_public_url(file_name)
+                
+                # إضافة المعالجة الأمنة لرفع الصور
+                try:
+                    supabase.storage.from_("products").upload(
+                        path=file_name,
+                        file=file.read(),
+                        file_options={"content-type": f"image/{file_ext}"}
+                    )
+                    image_url = supabase.storage.from_("products").get_public_url(file_name)
+                except Exception as e:
+                    print(f"Error uploading image: {e}")
+                    image_url = None 
 
         new_product = {
             "company_id": c_id,
