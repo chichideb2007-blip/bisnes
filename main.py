@@ -6,6 +6,7 @@ import os, uuid, requests
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key_here")
 
+# إعداد الاتصال بـ Supabase و Gemini
 supabase = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY"))
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
@@ -36,8 +37,8 @@ def stats(): return render_template('stats.html')
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     if request.method == 'POST':
-        # دمج التصحيح: استخدام total_price وstatus لتجنب أخطاء القاعدة
-        supabase.table("orders").insert({
+        print("DEBUG: Received POST request in /orders")
+        data = {
             "company_id": session['company_id'],
             "company_id_text": str(session['company_id']),
             "customer_name": request.form.get('customer_name'),
@@ -45,8 +46,14 @@ def orders():
             "product_name": request.form.get('product_name'),
             "total_price": float(request.form.get('price') or 0), 
             "status": "قيد الانتظار" 
-        }).execute()
-        return redirect(url_for('orders'))
+        }
+        try:
+            res = supabase.table("orders").insert(data).execute()
+            print("DEBUG: Supabase insert result:", res)
+            return redirect(url_for('orders'))
+        except Exception as e:
+            print("CRITICAL ERROR:", e)
+            return "Error: " + str(e), 500
     
     res = supabase.table("orders").select("*").eq("company_id", session['company_id']).execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
@@ -66,8 +73,6 @@ def products():
             if file and file.filename != '':
                 file_ext = file.filename.split('.')[-1]
                 file_name = f"{uuid.uuid4()}.{file_ext}"
-                
-                # إضافة المعالجة الأمنة لرفع الصور
                 try:
                     supabase.storage.from_("products").upload(
                         path=file_name,
