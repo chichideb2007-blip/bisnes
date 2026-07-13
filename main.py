@@ -46,6 +46,11 @@ def login():
 def dashboard():
     return render_template('dashboard.html')
 
+# المسار الجديد الذي كان يسبب خطأ BuildError
+@app.route('/stats')
+def stats():
+    return render_template('stats.html')
+
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     if request.method == 'POST':
