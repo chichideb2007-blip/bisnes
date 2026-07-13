@@ -12,15 +12,37 @@ client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
 @app.before_request
 def check_session():
-    if request.endpoint in ['login', 'register', 'static', 'home']: return
+    # السماح بالوصول لهذه الصفحات بدون تسجيل دخول
+    if request.endpoint in ['login', 'static', 'home']: return
     if 'company_id' not in session: return redirect(url_for('login'))
 
 # --- Routes ---
 
+@app.route('/')
+def home(): 
+    return redirect(url_for('login'))
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        # منطق التحقق من البيانات (مثال مبسط)
+        email = request.form.get('email')
+        password = request.form.get('password')
+        res = supabase.table("companies").select("*").eq("email", email).execute()
+        
+        if res.data and res.data[0]['password'] == password:
+            session['company_id'] = res.data[0]['id']
+            return redirect(url_for('dashboard'))
+            
+    return render_template('login.html')
+
+@app.route('/dashboard')
+def dashboard():
+    return render_template('dashboard.html')
+
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     if request.method == 'POST':
-        # حفظ طلبية جديدة
         data = {
             "company_id": session['company_id'],
             "customer_name": request.form.get('customer_name'),
@@ -32,7 +54,6 @@ def orders():
         supabase.table("orders").insert(data).execute()
         return redirect(url_for('orders'))
     
-    # عرض الطلبيات
     res = supabase.table("orders").select("*").eq("company_id", session['company_id']).execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
 
@@ -42,14 +63,12 @@ def products():
         c_id = session.get('company_id')
         image_url = None
         
-        # معالجة الصورة
         if 'product_image' in request.files:
             file = request.files['product_image']
             if file and file.filename != '':
                 file_ext = file.filename.split('.')[-1]
                 file_name = f"{uuid.uuid4()}.{file_ext}"
                 try:
-                    # رفع للصورة باستخدام bucket باسم product-images
                     supabase.storage.from_("product-images").upload(
                         path=file_name,
                         file=file.read(),
@@ -59,7 +78,6 @@ def products():
                 except Exception as e:
                     print(f"Error uploading image: {e}")
 
-        # إضافة المنتج لقاعدة البيانات
         new_product = {
             "company_id": c_id,
             "name": request.form.get('name'),
@@ -70,8 +88,13 @@ def products():
         supabase.table("inventory").insert(new_product).execute()
         return redirect(url_for('products'))
     
-    # عرض المنتجات
     res = supabase.table("inventory").select("*").eq("company_id", session['company_id']).execute()
     return render_template('products.html', products=res.data or [])
 
-# بقية الدوال (login, logout, settings, etc.) تبقى كما هي...
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+if __name__ == '__main__':
+    app.run(debug=True)
