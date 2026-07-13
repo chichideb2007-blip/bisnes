@@ -10,13 +10,19 @@ app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key_here")
 supabase = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY"))
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
+# 1. تعريف دالة التحقق من الجلسة (قبل المسارات)
 @app.before_request
 def check_session():
-    # السماح بالوصول لهذه الصفحات بدون تسجيل دخول
-    if request.endpoint in ['login', 'static', 'home']: return
-    if 'company_id' not in session: return redirect(url_for('login'))
+    # قائمة المسارات المسموح بها بدون تسجيل دخول
+    allowed_routes = ['login', 'static', 'home']
+    if request.endpoint in allowed_routes:
+        return
+    
+    # إذا لم يكن المستخدم مسجلاً، وجهه إلى صفحة تسجيل الدخول
+    if 'company_id' not in session:
+        return redirect(url_for('login'))
 
-# --- Routes ---
+# --- المسارات (Routes) ---
 
 @app.route('/')
 def home(): 
@@ -25,7 +31,6 @@ def home():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        # منطق التحقق من البيانات (مثال مبسط)
         email = request.form.get('email')
         password = request.form.get('password')
         res = supabase.table("companies").select("*").eq("email", email).execute()
