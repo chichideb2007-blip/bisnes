@@ -4,16 +4,17 @@ from google import genai
 import os, uuid
 
 app = Flask(__name__)
+# تأكدي أن SECRET_KEY معرفة في إعدادات Render
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key_here")
 
-# إعداد الاتصال
+# إعداد الاتصال بـ Supabase و Gemini
 supabase = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY"))
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
-# 1. تعريف دالة التحقق من الجلسة (قبل المسارات)
+# دالة التحقق من الجلسة (تعمل قبل أي طلب)
 @app.before_request
 def check_session():
-    # قائمة المسارات المسموح بها بدون تسجيل دخول
+    # المسارات المسموح بالوصول إليها بدون تسجيل دخول
     allowed_routes = ['login', 'static', 'home']
     if request.endpoint in allowed_routes:
         return
@@ -68,6 +69,7 @@ def products():
         c_id = session.get('company_id')
         image_url = None
         
+        # معالجة رفع الصورة
         if 'product_image' in request.files:
             file = request.files['product_image']
             if file and file.filename != '':
@@ -83,6 +85,7 @@ def products():
                 except Exception as e:
                     print(f"Error uploading image: {e}")
 
+        # حفظ المنتج
         new_product = {
             "company_id": c_id,
             "name": request.form.get('name'),
