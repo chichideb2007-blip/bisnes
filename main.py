@@ -4,11 +4,11 @@ from google import genai
 import os
 
 app = Flask(__name__)
-# تأكدي أن SECRET_KEY مضبوط في إعدادات Render (Environment Variables)
+# تأكدي أن SECRET_KEY مضبوط في إعدادات Render كمتغير بيئة
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key_here")
-app.permanent_session_lifetime = 3600  # الجلسة تدوم لمدة ساعة
+app.permanent_session_lifetime = 3600  # الجلسة ستدوم لمدة ساعة
 
-# إعداد الاتصال
+# إعداد الاتصال بـ Supabase و Gemini
 supabase = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY"))
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
@@ -24,6 +24,10 @@ def login():
         email = request.form.get('email')
         password = request.form.get('password')
         res = supabase.table("companies").select("*").eq("email", email).execute()
+        
+        # سطر التحقق لمعرفة هل تم العثور على المستخدم في قاعدة البيانات
+        print(f"Login attempt for: {email}, Result found: {len(res.data) if res.data else 0}")
+        
         if res.data and res.data[0]['password'] == password:
             session.permanent = True  # تفعيل الجلسة الدائمة
             session['company_id'] = res.data[0]['id']
