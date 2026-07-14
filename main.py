@@ -40,10 +40,12 @@ def dashboard():
     return render_template('dashboard.html')
 
 # 4. مسارات الأقسام الجديدة
-@app.route('/orders')
+@app.route('/orders', methods=['GET', 'POST'])
 def orders():
-    if 'company_id' not in session: return redirect(url_for('login'))
-    return render_template('orders.html')
+    if 'company_id' not in session: 
+        return redirect(url_for('login'))
+    # هنا تم تحديد الملف الصحيح الخاص بك
+    return render_template('orders_dashboard.html')
 
 @app.route('/statistics')
 def statistics():
