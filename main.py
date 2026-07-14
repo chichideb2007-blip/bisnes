@@ -33,7 +33,7 @@ def dashboard():
     if 'company_id' not in session: return redirect(url_for('login'))
     return render_template('dashboard.html')
 
-# 4. مسار الطلبيات (حفظ وعرض)
+# 4. مسار الطلبيات (المصحح ليتطابق مع customer_phone)
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     if 'company_id' not in session: return redirect(url_for('login'))
@@ -42,7 +42,7 @@ def orders():
         data = {
             "company_id": session['company_id'],
             "customer_name": request.form.get('customer_name'),
-            "phone": request.form.get('phone'),
+            "customer_phone": request.form.get('phone'), # الاسم المصحح
             "product_name": request.form.get('product_name'),
             "price": float(request.form.get('price') or 0.0)
         }
@@ -52,7 +52,7 @@ def orders():
     res = supabase.table("orders").select("*").eq("company_id", session['company_id']).execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
 
-# 5. مسار المخزون (حفظ صور وبيانات)
+# 5. مسار المخزون
 @app.route('/inventory', methods=['GET', 'POST'])
 def inventory():
     if 'company_id' not in session: return redirect(url_for('login'))
