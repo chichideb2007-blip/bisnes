@@ -47,6 +47,7 @@ def dashboard(): return render_template('dashboard.html')
 @app.route('/products', methods=['GET', 'POST'])
 def products():
     if request.method == 'POST':
+        # تطابق الأعمدة في جدول inventory
         supabase.table("inventory").insert({
             "company_id": session['company_id'], 
             "name": request.form.get('name'),
@@ -65,12 +66,13 @@ def delete_product(product_id):
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     if request.method == 'POST':
+        # تطابق الأعمدة في جدول orders
         supabase.table("orders").insert({
             "company_id": session['company_id'],
             "customer_name": request.form.get('customer_name'),
-            "customer_phone": request.form.get('phone'),
+            "customer_phone": request.form.get('customer_phone'),
             "product_name": request.form.get('product_name'),
-            "total_price": float(request.form.get('price') or 0),
+            "total_price": float(request.form.get('total_price') or 0),
             "status": "قيد الانتظار"
         }).execute()
         return redirect(url_for('orders'))
@@ -82,23 +84,11 @@ def delete_order(order_id):
     supabase.table("orders").delete().eq("id", order_id).execute()
     return redirect(url_for('orders'))
 
-# --- الإحصائيات (محدثة) ---
 @app.route('/stats')
 def stats():
     res = supabase.table("orders").select("*").eq("company_id", session['company_id']).execute()
     orders = res.data or []
-    
-    daily = {"السبت": 0, "الأحد": 0, "الاثنين": 0, "الثلاثاء": 0, "الأربعاء": 0, "الخميس": 0, "الجمعة": 0}
-    monthly = {m: 0 for m in ["جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان", "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]}
-    yearly = {}
-    
-    # معالجة بيانات الطلبيات (تأكدي من وجود عمود created_at في جدول الطلبيات)
-    # ملاحظة: هذا المنطق سيتطلب منطقاً برمجياً لتحويل التاريخ لليوم/الشهر/السنة
-    
-    return render_template('stats.html', 
-                           daily=json.dumps(daily), 
-                           monthly=json.dumps(monthly), 
-                           yearly=json.dumps(yearly))
+    return render_template('stats.html', daily="{}", monthly="{}", yearly="{}")
 
 @app.route('/settings', methods=['GET', 'POST'])
 def settings():
@@ -107,10 +97,11 @@ def settings():
 
 @app.route('/update_settings', methods=['POST'])
 def update_settings():
+    # تطابق الأعمدة في جدول companies
     supabase.table("companies").update({
         "store_name": request.form.get('store_name'),
         "telegram_token": request.form.get('token'),
-        "chat_id": request.form.get('phone')
+        "manager_phone": request.form.get('phone') 
     }).eq("id", session['company_id']).execute()
     return redirect(url_for('settings'))
 
