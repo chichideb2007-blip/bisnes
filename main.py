@@ -1,38 +1,58 @@
 from flask import Flask, render_template, request, redirect, url_for, session
+from supabase import create_client
 import os
 
-# تعريف التطبيق مع تحديد مجلد القوالب
 app = Flask(__name__, template_folder='templates')
-# تأكدي من ضبط SECRET_KEY في إعدادات البيئة في Render
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key_here")
 
-# مسار الصفحة الرئيسية
+# إعداد Supabase
+supabase = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY"))
+
 @app.route('/')
 def home():
-    return "الموقع يعمل بنجاح! - <a href='/login'>اذهب لصفحة الدخول</a>"
+    return redirect(url_for('login'))
 
-# مسار تسجيل الدخول المدمج (يستقبل GET و POST)
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        # هنا يتم معالجة البيانات المرسلة من النموذج
         email = request.form.get('email')
         password = request.form.get('password')
+        res = supabase.table("companies").select("*").eq("email", email).execute()
         
-        # مثال للتحقق (استبدليه بمنطق Supabase لاحقاً)
-        if email and password:
-            session['logged_in'] = True
+        if res.data and res.data[0]['password'] == password:
+            session['company_id'] = res.data[0]['id']
             return redirect(url_for('dashboard'))
-        
-        return "بيانات الدخول غير مكتملة"
-    
-    # في حالة GET، نعرض صفحة login.html
+        return "بيانات الدخول خاطئة"
     return render_template('login.html')
 
-# مسار لوحة التحكم
 @app.route('/dashboard')
 def dashboard():
-    return "مرحباً بكِ في لوحة التحكم!"
+    if 'company_id' not in session:
+        return redirect(url_for('login'))
+    return render_template('dashboard.html')
+
+@app.route('/products', methods=['GET', 'POST'])
+def products():
+    if 'company_id' not in session: return redirect(url_for('login'))
+    
+    company_id = session['company_id']
+    if request.method == 'POST':
+        data = {
+            "company_id": int(company_id),
+            "name": request.form.get('name'),
+            "quantity": int(request.form.get('quantity') or 0),
+            "price": float(request.form.get('price') or 0.0)
+        }
+        supabase.table("inventory").insert(data).execute()
+        return redirect(url_for('products'))
+    
+    res = supabase.table("inventory").select("*").eq("company_id", int(company_id)).execute()
+    return render_template('products.html', products=res.data or [])
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
 
 if __name__ == '__main__':
     app.run()
