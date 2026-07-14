@@ -3,6 +3,7 @@ from supabase import create_client
 import os
 
 app = Flask(__name__, template_folder='templates')
+# تأكدي أن SECRET_KEY مضبوط في إعدادات Render
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key_here")
 
 # إعداد Supabase
@@ -17,12 +18,22 @@ def login():
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
-        res = supabase.table("companies").select("*").eq("email", email).execute()
-        
-        if res.data and res.data[0]['password'] == password:
-            session['company_id'] = res.data[0]['id']
-            return redirect(url_for('dashboard'))
-        return "بيانات الدخول خاطئة"
+        try:
+            # محاولة الاتصال بـ Supabase
+            res = supabase.table("companies").select("*").eq("email", email).execute()
+            
+            # طباعة البيانات للـ Logs للتأكد (ستظهر في سجلات Render)
+            print(f"DEBUG: Data found for {email}: {res.data}") 
+            
+            if res.data and res.data[0].get('password') == password:
+                session['company_id'] = res.data[0]['id']
+                return redirect(url_for('dashboard'))
+            else:
+                return "البريد الإلكتروني أو كلمة السر غير صحيحة"
+        except Exception as e:
+            # طباعة الخطأ في الـ Logs
+            print(f"CRITICAL ERROR: {str(e)}")
+            return f"حدث خطأ داخلي في قاعدة البيانات: {str(e)}"
     return render_template('login.html')
 
 @app.route('/dashboard')
@@ -43,16 +54,10 @@ def products():
             "quantity": int(request.form.get('quantity') or 0),
             "price": float(request.form.get('price') or 0.0)
         }
-        supabase.table("inventory").insert(data).execute()
+        try:
+            supabase.table("inventory").insert(data).execute()
+        except Exception as e:
+            print(f"PRODUCT INSERT ERROR: {str(e)}")
         return redirect(url_for('products'))
     
-    res = supabase.table("inventory").select("*").eq("company_id", int(company_id)).execute()
-    return render_template('products.html', products=res.data or [])
-
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('login'))
-
-if __name__ == '__main__':
-    app.run()
+    res =
