@@ -21,9 +21,9 @@
     <h2>إضافة طلبية جديدة</h2>
     <form method="POST" class="order-form">
         <input type="text" name="customer_name" placeholder="اسم الزبون" required>
-        <input type="text" name="phone" placeholder="رقم الهاتف" required>
+        <input type="text" name="customer_phone" placeholder="رقم الهاتف" required> 
         <input type="text" name="product_name" placeholder="اسم المنتج" required>
-        <input type="number" step="0.01" name="price" placeholder="السعر الإجمالي" required>
+        <input type="number" step="0.01" name="total_price" placeholder="السعر الإجمالي" required>
         <button type="submit">حفظ الطلبية</button>
     </form>
 
@@ -44,7 +44,8 @@
                 <td>{{ order.customer_name }}</td>
                 <td>{{ order.customer_phone }}</td>
                 <td>{{ order.product_name }}</td>
-                <td>{{ order.total_price }}</td> <td>
+                <td>{{ order.total_price }}</td>
+                <td>
                     <a href="{{ url_for('delete_order', order_id=order.id) }}" 
                        onclick="return confirm('هل أنت متأكد من الحذف؟');" 
                        class="btn-delete">حذف</a>
