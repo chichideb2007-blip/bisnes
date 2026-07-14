@@ -15,7 +15,7 @@ body {
     color: var(--text-main);
     margin: 0;
     padding: 0;
-    direction: rtl; /* لضمان دعم اللغة العربية */
+    direction: rtl; 
 }
 
 /* تنسيق الحاويات والبطاقات */
@@ -75,4 +75,32 @@ input {
     border: 1px solid #cbd5e1;
     border-radius: 8px;
     box-sizing: border-box;
+}
+
+/* تنسيق الجداول */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden; /* لجعل الحواف دائرية */
+}
+
+th {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 14px;
+    text-align: center;
+}
+
+td {
+    padding: 12px;
+    border-bottom: 1px solid #e2e8f0;
+    text-align: center;
+}
+
+/* تحسين شكل الصفوف عند المرور */
+tr:hover {
+    background-color: #f8fafc;
 }
