@@ -13,7 +13,7 @@ client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 @app.before_request
 def check_session():
     # المسارات العامة لا تتطلب تسجيل دخول
-    if request.endpoint in ['login', 'static', 'home']: return
+    if request.endpoint in ['login', 'register', 'static', 'home']: return
     if 'company_id' not in session: return redirect(url_for('login'))
 
 # --- المسارات الرئيسية ---
@@ -29,6 +29,19 @@ def login():
             session['company_id'] = res.data[0]['id']
             return redirect(url_for('dashboard'))
     return render_template('login.html')
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        # حفظ بيانات المستخدم الجديد في Supabase
+        data = {
+            "email": request.form.get('email'),
+            "password": request.form.get('password'),
+            "store_name": request.form.get('store_name')
+        }
+        supabase.table("companies").insert(data).execute()
+        return redirect(url_for('login'))
+    return render_template('register.html')
 
 @app.route('/dashboard')
 def dashboard(): return render_template('dashboard.html')
@@ -56,11 +69,8 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
-# --- مسارات إضافية ضرورية ---
-
 @app.route('/chat', methods=['POST'])
 def chat():
-    # هذا المسار يستخدمه Gemini
     return {"reply": "مرحباً! كيف أساعدك؟"}
 
 if __name__ == '__main__':
