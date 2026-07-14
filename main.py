@@ -10,12 +10,12 @@ app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key_here")
 # إعداد Supabase باستخدام متغيرات البيئة
 supabase = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY"))
 
-# مسار الصفحة الرئيسية
+# 1. مسار الصفحة الرئيسية
 @app.route('/')
 def home():
     return "الموقع يعمل بنجاح! - <a href='/login'>اذهب لصفحة الدخول</a>"
 
-# مسار تسجيل الدخول المدمج (يستقبل GET و POST مع Supabase)
+# 2. مسار تسجيل الدخول
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -32,13 +32,39 @@ def login():
         return "بيانات الدخول خاطئة"
     return render_template('login.html')
 
-# مسار لوحة التحكم
+# 3. مسار لوحة التحكم
 @app.route('/dashboard')
 def dashboard():
-    # التحقق من أن المستخدم مسجل الدخول
     if 'company_id' not in session:
         return redirect(url_for('login'))
-    return "مرحباً بكِ في لوحة التحكم!"
+    return render_template('dashboard.html')
+
+# 4. مسارات الأقسام الجديدة
+@app.route('/orders')
+def orders():
+    if 'company_id' not in session: return redirect(url_for('login'))
+    return render_template('orders.html')
+
+@app.route('/statistics')
+def statistics():
+    if 'company_id' not in session: return redirect(url_for('login'))
+    return render_template('statistics.html')
+
+@app.route('/inventory')
+def inventory():
+    if 'company_id' not in session: return redirect(url_for('login'))
+    return render_template('inventory.html')
+
+@app.route('/settings')
+def settings():
+    if 'company_id' not in session: return redirect(url_for('login'))
+    return render_template('settings.html')
+
+# 5. تسجيل الخروج
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
 
 if __name__ == '__main__':
     app.run()
