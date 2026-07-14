@@ -4,9 +4,9 @@ from google import genai
 import os
 
 app = Flask(__name__)
-# تأكدي من ضبط SECRET_KEY في إعدادات Render
+# تأكدي أن SECRET_KEY مضبوط في إعدادات Render (Environment Variables)
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key_here")
-app.permanent_session_lifetime = 3600  # الجلسة ستدوم لمدة ساعة
+app.permanent_session_lifetime = 3600  # الجلسة تدوم لمدة ساعة
 
 # إعداد الاتصال
 supabase = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY"))
@@ -25,7 +25,7 @@ def login():
         password = request.form.get('password')
         res = supabase.table("companies").select("*").eq("email", email).execute()
         if res.data and res.data[0]['password'] == password:
-            session.permanent = True
+            session.permanent = True  # تفعيل الجلسة الدائمة
             session['company_id'] = res.data[0]['id']
             return redirect(url_for('dashboard'))
     return render_template('login.html')
@@ -68,7 +68,6 @@ def products():
     res = supabase.table("inventory").select("*").eq("company_id", int(company_id)).execute()
     return render_template('products.html', products=res.data or [])
 
-# دالة الطلبيات المكتملة والمدمجة
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     company_id = session.get('company_id')
