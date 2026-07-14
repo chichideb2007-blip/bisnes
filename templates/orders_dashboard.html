@@ -12,7 +12,6 @@
 <body>
     <h1>إدارة الطلبيات</h1>
 
-    <!-- نموذج إدخال طلبية جديدة -->
     <form action="/orders" method="POST">
         <div class="form-group">
             <input type="text" name="customer_name" placeholder="اسم الزبون" required>
@@ -23,7 +22,6 @@
         </div>
     </form>
 
-    <!-- جدول الطلبيات -->
     <table>
         <tr>
             <th>اسم الزبون</th>
@@ -32,7 +30,15 @@
             <th>السعر</th>
             <th>الإجراءات</th>
         </tr>
-        <!-- هنا سيتم عرض الطلبيات لاحقاً -->
+        {% for order in orders %}
+        <tr>
+            <td>{{ order.customer_name }}</td>
+            <td>{{ order.phone }}</td>
+            <td>{{ order.product_name }}</td>
+            <td>{{ order.price }}</td>
+            <td><button>حذف</button></td>
+        </tr>
+        {% endfor %}
     </table>
 
     <br>
