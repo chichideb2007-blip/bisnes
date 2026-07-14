@@ -33,8 +33,7 @@
         {% for order in orders %}
         <tr>
             <td>{{ order.customer_name }}</td>
-            <td>{{ order.phone }}</td>
-            <td>{{ order.product_name }}</td>
+            <td>{{ order.customer_phone }}</td> <td>{{ order.product_name }}</td>
             <td>{{ order.price }}</td>
             <td><button>حذف</button></td>
         </tr>
