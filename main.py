@@ -4,63 +4,90 @@ import os
 
 # تعريف التطبيق مع تحديد مجلد القوالب
 app = Flask(__name__, template_folder='templates')
-# تأكدي من ضبط SECRET_KEY في إعدادات البيئة في Render
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key_here")
 
-# إعداد Supabase باستخدام متغيرات البيئة
+# إعداد Supabase
 supabase = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY"))
 
-# 1. مسار الصفحة الرئيسية
+# 1. الصفحة الرئيسية
 @app.route('/')
 def home():
     return "الموقع يعمل بنجاح! - <a href='/login'>اذهب لصفحة الدخول</a>"
 
-# 2. مسار تسجيل الدخول
+# 2. تسجيل الدخول
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
-
-        # الاتصال بقاعدة البيانات والتحقق من المستخدم
         res = supabase.table("companies").select("*").eq("email", email).execute()
-
         if res.data and res.data[0]['password'] == password:
             session['company_id'] = res.data[0]['id']
             return redirect(url_for('dashboard'))
-
         return "بيانات الدخول خاطئة"
     return render_template('login.html')
 
-# 3. مسار لوحة التحكم
+# 3. لوحة التحكم
 @app.route('/dashboard')
 def dashboard():
-    if 'company_id' not in session:
-        return redirect(url_for('login'))
+    if 'company_id' not in session: return redirect(url_for('login'))
     return render_template('dashboard.html')
 
-# 4. مسارات الأقسام (تم تصحيحها لتطابق أسماء ملفاتك)
+# 4. مسار الطلبيات (حفظ وعرض)
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     if 'company_id' not in session: return redirect(url_for('login'))
-    return render_template('orders_dashboard.html')
+    
+    if request.method == 'POST':
+        data = {
+            "company_id": session['company_id'],
+            "customer_name": request.form.get('customer_name'),
+            "phone": request.form.get('phone'),
+            "product_name": request.form.get('product_name'),
+            "price": float(request.form.get('price') or 0.0)
+        }
+        supabase.table("orders").insert(data).execute()
+        return redirect(url_for('orders'))
+    
+    res = supabase.table("orders").select("*").eq("company_id", session['company_id']).execute()
+    return render_template('orders_dashboard.html', orders=res.data or [])
 
+# 5. مسار المخزون (حفظ صور وبيانات)
+@app.route('/inventory', methods=['GET', 'POST'])
+def inventory():
+    if 'company_id' not in session: return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        file = request.files.get('product_image')
+        image_url = ""
+        if file:
+            supabase.storage.from_("inventory-images").upload(file.filename, file.read())
+            image_url = f"https://{os.environ.get('PROJECT_ID')}.supabase.co/storage/v1/object/public/inventory-images/{file.filename}"
+        
+        data = {
+            "company_id": session['company_id'],
+            "name": request.form.get('name'),
+            "quantity": int(request.form.get('quantity') or 0),
+            "price": float(request.form.get('price') or 0.0),
+            "image_url": image_url
+        }
+        supabase.table("inventory").insert(data).execute()
+        return redirect(url_for('inventory'))
+        
+    res = supabase.table("inventory").select("*").eq("company_id", session['company_id']).execute()
+    return render_template('inventory.html', inventory=res.data or [])
+
+# 6. المسارات الأخرى
 @app.route('/statistics')
 def statistics():
     if 'company_id' not in session: return redirect(url_for('login'))
     return render_template('stats.html') 
-
-@app.route('/inventory')
-def inventory():
-    if 'company_id' not in session: return redirect(url_for('login'))
-    return render_template('inventory.html') 
 
 @app.route('/settings')
 def settings():
     if 'company_id' not in session: return redirect(url_for('login'))
     return render_template('settings.html')
 
-# 5. تسجيل الخروج
 @app.route('/logout')
 def logout():
     session.clear()
