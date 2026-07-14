@@ -4,7 +4,6 @@ from google import genai
 import os
 
 app = Flask(__name__)
-# تأكدي من تعيين SECRET_KEY في إعدادات البيئة (Environment Variables) في Render
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key_here")
 
 supabase = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY"))
@@ -12,7 +11,6 @@ client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
 @app.before_request
 def check_session():
-    # السماح بالوصول لصفحة تسجيل الدخول والملفات الثابتة
     allowed_routes = ['login', 'register', 'static']
     if request.endpoint not in allowed_routes and 'company_id' not in session:
         return redirect(url_for('login'))
@@ -44,33 +42,39 @@ def register():
 def dashboard():
     return render_template('dashboard.html')
 
+# المسار المدمج للمنتجات (مع إصلاح إرسال البيانات)
 @app.route('/products', methods=['GET', 'POST'])
 def products():
     if request.method == 'POST':
         company_id = session.get('company_id')
         if company_id:
-            supabase.table("inventory").insert({
+            data = {
                 "company_id": company_id,
+                "company_id_text": str(company_id), 
                 "name": request.form.get('name'),
                 "quantity": int(request.form.get('quantity') or 0),
                 "price": float(request.form.get('price') or 0)
-            }).execute()
+            }
+            supabase.table("inventory").insert(data).execute()
         return redirect(url_for('products'))
     
     res = supabase.table("inventory").select("*").eq("company_id", session['company_id']).execute()
     return render_template('products.html', products=res.data or [])
 
+# المسار المدمج للطلبيات (مع إصلاح إرسال البيانات)
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     if request.method == 'POST':
-        supabase.table("orders").insert({
+        data = {
             "company_id": session['company_id'],
+            "company_id_text": str(session['company_id']),
             "customer_name": request.form.get('customer_name'),
             "customer_phone": request.form.get('customer_phone'),
             "product_name": request.form.get('product_name'),
             "total_price": float(request.form.get('total_price') or 0),
             "status": "قيد الانتظار"
-        }).execute()
+        }
+        supabase.table("orders").insert(data).execute()
         return redirect(url_for('orders'))
     
     res = supabase.table("orders").select("*").eq("company_id", session['company_id']).execute()
