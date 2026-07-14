@@ -2,61 +2,41 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>إدارة الطلبيات</title>
+    <title>صفحة الطلبيات</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; padding: 20px; }
-        .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .order-form { display: grid; gap: 10px; margin-bottom: 30px; }
-        input { padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
-        button { padding: 10px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { padding: 12px; border: 1px solid #ddd; text-align: center; }
-        th { background-color: #007bff; color: white; }
-        .btn-delete { color: red; text-decoration: none; font-weight: bold; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        .form-group { margin-bottom: 10px; }
     </style>
 </head>
 <body>
+    <h1>إدارة الطلبيات</h1>
 
-<div class="container">
-    <h2>إضافة طلبية جديدة</h2>
-    <form method="POST" class="order-form">
-        <input type="text" name="customer_name" placeholder="اسم الزبون" required>
-        <input type="text" name="customer_phone" placeholder="رقم الهاتف" required> 
-        <input type="text" name="product_name" placeholder="اسم المنتج" required>
-        <input type="number" step="0.01" name="total_price" placeholder="السعر الإجمالي" required>
-        <button type="submit">حفظ الطلبية</button>
+    <!-- نموذج إدخال طلبية جديدة -->
+    <form action="/orders" method="POST">
+        <div class="form-group">
+            <input type="text" name="customer_name" placeholder="اسم الزبون" required>
+            <input type="text" name="phone" placeholder="رقم الهاتف" required>
+            <input type="text" name="product_name" placeholder="اسم المنتج" required>
+            <input type="number" name="price" placeholder="السعر" required>
+            <button type="submit">حفظ المعلومات</button>
+        </div>
     </form>
 
-    <h2>الطلبيات الحالية</h2>
+    <!-- جدول الطلبيات -->
     <table>
-        <thead>
-            <tr>
-                <th>الزبون</th>
-                <th>الهاتف</th>
-                <th>المنتج</th>
-                <th>السعر</th>
-                <th>إجراء</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for order in orders %}
-            <tr>
-                <td>{{ order.customer_name }}</td>
-                <td>{{ order.customer_phone }}</td>
-                <td>{{ order.product_name }}</td>
-                <td>{{ order.total_price }}</td>
-                <td>
-                    <a href="{{ url_for('delete_order', order_id=order.id) }}" 
-                       onclick="return confirm('هل أنت متأكد من الحذف؟');" 
-                       class="btn-delete">حذف</a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
+        <tr>
+            <th>اسم الزبون</th>
+            <th>رقم الهاتف</th>
+            <th>اسم المنتج</th>
+            <th>السعر</th>
+            <th>الإجراءات</th>
+        </tr>
+        <!-- هنا سيتم عرض الطلبيات لاحقاً -->
     </table>
-    <br>
-    <a href="/dashboard">العودة للوحة التحكم</a>
-</div>
 
+    <br>
+    <a href="/dashboard"><button>رجوع للوحة التحكم</button></a>
+    <a href="/logout"><button>خروج</button></a>
 </body>
 </html>
