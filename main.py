@@ -6,7 +6,7 @@ import os
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key_here")
 
-# إعداد الاتصال بـ Supabase و Gemini
+# إعداد الاتصال
 supabase = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY"))
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
@@ -43,12 +43,11 @@ def register():
 def dashboard():
     return render_template('dashboard.html')
 
-# المسار الخاص بالمنتجات (مدمج ومحصن)
+# المسار الخاص بالمنتجات (معدل ومحمي)
 @app.route('/products', methods=['GET', 'POST'])
 def products():
     company_id = session.get('company_id')
-    if not company_id:
-        return redirect(url_for('login'))
+    if company_id is None: return redirect(url_for('login'))
 
     if request.method == 'POST':
         data = {
@@ -67,12 +66,11 @@ def products():
     res = supabase.table("inventory").select("*").eq("company_id", int(company_id)).execute()
     return render_template('products.html', products=res.data or [])
 
-# المسار الخاص بالطلبيات (مدمج ومحصن)
+# المسار الخاص بالطلبيات (معدل ومحمي)
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     company_id = session.get('company_id')
-    if not company_id:
-        return redirect(url_for('login'))
+    if company_id is None: return redirect(url_for('login'))
 
     if request.method == 'POST':
         data = {
@@ -96,14 +94,14 @@ def orders():
 @app.route('/stats')
 def stats():
     company_id = session.get('company_id')
-    if not company_id: return redirect(url_for('login'))
+    if company_id is None: return redirect(url_for('login'))
     res = supabase.table("orders").select("*").eq("company_id", int(company_id)).execute()
     return render_template('stats.html', orders=res.data or [])
 
 @app.route('/settings', methods=['GET', 'POST'])
 def settings():
     company_id = session.get('company_id')
-    if not company_id: return redirect(url_for('login'))
+    if company_id is None: return redirect(url_for('login'))
     
     if request.method == 'POST':
         supabase.table("companies").update({
