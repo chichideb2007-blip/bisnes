@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, session
 from supabase import create_client
 from google import genai
-import os, uuid
+import os, uuid, json
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key_here")
@@ -15,7 +15,7 @@ def check_session():
     if request.endpoint in ['login', 'register', 'static', 'home']: return
     if 'company_id' not in session: return redirect(url_for('login'))
 
-# --- المسارات الرئيسية ---
+# --- المسارات ---
 
 @app.route('/')
 def home(): return redirect(url_for('login'))
@@ -44,7 +44,6 @@ def register():
 @app.route('/dashboard')
 def dashboard(): return render_template('dashboard.html')
 
-# --- إدارة المنتجات ---
 @app.route('/products', methods=['GET', 'POST'])
 def products():
     if request.method == 'POST':
@@ -58,18 +57,11 @@ def products():
     res = supabase.table("inventory").select("*").eq("company_id", session['company_id']).execute()
     return render_template('products.html', products=res.data or [])
 
-@app.route('/search_products', methods=['GET'])
-def search_products():
-    query = request.args.get('q', '')
-    res = supabase.table("inventory").select("*").eq("company_id", session['company_id']).ilike("name", f"%{query}%").execute()
-    return render_template('products.html', products=res.data or [])
-
 @app.route('/delete_product/<int:product_id>')
 def delete_product(product_id):
     supabase.table("inventory").delete().eq("id", product_id).execute()
     return redirect(url_for('products'))
 
-# --- إدارة الطلبيات ---
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     if request.method == 'POST':
@@ -90,7 +82,24 @@ def delete_order(order_id):
     supabase.table("orders").delete().eq("id", order_id).execute()
     return redirect(url_for('orders'))
 
-# --- الإعدادات (محدثة) ---
+# --- الإحصائيات (محدثة) ---
+@app.route('/stats')
+def stats():
+    res = supabase.table("orders").select("*").eq("company_id", session['company_id']).execute()
+    orders = res.data or []
+    
+    daily = {"السبت": 0, "الأحد": 0, "الاثنين": 0, "الثلاثاء": 0, "الأربعاء": 0, "الخميس": 0, "الجمعة": 0}
+    monthly = {m: 0 for m in ["جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان", "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]}
+    yearly = {}
+    
+    # معالجة بيانات الطلبيات (تأكدي من وجود عمود created_at في جدول الطلبيات)
+    # ملاحظة: هذا المنطق سيتطلب منطقاً برمجياً لتحويل التاريخ لليوم/الشهر/السنة
+    
+    return render_template('stats.html', 
+                           daily=json.dumps(daily), 
+                           monthly=json.dumps(monthly), 
+                           yearly=json.dumps(yearly))
+
 @app.route('/settings', methods=['GET', 'POST'])
 def settings():
     res = supabase.table("companies").select("*").eq("id", session['company_id']).execute()
@@ -105,18 +114,10 @@ def update_settings():
     }).eq("id", session['company_id']).execute()
     return redirect(url_for('settings'))
 
-# --- متفرقات ---
-@app.route('/stats')
-def stats(): return render_template('stats.html')
-
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('login'))
-
-@app.route('/chat', methods=['POST'])
-def chat():
-    return {"reply": "مرحباً! كيف أساعدك؟"}
 
 if __name__ == '__main__':
     app.run(debug=True)
