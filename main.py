@@ -6,13 +6,13 @@ import os, uuid
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key_here")
 
-# إعداد الاتصال
+# إعداد الاتصال بـ Supabase و Gemini
 supabase = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY"))
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
 @app.before_request
 def check_session():
-    # المسارات العامة لا تتطلب تسجيل دخول
+    # السماح بالوصول لهذه الصفحات بدون تسجيل دخول
     if request.endpoint in ['login', 'register', 'static', 'home']: return
     if 'company_id' not in session: return redirect(url_for('login'))
 
@@ -45,7 +45,33 @@ def register():
 @app.route('/dashboard')
 def dashboard(): return render_template('dashboard.html')
 
-# --- إدارة الطلبيات (محدثة) ---
+# --- إدارة المنتجات ---
+@app.route('/products', methods=['GET', 'POST'])
+def products():
+    if request.method == 'POST':
+        supabase.table("inventory").insert({
+            "company_id": session['company_id'], 
+            "name": request.form.get('name'),
+            "quantity": int(request.form.get('quantity') or 0),
+            "price": float(request.form.get('price') or 0)
+        }).execute()
+        return redirect(url_for('products'))
+    
+    res = supabase.table("inventory").select("*").eq("company_id", session['company_id']).execute()
+    return render_template('products.html', products=res.data or [])
+
+@app.route('/search_products', methods=['GET'])
+def search_products():
+    query = request.args.get('q', '')
+    res = supabase.table("inventory").select("*").eq("company_id", session['company_id']).ilike("name", f"%{query}%").execute()
+    return render_template('products.html', products=res.data or [])
+
+@app.route('/delete_product/<int:product_id>')
+def delete_product(product_id):
+    supabase.table("inventory").delete().eq("id", product_id).execute()
+    return redirect(url_for('products'))
+
+# --- إدارة الطلبيات ---
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     if request.method == 'POST':
@@ -58,7 +84,6 @@ def orders():
             "status": "قيد الانتظار"
         }).execute()
         return redirect(url_for('orders'))
-    
     res = supabase.table("orders").select("*").eq("company_id", session['company_id']).execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
 
@@ -67,15 +92,9 @@ def delete_order(order_id):
     supabase.table("orders").delete().eq("id", order_id).execute()
     return redirect(url_for('orders'))
 
-# --- باقي المسارات ---
-
+# --- الإحصائيات والإعدادات ---
 @app.route('/stats')
 def stats(): return render_template('stats.html')
-
-@app.route('/products')
-def products():
-    res = supabase.table("inventory").select("*").eq("company_id", session['company_id']).execute()
-    return render_template('products.html', products=res.data or [])
 
 @app.route('/settings', methods=['GET', 'POST'])
 def settings():
