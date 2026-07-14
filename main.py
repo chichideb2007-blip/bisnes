@@ -3,8 +3,8 @@ from supabase import create_client
 from google import genai
 import os
 
-app = Flask(__name__)
-# تأكدي أن SECRET_KEY مضبوط في إعدادات Render كمتغير بيئة
+# تعريف التطبيق مع تحديد مجلد القوالب بوضوح
+app = Flask(__name__, template_folder='templates') 
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key_here")
 app.permanent_session_lifetime = 3600  # الجلسة ستدوم لمدة ساعة
 
@@ -25,11 +25,10 @@ def login():
         password = request.form.get('password')
         res = supabase.table("companies").select("*").eq("email", email).execute()
         
-        # سطر التحقق لمعرفة هل تم العثور على المستخدم في قاعدة البيانات
         print(f"Login attempt for: {email}, Result found: {len(res.data) if res.data else 0}")
         
         if res.data and res.data[0]['password'] == password:
-            session.permanent = True  # تفعيل الجلسة الدائمة
+            session.permanent = True
             session['company_id'] = res.data[0]['id']
             return redirect(url_for('dashboard'))
     return render_template('login.html')
@@ -54,7 +53,6 @@ def dashboard():
 def products():
     company_id = session.get('company_id')
     if company_id is None: return redirect(url_for('login'))
-
     if request.method == 'POST':
         data = {
             "company_id": int(company_id),
@@ -63,12 +61,8 @@ def products():
             "quantity": int(request.form.get('quantity') or 0),
             "price": float(request.form.get('price') or 0.0)
         }
-        try:
-            supabase.table("inventory").insert(data).execute()
-        except Exception as e:
-            print("INSERT PRODUCT ERROR:", str(e))
+        supabase.table("inventory").insert(data).execute()
         return redirect(url_for('products'))
-    
     res = supabase.table("inventory").select("*").eq("company_id", int(company_id)).execute()
     return render_template('products.html', products=res.data or [])
 
@@ -76,7 +70,6 @@ def products():
 def orders():
     company_id = session.get('company_id')
     if company_id is None: return redirect(url_for('login'))
-
     if request.method == 'POST':
         data = {
             "company_id": int(company_id),
@@ -87,12 +80,8 @@ def orders():
             "total_price": float(request.form.get('total_price') or 0.0),
             "status": "قيد الانتظار"
         }
-        try:
-            supabase.table("orders").insert(data).execute()
-        except Exception as e:
-            print("ORDER INSERT ERROR:", str(e))
+        supabase.table("orders").insert(data).execute()
         return redirect(url_for('orders'))
-    
     res = supabase.table("orders").select("*").eq("company_id", int(company_id)).execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
 
@@ -107,7 +96,6 @@ def stats():
 def settings():
     company_id = session.get('company_id')
     if company_id is None: return redirect(url_for('login'))
-    
     if request.method == 'POST':
         supabase.table("companies").update({
             "store_name": request.form.get('store_name'),
@@ -115,7 +103,6 @@ def settings():
             "manager_phone": request.form.get('phone')
         }).eq("id", company_id).execute()
         return redirect(url_for('settings'))
-    
     res = supabase.table("companies").select("*").eq("id", company_id).execute()
     settings_data = res.data[0] if res.data else {}
     return render_template('settings.html', settings=settings_data)
