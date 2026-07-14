@@ -6,13 +6,12 @@ import os, uuid
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key_here")
 
-# إعداد الاتصال بـ Supabase و Gemini
+# إعداد الاتصال
 supabase = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY"))
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
 @app.before_request
 def check_session():
-    # السماح بالوصول لهذه الصفحات بدون تسجيل دخول
     if request.endpoint in ['login', 'register', 'static', 'home']: return
     if 'company_id' not in session: return redirect(url_for('login'))
 
@@ -56,7 +55,6 @@ def products():
             "price": float(request.form.get('price') or 0)
         }).execute()
         return redirect(url_for('products'))
-    
     res = supabase.table("inventory").select("*").eq("company_id", session['company_id']).execute()
     return render_template('products.html', products=res.data or [])
 
@@ -92,14 +90,24 @@ def delete_order(order_id):
     supabase.table("orders").delete().eq("id", order_id).execute()
     return redirect(url_for('orders'))
 
-# --- الإحصائيات والإعدادات ---
-@app.route('/stats')
-def stats(): return render_template('stats.html')
-
+# --- الإعدادات (محدثة) ---
 @app.route('/settings', methods=['GET', 'POST'])
 def settings():
     res = supabase.table("companies").select("*").eq("id", session['company_id']).execute()
     return render_template('settings.html', settings=res.data[0] if res.data else {})
+
+@app.route('/update_settings', methods=['POST'])
+def update_settings():
+    supabase.table("companies").update({
+        "store_name": request.form.get('store_name'),
+        "telegram_token": request.form.get('token'),
+        "chat_id": request.form.get('phone')
+    }).eq("id", session['company_id']).execute()
+    return redirect(url_for('settings'))
+
+# --- متفرقات ---
+@app.route('/stats')
+def stats(): return render_template('stats.html')
 
 @app.route('/logout')
 def logout():
