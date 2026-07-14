@@ -20,4 +20,51 @@ def home():
 def login():
     if request.method == 'POST':
         email = request.form.get('email')
-        password = request
+        password = request.form.get('password')
+
+        # الاتصال بقاعدة البيانات والتحقق من المستخدم
+        res = supabase.table("companies").select("*").eq("email", email).execute()
+
+        if res.data and res.data[0]['password'] == password:
+            session['company_id'] = res.data[0]['id']
+            return redirect(url_for('dashboard'))
+
+        return "بيانات الدخول خاطئة"
+    return render_template('login.html')
+
+# 3. مسار لوحة التحكم
+@app.route('/dashboard')
+def dashboard():
+    if 'company_id' not in session:
+        return redirect(url_for('login'))
+    return render_template('dashboard.html')
+
+# 4. مسارات الأقسام (تم تصحيحها لتطابق أسماء ملفاتك)
+@app.route('/orders', methods=['GET', 'POST'])
+def orders():
+    if 'company_id' not in session: return redirect(url_for('login'))
+    return render_template('orders_dashboard.html')
+
+@app.route('/statistics')
+def statistics():
+    if 'company_id' not in session: return redirect(url_for('login'))
+    return render_template('stats.html') 
+
+@app.route('/inventory')
+def inventory():
+    if 'company_id' not in session: return redirect(url_for('login'))
+    return render_template('inventory.html') 
+
+@app.route('/settings')
+def settings():
+    if 'company_id' not in session: return redirect(url_for('login'))
+    return render_template('settings.html')
+
+# 5. تسجيل الخروج
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+if __name__ == '__main__':
+    app.run()
