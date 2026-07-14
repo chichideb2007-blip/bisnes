@@ -4,6 +4,7 @@ from google import genai
 import os
 
 app = Flask(__name__)
+# تأكدي من تعيين SECRET_KEY في إعدادات البيئة (Environment Variables) في Render
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key_here")
 
 supabase = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY"))
@@ -11,15 +12,41 @@ client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
 @app.before_request
 def check_session():
-    # السماح بالوصول لهذه الصفحات بدون تسجيل دخول
-    if request.endpoint in ['login', 'register', 'static']: return
-    if 'company_id' not in session: return redirect(url_for('login'))
+    # السماح بالوصول لصفحة تسجيل الدخول والملفات الثابتة
+    allowed_routes = ['login', 'register', 'static']
+    if request.endpoint not in allowed_routes and 'company_id' not in session:
+        return redirect(url_for('login'))
 
-# 1. المخزن (Inventory)
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+        res = supabase.table("companies").select("*").eq("email", email).execute()
+        if res.data and res.data[0]['password'] == password:
+            session['company_id'] = res.data[0]['id']
+            return redirect(url_for('dashboard'))
+    return render_template('login.html')
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        data = {
+            "email": request.form.get('email'),
+            "password": request.form.get('password'),
+            "store_name": request.form.get('store_name')
+        }
+        supabase.table("companies").insert(data).execute()
+        return redirect(url_for('login'))
+    return render_template('register.html')
+
+@app.route('/dashboard')
+def dashboard():
+    return render_template('dashboard.html')
+
 @app.route('/products', methods=['GET', 'POST'])
 def products():
     if request.method == 'POST':
-        # التأكد من وجود البيانات وتجنب null في company_id
         company_id = session.get('company_id')
         if company_id:
             supabase.table("inventory").insert({
@@ -33,7 +60,6 @@ def products():
     res = supabase.table("inventory").select("*").eq("company_id", session['company_id']).execute()
     return render_template('products.html', products=res.data or [])
 
-# 2. الطلبيات (Orders)
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     if request.method == 'POST':
@@ -50,13 +76,11 @@ def orders():
     res = supabase.table("orders").select("*").eq("company_id", session['company_id']).execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
 
-# 3. الإحصائيات (Stats)
 @app.route('/stats')
 def stats():
     res = supabase.table("orders").select("*").eq("company_id", session['company_id']).execute()
     return render_template('stats.html', orders=res.data or [])
 
-# 4. الإعدادات (Settings)
 @app.route('/settings', methods=['GET', 'POST'])
 def settings():
     if request.method == 'POST':
@@ -71,7 +95,6 @@ def settings():
     settings_data = res.data[0] if res.data else {}
     return render_template('settings.html', settings=settings_data)
 
-# 5. تسجيل الخروج
 @app.route('/logout')
 def logout():
     session.clear()
