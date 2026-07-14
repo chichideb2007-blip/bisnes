@@ -125,5 +125,9 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
+@app.route('/debug')
+def debug():
+    return str(app.url_map)
+
 if __name__ == '__main__':
     app.run(debug=True)
