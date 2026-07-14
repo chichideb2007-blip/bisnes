@@ -33,7 +33,6 @@ def login():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        # حفظ بيانات المستخدم الجديد في Supabase
         data = {
             "email": request.form.get('email'),
             "password": request.form.get('password'),
@@ -46,10 +45,29 @@ def register():
 @app.route('/dashboard')
 def dashboard(): return render_template('dashboard.html')
 
-@app.route('/orders')
+# --- إدارة الطلبيات (محدثة) ---
+@app.route('/orders', methods=['GET', 'POST'])
 def orders():
+    if request.method == 'POST':
+        supabase.table("orders").insert({
+            "company_id": session['company_id'],
+            "customer_name": request.form.get('customer_name'),
+            "customer_phone": request.form.get('phone'),
+            "product_name": request.form.get('product_name'),
+            "total_price": float(request.form.get('price') or 0),
+            "status": "قيد الانتظار"
+        }).execute()
+        return redirect(url_for('orders'))
+    
     res = supabase.table("orders").select("*").eq("company_id", session['company_id']).execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
+
+@app.route('/delete_order/<int:order_id>')
+def delete_order(order_id):
+    supabase.table("orders").delete().eq("id", order_id).execute()
+    return redirect(url_for('orders'))
+
+# --- باقي المسارات ---
 
 @app.route('/stats')
 def stats(): return render_template('stats.html')
