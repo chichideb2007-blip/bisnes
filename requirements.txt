@@ -1,4 +1,4 @@
 flask
 supabase
-google-generativeai.
+google-generativeai
 gunicorn
