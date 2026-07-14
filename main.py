@@ -6,6 +6,7 @@ import os
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key_here")
 
+# إعداد الاتصال بـ Supabase و Gemini
 supabase = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY"))
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
@@ -42,13 +43,13 @@ def register():
 def dashboard():
     return render_template('dashboard.html')
 
-# المسار المحدث للمنتجات مع الفلترة الصحيحة
+# المسار الخاص بالمنتجات
 @app.route('/products', methods=['GET', 'POST'])
 def products():
     if request.method == 'POST':
-        print("FORM DATA RECEIVED:", request.form) 
         company_id = session.get('company_id')
         if company_id:
+            # إضافة الحقول مع حقل النص لضمان توافق قاعدة البيانات
             data = {
                 "company_id": int(company_id),
                 "company_id_text": str(company_id),
@@ -58,16 +59,16 @@ def products():
             }
             try:
                 result = supabase.table("inventory").insert(data).execute()
-                print("INSERT SUCCESS:", result.data)
+                print("INSERT PRODUCT SUCCESS:", result.data)
             except Exception as e:
-                print("INSERT ERROR:", str(e))
+                print("INSERT PRODUCT ERROR:", str(e))
         return redirect(url_for('products'))
     
-    # الفلترة الصحيحة باستخدام الرقم:
+    # الجلب مع الفلترة بالرقم الصحيح
     res = supabase.table("inventory").select("*").eq("company_id", int(session['company_id'])).execute()
     return render_template('products.html', products=res.data or [])
 
-# المسار المحدث للطلبيات مع الفلترة الصحيحة
+# المسار الخاص بالطلبيات
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     if request.method == 'POST':
@@ -81,18 +82,17 @@ def orders():
             "status": "قيد الانتظار"
         }
         try:
-            supabase.table("orders").insert(data).execute()
+            result = supabase.table("orders").insert(data).execute()
+            print("INSERT ORDER SUCCESS:", result.data)
         except Exception as e:
             print("ORDER INSERT ERROR:", str(e))
         return redirect(url_for('orders'))
     
-    # الفلترة الصحيحة باستخدام الرقم:
     res = supabase.table("orders").select("*").eq("company_id", int(session['company_id'])).execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
 
 @app.route('/stats')
 def stats():
-    # فلترة الإحصائيات أيضاً حسب الشركة
     res = supabase.table("orders").select("*").eq("company_id", int(session['company_id'])).execute()
     return render_template('stats.html', orders=res.data or [])
 
