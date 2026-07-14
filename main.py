@@ -42,7 +42,7 @@ def register():
 def dashboard():
     return render_template('dashboard.html')
 
-# المسار المدمج للمنتجات (تم تعديل الـ select للاختبار)
+# مسار المنتجات (مع كود الاختبار المدمج)
 @app.route('/products', methods=['GET', 'POST'])
 def products():
     if request.method == 'POST':
@@ -58,11 +58,11 @@ def products():
             supabase.table("inventory").insert(data).execute()
         return redirect(url_for('products'))
     
-    # للتجربة: إذا لم تظهر البيانات، أزيلي .eq("company_id", session['company_id'])
-    res = supabase.table("inventory").select("*").eq("company_id", session['company_id']).execute()
+    # كود الاختبار والتشخيص:
+    res = supabase.table("inventory").select("*").execute()
+    print("DEBUG DATA:", res.data) # هذا سيظهر في الـ Logs في Render
     return render_template('products.html', products=res.data or [])
 
-# المسار المدمج للطلبيات
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     if request.method == 'POST':
