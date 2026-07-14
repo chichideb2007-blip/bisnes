@@ -33,22 +33,24 @@ def dashboard():
     if 'company_id' not in session: return redirect(url_for('login'))
     return render_template('dashboard.html')
 
-# 4. مسار الطلبيات (المصحح ليتطابق مع customer_phone)
+# 4. مسار الطلبيات (المصحح ليتطابق مع customer_phone و orders_dashboard.html)
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     if 'company_id' not in session: return redirect(url_for('login'))
     
     if request.method == 'POST':
+        # استقبال البيانات من النموذج
         data = {
             "company_id": session['company_id'],
             "customer_name": request.form.get('customer_name'),
-            "customer_phone": request.form.get('phone'), # الاسم المصحح
+            "customer_phone": request.form.get('phone'), # الاسم المصحح ليطابق قاعدة البيانات
             "product_name": request.form.get('product_name'),
             "price": float(request.form.get('price') or 0.0)
         }
         supabase.table("orders").insert(data).execute()
         return redirect(url_for('orders'))
     
+    # جلب البيانات وعرض ملف orders_dashboard.html
     res = supabase.table("orders").select("*").eq("company_id", session['company_id']).execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
 
@@ -61,6 +63,7 @@ def inventory():
         file = request.files.get('product_image')
         image_url = ""
         if file:
+            # تأكدي أن اسم الـ Bucket هو inventory-images
             supabase.storage.from_("inventory-images").upload(file.filename, file.read())
             image_url = f"https://{os.environ.get('PROJECT_ID')}.supabase.co/storage/v1/object/public/inventory-images/{file.filename}"
         
