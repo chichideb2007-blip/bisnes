@@ -1,27 +1,18 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <title>تسجيل الدخول</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <div id="login-screen">
         <h2>تسجيل الدخول</h2>
-        <input type="text" placeholder="اسم المستخدم">
-        <input type="password" placeholder="كلمة السر">
-        <button onclick="login()">دخول</button>
+        <form action="{{ url_for('login') }}" method="POST">
+            <input type="text" name="email" placeholder="البريد الإلكتروني" required>
+            <input type="password" name="password" placeholder="كلمة السر" required>
+            <button type="submit">دخول</button>
+        </form>
     </div>
-
-    <div id="dashboard" style="display:none;">
-        <nav>
-            <button onclick="showSection('stats')">إحصائيات</button>
-            <button onclick="showSection('settings')">إعدادات</button>
-            <button onclick="showSection('orders')">طلبيات</button>
-        </nav>
-        
-        <div id="stats" class="content">إحصائيات هنا (الرسوم البيانية)</div>
-        <div id="settings" class="content">إعدادات المتجر هنا</div>
-        <div id="orders" class="content">جداول الطلبيات هنا</div>
-    </div>
-    <script src="script.js"></script>
 </body>
 </html>
