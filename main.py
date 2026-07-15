@@ -32,16 +32,13 @@ def dashboard():
 def products():
     if request.method == 'POST':
         image_url = None
-        # معالجة رفع الصورة باستخدام الاسم الصحيح "product-images"
         if 'product_image' in request.files:
             file = request.files['product_image']
             if file and file.filename != '':
                 file_path = f"products/{file.filename}"
-                # تم التعديل هنا لاستخدام الشرطة الوسطى التي تطابق الـ Bucket لديك
                 supabase.storage.from_("product-images").upload(path=file_path, file=file.read())
                 image_url = supabase.storage.from_("product-images").get_public_url(file_path)
 
-        # حفظ البيانات في Supabase
         data = {
             "name": request.form.get('name'),
             "quantity": request.form.get('quantity'),
@@ -52,7 +49,6 @@ def products():
         supabase.table("inventory").insert(data).execute()
         return redirect(url_for('products'))
 
-    # عرض المنتجات
     res = supabase.table("inventory").select("*").execute()
     return render_template('products.html', products=res.data or [])
 
@@ -60,11 +56,34 @@ def products():
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     if request.method == 'POST':
-        data = {"customer_name": request.form.get('request_name'), "company_id": "1"}
+        data = {
+            "customer_name": request.form.get('customer_name'),
+            "customer_phone": request.form.get('phone'),
+            "product_name": request.form.get('product_name'),
+            "total_price": request.form.get('price'),
+            "company_id": "1"
+        }
         supabase.table("orders").insert(data).execute()
         return redirect(url_for('orders'))
+    
     res = supabase.table("orders").select("*").execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
+
+# --- مسارات إضافية (الخروج والحذف) ---
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+@app.route('/delete_order/<int:order_id>', methods=['POST'])
+def delete_order(order_id):
+    supabase.table("orders").delete().eq("id", order_id).execute()
+    return redirect(url_for('orders'))
+
+@app.route('/delete_product/<int:product_id>', methods=['POST'])
+def delete_product(product_id):
+    supabase.table("inventory").delete().eq("id", product_id).execute()
+    return redirect(url_for('products'))
 
 if __name__ == '__main__':
     app.run(debug=True)
