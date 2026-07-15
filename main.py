@@ -12,14 +12,12 @@ supabase = create_client(url, key)
 
 @app.route('/')
 def index():
-    # توجيه المستخدم لصفحة تسجيل الدخول عند فتح الموقع
     return redirect(url_for('login'))
 
 # --- مسار تسجيل الدخول ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        # هنا يمكنك إضافة كود التحقق من قاعدة البيانات لاحقاً
         session['company_id'] = "1"
         return redirect(url_for('dashboard'))
     return render_template('login.html')
@@ -42,13 +40,13 @@ def products():
                 supabase.storage.from_("products_images").upload(path=file_path, file=file.read())
                 image_url = supabase.storage.from_("products_images").get_public_url(file_path)
 
-        # حفظ البيانات في Supabase
+        # حفظ البيانات في Supabase (تم تحديث الاسم لـ company_id_text)
         data = {
             "name": request.form.get('name'),
             "quantity": request.form.get('quantity'),
             "price": request.form.get('price'),
             "image_url": image_url,
-            "company_id": "1"
+            "company_id_text": "1"  
         }
         supabase.table("inventory").insert(data).execute()
         return redirect(url_for('products'))
