@@ -28,7 +28,7 @@ def login():
 def dashboard():
     return render_template('dashboard.html')
 
-# --- مسار المنتجات (المخزون) - النسخة المصححة نهائياً ---
+# --- مسار المنتجات (المخزون) ---
 @app.route('/products', methods=['GET', 'POST'])
 def products():
     if request.method == 'POST':
@@ -45,15 +45,16 @@ def products():
                 except Exception as e:
                     print(f"Error uploading image: {e}")
         
-        # حفظ البيانات مع تحويل الأنواع والتأكد من إرسال company_id كرقم
+        # حفظ البيانات مع التأكد من إرسال company_id كرقم صحيح (Integer)
         data = {
             "name": request.form.get('name'),
             "quantity": int(request.form.get('quantity', 0)),
             "price": float(request.form.get('price', 0.0)),
             "image_url": image_url,
-            "company_id": 1  # تأكدي أن الرقم 1 موجود كـ ID في جدول الشركات
+            "company_id": 1  # تأكدي أن هذا الرقم هو الـ ID الموجود فعلياً في جدول companies
         }
         
+        # إرسال البيانات إلى جدول inventory
         try:
             supabase.table("inventory").insert(data).execute()
         except Exception as e:
