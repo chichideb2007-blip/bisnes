@@ -12,23 +12,24 @@ supabase = create_client(url, key)
 
 @app.route('/')
 def index():
-    return "الموقع يعمل بنجاح!"
+    # توجيه مباشر للوحة التحكم
+    return redirect(url_for('dashboard'))
 
-# --- مسار المنتجات (المخزون) ---
-# قمنا بتغيير render_template ليعرض 'products.html' بدل 'inventory.html'
+# --- المسار الموحد للمنتجات (يعمل للعرض والإضافة) ---
 @app.route('/products', methods=['GET', 'POST'])
 def products():
     if request.method == 'POST':
         image_url = None
-        # معالجة رفع الصورة (تأكدي من اسم الـ Bucket الخاص بكِ)
+        # معالجة رفع الصورة
         if 'product_image' in request.files:
             file = request.files['product_image']
             if file and file.filename != '':
                 file_path = f"products/{file.filename}"
+                # رفع الصورة للـ Bucket المسمى products_images
                 supabase.storage.from_("products_images").upload(path=file_path, file=file.read())
                 image_url = supabase.storage.from_("products_images").get_public_url(file_path)
 
-        # حفظ البيانات
+        # حفظ البيانات في Supabase
         data = {
             "name": request.form.get('name'),
             "quantity": request.form.get('quantity'),
@@ -38,9 +39,9 @@ def products():
         }
         supabase.table("inventory").insert(data).execute()
         return redirect(url_for('products'))
-    
+
+    # عرض المنتجات (هذا الجزء يعمل عند فتح الصفحة)
     res = supabase.table("inventory").select("*").execute()
-    # هنا التعديل المهم: استخدام اسم ملفك الفعلي
     return render_template('products.html', products=res.data or [])
 
 # --- مسار الطلبات ---
