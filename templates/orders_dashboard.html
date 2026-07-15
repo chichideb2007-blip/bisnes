@@ -1,47 +1,16 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <title>صفحة الطلبيات</title>
-    <style>
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-        .form-group { margin-bottom: 10px; }
-    </style>
-</head>
-<body>
-    <h1>إدارة الطلبيات</h1>
-
-    <form action="/orders" method="POST">
-        <div class="form-group">
-            <input type="text" name="customer_name" placeholder="اسم الزبون" required>
-            <input type="text" name="phone" placeholder="رقم الهاتف" required>
-            <input type="text" name="product_name" placeholder="اسم المنتج" required>
-            <input type="number" name="price" placeholder="السعر" required>
-            <button type="submit">حفظ المعلومات</button>
-        </div>
-    </form>
-
     <table>
         <tr>
             <th>اسم الزبون</th>
             <th>رقم الهاتف</th>
             <th>اسم المنتج</th>
-            <th>السعر</th>
-            <th>الإجراءات</th>
+            <th>السعر الإجمالي</th> <th>الإجراءات</th>
         </tr>
         {% for order in orders %}
         <tr>
             <td>{{ order.customer_name }}</td>
-            <td>{{ order.customer_phone }}</td> <td>{{ order.product_name }}</td>
-            <td>{{ order.price }}</td>
-            <td><button>حذف</button></td>
+            <td>{{ order.customer_phone }}</td>
+            <td>{{ order.product_name }}</td>
+            <td>{{ order.total_price }}</td> <td><button>حذف</button></td>
         </tr>
         {% endfor %}
     </table>
-
-    <br>
-    <a href="/dashboard"><button>رجوع للوحة التحكم</button></a>
-    <a href="/logout"><button>خروج</button></a>
-</body>
-</html>
