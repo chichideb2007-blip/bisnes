@@ -14,7 +14,7 @@ supabase = create_client(url, key)
 def index():
     return "الموقع يعمل بنجاح!"
 
-# --- مسار المنتجات (يحتوي على معالجة الصور) ---
+# --- مسار المنتجات (المنتجات مع الصور) ---
 @app.route('/products', methods=['GET', 'POST'])
 def products():
     if request.method == 'POST':
@@ -23,17 +23,17 @@ def products():
         if 'product_image' in request.files:
             file = request.files['product_image']
             if file and file.filename != '':
-                # تأكدي من كتابة اسم الـ Bucket الخاص بكِ بدلاً من 'your-bucket-name'
+                # رفع الصورة للـ Bucket المسمى products_images
                 file_path = f"products/{file.filename}"
-                supabase.storage.from_("your-bucket-name").upload(path=file_path, file=file.read())
-                image_url = supabase.storage.from_("your-bucket-name").get_public_url(file_path)
+                supabase.storage.from_("products_images").upload(path=file_path, file=file.read())
+                image_url = supabase.storage.from_("products_images").get_public_url(file_path)
 
         # حفظ البيانات في Supabase
         data = {
             "name": request.form.get('name'),
             "quantity": request.form.get('quantity'),
             "price": request.form.get('price'),
-            "image_url": image_url, # تأكدي أن هذا العمود موجود في جدول inventory
+            "image_url": image_url, 
             "company_id": "1"
         }
         supabase.table("inventory").insert(data).execute()
@@ -43,7 +43,7 @@ def products():
     res = supabase.table("inventory").select("*").execute()
     return render_template('products.html', products=res.data or [])
 
-# --- مسار الطلبات (Orders) ---
+# --- مسار الطلبات ---
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     if request.method == 'POST':
