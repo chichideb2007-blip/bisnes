@@ -34,7 +34,7 @@ def orders():
     res = supabase.table("orders").select("*").execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
 
-# --- هذا هو المسار الذي كان مفقوداً أو خاطئاً ---
+# --- مسار المخزن المحدث ---
 @app.route('/inventory', methods=['GET', 'POST'])
 def inventory():
     if request.method == 'POST':
@@ -48,7 +48,8 @@ def inventory():
         return redirect(url_for('inventory'))
     
     res = supabase.table("inventory").select("*").execute()
-    return render_template('inventory.html', items=res.data or [])
+    # تم التعديل هنا ليعرض 'products.html' ويستخدم المتغير 'products'
+    return render_template('products.html', products=res.data or [])
 
 if __name__ == '__main__':
     app.run(debug=True)
