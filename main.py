@@ -55,7 +55,7 @@ def orders():
     res = supabase.table("orders").select("*").eq("company_id", session['company_id']).execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
 
-# 5. مسار المخزون
+# 5. مسار المخزون (مدمج وكامل)
 @app.route('/inventory', methods=['GET', 'POST'])
 def inventory():
     if 'company_id' not in session: return redirect(url_for('login'))
