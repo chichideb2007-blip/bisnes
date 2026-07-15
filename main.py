@@ -17,7 +17,6 @@ def index():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        # كود بسيط للتجربة فقط
         session['company_id'] = "1"
         return redirect(url_for('dashboard'))
     return render_template('login.html')
@@ -29,7 +28,6 @@ def dashboard():
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     if request.method == 'POST':
-        # تجربة إرسال بيانات بسيطة
         data = {
             "customer_name": request.form.get('customer_name'),
             "company_id": "1"
@@ -39,6 +37,25 @@ def orders():
     
     res = supabase.table("orders").select("*").execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
+
+# --- إضافة مسارات المنتجات هنا ---
+
+@app.route('/products', methods=['GET', 'POST'])
+def products():
+    # هذا المسار يجمع بين العرض (GET) والإضافة (POST)
+    if request.method == 'POST':
+        data = {
+            "name": request.form.get('name'),
+            "quantity": request.form.get('quantity'),
+            "price": request.form.get('price'),
+            "company_id": "1"
+        }
+        supabase.table("inventory").insert(data).execute()
+        return redirect(url_for('products'))
+    
+    # جلب المنتجات للعرض
+    res = supabase.table("inventory").select("*").eq("company_id", "1").execute()
+    return render_template('products.html', products=res.data or [])
 
 if __name__ == '__main__':
     app.run(debug=True)
