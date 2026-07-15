@@ -80,10 +80,21 @@ def orders():
     res = supabase.table("orders").select("*").execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
 
-# --- مسار الإحصائيات (المعدل) ---
+# --- مسار الإحصائيات (المحدث بجلب البيانات الحقيقية) ---
 @app.route('/statistics')
 def statistics():
-    return render_template('stats.html') # المسار المحدث ليطابق ملفك
+    try:
+        # جلب بيانات المبيعات من جدول الطلبات
+        res = supabase.table("orders").select("total_price").execute()
+        orders = res.data or []
+        
+        # حساب المجموع
+        total_sales = sum(float(order.get('total_price', 0)) for order in orders)
+        total_orders = len(orders)
+        
+        return render_template('stats.html', total_sales=total_sales, total_orders=total_orders)
+    except Exception as e:
+        return f"خطأ في جلب البيانات: {str(e)}"
 
 # --- مسار الإعدادات ---
 @app.route('/settings')
