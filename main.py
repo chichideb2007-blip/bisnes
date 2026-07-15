@@ -14,42 +14,38 @@ supabase = create_client(url, key)
 def index():
     return "الموقع يعمل بنجاح!"
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        session['company_id'] = "1"
-        return redirect(url_for('dashboard'))
-    return render_template('login.html')
-
-@app.route('/dashboard')
-def dashboard():
-    return render_template('dashboard.html')
-
-@app.route('/orders', methods=['GET', 'POST'])
-def orders():
-    if request.method == 'POST':
-        data = {"customer_name": request.form.get('customer_name'), "company_id": "1"}
-        supabase.table("orders").insert(data).execute()
-        return redirect(url_for('orders'))
-    res = supabase.table("orders").select("*").execute()
-    return render_template('orders_dashboard.html', orders=res.data or [])
-
-# --- مسار المخزن المحدث ---
+# --- مسار المخزن (Inventory) ---
+# مطابق لأعمدة جدول inventory في سوبابيس (name, quantity, price)
 @app.route('/inventory', methods=['GET', 'POST'])
 def inventory():
     if request.method == 'POST':
+        # تأكدي أن هذه الأسماء (name, quantity, price) تطابق ما في قاعدة البيانات
         data = {
             "name": request.form.get('name'),
             "quantity": request.form.get('quantity'),
             "price": request.form.get('price'),
-            "company_id": "1"
+            "company_id": "1" # تأكدي من وجود هذا العمود إذا كنتِ تستخدمينه
         }
         supabase.table("inventory").insert(data).execute()
         return redirect(url_for('inventory'))
     
     res = supabase.table("inventory").select("*").execute()
-    # تم التعديل هنا ليعرض 'products.html' ويستخدم المتغير 'products'
     return render_template('products.html', products=res.data or [])
+
+# --- مسار الطلبات (Orders) ---
+# مطابق لأعمدة جدول orders في سوبابيس (customer_name)
+@app.route('/orders', methods=['GET', 'POST'])
+def orders():
+    if request.method == 'POST':
+        data = {
+            "customer_name": request.form.get('customer_name'),
+            "company_id": "1"
+        }
+        supabase.table("orders").insert(data).execute()
+        return redirect(url_for('orders'))
+    
+    res = supabase.table("orders").select("*").execute()
+    return render_template('orders_dashboard.html', orders=res.data or [])
 
 if __name__ == '__main__':
     app.run(debug=True)
