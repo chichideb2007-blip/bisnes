@@ -36,8 +36,18 @@ def products():
             file = request.files['product_image']
             if file and file.filename != '':
                 file_path = f"products/{file.filename}"
-                supabase.storage.from_("product-images").upload(path=file_path, file=file.read())
-                image_url = supabase.storage.from_("product-images").get_public_url(file_path)
+                
+                try:
+                    # محاولة الرفع
+                    supabase.storage.from_("product-images").upload(path=file_path, file=file.read())
+                    image_url = supabase.storage.from_("product-images").get_public_url(file_path)
+                except Exception as e:
+                    # إذا كان الخطأ هو "الملف موجود مسبقاً" (409)، تجاهلي الخطأ واستخدمي الرابط مباشرة
+                    if "Duplicate" in str(e) or "409" in str(e):
+                        image_url = supabase.storage.from_("product-images").get_public_url(file_path)
+                    else:
+                        print(f"Error uploading: {e}")
+                        image_url = None
 
         data = {
             "name": request.form.get('name'),
@@ -60,30 +70,4 @@ def orders():
             "customer_name": request.form.get('customer_name'),
             "customer_phone": request.form.get('phone'),
             "product_name": request.form.get('product_name'),
-            "total_price": request.form.get('price'),
-            "company_id": "1"
-        }
-        supabase.table("orders").insert(data).execute()
-        return redirect(url_for('orders'))
-    
-    res = supabase.table("orders").select("*").execute()
-    return render_template('orders_dashboard.html', orders=res.data or [])
-
-# --- مسارات إضافية (الخروج والحذف) ---
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('login'))
-
-@app.route('/delete_order/<int:order_id>', methods=['POST'])
-def delete_order(order_id):
-    supabase.table("orders").delete().eq("id", order_id).execute()
-    return redirect(url_for('orders'))
-
-@app.route('/delete_product/<int:product_id>', methods=['POST'])
-def delete_product(product_id):
-    supabase.table("inventory").delete().eq("id", product_id).execute()
-    return redirect(url_for('products'))
-
-if __name__ == '__main__':
-    app.run(debug=True)
+            "total
