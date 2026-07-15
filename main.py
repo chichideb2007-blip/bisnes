@@ -28,42 +28,40 @@ def login():
 def dashboard():
     return render_template('dashboard.html')
 
-# --- مسار المنتجات (المخزون) - النسخة المصححة ---
+# --- مسار المنتجات (المخزون) - النسخة المصححة نهائياً ---
 @app.route('/products', methods=['GET', 'POST'])
 def products():
     if request.method == 'POST':
         image_url = None
-        # معالجة الصورة
+        # معالجة رفع الصورة
         if 'product_image' in request.files:
             file = request.files['product_image']
             if file and file.filename != '':
-                # استخدام وقت النظام لضمان اسم فريد وتجنب أخطاء التكرار
                 unique_filename = f"{int(time.time())}_{file.filename}"
                 file_path = f"products/{unique_filename}"
-                
                 try:
                     supabase.storage.from_("product-images").upload(path=file_path, file=file.read())
                     image_url = supabase.storage.from_("product-images").get_public_url(file_path)
                 except Exception as e:
                     print(f"Error uploading image: {e}")
         
-        # حفظ البيانات مع التأكد من تحويل الأنواع (مهم جداً)
+        # حفظ البيانات مع تحويل الأنواع والتأكد من إرسال company_id كرقم
+        data = {
+            "name": request.form.get('name'),
+            "quantity": int(request.form.get('quantity', 0)),
+            "price": float(request.form.get('price', 0.0)),
+            "image_url": image_url,
+            "company_id": 1  # تأكدي أن الرقم 1 موجود كـ ID في جدول الشركات
+        }
+        
         try:
-            data = {
-                "name": request.form.get('name'),
-                "quantity": int(request.form.get('quantity', 0)), # تحويل لعدد صحيح
-                "price": float(request.form.get('price', 0.0)),   # تحويل لرقم عشري
-                "image_url": image_url,
-                "company_id": "1"  # الالتزام باسم العمود الموحد
-            }
             supabase.table("inventory").insert(data).execute()
         except Exception as e:
-            print(f"Database Error: {e}")
-            return "حدث خطأ أثناء حفظ البيانات في قاعدة البيانات، تأكدي من نوع البيانات."
+            print(f"DEBUG ERROR: {e}")
+            return f"حدث خطأ في قاعدة البيانات: {str(e)}"
 
         return redirect(url_for('products'))
 
-    # عرض المنتجات
     res = supabase.table("inventory").select("*").execute()
     return render_template('products.html', products=res.data or [])
 
@@ -71,13 +69,12 @@ def products():
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     if request.method == 'POST':
-        # استخدام أسماء الأعمدة الدقيقة لجدول orders
         data = {
             "customer_name": request.form.get('customer_name'),
             "customer_phone": request.form.get('phone'),
             "product_name": request.form.get('product_name'),
             "total_price": float(request.form.get('price', 0.0)),
-            "company_id": "1"
+            "company_id": 1
         }
         supabase.table("orders").insert(data).execute()
         return redirect(url_for('orders'))
