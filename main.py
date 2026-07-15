@@ -33,7 +33,7 @@ def dashboard():
     if 'company_id' not in session: return redirect(url_for('login'))
     return render_template('dashboard.html')
 
-# 4. مسار الطلبيات (تم تعديل total_price لتطابق جدول Supabase)
+# 4. مسار الطلبيات (المصحح ليتطابق مع customer_phone و total_price)
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     if 'company_id' not in session: return redirect(url_for('login'))
@@ -46,55 +46,17 @@ def orders():
             "product_name": request.form.get('product_name'),
             "total_price": float(request.form.get('price') or 0.0) 
         }
-        supabase.table("orders").insert(data).execute()
+        # محاولة الحفظ مع التقاط الخطأ في حال فشله
+        try:
+            supabase.table("orders").insert(data).execute()
+        except Exception as e:
+            print(f"خطأ Supabase: {e}") # هذا سيطبع الخطأ في سجلات Render (Logs)
         return redirect(url_for('orders'))
     
     res = supabase.table("orders").select("*").eq("company_id", session['company_id']).execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
 
-# 5. مسار المخزون (تم دمج منطق إضافة الصور والبيانات)
+# 5. مسار المخزون
 @app.route('/inventory', methods=['GET', 'POST'])
 def inventory():
-    if 'company_id' not in session: return redirect(url_for('login'))
-    
-    if request.method == 'POST':
-        file = request.files.get('product_image')
-        image_url = ""
-        if file:
-            try:
-                supabase.storage.from_("inventory-images").upload(file.filename, file.read())
-                image_url = f"https://{os.environ.get('PROJECT_ID')}.supabase.co/storage/v1/object/public/inventory-images/{file.filename}"
-            except Exception as e:
-                print(f"Error uploading image: {e}")
-        
-        data = {
-            "company_id": session['company_id'],
-            "name": request.form.get('name'),
-            "quantity": int(request.form.get('quantity') or 0),
-            "price": float(request.form.get('price') or 0.0),
-            "image_url": image_url
-        }
-        supabase.table("inventory").insert(data).execute()
-        return redirect(url_for('inventory'))
-        
-    res = supabase.table("inventory").select("*").eq("company_id", session['company_id']).execute()
-    return render_template('inventory.html', inventory=res.data or [])
-
-# 6. المسارات الأخرى
-@app.route('/statistics')
-def statistics():
-    if 'company_id' not in session: return redirect(url_for('login'))
-    return render_template('stats.html') 
-
-@app.route('/settings')
-def settings():
-    if 'company_id' not in session: return redirect(url_for('login'))
-    return render_template('settings.html')
-
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('login'))
-
-if __name__ == '__main__':
-    app.run()
+    if 'company_id' not in session: return redirect(url_for('
