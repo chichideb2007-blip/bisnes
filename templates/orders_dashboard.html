@@ -8,6 +8,7 @@
         .form-container { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
         input { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
         button { background-color: #28a745; color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; }
+        .btn-delete { background-color: red !important; }
         table { width: 100%; border-collapse: collapse; background: white; }
         th, td { padding: 12px; border: 1px solid #ddd; text-align: center; }
         th { background-color: #f8f9fa; }
@@ -35,6 +36,7 @@
                 <th>الهاتف</th>
                 <th>المنتج</th>
                 <th>السعر</th>
+                <th>إجراءات</th>
             </tr>
         </thead>
         <tbody>
@@ -44,19 +46,23 @@
                 <td>{{ order.customer_phone }}</td>
                 <td>{{ order.product_name }}</td>
                 <td>{{ order.total_price }}</td>
+                <td>
+                    <form action="/delete_order/{{ order.id }}" method="POST">
+                        <button type="submit" class="btn-delete">حذف</button>
+                    </form>
+                </td>
             </tr>
             {% else %}
             <tr>
-                <td colspan="4">لا توجد طلبيات حالياً</td>
+                <td colspan="5">لا توجد طلبيات حالياً</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 
     <br>
-    <a href="/dashboard">الرجوع للوحة التحكم</a>
-    <br>
-    <a href="/logout">تسجيل الخروج</a>
+    <a href="/dashboard">الرجوع للوحة التحكم</a> | 
+    <a href="/logout" style="color: red;">تسجيل الخروج</a>
 
 </body>
 </html>
