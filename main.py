@@ -1,85 +1,96 @@
 from flask import Flask, render_template, request, redirect, url_for, session
 from supabase import create_client
 import os
+import time
 
-# إعداد التطبيق
-app = Flask(__name__, template_folder='templates')
-# تأكدي من إضافة SECRET_KEY في إعدادات Render (Environment)
-app.secret_key = os.environ.get("SECRET_KEY", "super-secret-key-change-this")
+app = Flask(__name__)
+app.secret_key = 'secret_key_123'
 
-# إعداد Supabase مع فحص الأمان
+# إعداد Supabase
 url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
+supabase = create_client(url, key)
 
-if url and key:
-    supabase = create_client(url, key)
-else:
-    supabase = None
-
-# 1. الصفحة الرئيسية
 @app.route('/')
-def home():
+def index():
     return redirect(url_for('login'))
 
-# 2. صفحة تسجيل الدخول
+# --- مسار تسجيل الدخول ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        if not supabase:
-            return "خطأ: قاعدة البيانات غير متصلة (تأكدي من إعدادات البيئة)"
-            
-        email = request.form.get('email')
-        password = request.form.get('password')
-        
-        try:
-            res = supabase.table("companies").select("*").eq("email", email).execute()
-            if res.data and res.data[0].get('password') == password:
-                session['company_id'] = res.data[0]['id']
-                return redirect(url_for('dashboard'))
-            else:
-                return "البريد أو كلمة السر غير صحيحة"
-        except Exception as e:
-            return f"خطأ في الاتصال: {str(e)}"
-            
+        session['company_id'] = "1"
+        return redirect(url_for('dashboard'))
     return render_template('login.html')
 
-# 3. لوحة التحكم
+# --- مسار لوحة التحكم ---
 @app.route('/dashboard')
 def dashboard():
-    if 'company_id' not in session:
-        return redirect(url_for('login'))
     return render_template('dashboard.html')
 
-# 4. إدارة المنتجات
+# --- مسار المنتجات (المخزون) ---
 @app.route('/products', methods=['GET', 'POST'])
 def products():
-    if 'company_id' not in session: 
-        return redirect(url_for('login'))
-    
-    company_id = session['company_id']
+    if request.method == 'POST':
+        image_url = None
+        if 'product_image' in request.files:
+            file = request.files['product_image']
+            if file and file.filename != '':
+                unique_filename = f"{int(time.time())}_{file.filename}"
+                file_path = f"products/{unique_filename}"
+                
+                try:
+                    supabase.storage.from_("product-images").upload(path=file_path, file=file.read())
+                    image_url = supabase.storage.from_("product-images").get_public_url(file_path)
+                except Exception as e:
+                    print(f"Error uploading: {e}")
+        
+        # دمج البيانات مع تحويل الأنواع (Integer و Float) لضمان مطابقة جدول Supabase
+        data = {
+            "name": request.form.get('name'),
+            "quantity": int(request.form.get('quantity', 0)),
+            "price": float(request.form.get('price', 0.0)),
+            "image_url": image_url,
+            "company_id": "1"  
+        }
+        supabase.table("inventory").insert(data).execute()
+        return redirect(url_for('products'))
+
+    res = supabase.table("inventory").select("*").execute()
+    return render_template('products.html', products=res.data or [])
+
+# --- مسار الطلبات ---
+@app.route('/orders', methods=['GET', 'POST'])
+def orders():
     if request.method == 'POST':
         data = {
-            "company_id": int(company_id),
-            "name": request.form.get('name'),
-            "quantity": int(request.form.get('quantity') or 0),
-            "price": float(request.form.get('price') or 0.0)
+            "customer_name": request.form.get('customer_name'),
+            "customer_phone": request.form.get('phone'),
+            "product_name": request.form.get('product_name'),
+            "total_price": float(request.form.get('price', 0.0)),
+            "company_id": "1"
         }
-        if supabase:
-            supabase.table("inventory").insert(data).execute()
-        return redirect(url_for('products'))
+        supabase.table("orders").insert(data).execute()
+        return redirect(url_for('orders'))
     
-    res = []
-    if supabase:
-        res = supabase.table("inventory").select("*").eq("company_id", int(company_id)).execute()
-        res = res.data or []
-        
-    return render_template('products.html', products=res)
+    res = supabase.table("orders").select("*").execute()
+    return render_template('orders_dashboard.html', orders=res.data or [])
 
-# 5. تسجيل الخروج
+# --- مسارات إضافية (الخروج والحذف) ---
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('login'))
 
+@app.route('/delete_order/<int:order_id>', methods=['POST'])
+def delete_order(order_id):
+    supabase.table("orders").delete().eq("id", order_id).execute()
+    return redirect(url_for('orders'))
+
+@app.route('/delete_product/<int:product_id>', methods=['POST'])
+def delete_product(product_id):
+    supabase.table("inventory").delete().eq("id", product_id).execute()
+    return redirect(url_for('products'))
+
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True)
