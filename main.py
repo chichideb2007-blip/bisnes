@@ -32,14 +32,14 @@ def dashboard():
 def products():
     if request.method == 'POST':
         image_url = None
-        # معالجة رفع الصورة باستخدام الاسم الصحيح للـ Bucket
+        # معالجة رفع الصورة باستخدام الاسم الصحيح "product_images"
         if 'product_image' in request.files:
             file = request.files['product_image']
             if file and file.filename != '':
                 file_path = f"products/{file.filename}"
-                # تم التعديل هنا ليتطابق مع "product-images"
-                supabase.storage.from_("product-images").upload(path=file_path, file=file.read())
-                image_url = supabase.storage.from_("product-images").get_public_url(file_path)
+                # تم استخدام الشرطة السفلية _ هنا ليتطابق مع اسم الـ Bucket لديك
+                supabase.storage.from_("product_images").upload(path=file_path, file=file.read())
+                image_url = supabase.storage.from_("product_images").get_public_url(file_path)
 
         # حفظ البيانات في Supabase
         data = {
