@@ -12,10 +12,24 @@ supabase = create_client(url, key)
 
 @app.route('/')
 def index():
-    # توجيه مباشر للوحة التحكم
-    return redirect(url_for('dashboard'))
+    # توجيه المستخدم لصفحة تسجيل الدخول عند فتح الموقع
+    return redirect(url_for('login'))
 
-# --- المسار الموحد للمنتجات (يعمل للعرض والإضافة) ---
+# --- مسار تسجيل الدخول ---
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        # هنا يمكنك إضافة كود التحقق من قاعدة البيانات لاحقاً
+        session['company_id'] = "1"
+        return redirect(url_for('dashboard'))
+    return render_template('login.html')
+
+# --- مسار لوحة التحكم ---
+@app.route('/dashboard')
+def dashboard():
+    return render_template('dashboard.html')
+
+# --- مسار المنتجات (المخزون) ---
 @app.route('/products', methods=['GET', 'POST'])
 def products():
     if request.method == 'POST':
@@ -25,7 +39,6 @@ def products():
             file = request.files['product_image']
             if file and file.filename != '':
                 file_path = f"products/{file.filename}"
-                # رفع الصورة للـ Bucket المسمى products_images
                 supabase.storage.from_("products_images").upload(path=file_path, file=file.read())
                 image_url = supabase.storage.from_("products_images").get_public_url(file_path)
 
@@ -40,7 +53,7 @@ def products():
         supabase.table("inventory").insert(data).execute()
         return redirect(url_for('products'))
 
-    # عرض المنتجات (هذا الجزء يعمل عند فتح الصفحة)
+    # عرض المنتجات
     res = supabase.table("inventory").select("*").execute()
     return render_template('products.html', products=res.data or [])
 
@@ -48,15 +61,11 @@ def products():
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     if request.method == 'POST':
-        data = {"customer_name": request.form.get('customer_name'), "company_id": "1"}
+        data = {"customer_name": request.form.get('request_name'), "company_id": "1"}
         supabase.table("orders").insert(data).execute()
         return redirect(url_for('orders'))
     res = supabase.table("orders").select("*").execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
-
-@app.route('/dashboard')
-def dashboard():
-    return render_template('dashboard.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
