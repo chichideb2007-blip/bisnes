@@ -33,7 +33,6 @@ def dashboard():
 def products():
     if request.method == 'POST':
         image_url = None
-        # معالجة رفع الصورة
         if 'product_image' in request.files:
             file = request.files['product_image']
             if file and file.filename != '':
@@ -45,13 +44,12 @@ def products():
                 except Exception as e:
                     print(f"Error uploading image: {e}")
         
-        # حفظ البيانات مع اسم المفتاح المطابق لجدولك: company_id_text
         data = {
             "name": request.form.get('name'),
             "quantity": int(request.form.get('quantity', 0)),
             "price": float(request.form.get('price', 0.0)),
             "image_url": image_url,
-            "company_id_text": "1"  # تم التعديل هنا
+            "company_id_text": "1"
         }
         
         try:
@@ -69,19 +67,28 @@ def products():
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     if request.method == 'POST':
-        # استخدام الاسم الصحيح للمفتاح ليتوافق مع قاعدة البيانات
         data = {
             "customer_name": request.form.get('customer_name'),
             "customer_phone": request.form.get('phone'),
             "product_name": request.form.get('product_name'),
             "total_price": float(request.form.get('price', 0.0)),
-            "company_id_text": "1" # تم التعديل هنا أيضاً
+            "company_id_text": "1"
         }
         supabase.table("orders").insert(data).execute()
         return redirect(url_for('orders'))
     
     res = supabase.table("orders").select("*").execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
+
+# --- مسار الإحصائيات ---
+@app.route('/statistics')
+def statistics():
+    return render_template('statistics.html')
+
+# --- مسار الإعدادات ---
+@app.route('/settings')
+def settings():
+    return render_template('settings.html')
 
 # --- مسارات إضافية (الخروج والحذف) ---
 @app.route('/logout')
