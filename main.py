@@ -12,7 +12,7 @@ supabase = create_client(url, key)
 
 @app.route('/')
 def index():
-    return "الموقع يعمل بنجاح! اذهبي إلى /login"
+    return "الموقع يعمل بنجاح!"
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -28,21 +28,15 @@ def dashboard():
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     if request.method == 'POST':
-        data = {
-            "customer_name": request.form.get('customer_name'),
-            "company_id": "1"
-        }
+        data = {"customer_name": request.form.get('customer_name'), "company_id": "1"}
         supabase.table("orders").insert(data).execute()
         return redirect(url_for('orders'))
-    
     res = supabase.table("orders").select("*").execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
 
-# --- إضافة مسارات المنتجات هنا ---
-
-@app.route('/products', methods=['GET', 'POST'])
-def products():
-    # هذا المسار يجمع بين العرض (GET) والإضافة (POST)
+# --- هذا هو المسار الذي كان مفقوداً أو خاطئاً ---
+@app.route('/inventory', methods=['GET', 'POST'])
+def inventory():
     if request.method == 'POST':
         data = {
             "name": request.form.get('name'),
@@ -51,11 +45,10 @@ def products():
             "company_id": "1"
         }
         supabase.table("inventory").insert(data).execute()
-        return redirect(url_for('products'))
+        return redirect(url_for('inventory'))
     
-    # جلب المنتجات للعرض
-    res = supabase.table("inventory").select("*").eq("company_id", "1").execute()
-    return render_template('products.html', products=res.data or [])
+    res = supabase.table("inventory").select("*").execute()
+    return render_template('inventory.html', items=res.data or [])
 
 if __name__ == '__main__':
     app.run(debug=True)
