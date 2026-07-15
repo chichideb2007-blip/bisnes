@@ -14,46 +14,42 @@ supabase = create_client(url, key)
 def index():
     return "الموقع يعمل بنجاح!"
 
-# --- مسار المنتجات (المنتجات مع الصور) ---
+# --- مسار المنتجات (المخزون) ---
+# قمنا بتغيير render_template ليعرض 'products.html' بدل 'inventory.html'
 @app.route('/products', methods=['GET', 'POST'])
 def products():
     if request.method == 'POST':
         image_url = None
-        # معالجة رفع الصورة
+        # معالجة رفع الصورة (تأكدي من اسم الـ Bucket الخاص بكِ)
         if 'product_image' in request.files:
             file = request.files['product_image']
             if file and file.filename != '':
-                # رفع الصورة للـ Bucket المسمى products_images
                 file_path = f"products/{file.filename}"
                 supabase.storage.from_("products_images").upload(path=file_path, file=file.read())
                 image_url = supabase.storage.from_("products_images").get_public_url(file_path)
 
-        # حفظ البيانات في Supabase
+        # حفظ البيانات
         data = {
             "name": request.form.get('name'),
             "quantity": request.form.get('quantity'),
             "price": request.form.get('price'),
-            "image_url": image_url, 
+            "image_url": image_url,
             "company_id": "1"
         }
         supabase.table("inventory").insert(data).execute()
         return redirect(url_for('products'))
-
-    # عرض المنتجات
+    
     res = supabase.table("inventory").select("*").execute()
+    # هنا التعديل المهم: استخدام اسم ملفك الفعلي
     return render_template('products.html', products=res.data or [])
 
 # --- مسار الطلبات ---
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     if request.method == 'POST':
-        data = {
-            "customer_name": request.form.get('customer_name'),
-            "company_id": "1"
-        }
+        data = {"customer_name": request.form.get('customer_name'), "company_id": "1"}
         supabase.table("orders").insert(data).execute()
         return redirect(url_for('orders'))
-    
     res = supabase.table("orders").select("*").execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
 
