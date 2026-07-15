@@ -31,7 +31,7 @@ def dashboard():
     if 'company_id' not in session: return redirect(url_for('login'))
     return render_template('dashboard.html')
 
-# 3. الطلبيات
+# 3. الطلبيات (المسار الصحيح)
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     if 'company_id' not in session: return redirect(url_for('login'))
@@ -48,18 +48,37 @@ def orders():
     res = supabase.table("orders").select("*").eq("company_id", session['company_id']).execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
 
-# 4. المنتجات والمخزون (مع دعم رفع الصور)
+# 4. المنتجات
 @app.route('/products', methods=['GET', 'POST'])
 def products():
     if 'company_id' not in session: return redirect(url_for('login'))
-    
     if request.method == 'POST':
         file = request.files.get('product_image')
         image_url = ""
         if file:
             try:
-                # تأكدي أن اسم الـ bucket في Supabase هو "inventory-images"
                 supabase.storage.from_("inventory-images").upload(file.filename, file.read())
                 image_url = f"https://{os.environ.get('PROJECT_ID')}.supabase.co/storage/v1/object/public/inventory-images/{file.filename}"
             except Exception as e:
-                print(f"Error uploading image: {e}")
+                print(f"Error: {e}")
+        
+        data = {
+            "company_id": session['company_id'],
+            "name": request.form.get('name'),
+            "quantity": int(request.form.get('quantity') or 0),
+            "price": float(request.form.get('price') or 0.0),
+            "image_url": image_url
+        }
+        supabase.table("inventory").insert(data).execute()
+        return redirect(url_for('products'))
+    
+    res = supabase.table("inventory").select("*").eq("company_id", session['company_id']).execute()
+    return render_template('products.html', products=res.data or [])
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+if __name__ == '__main__':
+    app.run()
