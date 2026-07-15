@@ -45,16 +45,15 @@ def products():
                 except Exception as e:
                     print(f"Error uploading image: {e}")
         
-        # حفظ البيانات مع التأكد من إرسال company_id كرقم صحيح (Integer)
+        # حفظ البيانات مع اسم المفتاح المطابق لجدولك: company_id_text
         data = {
             "name": request.form.get('name'),
             "quantity": int(request.form.get('quantity', 0)),
             "price": float(request.form.get('price', 0.0)),
             "image_url": image_url,
-            "company_id": 1  # تأكدي أن هذا الرقم هو الـ ID الموجود فعلياً في جدول companies
+            "company_id_text": "1"  # تم التعديل هنا
         }
         
-        # إرسال البيانات إلى جدول inventory
         try:
             supabase.table("inventory").insert(data).execute()
         except Exception as e:
@@ -70,12 +69,13 @@ def products():
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     if request.method == 'POST':
+        # استخدام الاسم الصحيح للمفتاح ليتوافق مع قاعدة البيانات
         data = {
             "customer_name": request.form.get('customer_name'),
             "customer_phone": request.form.get('phone'),
             "product_name": request.form.get('product_name'),
             "total_price": float(request.form.get('price', 0.0)),
-            "company_id": 1
+            "company_id_text": "1" # تم التعديل هنا أيضاً
         }
         supabase.table("orders").insert(data).execute()
         return redirect(url_for('orders'))
