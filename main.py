@@ -14,26 +14,36 @@ supabase = create_client(url, key)
 def index():
     return "الموقع يعمل بنجاح!"
 
-# --- مسار المخزن (Inventory) ---
-# مطابق لأعمدة جدول inventory في سوبابيس (name, quantity, price)
-@app.route('/inventory', methods=['GET', 'POST'])
-def inventory():
+# --- مسار المنتجات (يحتوي على معالجة الصور) ---
+@app.route('/products', methods=['GET', 'POST'])
+def products():
     if request.method == 'POST':
-        # تأكدي أن هذه الأسماء (name, quantity, price) تطابق ما في قاعدة البيانات
+        image_url = None
+        # معالجة رفع الصورة
+        if 'product_image' in request.files:
+            file = request.files['product_image']
+            if file and file.filename != '':
+                # تأكدي من كتابة اسم الـ Bucket الخاص بكِ بدلاً من 'your-bucket-name'
+                file_path = f"products/{file.filename}"
+                supabase.storage.from_("your-bucket-name").upload(path=file_path, file=file.read())
+                image_url = supabase.storage.from_("your-bucket-name").get_public_url(file_path)
+
+        # حفظ البيانات في Supabase
         data = {
             "name": request.form.get('name'),
             "quantity": request.form.get('quantity'),
             "price": request.form.get('price'),
-            "company_id": "1" # تأكدي من وجود هذا العمود إذا كنتِ تستخدمينه
+            "image_url": image_url, # تأكدي أن هذا العمود موجود في جدول inventory
+            "company_id": "1"
         }
         supabase.table("inventory").insert(data).execute()
-        return redirect(url_for('inventory'))
-    
+        return redirect(url_for('products'))
+
+    # عرض المنتجات
     res = supabase.table("inventory").select("*").execute()
     return render_template('products.html', products=res.data or [])
 
 # --- مسار الطلبات (Orders) ---
-# مطابق لأعمدة جدول orders في سوبابيس (customer_name)
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     if request.method == 'POST':
@@ -46,6 +56,10 @@ def orders():
     
     res = supabase.table("orders").select("*").execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
+
+@app.route('/dashboard')
+def dashboard():
+    return render_template('dashboard.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
