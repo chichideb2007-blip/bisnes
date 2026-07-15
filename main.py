@@ -80,10 +80,10 @@ def orders():
     res = supabase.table("orders").select("*").execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
 
-# --- مسار الإحصائيات ---
+# --- مسار الإحصائيات (المعدل) ---
 @app.route('/statistics')
 def statistics():
-    return render_template('statistics.html')
+    return render_template('stats.html') # المسار المحدث ليطابق ملفك
 
 # --- مسار الإعدادات ---
 @app.route('/settings')
