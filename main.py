@@ -43,49 +43,50 @@ def login():
         email = request.form.get('email')
         password = request.form.get('password')
         
-        # التحقق من المستخدم في Supabase Auth
         try:
+            # التحقق من المستخدم في Supabase Auth
             supabase.auth.sign_in_with_password({"email": email, "password": password})
             
             # جلب الـ company_id المرتبط بهذا البريد من جدول companies
             res = supabase.table("companies").select("company_id").eq("email", email).execute()
             
             if res.data:
+                # تخزين معرف الشركة في الجلسة لعزل البيانات
                 session['company_id'] = res.data[0]['company_id']
                 return redirect(url_for('dashboard'))
+            else:
+                return "لم يتم العثور على شركة مرتبطة بهذا البريد!"
+                
         except Exception as e:
-            return f"خطأ في تسجيل الدخول: {str(e)}"
+            return f"خطأ في تسجيل الدخول (تأكد من البريد وكلمة السر): {str(e)}"
             
     return render_template('login.html')
 
-# --- لوحة التحكم (محمية) ---
+# --- لوحة التحكم ---
 @app.route('/dashboard')
 def dashboard():
     if 'company_id' not in session: return redirect(url_for('login'))
     return render_template('dashboard.html')
 
-# --- مسار المنتجات (تم تحديثه لضمان إرسال company_id_text) ---
+# --- مسار المنتجات ---
 @app.route('/products', methods=['GET', 'POST'])
 def products():
     if 'company_id' not in session: return redirect(url_for('login'))
     
     if request.method == 'POST':
-        # تجهيز البيانات مع ضمان إضافة الـ company_id_text
         data = {
             "name": request.form.get('name'),
             "quantity": int(request.form.get('quantity', 0)),
             "price": float(request.form.get('price', 0.0)),
             "company_id_text": session.get('company_id') 
         }
-        # إرسال البيانات لقاعدة البيانات
         supabase.table("inventory").insert(data).execute()
         return redirect(url_for('products'))
 
-    # جلب المنتجات مع العزل
     res = supabase.table("inventory").select("*").eq("company_id_text", session.get('company_id')).execute()
     return render_template('products.html', products=res.data or [])
 
-# --- مسار الطلبات (مع عزل البيانات) ---
+# --- مسار الطلبات ---
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     if 'company_id' not in session: return redirect(url_for('login'))
@@ -104,7 +105,7 @@ def orders():
     res = supabase.table("orders").select("*").eq("company_id_text", company_id).execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
 
-# --- مسار الإحصائيات (مع عزل البيانات) ---
+# --- مسار الإحصائيات ---
 @app.route('/stats')
 def show_stats():
     if 'company_id' not in session: return redirect(url_for('login'))
@@ -117,7 +118,7 @@ def show_stats():
         
         return render_template('stats.html', total_sales=total_sales, total_orders=len(orders))
     except Exception as e:
-        return f"حدث خطأ: {str(e)}"
+        return f"حدث خطأ في جلب البيانات: {str(e)}"
 
 @app.route('/logout')
 def logout():
