@@ -21,7 +21,6 @@ def index():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        # تخزين معرف الشركة في الجلسة ليتم استخدامه في باقي المسارات
         session['company_id'] = request.form.get('company_id')
         return redirect(url_for('dashboard'))
     return render_template('login.html')
@@ -84,16 +83,22 @@ def orders():
     res = supabase.table("orders").select("*").eq("company_id_text", company_id).execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
 
-# --- مسار الإحصائيات ---
+# --- مسار الإحصائيات (المصحح) ---
 @app.route('/stats')
 def show_stats():
-    if 'company_id' not in session: return redirect(url_for('login'))
+    if 'company_id' not in session: 
+        return redirect(url_for('login'))
+    
     company_id = session['company_id']
     try:
+        # جلب الطلبات الخاصة بالشركة الحالية فقط
         res_orders = supabase.table("orders").select("total_price, created_at").eq("company_id_text", company_id).execute()
         orders = res_orders.data or []
         
-        # تجهيز البيانات
+        # حساب المجموع الكلي للمبيعات (هذا المتغير هو الذي كان مفقوداً)
+        total_sales = sum(float(o.get('total_price', 0)) for o in orders)
+        
+        # تجهيز البيانات للمنحنى (أيام الأسبوع)
         daily_data = defaultdict(float)
         days_order = ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"]
         
@@ -103,11 +108,13 @@ def show_stats():
                 price = float(o.get('total_price', 0))
                 daily_data[days_order[dt.weekday() if dt.weekday() != 6 else 0]] += price
         
+        # إرسال البيانات لصفحة stats.html
         return render_template('stats.html', 
+                               total_sales=total_sales, 
                                total_orders=len(orders), 
                                daily=dict(daily_data))
     except Exception as e:
-        return f"حدث خطأ: {str(e)}"
+        return f"حدث خطأ في جلب البيانات: {str(e)}"
 
 # --- مسارات إضافية ---
 @app.route('/settings')
