@@ -21,7 +21,7 @@ def index():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        # نضع الـ ID الخاص بالشركة في الجلسة (Session)
+        # تخزين معرف الشركة في الجلسة ليتم استخدامه في باقي المسارات
         session['company_id'] = request.form.get('company_id')
         return redirect(url_for('dashboard'))
     return render_template('login.html')
@@ -40,19 +40,28 @@ def products():
 
     if request.method == 'POST':
         image_url = None
-        # ... كود رفع الصورة ...
+        if 'product_image' in request.files:
+            file = request.files['product_image']
+            if file and file.filename != '':
+                unique_filename = f"{int(time.time())}_{file.filename}"
+                file_path = f"products/{unique_filename}"
+                try:
+                    supabase.storage.from_("product-images").upload(path=file_path, file=file.read())
+                    image_url = supabase.storage.from_("product-images").get_public_url(file_path)
+                except Exception as e:
+                    print(f"Error uploading image: {e}")
+        
         data = {
             "name": request.form.get('name'),
             "quantity": int(request.form.get('quantity', 0)),
             "price": float(request.form.get('price', 0.0)),
             "image_url": image_url,
-            "company_id": company_id # الربط بالشركة
+            "company_id_text": company_id 
         }
         supabase.table("inventory").insert(data).execute()
         return redirect(url_for('products'))
 
-    # جلب منتجات الشركة المسجلة فقط باستخدام العزل
-    res = supabase.table("inventory").select("*").eq("company_id", company_id).execute()
+    res = supabase.table("inventory").select("*").eq("company_id_text", company_id).execute()
     return render_template('products.html', products=res.data or [])
 
 # --- مسار الطلبات ---
@@ -64,15 +73,15 @@ def orders():
     if request.method == 'POST':
         data = {
             "customer_name": request.form.get('customer_name'),
+            "customer_phone": request.form.get('phone'),
             "product_name": request.form.get('product_name'),
             "total_price": float(request.form.get('price', 0.0)),
-            "company_id": company_id # الربط بالشركة
+            "company_id_text": company_id 
         }
         supabase.table("orders").insert(data).execute()
         return redirect(url_for('orders'))
     
-    # جلب الطلبات للشركة المسجلة فقط
-    res = supabase.table("orders").select("*").eq("company_id", company_id).execute()
+    res = supabase.table("orders").select("*").eq("company_id_text", company_id).execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
 
 # --- مسار الإحصائيات ---
@@ -81,11 +90,10 @@ def show_stats():
     if 'company_id' not in session: return redirect(url_for('login'))
     company_id = session['company_id']
     try:
-        # جلب البيانات للشركة الحالية فقط
-        res_orders = supabase.table("orders").select("total_price, created_at").eq("company_id", company_id).execute()
+        res_orders = supabase.table("orders").select("total_price, created_at").eq("company_id_text", company_id).execute()
         orders = res_orders.data or []
         
-        # تجهيز البيانات للمنحنيات
+        # تجهيز البيانات
         daily_data = defaultdict(float)
         days_order = ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"]
         
@@ -102,10 +110,25 @@ def show_stats():
         return f"حدث خطأ: {str(e)}"
 
 # --- مسارات إضافية ---
+@app.route('/settings')
+def settings():
+    if 'company_id' not in session: return redirect(url_for('login'))
+    return render_template('settings.html')
+
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('login'))
+
+@app.route('/delete_order/<int:order_id>', methods=['POST'])
+def delete_order(order_id):
+    supabase.table("orders").delete().eq("id", order_id).execute()
+    return redirect(url_for('orders'))
+
+@app.route('/delete_product/<int:product_id>', methods=['POST'])
+def delete_product(product_id):
+    supabase.table("inventory").delete().eq("id", product_id).execute()
+    return redirect(url_for('products'))
 
 if __name__ == '__main__':
     app.run(debug=True)
