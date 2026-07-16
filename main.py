@@ -56,3 +56,74 @@ def dashboard():
 def products():
     cid = get_cid()
     if not cid: return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        image_url = None
+        if 'product_image' in request.files:
+            file = request.files['product_image']
+            if file and file.filename != '':
+                unique_filename = f"{int(time.time())}_{file.filename}"
+                file_path = f"products/{unique_filename}"
+                try:
+                    supabase.storage.from_("product-images").upload(path=file_path, file=file.read())
+                    image_url = supabase.storage.from_("product-images").get_public_url(file_path)
+                except Exception as e:
+                    print(f"Error: {e}")
+        
+        data = {
+            "name": request.form.get('name'),
+            "quantity": int(request.form.get('quantity', 0)),
+            "price": float(request.form.get('price', 0.0)),
+            "image_url": image_url,
+            "company_id_text": cid
+        }
+        supabase.table("inventory").insert(data).execute()
+        return redirect(url_for('products'))
+
+    res = supabase.table("inventory").select("*").eq("company_id_text", cid).execute()
+    return render_template('products.html', products=res.data or [])
+
+# --- مسار الطلبات ---
+@app.route('/orders', methods=['GET', 'POST'])
+def orders():
+    cid = get_cid()
+    if not cid: return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        data = {
+            "customer_name": request.form.get('customer_name'),
+            "customer_phone": request.form.get('phone'),
+            "product_name": request.form.get('product_name'),
+            "total_price": float(request.form.get('price', 0.0)),
+            "company_id_text": cid
+        }
+        supabase.table("orders").insert(data).execute()
+        return redirect(url_for('orders'))
+    
+    res = supabase.table("orders").select("*").eq("company_id_text", cid).execute()
+    return render_template('orders_dashboard.html', orders=res.data or [])
+
+# --- مسار الإحصائيات (بسيط ومباشر) ---
+@app.route('/stats')
+def stats():
+    if not get_cid(): return redirect(url_for('login'))
+    return render_template('stats.html')
+
+# --- مسارات إضافية ---
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+@app.route('/delete_order/<int:order_id>', methods=['POST'])
+def delete_order(order_id):
+    supabase.table("orders").delete().eq("id", order_id).execute()
+    return redirect(url_for('orders'))
+
+@app.route('/delete_product/<int:product_id>', methods=['POST'])
+def delete_product(product_id):
+    supabase.table("inventory").delete().eq("id", product_id).execute()
+    return redirect(url_for('products'))
+
+if __name__ == '__main__':
+    app.run(debug=True)
