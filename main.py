@@ -78,3 +78,65 @@ def orders():
     
     res = supabase.table("orders").select("*").execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
+
+# --- مسار الإحصائيات (المنحنيات) ---
+@app.route('/stats')
+def show_stats():
+    try:
+        # جلب الطلبات والمصروفات
+        res_orders = supabase.table("orders").select("total_price, created_at").execute()
+        orders = res_orders.data or []
+        
+        res_expenses = supabase.table("expenses").select("amount, created_at").execute()
+        expenses = res_expenses.data or []
+        
+        # تجهيز البيانات
+        daily_data = defaultdict(float)
+        monthly_data = defaultdict(float)
+        yearly_data = defaultdict(float)
+        
+        days_order = ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"]
+        months_order = ["جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان", "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
+
+        for o in orders:
+            if o.get('created_at'):
+                # إصلاح التاريخ ليتم معالجته برمجياً
+                dt = datetime.fromisoformat(o['created_at'].replace('Z', '+00:00'))
+                price = float(o.get('total_price', 0))
+                
+                daily_data[days_order[dt.weekday() if dt.weekday() != 6 else 0]] += price
+                monthly_data[months_order[dt.month - 1]] += price
+                yearly_data[str(dt.year)] += price
+
+        return render_template('stats.html', 
+                               total_sales=sum(float(o.get('total_price', 0)) for o in orders),
+                               total_expenses=sum(float(e.get('amount', 0)) for e in expenses),
+                               total_orders=len(orders),
+                               daily=dict(daily_data),
+                               monthly=dict(monthly_data),
+                               yearly=dict(yearly_data))
+    except Exception as e:
+        return f"حدث خطأ في جلب البيانات: {str(e)}"
+
+# --- مسارات إضافية ---
+@app.route('/settings')
+def settings():
+    return render_template('settings.html')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+@app.route('/delete_order/<int:order_id>', methods=['POST'])
+def delete_order(order_id):
+    supabase.table("orders").delete().eq("id", order_id).execute()
+    return redirect(url_for('orders'))
+
+@app.route('/delete_product/<int:product_id>', methods=['POST'])
+def delete_product(product_id):
+    supabase.table("inventory").delete().eq("id", product_id).execute()
+    return redirect(url_for('products'))
+
+if __name__ == '__main__':
+    app.run(debug=True)
