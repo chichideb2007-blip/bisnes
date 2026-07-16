@@ -51,13 +51,10 @@ def products():
             "image_url": image_url,
             "company_id_text": "1"
         }
-        
         try:
             supabase.table("inventory").insert(data).execute()
         except Exception as e:
-            print(f"DEBUG ERROR: {e}")
             return f"حدث خطأ في قاعدة البيانات: {str(e)}"
-
         return redirect(url_for('products'))
 
     res = supabase.table("inventory").select("*").execute()
@@ -80,19 +77,29 @@ def orders():
     res = supabase.table("orders").select("*").execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
 
-# --- مسار الإحصائيات (المحدث بجلب البيانات الحقيقية) ---
+# --- مسار الإحصائيات (مدمج) ---
 @app.route('/statistics')
 def statistics():
     try:
-        # جلب بيانات المبيعات من جدول الطلبات
-        res = supabase.table("orders").select("total_price").execute()
-        orders = res.data or []
+        # جلب المبيعات من جدول orders
+        res_orders = supabase.table("orders").select("total_price, created_at").execute()
+        orders = res_orders.data or []
         
-        # حساب المجموع
-        total_sales = sum(float(order.get('total_price', 0)) for order in orders)
+        # جلب المصروفات من جدول expenses
+        res_expenses = supabase.table("expenses").select("amount, created_at").execute()
+        expenses = res_expenses.data or []
+        
+        # حساب المجاميع
+        total_sales = sum(float(o.get('total_price', 0)) for o in orders)
+        total_expenses = sum(float(e.get('amount', 0)) for e in expenses)
         total_orders = len(orders)
         
-        return render_template('stats.html', total_sales=total_sales, total_orders=total_orders)
+        # تمرير القيم لملف stats.html
+        return render_template('stats.html', 
+                               total_sales=total_sales, 
+                               total_expenses=total_expenses,
+                               total_orders=total_orders,
+                               daily={}, monthly={}, yearly={})
     except Exception as e:
         return f"خطأ في جلب البيانات: {str(e)}"
 
@@ -101,7 +108,7 @@ def statistics():
 def settings():
     return render_template('settings.html')
 
-# --- مسارات إضافية (الخروج والحذف) ---
+# --- مسارات إضافية ---
 @app.route('/logout')
 def logout():
     session.clear()
