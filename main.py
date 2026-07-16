@@ -79,7 +79,7 @@ def orders():
     res = supabase.table("orders").select("*").execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
 
-# --- مسار الإحصائيات (المنحنيات) ---
+# --- مسار الإحصائيات (المصحح) ---
 @app.route('/stats')
 def show_stats():
     try:
@@ -90,7 +90,7 @@ def show_stats():
         res_expenses = supabase.table("expenses").select("amount, created_at").execute()
         expenses = res_expenses.data or []
         
-        # تجهيز البيانات
+        # تجهيز البيانات للمنحنيات
         daily_data = defaultdict(float)
         monthly_data = defaultdict(float)
         yearly_data = defaultdict(float)
@@ -100,7 +100,6 @@ def show_stats():
 
         for o in orders:
             if o.get('created_at'):
-                # إصلاح التاريخ ليتم معالجته برمجياً
                 dt = datetime.fromisoformat(o['created_at'].replace('Z', '+00:00'))
                 price = float(o.get('total_price', 0))
                 
