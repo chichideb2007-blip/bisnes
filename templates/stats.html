@@ -7,40 +7,50 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <title>لوحة الإحصائيات</title>
     <style>
-        .card { transition: transform 0.2s; }
-        .card:hover { transform: scale(1.02); }
-        .chart-box { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        body { background-color: #f8f9fa; }
+        .card { transition: transform 0.2s; border-radius: 15px; }
+        .card:hover { transform: scale(1.03); }
+        .chart-box { background: white; padding: 25px; border-radius: 15px; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        h3 { font-size: 1.2rem; color: #495057; margin-bottom: 20px; }
     </style>
 </head>
-<body class="bg-light">
+<body>
 
     <div class="container mt-5">
-        <h2 class="mb-4 text-center">📊 لوحة الإحصائيات والتقارير</h2>
+        <h2 class="mb-4 text-center fw-bold">📊 لوحة الإحصائيات والتقارير</h2>
         
         <div class="row g-4 mb-5">
-            <div class="col-md-6">
-                <div class="card shadow border-0 text-white bg-primary">
+            <div class="col-md-4">
+                <div class="card shadow-sm border-0 text-white bg-primary">
                     <div class="card-body">
                         <h5 class="card-title">إجمالي المبيعات</h5>
-                        <h2 class="display-5">{{ total_sales }} دج</h2>
+                        <h2 class="display-6">{{ total_sales }} دج</h2>
                     </div>
                 </div>
             </div>
-            <div class="col-md-6">
-                <div class="card shadow border-0 text-white bg-success">
+            <div class="col-md-4">
+                <div class="card shadow-sm border-0 text-white bg-danger">
+                    <div class="card-body">
+                        <h5 class="card-title">إجمالي المصروفات</h5>
+                        <h2 class="display-6">{{ total_expenses }} دج</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card shadow-sm border-0 text-white bg-success">
                     <div class="card-body">
                         <h5 class="card-title">عدد الطلبات</h5>
-                        <h2 class="display-5">{{ total_orders }}</h2>
+                        <h2 class="display-6">{{ total_orders }}</h2>
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="row">
-            <div class="col-md-12">
+            <div class="col-12">
                 <div class="chart-box">
                     <h3>المبيعات حسب أيام الأسبوع</h3>
-                    <canvas id="dailyChart"></canvas>
+                    <canvas id="dailyChart" height="80"></canvas>
                 </div>
             </div>
             <div class="col-md-6">
@@ -58,12 +68,12 @@
         </div>
 
         <div class="mt-4 text-center mb-5">
-            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary px-4">العودة للوحة التحكم</a>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary px-4">العودة للوحة التحكم</a>
         </div>
     </div>
 
     <script>
-        function createChart(canvasId, labelName, chartData, orderArray = null) {
+        function createChart(canvasId, labelName, chartData, orderArray = null, color = '#0d6efd') {
             const ctx = document.getElementById(canvasId).getContext('2d');
             let labels, values;
             if (orderArray) {
@@ -81,27 +91,23 @@
                     datasets: [{
                         label: labelName,
                         data: values,
-                        borderColor: '#0d6efd',
-                        backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                        borderColor: color,
+                        backgroundColor: color + '20',
                         fill: true,
                         tension: 0.4
                     }]
                 },
-                options: { responsive: true, scales: { y: { beginAtZero: true } } }
+                options: { responsive: true, plugins: { legend: { display: true } } }
             });
         }
 
-        // البيانات القادمة من الفلاسك
         const dailyData = {{ daily | tojson | safe }};
         const monthlyData = {{ monthly | tojson | safe }};
         const yearlyData = {{ yearly | tojson | safe }};
 
-        const daysOrder = ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"];
-        const monthsOrder = ["جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان", "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
-
-        createChart('dailyChart', 'المبيعات اليومية', dailyData, daysOrder);
-        createChart('monthlyChart', 'المبيعات الشهرية', monthlyData, monthsOrder);
-        createChart('yearlyChart', 'المبيعات السنوية', yearlyData);
+        createChart('dailyChart', 'المبيعات اليومية', dailyData, ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"], '#0d6efd');
+        createChart('monthlyChart', 'المبيعات الشهرية', monthlyData, ["جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان", "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"], '#198754');
+        createChart('yearlyChart', 'المبيعات السنوية', yearlyData, null, '#dc3545');
     </script>
 </body>
 </html>
