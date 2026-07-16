@@ -64,24 +64,25 @@ def dashboard():
     if 'company_id' not in session: return redirect(url_for('login'))
     return render_template('dashboard.html')
 
-# --- مسار المنتجات (مع عزل البيانات) ---
+# --- مسار المنتجات (تم تحديثه لضمان إرسال company_id_text) ---
 @app.route('/products', methods=['GET', 'POST'])
 def products():
     if 'company_id' not in session: return redirect(url_for('login'))
-    company_id = session['company_id']
-
+    
     if request.method == 'POST':
-        # ... كود رفع الصورة ...
+        # تجهيز البيانات مع ضمان إضافة الـ company_id_text
         data = {
             "name": request.form.get('name'),
             "quantity": int(request.form.get('quantity', 0)),
             "price": float(request.form.get('price', 0.0)),
-            "company_id_text": company_id 
+            "company_id_text": session.get('company_id') 
         }
+        # إرسال البيانات لقاعدة البيانات
         supabase.table("inventory").insert(data).execute()
         return redirect(url_for('products'))
 
-    res = supabase.table("inventory").select("*").eq("company_id_text", company_id).execute()
+    # جلب المنتجات مع العزل
+    res = supabase.table("inventory").select("*").eq("company_id_text", session.get('company_id')).execute()
     return render_template('products.html', products=res.data or [])
 
 # --- مسار الطلبات (مع عزل البيانات) ---
