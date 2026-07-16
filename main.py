@@ -1,5 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, session
 from supabase import create_client
+from collections import defaultdict
+from datetime import datetime
 import os
 import time
 
@@ -28,7 +30,7 @@ def login():
 def dashboard():
     return render_template('dashboard.html')
 
-# --- مسار المنتجات (المخزون) ---
+# --- مسار المنتجات ---
 @app.route('/products', methods=['GET', 'POST'])
 def products():
     if request.method == 'POST':
@@ -76,53 +78,3 @@ def orders():
     
     res = supabase.table("orders").select("*").execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
-
-# --- مسار الإحصائيات (مدمج) ---
-@app.route('/statistics')
-def statistics():
-    try:
-        # جلب المبيعات من جدول orders
-        res_orders = supabase.table("orders").select("total_price, created_at").execute()
-        orders = res_orders.data or []
-        
-        # جلب المصروفات من جدول expenses
-        res_expenses = supabase.table("expenses").select("amount, created_at").execute()
-        expenses = res_expenses.data or []
-        
-        # حساب المجاميع
-        total_sales = sum(float(o.get('total_price', 0)) for o in orders)
-        total_expenses = sum(float(e.get('amount', 0)) for e in expenses)
-        total_orders = len(orders)
-        
-        # تمرير القيم لملف stats.html
-        return render_template('stats.html', 
-                               total_sales=total_sales, 
-                               total_expenses=total_expenses,
-                               total_orders=total_orders,
-                               daily={}, monthly={}, yearly={})
-    except Exception as e:
-        return f"خطأ في جلب البيانات: {str(e)}"
-
-# --- مسار الإعدادات ---
-@app.route('/settings')
-def settings():
-    return render_template('settings.html')
-
-# --- مسارات إضافية ---
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('login'))
-
-@app.route('/delete_order/<int:order_id>', methods=['POST'])
-def delete_order(order_id):
-    supabase.table("orders").delete().eq("id", order_id).execute()
-    return redirect(url_for('orders'))
-
-@app.route('/delete_product/<int:product_id>', methods=['POST'])
-def delete_product(product_id):
-    supabase.table("inventory").delete().eq("id", product_id).execute()
-    return redirect(url_for('products'))
-
-if __name__ == '__main__':
-    app.run(debug=True)
