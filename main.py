@@ -2,16 +2,27 @@ from flask import Flask, render_template, request, redirect, url_for, session
 from supabase import create_client
 from collections import defaultdict
 from datetime import datetime
+from functools import wraps
 import os
 import time
 
 app = Flask(__name__)
-app.secret_key = 'secret_key_123'
+# استخدام متغير بيئة مع قيمة افتراضية للأمان
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "fallback_dev_key")
 
 # إعداد Supabase
 url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
+
+# --- Decorator لحماية المسارات ---
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'company_id' not in session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 @app.route('/')
 def index():
@@ -21,17 +32,20 @@ def index():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
+        # هنا يمكنك إضافة تحقق حقيقي من قاعدة البيانات لاحقاً
         session['company_id'] = "1"
         return redirect(url_for('dashboard'))
     return render_template('login.html')
 
 # --- مسار لوحة التحكم ---
 @app.route('/dashboard')
+@login_required
 def dashboard():
     return render_template('dashboard.html')
 
 # --- مسار المنتجات ---
 @app.route('/products', methods=['GET', 'POST'])
+@login_required
 def products():
     if request.method == 'POST':
         image_url = None
@@ -64,6 +78,7 @@ def products():
 
 # --- مسار الطلبات ---
 @app.route('/orders', methods=['GET', 'POST'])
+@login_required
 def orders():
     if request.method == 'POST':
         data = {
@@ -79,18 +94,17 @@ def orders():
     res = supabase.table("orders").select("*").execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
 
-# --- مسار الإحصائيات (المصحح) ---
+# --- مسار الإحصائيات ---
 @app.route('/stats')
+@login_required
 def show_stats():
     try:
-        # جلب الطلبات والمصروفات
         res_orders = supabase.table("orders").select("total_price, created_at").execute()
         orders = res_orders.data or []
         
         res_expenses = supabase.table("expenses").select("amount, created_at").execute()
         expenses = res_expenses.data or []
         
-        # تجهيز البيانات للمنحنيات
         daily_data = defaultdict(float)
         monthly_data = defaultdict(float)
         yearly_data = defaultdict(float)
@@ -102,7 +116,6 @@ def show_stats():
             if o.get('created_at'):
                 dt = datetime.fromisoformat(o['created_at'].replace('Z', '+00:00'))
                 price = float(o.get('total_price', 0))
-                
                 daily_data[days_order[dt.weekday() if dt.weekday() != 6 else 0]] += price
                 monthly_data[months_order[dt.month - 1]] += price
                 yearly_data[str(dt.year)] += price
@@ -117,8 +130,8 @@ def show_stats():
     except Exception as e:
         return f"حدث خطأ في جلب البيانات: {str(e)}"
 
-# --- مسارات إضافية ---
 @app.route('/settings')
+@login_required
 def settings():
     return render_template('settings.html')
 
@@ -128,11 +141,13 @@ def logout():
     return redirect(url_for('login'))
 
 @app.route('/delete_order/<int:order_id>', methods=['POST'])
+@login_required
 def delete_order(order_id):
     supabase.table("orders").delete().eq("id", order_id).execute()
     return redirect(url_for('orders'))
 
 @app.route('/delete_product/<int:product_id>', methods=['POST'])
+@login_required
 def delete_product(product_id):
     supabase.table("inventory").delete().eq("id", product_id).execute()
     return redirect(url_for('products'))
