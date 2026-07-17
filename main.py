@@ -31,24 +31,17 @@ def index():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        # استخدام المنطق المطور مع الـ Debugging للتأكد من وصول البيانات
         company_code = request.form.get('company_code') 
         print(f"DEBUG: Received company_code: {company_code}") 
-        
         if company_code:
             session['company_code'] = company_code
-            print("DEBUG: Session saved, redirecting to dashboard")
             return redirect(url_for('dashboard'))
-        else:
-            print("DEBUG: No company code received!")
-            
     return render_template('login.html')
 
 # --- مسار التسجيل ---
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        # مستقبلاً يمكنك إضافة كود هنا لحفظ الشركة في قاعدة البيانات
         return redirect(url_for('login'))
     return render_template('register.html')
 
@@ -108,23 +101,46 @@ def orders():
     res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
 
-# --- مسار الإحصائيات ---
+# --- مسار الإحصائيات (المدمج والمحدث) ---
 @app.route('/stats')
 @login_required
-def show_stats():
+def stats():
     company_code = session.get('company_code')
     try:
         res_orders = supabase.table("orders").select("total_price, created_at").eq("company_code", company_code).execute()
         orders = res_orders.data or []
+        
         res_expenses = supabase.table("expenses").select("amount, created_at").eq("company_code", company_code).execute()
         expenses = res_expenses.data or []
         
+        # تجهيز البيانات للمنحنيات
+        daily_data = defaultdict(float)
+        monthly_data = defaultdict(float)
+        yearly_data = defaultdict(float)
+        
+        days_order = ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"]
+        months_order = ["جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان", "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
+
+        for o in orders:
+            if o.get('created_at'):
+                dt = datetime.fromisoformat(o['created_at'].replace('Z', '+00:00'))
+                price = float(o.get('total_price') or 0)
+                day_name = days_order[dt.weekday()] if dt.weekday() < 7 else "السبت" 
+                daily_data[day_name] += price
+                monthly_data[months_order[dt.month - 1]] += price
+                yearly_data[str(dt.year)] += price
+
         return render_template('stats.html', 
-                               total_sales=sum(float(o.get('total_price', 0)) for o in orders),
-                               total_expenses=sum(float(e.get('amount', 0)) for e in expenses),
-                               total_orders=len(orders))
+                               total_sales=sum(float(o.get('total_price') or 0) for o in orders),
+                               total_expenses=sum(float(e.get('amount') or 0) for e in expenses),
+                               total_orders=len(orders),
+                               daily=dict(daily_data),
+                               monthly=dict(monthly_data),
+                               yearly=dict(yearly_data))
+                               
     except Exception as e:
-        return f"حدث خطأ: {str(e)}"
+        print(f"Error: {e}")
+        return "حدث خطأ أثناء تحميل الإحصائيات."
 
 @app.route('/logout')
 def logout():
