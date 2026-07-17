@@ -1,5 +1,5 @@
-<!-- نموذج معلومات المتجر (تأكدي من استخدام action="/update_company") -->
-<form action="/update_company" method="POST">
+<!-- نموذج معلومات المتجر -->
+<form action="{{ url_for('update_company') }}" method="POST">
     <div class="mb-3">
         <label>اسم المتجر</label>
         <input type="text" name="company_name" class="form-control" value="{{ settings.company_name or '' }}">
@@ -17,8 +17,8 @@
 
 <hr>
 
-<!-- نموذج اللون (تأكدي من استخدام action="/update_color") -->
-<form action="/update_color" method="POST">
+<!-- نموذج اللون -->
+<form action="{{ url_for('update_color') }}" method="POST">
     <div class="mb-3">
         <label>لون واجهة المتجر</label>
         <input type="color" name="theme_color" class="form-control form-control-color" value="{{ settings.theme_color or '#0d6efd' }}">
