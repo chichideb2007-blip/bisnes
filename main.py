@@ -5,6 +5,7 @@ from datetime import datetime
 from functools import wraps
 import os
 import time
+import requests  # تأكدي من استيراد مكتبة requests
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "fallback_dev_key")
@@ -13,6 +14,16 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "fallback_dev_key")
 url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
+
+# --- وظيفة إرسال التنبيه لتليجرام ---
+def send_telegram_alert(message):
+    token = "أدخلي_توكن_البوت_هنا"
+    chat_id = "أدخلي_معرف_المحادثة_هنا"
+    url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={message}"
+    try:
+        requests.get(url)
+    except Exception as e:
+        print(f"Error sending Telegram alert: {e}")
 
 # --- Decorator لحماية المسارات ---
 def login_required(f):
@@ -32,7 +43,6 @@ def index():
 def login():
     if request.method == 'POST':
         company_code = request.form.get('company_code') 
-        print(f"DEBUG: Received company_code: {company_code}") 
         if company_code:
             session['company_code'] = company_code
             return redirect(url_for('dashboard'))
@@ -82,26 +92,34 @@ def products():
     res = supabase.table("inventory").select("*").eq("company_code", company_code).execute()
     return render_template('products.html', products=res.data or [])
 
-# --- مسار الطلبات ---
+# --- مسار الطلبات (مع تنبيه تليجرام) ---
 @app.route('/orders', methods=['GET', 'POST'])
 @login_required
 def orders():
     company_code = session.get('company_code')
     if request.method == 'POST':
+        customer_name = request.form.get('customer_name')
+        price = request.form.get('price')
+        
         data = {
-            "customer_name": request.form.get('customer_name'),
+            "customer_name": customer_name,
             "customer_phone": request.form.get('phone'),
             "product_name": request.form.get('product_name'),
-            "total_price": float(request.form.get('price', 0.0)),
+            "total_price": float(price or 0.0),
             "company_code": company_code
         }
         supabase.table("orders").insert(data).execute()
+        
+        # إرسال التنبيه
+        alert_msg = f"🔔 طلبية جديدة!\nالعميل: {customer_name}\nالقيمة: {price} دج\nيرجى مراجعة لوحة التحكم."
+        send_telegram_alert(alert_msg)
+        
         return redirect(url_for('orders'))
     
     res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
 
-# --- مسار الإحصائيات (المدمج والمحدث) ---
+# --- مسار الإحصائيات ---
 @app.route('/stats')
 @login_required
 def stats():
@@ -109,15 +127,10 @@ def stats():
     try:
         res_orders = supabase.table("orders").select("total_price, created_at").eq("company_code", company_code).execute()
         orders = res_orders.data or []
-        
         res_expenses = supabase.table("expenses").select("amount, created_at").eq("company_code", company_code).execute()
         expenses = res_expenses.data or []
         
-        # تجهيز البيانات للمنحنيات
-        daily_data = defaultdict(float)
-        monthly_data = defaultdict(float)
-        yearly_data = defaultdict(float)
-        
+        daily_data, monthly_data, yearly_data = defaultdict(float), defaultdict(float), defaultdict(float)
         days_order = ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"]
         months_order = ["جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان", "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
 
@@ -134,13 +147,9 @@ def stats():
                                total_sales=sum(float(o.get('total_price') or 0) for o in orders),
                                total_expenses=sum(float(e.get('amount') or 0) for e in expenses),
                                total_orders=len(orders),
-                               daily=dict(daily_data),
-                               monthly=dict(monthly_data),
-                               yearly=dict(yearly_data))
-                               
+                               daily=dict(daily_data), monthly=dict(monthly_data), yearly=dict(yearly_data))
     except Exception as e:
-        print(f"Error: {e}")
-        return "حدث خطأ أثناء تحميل الإحصائيات."
+        return f"حدث خطأ: {str(e)}"
 
 @app.route('/logout')
 def logout():
