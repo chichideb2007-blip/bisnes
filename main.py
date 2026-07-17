@@ -107,27 +107,25 @@ def orders():
 
     return render_template('orders_dashboard.html', orders=orders_list)
 
-# --- مسار الإحصائيات (المدمج والمصحح بالكامل مع العزل) ---
+# --- مسار الإحصائيات (المعدل والمحصن ضد الأخطاء) ---
 @app.route('/stats')
 def stats():
     cid = get_cid()
-    if not cid: 
-        return redirect(url_for('login'))
+    if not cid: return redirect(url_for('login'))
     
     try:
-        # 1. جلب الطلبات المفلترة بالشركة الحالية لضمان العزل
+        # جلب الطلبات الخاصة بالشركة فقط
         res_orders = supabase.table("orders").select("total_price, created_at").eq("company_id_text", cid).execute()
         orders = res_orders.data or []
         
-        # 2. جلب المصاريف المفلترة بالشركة
+        # جلب المصاريف (مع معالجة استباقية للخطأ إذا كان الجدول فارغاً أو مفقوداً)
+        expenses = []
         try:
             res_expenses = supabase.table("expenses").select("amount, created_at").eq("company_id", cid).execute()
             expenses = res_expenses.data or []
-        except Exception:
-            # في حال عدم وجود جدول المصاريف أو تسمية العمود مختلفة لتجنب انهيار الصفحة
-            expenses = []
+        except:
+            pass
         
-        # تجهيز البيانات للمنحنيات لتغذية ملف HTML بنجاح
         daily_data = defaultdict(float)
         monthly_data = defaultdict(float)
         yearly_data = defaultdict(float)
@@ -135,25 +133,34 @@ def stats():
         days_order = ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"]
         months_order = ["جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان", "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
 
+        total_sales = 0
+        total_orders = len(orders)
+        
         for o in orders:
-            if o.get('created_at'):
+            # معالجة السعر بشكل آمن جداً
+            try:
+                price_val = o.get('total_price')
+                price = float(price_val) if price_val is not None else 0.0
+                total_sales += price
+            except (ValueError, TypeError):
+                price = 0.0
+
+            # معالجة التاريخ بشكل آمن جداً
+            created_at = o.get('created_at')
+            if created_at:
                 try:
-                    dt = datetime.fromisoformat(o['created_at'].replace('Z', '+00:00'))
-                    price = float(o.get('total_price', 0) or 0)
-                    
+                    # تنظيف التاريخ وتنسيقه
+                    dt = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
                     day_name = days_order[dt.weekday() if dt.weekday() != 6 else 0]
                     month_name = months_order[dt.month - 1]
                     
                     daily_data[day_name] += price
                     monthly_data[month_name] += price
                     yearly_data[str(dt.year)] += price
-                except Exception:
-                    # تجاوز أي صيغ تاريخ غير صالحة لضمان استقرار الصفحة
-                    pass
+                except:
+                    continue
 
-        total_sales = sum(float(o.get('total_price', 0) or 0) for o in orders)
         total_expenses = sum(float(e.get('amount', 0) or 0) for e in expenses)
-        total_orders = len(orders)
 
         return render_template('stats.html', 
                                total_sales=total_sales,
@@ -162,8 +169,10 @@ def stats():
                                daily=dict(daily_data),
                                monthly=dict(monthly_data),
                                yearly=dict(yearly_data))
+                               
     except Exception as e:
-        return f"حدث خطأ في الإحصائيات: {str(e)}"
+        # هنا سنعرف الخطأ الحقيقي إذا استمرت المشكلة
+        return f"خطأ برمجي في الإحصائيات: {str(e)}"
 
 # --- مسارات الحذف وتسجيل الخروج ---
 @app.route('/logout')
@@ -175,7 +184,6 @@ def logout():
 def delete_order(order_id):
     cid = get_cid()
     if not cid: return redirect(url_for('login'))
-    # أمان إضافي لحذف طلباتك فقط
     supabase.table("orders").delete().eq("id", order_id).eq("company_id_text", cid).execute()
     return redirect(url_for('orders'))
 
@@ -183,7 +191,6 @@ def delete_order(order_id):
 def delete_product(product_id):
     cid = get_cid()
     if not cid: return redirect(url_for('login'))
-    # أمان إضافي لحذف منتجاتك فقط
     supabase.table("inventory").delete().eq("id", product_id).eq("company_id_text", cid).execute()
     return redirect(url_for('products'))
 
