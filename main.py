@@ -6,7 +6,7 @@ from functools import wraps
 import os
 import time
 import requests
-import urllib.parse # مكتبة للتعامل مع الروابط
+import urllib.parse 
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "fallback_dev_key")
@@ -16,18 +16,23 @@ url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
 
-# --- وظيفة إرسال التنبيه ---
+# --- وظيفة إرسال التنبيه الأساسية (للمستخدمين المسجلين) ---
 def send_telegram_alert(company_code, message):
     res = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
     if res.data:
         token = res.data[0].get('telegram_token')
         chat_id = res.data[0].get('telegram_chat_id')
         if token and chat_id:
-            url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={message}"
-            try:
-                requests.get(url)
-            except Exception as e:
-                print(f"Error sending Telegram alert: {e}")
+            send_telegram_alert_by_token(token, chat_id, message)
+
+# --- دالة مساعدة لإرسال التنبيه باستخدام التوكن المباشر ---
+def send_telegram_alert_by_token(token, chat_id, message):
+    if token and chat_id:
+        url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={message}"
+        try:
+            requests.get(url)
+        except Exception as e:
+            print(f"Error sending Telegram alert: {e}")
 
 # --- Decorator لحماية المسارات ---
 def login_required(f):
@@ -89,25 +94,50 @@ def update_color():
     supabase.table("settings").upsert(data).execute()
     return redirect(url_for('settings'))
 
-# --- مسارات إنستقرام (الربط) ---
+# --- مسارات الربط مع إنستقرام ---
 @app.route('/instagram_login')
 @login_required
 def instagram_login():
-    # ملاحظة: قومي بتغيير الرابط أدناه لرابط موقعك الحقيقي على Render
     app_id = "YOUR_META_APP_ID" 
     redirect_uri = "https://your-domain.com/callback" 
     scope = "instagram_basic,instagram_manage_messages,pages_show_list,pages_messaging"
-    
     auth_url = f"https://www.facebook.com/v20.0/dialog/oauth?client_id={app_id}&redirect_uri={redirect_uri}&scope={scope}&response_type=code"
     return redirect(auth_url)
 
 @app.route('/callback')
 @login_required
 def callback():
-    # هنا سيتم استلام الكود والقيام بعملية تبادل التوكن
     return "تم الربط بنجاح! يمكنك العودة للموقع."
 
-# --- المنتجات ---
+# --- Webhook لاستقبال رسائل إنستقرام ---
+@app.route('/webhook_instagram', methods=['GET', 'POST'])
+def webhook_instagram():
+    if request.method == 'GET':
+        mode = request.args.get('hub.mode')
+        token = request.args.get('hub.verify_token')
+        challenge = request.args.get('hub.challenge')
+        if mode == 'subscribe' and token == 'MY_VERIFY_TOKEN': 
+            return challenge
+        return 'Forbidden', 403
+
+    data = request.json
+    try:
+        page_id_from_meta = data['entry'][0]['id'] 
+        res = supabase.table("settings").select("*").eq("instagram_page_id", page_id_from_meta).execute()
+        
+        if res.data:
+            company = res.data[0]
+            token_tlg = company.get('telegram_token')
+            chat_id = company.get('telegram_chat_id')
+            
+            send_telegram_alert_by_token(token_tlg, chat_id, "🔔 لديك رسالة جديدة في إنستقرام!")
+            
+    except Exception as e:
+        print(f"Error processing webhook: {e}")
+        
+    return 'OK', 200
+
+# --- المنتجات والطلبات (باقي الكود) ---
 @app.route('/products', methods=['GET', 'POST'])
 @login_required
 def products():
@@ -138,7 +168,6 @@ def products():
     res = supabase.table("inventory").select("*").eq("company_code", company_code).execute()
     return render_template('products.html', products=res.data or [])
 
-# --- الطلبات ---
 @app.route('/orders', methods=['GET', 'POST'])
 @login_required
 def orders():
