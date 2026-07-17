@@ -52,6 +52,27 @@ def login_required(f):
 
 # --- المسارات ---
 
+# مسار الصفحة الرئيسية
+@app.route('/')
+def index():
+    return redirect(url_for('login'))
+
+# مسار تسجيل الدخول
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        company_code = request.form.get('company_code')
+        if company_code:
+            session['company_code'] = company_code
+            return redirect(url_for('dashboard'))
+    return render_template('login.html')
+
+# مسار لوحة التحكم
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    return render_template('dashboard.html')
+
 @app.route('/webhook_instagram', methods=['GET', 'POST'])
 def webhook_instagram():
     if request.method == 'GET':
@@ -63,7 +84,6 @@ def webhook_instagram():
         msg = data['entry'][0]['messaging'][0]['message']['text']
         # رد ذكي باستخدام Gemini
         response = client.models.generate_content(model='gemini-2.0-flash', contents=f"رد على العميل: {msg}")
-        # هنا يتم إضافة كود إرسال الرد لإنستقرام عبر API
         return 'OK', 200
     except: return 'Error', 500
 
@@ -114,13 +134,6 @@ def products():
     company_code = session.get('company_code')
     items = supabase.table("inventory").select("*").eq("company_code", company_code).execute().data
     return render_template('products.html', products=items)
-
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        session['company_code'] = request.form.get('company_code')
-        return redirect(url_for('dashboard'))
-    return render_template('login.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
