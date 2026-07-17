@@ -31,12 +31,26 @@ def index():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        # المستخدم يدخل كود شركته الخاص
-        company_code = request.form.get('company_code')
+        # استخدام المنطق المطور مع الـ Debugging للتأكد من وصول البيانات
+        company_code = request.form.get('company_code') 
+        print(f"DEBUG: Received company_code: {company_code}") 
+        
         if company_code:
             session['company_code'] = company_code
+            print("DEBUG: Session saved, redirecting to dashboard")
             return redirect(url_for('dashboard'))
+        else:
+            print("DEBUG: No company code received!")
+            
     return render_template('login.html')
+
+# --- مسار التسجيل ---
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        # مستقبلاً يمكنك إضافة كود هنا لحفظ الشركة في قاعدة البيانات
+        return redirect(url_for('login'))
+    return render_template('register.html')
 
 # --- مسار لوحة التحكم ---
 @app.route('/dashboard')
@@ -72,7 +86,6 @@ def products():
         supabase.table("inventory").insert(data).execute()
         return redirect(url_for('products'))
 
-    # عرض منتجات الشركة الحالية فقط
     res = supabase.table("inventory").select("*").eq("company_code", company_code).execute()
     return render_template('products.html', products=res.data or [])
 
@@ -92,7 +105,6 @@ def orders():
         supabase.table("orders").insert(data).execute()
         return redirect(url_for('orders'))
     
-    # عرض طلبات الشركة الحالية فقط
     res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
 
@@ -102,15 +114,13 @@ def orders():
 def show_stats():
     company_code = session.get('company_code')
     try:
-        # جلب البيانات الخاصة بالشركة فقط
         res_orders = supabase.table("orders").select("total_price, created_at").eq("company_code", company_code).execute()
         orders = res_orders.data or []
-        
         res_expenses = supabase.table("expenses").select("amount, created_at").eq("company_code", company_code).execute()
         expenses = res_expenses.data or []
         
-        # ... (بقية منطق الحسابات كما هو) ...
-        return render_template('stats.html', total_sales=sum(float(o.get('total_price', 0)) for o in orders),
+        return render_template('stats.html', 
+                               total_sales=sum(float(o.get('total_price', 0)) for o in orders),
                                total_expenses=sum(float(e.get('amount', 0)) for e in expenses),
                                total_orders=len(orders))
     except Exception as e:
