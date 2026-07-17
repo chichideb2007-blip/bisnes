@@ -13,33 +13,13 @@ url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
 
-# --- دالة مساعدة ---
-def get_cid():
-    return session.get('company_id')
-
 @app.route('/')
 def index():
-    return redirect(url_for('login'))
+    return redirect(url_for('orders'))
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        # في الواقع، ستتحققين هنا من اسم المستخدم وكلمة السر
-        session['company_id'] = "1" 
-        return redirect(url_for('dashboard'))
-    return render_template('login.html')
-
-@app.route('/dashboard')
-def dashboard():
-    if not get_cid(): return redirect(url_for('login'))
-    return render_template('dashboard.html')
-
-# --- مسار المنتجات (يدعم العزل) ---
+# --- مسار المنتجات (بدون أي عزل) ---
 @app.route('/products', methods=['GET', 'POST'])
 def products():
-    cid = get_cid()
-    if not cid: return redirect(url_for('login'))
-
     if request.method == 'POST':
         image_url = None
         if 'product_image' in request.files:
@@ -54,68 +34,68 @@ def products():
             "name": request.form.get('name'),
             "quantity": int(request.form.get('quantity', 0)),
             "price": float(request.form.get('price', 0.0)),
-            "image_url": image_url,
-            "company_id": cid # العزل هنا
+            "image_url": image_url
         }
         supabase.table("inventory").insert(data).execute()
         return redirect(url_for('products'))
 
-    # جلب المنتجات الخاصة بالشركة فقط
-    res = supabase.table("inventory").select("*").eq("company_id", cid).execute()
+    res = supabase.table("inventory").select("*").execute()
     return render_template('products.html', products=res.data or [])
 
-# --- مسار الطلبات (يدعم العزل) ---
+# --- مسار الطلبات (الخصم التلقائي بدون عزل) ---
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
-    cid = get_cid()
-    if not cid: return redirect(url_for('login'))
-
     if request.method == 'POST':
         product_name = request.form.get('product_name')
+        
+        # 1. إضافة الطلب
         data = {
             "customer_name": request.form.get('customer_name'),
             "customer_phone": request.form.get('phone'),
             "product_name": product_name,
             "total_price": float(request.form.get('price', 0.0)),
-            "company_id": cid # العزل هنا
         }
         supabase.table("orders").insert(data).execute()
+        
+        # 2. الخصم التلقائي من المخزن (بدون أي شروط)
+        product_res = supabase.table("inventory").select("id, quantity").eq("name", product_name).execute()
+        
+        if product_res.data:
+            p_id = product_res.data[0]['id']
+            current_qty = int(product_res.data[0]['quantity'])
+            
+            if current_qty > 0:
+                supabase.table("inventory").update({"quantity": current_qty - 1}).eq("id", p_id).execute()
+        
         return redirect(url_for('orders'))
     
-    res = supabase.table("orders").select("*").eq("company_id", cid).execute()
+    res = supabase.table("orders").select("*").execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
 
-# --- مسار الإحصائيات (يدعم العزل) ---
+# --- مسار الإحصائيات (بدون عزل) ---
 @app.route('/stats')
-def show_stats():
-    cid = get_cid()
-    if not cid: return redirect(url_for('login'))
-    
+def stats():
     try:
-        # جلب البيانات الخاصة بالشركة فقط
-        res_orders = supabase.table("orders").select("total_price, created_at").eq("company_id", cid).execute()
+        res_orders = supabase.table("orders").select("total_price").execute()
         orders = res_orders.data or []
         
-        # (ملاحظة: تأكدي أن جدول expenses يحتوي أيضاً على company_id)
-        res_expenses = supabase.table("expenses").select("amount, created_at").eq("company_id", cid).execute()
+        res_expenses = supabase.table("expenses").select("amount").execute()
         expenses = res_expenses.data or []
         
-        # ... (بقية منطق الحسابات كما هو) ...
-        return render_template('stats.html', total_sales=sum(float(o.get('total_price', 0)) for o in orders), ...)
+        total_sales = sum(float(o.get('total_price', 0) or 0) for o in orders)
+        total_expenses = sum(float(e.get('amount', 0) or 0) for e in expenses)
+        
+        return render_template('stats.html', 
+                               total_sales=total_sales, 
+                               total_expenses=total_expenses, 
+                               total_orders=len(orders))
     except Exception as e:
-        return f"خطأ: {str(e)}"
-
-# --- API للذكاء الاصطناعي (يستخدمه الروبوت لاحقاً) ---
-@app.route('/api/products/<int:cid>')
-def api_get_products(cid):
-    # هذا الرابط سيستخدمه Gemini لجلب منتجات شركة معينة
-    res = supabase.table("inventory").select("name, price, quantity").eq("company_id", str(cid)).execute()
-    return jsonify(res.data)
+        return f"خطأ في الإحصائيات: {str(e)}"
 
 @app.route('/logout')
 def logout():
     session.clear()
-    return redirect(url_for('login'))
+    return redirect(url_for('orders'))
 
 if __name__ == '__main__':
     app.run(debug=True)
