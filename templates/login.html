@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تسجيل الدخول</title>
+    <title>تسجيل الدخول - كود الشركة</title>
     <style>
         body { font-family: Arial, sans-serif; background-color: #f4f4f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
         .login-container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
@@ -20,9 +20,9 @@
 <div class="login-container">
     <h2>تسجيل الدخول</h2>
     
+    <!-- النموذج الآن يرسل 'company_code' ليطابق كود البايثون -->
     <form action="/login" method="POST">
-        <input type="email" name="email" placeholder="البريد الإلكتروني" required>
-        <input type="password" name="password" placeholder="كلمة السر" required>
+        <input type="text" name="company_code" placeholder="أدخل كود شركتك" required>
         <button type="submit">دخول</button>
     </form>
     
