@@ -15,9 +15,8 @@ url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
 
-# --- وظيفة إرسال التنبيه (تأخذ البيانات من قاعدة البيانات) ---
+# --- وظيفة إرسال التنبيه ---
 def send_telegram_alert(company_code, message):
-    # جلب إعدادات الشركة من قاعدة البيانات
     res = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
     if res.data:
         token = res.data[0].get('telegram_token')
@@ -42,7 +41,6 @@ def login_required(f):
 def index():
     return redirect(url_for('login'))
 
-# --- مسار تسجيل الدخول ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -52,38 +50,45 @@ def login():
             return redirect(url_for('dashboard'))
     return render_template('login.html')
 
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if request.method == 'POST':
-        return redirect(url_for('login'))
-    return render_template('register.html')
-
 @app.route('/dashboard')
 @login_required
 def dashboard():
     return render_template('dashboard.html')
 
-# --- مسار الإعدادات ---
-@app.route('/settings', methods=['GET', 'POST'])
+# --- مسارات الإعدادات المنفصلة ---
+@app.route('/settings', methods=['GET'])
 @login_required
 def settings():
     company_code = session.get('company_code')
-    if request.method == 'POST':
-        data = {
-            "company_name": request.form.get('company_name'),
-            "telegram_token": request.form.get('telegram_token'),
-            "telegram_chat_id": request.form.get('chat_id'),
-            "theme_color": request.form.get('theme_color'),
-            "company_code": company_code
-        }
-        supabase.table("settings").upsert(data).execute()
-        return redirect(url_for('settings'))
-
     res = supabase.table("settings").select("*").eq("company_code", company_code).execute()
     settings_data = res.data[0] if res.data else {}
     return render_template('settings.html', settings=settings_data)
 
-# --- مسار المنتجات ---
+@app.route('/update_company', methods=['POST'])
+@login_required
+def update_company():
+    company_code = session.get('company_code')
+    data = {
+        "company_name": request.form.get('company_name'),
+        "telegram_token": request.form.get('telegram_token'),
+        "telegram_chat_id": request.form.get('chat_id'),
+        "company_code": company_code
+    }
+    supabase.table("settings").upsert(data).execute()
+    return redirect(url_for('settings'))
+
+@app.route('/update_color', methods=['POST'])
+@login_required
+def update_color():
+    company_code = session.get('company_code')
+    data = {
+        "theme_color": request.form.get('theme_color'),
+        "company_code": company_code
+    }
+    supabase.table("settings").upsert(data).execute()
+    return redirect(url_for('settings'))
+
+# --- المنتجات ---
 @app.route('/products', methods=['GET', 'POST'])
 @login_required
 def products():
@@ -114,7 +119,7 @@ def products():
     res = supabase.table("inventory").select("*").eq("company_code", company_code).execute()
     return render_template('products.html', products=res.data or [])
 
-# --- مسار الطلبات ---
+# --- الطلبات ---
 @app.route('/orders', methods=['GET', 'POST'])
 @login_required
 def orders():
@@ -122,7 +127,6 @@ def orders():
     if request.method == 'POST':
         customer_name = request.form.get('customer_name')
         price = request.form.get('price')
-        
         data = {
             "customer_name": customer_name,
             "customer_phone": request.form.get('phone'),
@@ -131,11 +135,7 @@ def orders():
             "company_code": company_code
         }
         supabase.table("orders").insert(data).execute()
-        
-        # إرسال التنبيه باستخدام التوكن المحفوظ في قاعدة البيانات
-        alert_msg = f"🔔 طلبية جديدة!\nالعميل: {customer_name}\nالقيمة: {price} دج"
-        send_telegram_alert(company_code, alert_msg)
-        
+        send_telegram_alert(company_code, f"🔔 طلبية جديدة: {customer_name} | {price} دج")
         return redirect(url_for('orders'))
     
     res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
@@ -164,11 +164,9 @@ def stats():
                 monthly_data[months_order[dt.month - 1]] += price
                 yearly_data[str(dt.year)] += price
 
-        return render_template('stats.html', 
-                               total_sales=sum(float(o.get('total_price') or 0) for o in orders),
+        return render_template('stats.html', total_sales=sum(float(o.get('total_price') or 0) for o in orders),
                                total_expenses=sum(float(e.get('amount') or 0) for e in expenses),
-                               total_orders=len(orders),
-                               daily=dict(daily_data), monthly=dict(monthly_data), yearly=dict(yearly_data))
+                               total_orders=len(orders), daily=dict(daily_data), monthly=dict(monthly_data), yearly=dict(yearly_data))
     except Exception as e:
         return f"حدث خطأ: {str(e)}"
 
