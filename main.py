@@ -57,17 +57,16 @@ def products():
             "quantity": int(request.form.get('quantity', 0)),
             "price": float(request.form.get('price', 0.0)),
             "image_url": image_url,
-            "company_id_text": cid 
+            "company_id_text": str(cid) 
         }
         supabase.table("inventory").insert(data).execute()
         return redirect(url_for('products'))
 
-    # الفلتر الصارم لجلب المنتجات
-    res = supabase.table("inventory").select("*").eq("company_id_text", cid).execute()
-    products_list = res.data or []
+    res = supabase.table("inventory").select("*").eq("company_id_text", str(cid)).execute()
+    products_list = [dict(item) for item in res.data] if res.data else []
     return render_template('products.html', products=products_list)
 
-# --- مسار الطلبات (عزل صارم) ---
+# --- مسار الطلبات (معدل لمنع الخطأ) ---
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     cid = get_cid()
@@ -79,38 +78,38 @@ def orders():
             "customer_phone": request.form.get('phone'),
             "product_name": request.form.get('product_name'),
             "total_price": float(request.form.get('price', 0.0)),
-            "company_id_text": cid
+            "company_id_text": str(cid) # تأكيد أن المعرف نص
         }
         supabase.table("orders").insert(data).execute()
         return redirect(url_for('orders'))
     
-    # الفلتر الصارم لجلب الطلبات
-    res = supabase.table("orders").select("*").eq("company_id_text", cid).execute()
-    orders_list = res.data or []
+    # جلب البيانات مع الفلتر الصارم وتحويلها إلى قائمة قواميس بسيطة
+    res = supabase.table("orders").select("*").eq("company_id_text", str(cid)).execute()
+    orders_list = [dict(item) for item in res.data] if res.data else []
     return render_template('orders_dashboard.html', orders=orders_list)
 
-# --- مسار الإحصائيات (عزل صارم) ---
+# --- مسار الإحصائيات (معدل لمنع الخطأ) ---
 @app.route('/stats')
 def stats():
     cid = get_cid()
     if not cid: return redirect(url_for('login'))
     
     try:
-        # جلب البيانات بالفلتر الصارم
-        res_orders = supabase.table("orders").select("total_price, created_at").eq("company_id_text", cid).execute()
+        # استخدام str(cid) لضمان مطابقة نوع البيانات
+        res_orders = supabase.table("orders").select("total_price").eq("company_id_text", str(cid)).execute()
         orders = res_orders.data or []
         
-        expenses = []
-        try:
-            res_expenses = supabase.table("expenses").select("amount, created_at").eq("company_id", cid).execute()
-            expenses = res_expenses.data or []
-        except: pass
+        res_expenses = supabase.table("expenses").select("amount").eq("company_id", str(cid)).execute()
+        expenses = res_expenses.data or []
         
-        # (باقي منطق حساب الإحصائيات كما هو...)
-        total_sales = sum(float(o.get('total_price') or 0) for o in orders)
-        total_expenses = sum(float(e.get('amount') or 0) for e in expenses)
+        # حساب المجموع كأرقام بسيطة (float)
+        total_sales = sum(float(o.get('total_price', 0) or 0) for o in orders)
+        total_expenses = sum(float(e.get('amount', 0) or 0) for e in expenses)
         
-        return render_template('stats.html', total_sales=total_sales, total_expenses=total_expenses, total_orders=len(orders))
+        return render_template('stats.html', 
+                               total_sales=float(total_sales), 
+                               total_expenses=float(total_expenses), 
+                               total_orders=len(orders))
     except Exception as e:
         return f"خطأ: {str(e)}"
 
@@ -119,14 +118,14 @@ def stats():
 def delete_order(order_id):
     cid = get_cid()
     if not cid: return redirect(url_for('login'))
-    supabase.table("orders").delete().eq("id", order_id).eq("company_id_text", cid).execute()
+    supabase.table("orders").delete().eq("id", order_id).eq("company_id_text", str(cid)).execute()
     return redirect(url_for('orders'))
 
 @app.route('/delete_product/<int:product_id>', methods=['POST'])
 def delete_product(product_id):
     cid = get_cid()
     if not cid: return redirect(url_for('login'))
-    supabase.table("inventory").delete().eq("id", product_id).eq("company_id_text", cid).execute()
+    supabase.table("inventory").delete().eq("id", product_id).eq("company_id_text", str(cid)).execute()
     return redirect(url_for('products'))
 
 if __name__ == '__main__':
