@@ -6,6 +6,7 @@ from functools import wraps
 import os
 import time
 import requests
+import urllib.parse # مكتبة للتعامل مع الروابط
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "fallback_dev_key")
@@ -37,6 +38,7 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+# --- المسارات الأساسية ---
 @app.route('/')
 def index():
     return redirect(url_for('login'))
@@ -73,7 +75,6 @@ def update_company():
         "telegram_token": request.form.get('telegram_token'),
         "telegram_chat_id": request.form.get('chat_id')
     }
-    # تم التحديث باستخدام update كما طلبتِ
     supabase.table("settings").update(data).eq("company_code", company_code).execute()
     return redirect(url_for('settings'))
 
@@ -87,6 +88,24 @@ def update_color():
     }
     supabase.table("settings").upsert(data).execute()
     return redirect(url_for('settings'))
+
+# --- مسارات إنستقرام (الربط) ---
+@app.route('/instagram_login')
+@login_required
+def instagram_login():
+    # ملاحظة: قومي بتغيير الرابط أدناه لرابط موقعك الحقيقي على Render
+    app_id = "YOUR_META_APP_ID" 
+    redirect_uri = "https://your-domain.com/callback" 
+    scope = "instagram_basic,instagram_manage_messages,pages_show_list,pages_messaging"
+    
+    auth_url = f"https://www.facebook.com/v20.0/dialog/oauth?client_id={app_id}&redirect_uri={redirect_uri}&scope={scope}&response_type=code"
+    return redirect(auth_url)
+
+@app.route('/callback')
+@login_required
+def callback():
+    # هنا سيتم استلام الكود والقيام بعملية تبادل التوكن
+    return "تم الربط بنجاح! يمكنك العودة للموقع."
 
 # --- المنتجات ---
 @app.route('/products', methods=['GET', 'POST'])
