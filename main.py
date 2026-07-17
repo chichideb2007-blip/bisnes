@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session
 from supabase import create_client
 from collections import defaultdict
 from datetime import datetime
@@ -15,9 +15,22 @@ supabase = create_client(url, key)
 
 @app.route('/')
 def index():
-    return redirect(url_for('orders'))
+    return redirect(url_for('login'))
 
-# --- مسار المنتجات (بدون أي عزل) ---
+# --- مسار تسجيل الدخول ---
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        session['company_id'] = "1"
+        return redirect(url_for('dashboard'))
+    return render_template('login.html')
+
+# --- مسار لوحة التحكم ---
+@app.route('/dashboard')
+def dashboard():
+    return render_template('dashboard.html')
+
+# --- مسار المنتجات ---
 @app.route('/products', methods=['GET', 'POST'])
 def products():
     if request.method == 'POST':
@@ -27,75 +40,102 @@ def products():
             if file and file.filename != '':
                 unique_filename = f"{int(time.time())}_{file.filename}"
                 file_path = f"products/{unique_filename}"
-                supabase.storage.from_("product-images").upload(path=file_path, file=file.read())
-                image_url = supabase.storage.from_("product-images").get_public_url(file_path)
+                try:
+                    supabase.storage.from_("product-images").upload(path=file_path, file=file.read())
+                    image_url = supabase.storage.from_("product-images").get_public_url(file_path)
+                except Exception as e:
+                    print(f"Error uploading image: {e}")
         
         data = {
             "name": request.form.get('name'),
             "quantity": int(request.form.get('quantity', 0)),
             "price": float(request.form.get('price', 0.0)),
-            "image_url": image_url
+            "image_url": image_url,
+            "company_id_text": "1"
         }
-        supabase.table("inventory").insert(data).execute()
+        try:
+            supabase.table("inventory").insert(data).execute()
+        except Exception as e:
+            return f"حدث خطأ في قاعدة البيانات: {str(e)}"
         return redirect(url_for('products'))
 
     res = supabase.table("inventory").select("*").execute()
     return render_template('products.html', products=res.data or [])
 
-# --- مسار الطلبات (الخصم التلقائي بدون عزل) ---
+# --- مسار الطلبات ---
 @app.route('/orders', methods=['GET', 'POST'])
 def orders():
     if request.method == 'POST':
-        product_name = request.form.get('product_name')
-        
-        # 1. إضافة الطلب
         data = {
             "customer_name": request.form.get('customer_name'),
             "customer_phone": request.form.get('phone'),
-            "product_name": product_name,
+            "product_name": request.form.get('product_name'),
             "total_price": float(request.form.get('price', 0.0)),
+            "company_id_text": "1"
         }
         supabase.table("orders").insert(data).execute()
-        
-        # 2. الخصم التلقائي من المخزن (بدون أي شروط)
-        product_res = supabase.table("inventory").select("id, quantity").eq("name", product_name).execute()
-        
-        if product_res.data:
-            p_id = product_res.data[0]['id']
-            current_qty = int(product_res.data[0]['quantity'])
-            
-            if current_qty > 0:
-                supabase.table("inventory").update({"quantity": current_qty - 1}).eq("id", p_id).execute()
-        
         return redirect(url_for('orders'))
     
     res = supabase.table("orders").select("*").execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
 
-# --- مسار الإحصائيات (بدون عزل) ---
+# --- مسار الإحصائيات (المصحح) ---
 @app.route('/stats')
-def stats():
+def show_stats():
     try:
-        res_orders = supabase.table("orders").select("total_price").execute()
+        # جلب الطلبات والمصروفات
+        res_orders = supabase.table("orders").select("total_price, created_at").execute()
         orders = res_orders.data or []
         
-        res_expenses = supabase.table("expenses").select("amount").execute()
+        res_expenses = supabase.table("expenses").select("amount, created_at").execute()
         expenses = res_expenses.data or []
         
-        total_sales = sum(float(o.get('total_price', 0) or 0) for o in orders)
-        total_expenses = sum(float(e.get('amount', 0) or 0) for e in expenses)
+        # تجهيز البيانات للمنحنيات
+        daily_data = defaultdict(float)
+        monthly_data = defaultdict(float)
+        yearly_data = defaultdict(float)
         
+        days_order = ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"]
+        months_order = ["جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان", "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
+
+        for o in orders:
+            if o.get('created_at'):
+                dt = datetime.fromisoformat(o['created_at'].replace('Z', '+00:00'))
+                price = float(o.get('total_price', 0))
+                
+                daily_data[days_order[dt.weekday() if dt.weekday() != 6 else 0]] += price
+                monthly_data[months_order[dt.month - 1]] += price
+                yearly_data[str(dt.year)] += price
+
         return render_template('stats.html', 
-                               total_sales=total_sales, 
-                               total_expenses=total_expenses, 
-                               total_orders=len(orders))
+                               total_sales=sum(float(o.get('total_price', 0)) for o in orders),
+                               total_expenses=sum(float(e.get('amount', 0)) for e in expenses),
+                               total_orders=len(orders),
+                               daily=dict(daily_data),
+                               monthly=dict(monthly_data),
+                               yearly=dict(yearly_data))
     except Exception as e:
-        return f"خطأ في الإحصائيات: {str(e)}"
+        return f"حدث خطأ في جلب البيانات: {str(e)}"
+
+# --- مسارات إضافية ---
+@app.route('/settings')
+def settings():
+    return render_template('settings.html')
 
 @app.route('/logout')
 def logout():
     session.clear()
+    return redirect(url_for('login'))
+
+@app.route('/delete_order/<int:order_id>', methods=['POST'])
+def delete_order(order_id):
+    supabase.table("orders").delete().eq("id", order_id).execute()
     return redirect(url_for('orders'))
+
+@app.route('/delete_product/<int:product_id>', methods=['POST'])
+def delete_product(product_id):
+    supabase.table("inventory").delete().eq("id", product_id).execute()
+    return redirect(url_for('products'))
 
 if __name__ == '__main__':
     app.run(debug=True)
