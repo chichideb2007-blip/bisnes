@@ -55,7 +55,7 @@ def login():
 def dashboard():
     return render_template('dashboard.html')
 
-# --- مسارات الإعدادات المنفصلة ---
+# --- مسارات الإعدادات ---
 @app.route('/settings', methods=['GET'])
 @login_required
 def settings():
@@ -71,10 +71,10 @@ def update_company():
     data = {
         "company_name": request.form.get('company_name'),
         "telegram_token": request.form.get('telegram_token'),
-        "telegram_chat_id": request.form.get('chat_id'),
-        "company_code": company_code
+        "telegram_chat_id": request.form.get('chat_id')
     }
-    supabase.table("settings").upsert(data).execute()
+    # تم التحديث باستخدام update كما طلبتِ
+    supabase.table("settings").update(data).eq("company_code", company_code).execute()
     return redirect(url_for('settings'))
 
 @app.route('/update_color', methods=['POST'])
