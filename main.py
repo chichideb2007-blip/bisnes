@@ -5,7 +5,7 @@ from datetime import datetime
 from functools import wraps
 import os
 import time
-import requests  # تأكدي من استيراد مكتبة requests
+import requests
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "fallback_dev_key")
@@ -15,15 +15,19 @@ url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
 
-# --- وظيفة إرسال التنبيه لتليجرام ---
-def send_telegram_alert(message):
-    token = "أدخلي_توكن_البوت_هنا"
-    chat_id = "أدخلي_معرف_المحادثة_هنا"
-    url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={message}"
-    try:
-        requests.get(url)
-    except Exception as e:
-        print(f"Error sending Telegram alert: {e}")
+# --- وظيفة إرسال التنبيه (تأخذ البيانات من قاعدة البيانات) ---
+def send_telegram_alert(company_code, message):
+    # جلب إعدادات الشركة من قاعدة البيانات
+    res = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
+    if res.data:
+        token = res.data[0].get('telegram_token')
+        chat_id = res.data[0].get('telegram_chat_id')
+        if token and chat_id:
+            url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={message}"
+            try:
+                requests.get(url)
+            except Exception as e:
+                print(f"Error sending Telegram alert: {e}")
 
 # --- Decorator لحماية المسارات ---
 def login_required(f):
@@ -48,18 +52,36 @@ def login():
             return redirect(url_for('dashboard'))
     return render_template('login.html')
 
-# --- مسار التسجيل ---
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
         return redirect(url_for('login'))
     return render_template('register.html')
 
-# --- مسار لوحة التحكم ---
 @app.route('/dashboard')
 @login_required
 def dashboard():
     return render_template('dashboard.html')
+
+# --- مسار الإعدادات ---
+@app.route('/settings', methods=['GET', 'POST'])
+@login_required
+def settings():
+    company_code = session.get('company_code')
+    if request.method == 'POST':
+        data = {
+            "company_name": request.form.get('company_name'),
+            "telegram_token": request.form.get('telegram_token'),
+            "telegram_chat_id": request.form.get('chat_id'),
+            "theme_color": request.form.get('theme_color'),
+            "company_code": company_code
+        }
+        supabase.table("settings").upsert(data).execute()
+        return redirect(url_for('settings'))
+
+    res = supabase.table("settings").select("*").eq("company_code", company_code).execute()
+    settings_data = res.data[0] if res.data else {}
+    return render_template('settings.html', settings=settings_data)
 
 # --- مسار المنتجات ---
 @app.route('/products', methods=['GET', 'POST'])
@@ -92,7 +114,7 @@ def products():
     res = supabase.table("inventory").select("*").eq("company_code", company_code).execute()
     return render_template('products.html', products=res.data or [])
 
-# --- مسار الطلبات (مع تنبيه تليجرام) ---
+# --- مسار الطلبات ---
 @app.route('/orders', methods=['GET', 'POST'])
 @login_required
 def orders():
@@ -110,16 +132,15 @@ def orders():
         }
         supabase.table("orders").insert(data).execute()
         
-        # إرسال التنبيه
-        alert_msg = f"🔔 طلبية جديدة!\nالعميل: {customer_name}\nالقيمة: {price} دج\nيرجى مراجعة لوحة التحكم."
-        send_telegram_alert(alert_msg)
+        # إرسال التنبيه باستخدام التوكن المحفوظ في قاعدة البيانات
+        alert_msg = f"🔔 طلبية جديدة!\nالعميل: {customer_name}\nالقيمة: {price} دج"
+        send_telegram_alert(company_code, alert_msg)
         
         return redirect(url_for('orders'))
     
     res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
 
-# --- مسار الإحصائيات ---
 @app.route('/stats')
 @login_required
 def stats():
