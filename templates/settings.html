@@ -1,4 +1,3 @@
-<!-- نموذج معلومات المتجر -->
 <form action="{{ url_for('settings') }}" method="POST">
     <div class="mb-3">
         <label>اسم المتجر</label>
@@ -12,17 +11,17 @@
         <label>رقم تعريف المحادثة (Chat ID)</label>
         <input type="text" name="chat_id" class="form-control" value="{{ settings.telegram_chat_id or '' }}">
     </div>
-    <!-- حقل إنستقرام المضاف -->
+    
     <div class="mb-3">
         <label>رابط إنستقرام</label>
         <input type="text" name="instagram_url" class="form-control" value="{{ settings.instagram_url or '' }}">
     </div>
+    
     <button type="submit" class="btn btn-primary">حفظ معلومات المتجر</button>
 </form>
 
 <hr>
 
-<!-- نموذج اللون -->
 <form action="{{ url_for('settings') }}" method="POST">
     <div class="mb-3">
         <label>لون واجهة المتجر</label>
@@ -33,11 +32,9 @@
 
 <hr>
 
-<!-- نموذج ربط إنستقرام -->
 <div class="mb-3">
     <label>ربط حساب إنستقرام</label>
     <br>
-    <!-- تأكد أن لديك مسار باسم instagram_login في app.py أو استبدله بالرابط المباشر -->
     <a href="{{ url_for('instagram_login') if 'instagram_login' in url_for.__globals__ else '#' }}" class="btn btn-info text-white">
         اضغط هنا لربط حساب إنستقرام
     </a>
