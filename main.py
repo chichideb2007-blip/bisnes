@@ -143,7 +143,7 @@ def delete_product(id):
     supabase.table("inventory").delete().eq("id", id).execute()
     return redirect(url_for('products'))
 
-# مسار حذف الطلبيات (المضاف حديثاً)
+# مسار حذف الطلبيات
 @app.route('/delete_order/<int:id>', methods=['POST'])
 @login_required
 def delete_order(id):
@@ -159,6 +159,8 @@ def orders():
     if request.method == 'POST':
         data = {
             "customer_name": request.form.get('customer_name'),
+            "customer_phone": request.form.get('phone'), # أضفنا الهاتف
+            "product_name": request.form.get('product_name'), # أضفنا المنتج
             "total_price": float(request.form.get('price', 0.0)),
             "company_code": company_code
         }
