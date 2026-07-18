@@ -7,7 +7,7 @@ import os
 import time
 import requests
 import urllib.parse
-import base64  # تمت الإضافة
+import base64
 from google import genai  # مكتبة Gemini
 
 app = Flask(__name__)
@@ -90,13 +90,11 @@ def settings():
     res = supabase.table("settings").select("*").eq("company_code", company_code).execute()
     return render_template('settings.html', settings=res.data[0] if res.data else {})
 
-# مسار المخزون المحدث
 @app.route('/products', methods=['GET', 'POST'])
 @login_required
 def products():
     company_code = session.get('company_code')
     if request.method == 'POST':
-        # استقبال الملف من الـ Form
         file = request.files.get('product_image')
         image_data = ""
         if file:
@@ -146,10 +144,41 @@ def orders():
 @login_required
 def stats():
     company_code = session.get('company_code')
-    res_orders = supabase.table("orders").select("total_price, created_at").eq("company_code", company_code).execute()
-    orders = res_orders.data or []
-    total_sales = sum(float(o.get('total_price') or 0) for o in orders)
-    return render_template('stats.html', total_sales=total_sales, total_orders=len(orders))
+    try:
+        res_orders = supabase.table("orders").select("total_price, created_at").eq("company_code", company_code).execute()
+        orders = res_orders.data or []
+        
+        res_expenses = supabase.table("expenses").select("amount, created_at").eq("company_code", company_code).execute()
+        expenses = res_expenses.data or []
+        
+        daily_data, monthly_data, yearly_data = defaultdict(float), defaultdict(float), defaultdict(float)
+        days_order = ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"]
+        months_order = ["جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان", "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
+
+        for o in orders:
+            if o.get('created_at'):
+                dt = datetime.fromisoformat(o['created_at'].replace('Z', '+00:00'))
+                price = float(o.get('total_price') or 0)
+                day_name = days_order[dt.weekday()] if dt.weekday() < 7 else "السبت"
+                daily_data[day_name] += price
+                monthly_data[months_order[dt.month - 1]] += price
+                yearly_data[str(dt.year)] += price
+
+        total_sales = sum(float(o.get('total_price') or 0) for o in orders)
+        total_expenses = sum(float(e.get('amount') or 0) for e in expenses)
+        total_orders = len(orders)
+        
+        return render_template('stats.html', 
+                               total_sales=float(total_sales), 
+                               total_expenses=float(total_expenses), 
+                               total_orders=int(total_orders), 
+                               daily=dict(daily_data), 
+                               monthly=dict(monthly_data), 
+                               yearly=dict(yearly_data))
+                               
+    except Exception as e:
+        print(f"Stats Error: {e}")
+        return render_template('stats.html', total_sales=0, total_expenses=0, total_orders=0, daily={}, monthly={}, yearly={})
 
 @app.route('/webhook_instagram', methods=['GET', 'POST'])
 def webhook_instagram():
