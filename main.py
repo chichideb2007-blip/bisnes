@@ -27,6 +27,7 @@ def send_telegram_alert_by_token(token, chat_id, message):
             print(f"Error: {e}")
 
 def refresh_instagram_token():
+    """دالة التجديد التلقائي لتوكن إنستقرام"""
     res = supabase.table("settings").select("company_code, instagram_token").execute()
     for row in res.data:
         old_token = row.get('instagram_token')
@@ -49,14 +50,17 @@ def login_required(f):
 
 # --- المسارات ---
 
+# مسار الصفحة الرئيسية
 @app.route('/')
 def home():
     return redirect(url_for('login'))
 
+# مسار تسجيل الدخول
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         company_code = request.form.get('company_code')
+        # تحقق من وجود الشركة في Supabase
         res = supabase.table("settings").select("company_code").eq("company_code", company_code).execute()
         if res.data:
             session['company_code'] = company_code
@@ -64,6 +68,7 @@ def login():
         return "كود الشركة غير صحيح!", 401
     return render_template('login.html')
 
+# مسار تسجيل الخروج
 @app.route('/logout')
 def logout():
     session.pop('company_code', None)
@@ -78,23 +83,38 @@ def dashboard():
 @login_required
 def settings():
     company_code = session.get('company_code')
+    
     if request.method == 'POST':
-        data = {
-            "company_name": request.form.get('company_name'),
-            "telegram_token": request.form.get('telegram_token'),
-            "telegram_chat_id": request.form.get('chat_id'),
-            "instagram_url": request.form.get('instagram_url')
-        }
-        supabase.table("settings").update(data).eq("company_code", company_code).execute()
+        data = {}
+        if 'company_name' in request.form:
+            data = {
+                "company_name": request.form.get('company_name'),
+                "telegram_token": request.form.get('telegram_token'),
+                "telegram_chat_id": request.form.get('chat_id'),
+                "instagram_url": request.form.get('instagram_url')
+            }
+        elif 'theme_color' in request.form:
+            data = {"theme_color": request.form.get('theme_color')}
+        
+        if data:
+            try:
+                supabase.table("settings").update(data).eq("company_code", company_code).execute()
+            except Exception as e:
+                print(f"Update Error: {e}")
+        
         return redirect(url_for('settings'))
+    
     res = supabase.table("settings").select("*").eq("company_code", company_code).execute()
-    return render_template('settings.html', settings=res.data[0] if res.data else {})
+    settings_data = res.data[0] if res.data else {}
+    return render_template('settings.html', settings=settings_data)
 
+# مسار المخزون
 @app.route('/products', methods=['GET', 'POST'])
 @login_required
 def products():
     company_code = session.get('company_code')
     if request.method == 'POST':
+        # استقبال الملف من الـ Form
         file = request.files.get('product_image')
         image_data = ""
         if file:
@@ -109,6 +129,7 @@ def products():
             "company_id_text": company_code,
             "product-images": image_data
         }
+        
         supabase.table("inventory").insert(data).execute()
         return redirect(url_for('products'))
     
@@ -118,9 +139,11 @@ def products():
 @app.route('/delete_product/<int:id>', methods=['POST'])
 @login_required
 def delete_product(id):
+    # كود الحذف من Supabase
     supabase.table("inventory").delete().eq("id", id).execute()
     return redirect(url_for('products'))
 
+# مسار الطلبيات
 @app.route('/orders', methods=['GET', 'POST'])
 @login_required
 def orders():
@@ -132,14 +155,18 @@ def orders():
             "company_code": company_code
         }
         supabase.table("orders").insert(data).execute()
+        
         res = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
         if res.data:
             msg = f"🚨 طلبية جديدة!\nالعميل: {data['customer_name']}\nالقيمة: {data['total_price']} دج"
             send_telegram_alert_by_token(res.data[0]['telegram_token'], res.data[0]['telegram_chat_id'], msg)
+            
         return redirect(url_for('orders'))
+    
     res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
 
+# مسار الإحصائيات (المعدل)
 @app.route('/stats')
 @login_required
 def stats():
@@ -167,7 +194,7 @@ def stats():
         total_sales = sum(float(o.get('total_price') or 0) for o in orders)
         total_expenses = sum(float(e.get('amount') or 0) for e in expenses)
         total_orders = len(orders)
-        
+
         return render_template('stats.html', 
                                total_sales=float(total_sales), 
                                total_expenses=float(total_expenses), 
@@ -180,20 +207,38 @@ def stats():
         print(f"Stats Error: {e}")
         return render_template('stats.html', total_sales=0, total_expenses=0, total_orders=0, daily={}, monthly={}, yearly={})
 
+# مسار الرد الذكي
 @app.route('/webhook_instagram', methods=['GET', 'POST'])
 def webhook_instagram():
-    if request.method == 'GET': return request.args.get('hub.challenge')
+    if request.method == 'GET':
+        return request.args.get('hub.challenge')
+    
     data = request.json
     try:
         page_id = data['entry'][0]['id']
-        msg = data['entry'][0]['messaging'][0]['message']['text']
-        sender_id = data['entry'][0]['messaging'][0]['sender']['id']
+        messaging = data['entry'][0]['messaging'][0]
+        msg = messaging['message']['text']
+        sender_id = messaging['sender']['id']
+        
         res = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("instagram_page_id", page_id).execute()
+        
         if res.data:
+            send_telegram_alert_by_token(
+                res.data[0]['telegram_token'], 
+                res.data[0]['telegram_chat_id'], 
+                f"🔔 رسالة إنستقرام جديدة من العميل ({sender_id}):\n{msg}"
+            )
             response = client.models.generate_content(model='gemini-2.0-flash', contents=msg)
-            send_telegram_alert_by_token(res.data[0]['telegram_token'], res.data[0]['telegram_chat_id'], f"رد Gemini: {response.text}")
+            send_telegram_alert_by_token(
+                res.data[0]['telegram_token'], 
+                res.data[0]['telegram_chat_id'], 
+                f"🤖 الرد المقترح من Gemini:\n{response.text}"
+            )
+            
         return 'OK', 200
-    except: return 'Error', 500
+    except Exception as e:
+        print(f"Webhook Error: {e}")
+        return 'Error', 500
 
 if __name__ == '__main__':
     refresh_instagram_token()
