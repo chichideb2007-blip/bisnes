@@ -12,12 +12,11 @@ from google import genai  # مكتبة Gemini
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "fallback_dev_key")
 
-# إعداد Supabase
+# إعداد Supabase و Gemini
 supabase = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY"))
-# إعداد Gemini
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
-# --- الدوال المساعدة (التنبيهات + التجديد التلقائي) ---
+# --- الدوال المساعدة ---
 
 def send_telegram_alert_by_token(token, chat_id, message):
     if token and chat_id:
@@ -62,23 +61,32 @@ def login():
 def dashboard():
     return render_template('dashboard.html')
 
-# 1. مسار الإعدادات (Settings)
+# مسار الإعدادات
 @app.route('/settings', methods=['GET', 'POST'])
 @login_required
 def settings():
     company_code = session.get('company_code')
+    
     if request.method == 'POST':
-        data = {
-            "telegram_token": request.form.get('telegram_token'),
-            "telegram_chat_id": request.form.get('chat_id')
-        }
-        supabase.table("settings").update(data).eq("company_code", company_code).execute()
+        data = {}
+        if 'company_name' in request.form:
+            data = {
+                "company_name": request.form.get('company_name'),
+                "telegram_token": request.form.get('telegram_token'),
+                "telegram_chat_id": request.form.get('chat_id')
+            }
+        elif 'theme_color' in request.form:
+            data = {"theme_color": request.form.get('theme_color')}
+        
+        if data:
+            supabase.table("settings").update(data).eq("company_code", company_code).execute()
         return redirect(url_for('settings'))
     
     res = supabase.table("settings").select("*").eq("company_code", company_code).execute()
-    return render_template('settings.html', settings=res.data[0] if res.data else {})
+    settings_data = res.data[0] if res.data and len(res.data) > 0 else {}
+    return render_template('settings.html', settings=settings_data)
 
-# 2. مسار المخزون (Inventory/Products)
+# مسار المخزون
 @app.route('/products', methods=['GET', 'POST'])
 @login_required
 def products():
@@ -96,7 +104,7 @@ def products():
     res = supabase.table("inventory").select("*").eq("company_code", company_code).execute()
     return render_template('products.html', products=res.data or [])
 
-# 3. مسار الطلبيات (Orders)
+# مسار الطلبيات
 @app.route('/orders', methods=['GET', 'POST'])
 @login_required
 def orders():
@@ -109,7 +117,6 @@ def orders():
         }
         supabase.table("orders").insert(data).execute()
         
-        # تنبيه تليجرام للمدير (مُفصل)
         res = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
         if res.data:
             msg = f"🚨 طلبية جديدة!\nالعميل: {data['customer_name']}\nالقيمة: {data['total_price']} دج"
@@ -120,15 +127,48 @@ def orders():
     res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
 
-# 4. مسار الإحصائيات (Stats)
+# مسار الإحصائيات
 @app.route('/stats')
 @login_required
 def stats():
     company_code = session.get('company_code')
-    orders = supabase.table("orders").select("total_price").eq("company_code", company_code).execute().data or []
-    return render_template('stats.html', total_sales=sum(float(o['total_price']) for o in orders))
+    try:
+        res_orders = supabase.table("orders").select("total_price, created_at").eq("company_code", company_code).execute()
+        orders = res_orders.data or []
+        
+        res_expenses = supabase.table("expenses").select("amount, created_at").eq("company_code", company_code).execute()
+        expenses = res_expenses.data or []
+        
+        daily_data, monthly_data, yearly_data = defaultdict(float), defaultdict(float), defaultdict(float)
+        days_order = ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"]
+        months_order = ["جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان", "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
 
-# 5. مسار الرد الذكي (Webhook Gemini)
+        for o in orders:
+            if o.get('created_at'):
+                dt = datetime.fromisoformat(o['created_at'].replace('Z', '+00:00'))
+                price = float(o.get('total_price') or 0)
+                day_name = days_order[dt.weekday()] if dt.weekday() < 7 else "السبت"
+                daily_data[day_name] += price
+                monthly_data[months_order[dt.month - 1]] += price
+                yearly_data[str(dt.year)] += price
+
+        total_sales = sum(float(o.get('total_price') or 0) for o in orders)
+        total_expenses = sum(float(e.get('amount') or 0) for e in expenses)
+        total_orders = len(orders)
+
+        return render_template('stats.html', 
+                               total_sales=total_sales, 
+                               total_expenses=total_expenses, 
+                               total_orders=total_orders, 
+                               daily=dict(daily_data), 
+                               monthly=dict(monthly_data), 
+                               yearly=dict(yearly_data))
+                               
+    except Exception as e:
+        print(f"Stats Error: {e}")
+        return render_template('stats.html', total_sales=0, total_expenses=0, total_orders=0, daily={}, monthly={}, yearly={})
+
+# مسار الرد الذكي مع التنبيه الفوري للمدير
 @app.route('/webhook_instagram', methods=['GET', 'POST'])
 def webhook_instagram():
     if request.method == 'GET':
@@ -137,18 +177,31 @@ def webhook_instagram():
     data = request.json
     try:
         page_id = data['entry'][0]['id']
-        msg = data['entry'][0]['messaging'][0]['message']['text']
+        # استخراج الرسالة
+        messaging = data['entry'][0]['messaging'][0]
+        msg = messaging['message']['text']
+        sender_id = messaging['sender']['id']
         
-        # جلب إعدادات الشركة للرد وإرسال التنبيه
+        # جلب إعدادات الشركة
         res = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("instagram_page_id", page_id).execute()
         
         if res.data:
-            # الرد الذكي عبر Gemini
+            # 1. إرسال تنبيه للمدير بأن هناك رسالة جديدة
+            send_telegram_alert_by_token(
+                res.data[0]['telegram_token'], 
+                res.data[0]['telegram_chat_id'], 
+                f"🔔 رسالة إنستقرام جديدة من العميل ({sender_id}):\n{msg}"
+            )
+            
+            # 2. توليد الرد عبر Gemini
             response = client.models.generate_content(model='gemini-2.0-flash', contents=msg)
             
-            # إرسال التنبيه للمدير مع نص الرسالة والرد المقترح
-            alert_msg = f"📩 رسالة إنستقرام جديدة:\n{msg}\n\n🤖 الرد المقترح:\n{response.text}"
-            send_telegram_alert_by_token(res.data[0]['telegram_token'], res.data[0]['telegram_chat_id'], alert_msg)
+            # 3. إرسال الرد المقترح للمدير
+            send_telegram_alert_by_token(
+                res.data[0]['telegram_token'], 
+                res.data[0]['telegram_chat_id'], 
+                f"🤖 الرد المقترح من Gemini:\n{response.text}"
+            )
             
         return 'OK', 200
     except Exception as e:
@@ -156,5 +209,5 @@ def webhook_instagram():
         return 'Error', 500
 
 if __name__ == '__main__':
-    refresh_instagram_token() # تشغيل التجديد عند التشغيل
+    refresh_instagram_token()
     app.run(debug=True)
