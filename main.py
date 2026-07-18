@@ -49,6 +49,11 @@ def login_required(f):
 
 # --- المسارات ---
 
+# مسار الصفحة الرئيسية
+@app.route('/')
+def home():
+    return redirect(url_for('login'))
+
 # مسار تسجيل الدخول
 @app.route('/login', methods=['GET', 'POST'])
 def login():
