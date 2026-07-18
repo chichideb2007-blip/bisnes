@@ -107,20 +107,22 @@ def settings():
     settings_data = res.data[0] if res.data else {}
     return render_template('settings.html', settings=settings_data)
 
-# مسار المخزون (يدعم صورة المنتج)
+# مسار المخزون (المحدث لدعم صورة المنتج بالاسم الصحيح)
 @app.route('/products', methods=['GET', 'POST'])
 @login_required
 def products():
     company_code = session.get('company_code')
     if request.method == 'POST':
-        image_url = request.form.get('product_image') 
+        # الحصول على رابط الصورة من النموذج (تأكد أن الـ name في الـ HTML هو product-images)
+        image_url = request.form.get('product-images') 
+        
         data = {
             "name": request.form.get('name'),
             "quantity": int(request.form.get('quantity', 0)),
             "price": float(request.form.get('price', 0.0)),
             "company_code": company_code,
             "company_id_text": company_code,
-            "product_image": image_url
+            "product-images": image_url  # التعديل هنا ليتطابق مع اسم العمود في قاعدة البيانات
         }
         supabase.table("inventory").insert(data).execute()
         return redirect(url_for('products'))
