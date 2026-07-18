@@ -49,12 +49,24 @@ def login_required(f):
 
 # --- المسارات ---
 
+# مسار تسجيل الدخول المحدث
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        session['company_code'] = request.form.get('company_code')
-        return redirect(url_for('dashboard'))
+        company_code = request.form.get('company_code')
+        # تحقق من وجود الشركة في Supabase
+        res = supabase.table("settings").select("company_code").eq("company_code", company_code).execute()
+        if res.data:
+            session['company_code'] = company_code
+            return redirect(url_for('dashboard'))
+        return "كود الشركة غير صحيح!", 401
     return render_template('login.html')
+
+# مسار تسجيل الخروج
+@app.route('/logout')
+def logout():
+    session.pop('company_code', None)
+    return redirect(url_for('login'))
 
 @app.route('/dashboard')
 @login_required
@@ -69,13 +81,12 @@ def settings():
     
     if request.method == 'POST':
         data = {}
-        # تحديث معلومات المتجر بما في ذلك رابط إنستقرام الجديد
         if 'company_name' in request.form:
             data = {
                 "company_name": request.form.get('company_name'),
                 "telegram_token": request.form.get('telegram_token'),
                 "telegram_chat_id": request.form.get('chat_id'),
-                "instagram_url": request.form.get('instagram_url') # الحقل الجديد
+                "instagram_url": request.form.get('instagram_url')
             }
         elif 'theme_color' in request.form:
             data = {"theme_color": request.form.get('theme_color')}
@@ -87,7 +98,6 @@ def settings():
                 print(f"Update Error: {e}")
         return redirect(url_for('settings'))
     
-    # جلب الإعدادات
     res = supabase.table("settings").select("*").eq("company_code", company_code).execute()
     settings_data = res.data[0] if res.data else {}
     return render_template('settings.html', settings=settings_data)
@@ -190,15 +200,12 @@ def webhook_instagram():
         res = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("instagram_page_id", page_id).execute()
         
         if res.data:
-            # 1. إرسال تنبيه للمدير
             send_telegram_alert_by_token(
                 res.data[0]['telegram_token'], 
                 res.data[0]['telegram_chat_id'], 
                 f"🔔 رسالة إنستقرام جديدة من العميل ({sender_id}):\n{msg}"
             )
-            # 2. توليد الرد عبر Gemini
             response = client.models.generate_content(model='gemini-2.0-flash', contents=msg)
-            # 3. إرسال الرد للمدير
             send_telegram_alert_by_token(
                 res.data[0]['telegram_token'], 
                 res.data[0]['telegram_chat_id'], 
