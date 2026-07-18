@@ -61,7 +61,7 @@ def login():
 def dashboard():
     return render_template('dashboard.html')
 
-# مسار الإعدادات
+# مسار الإعدادات (محدث لدعم رابط إنستقرام)
 @app.route('/settings', methods=['GET', 'POST'])
 @login_required
 def settings():
@@ -69,21 +69,27 @@ def settings():
     
     if request.method == 'POST':
         data = {}
+        # تحديث معلومات المتجر بما في ذلك رابط إنستقرام الجديد
         if 'company_name' in request.form:
             data = {
                 "company_name": request.form.get('company_name'),
                 "telegram_token": request.form.get('telegram_token'),
-                "telegram_chat_id": request.form.get('chat_id')
+                "telegram_chat_id": request.form.get('chat_id'),
+                "instagram_url": request.form.get('instagram_url') # الحقل الجديد
             }
         elif 'theme_color' in request.form:
             data = {"theme_color": request.form.get('theme_color')}
         
         if data:
-            supabase.table("settings").update(data).eq("company_code", company_code).execute()
+            try:
+                supabase.table("settings").update(data).eq("company_code", company_code).execute()
+            except Exception as e:
+                print(f"Update Error: {e}")
         return redirect(url_for('settings'))
     
+    # جلب الإعدادات
     res = supabase.table("settings").select("*").eq("company_code", company_code).execute()
-    settings_data = res.data[0] if res.data and len(res.data) > 0 else {}
+    settings_data = res.data[0] if res.data else {}
     return render_template('settings.html', settings=settings_data)
 
 # مسار المخزون
@@ -168,7 +174,7 @@ def stats():
         print(f"Stats Error: {e}")
         return render_template('stats.html', total_sales=0, total_expenses=0, total_orders=0, daily={}, monthly={}, yearly={})
 
-# مسار الرد الذكي مع التنبيه الفوري للمدير
+# مسار الرد الذكي
 @app.route('/webhook_instagram', methods=['GET', 'POST'])
 def webhook_instagram():
     if request.method == 'GET':
@@ -177,26 +183,22 @@ def webhook_instagram():
     data = request.json
     try:
         page_id = data['entry'][0]['id']
-        # استخراج الرسالة
         messaging = data['entry'][0]['messaging'][0]
         msg = messaging['message']['text']
         sender_id = messaging['sender']['id']
         
-        # جلب إعدادات الشركة
         res = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("instagram_page_id", page_id).execute()
         
         if res.data:
-            # 1. إرسال تنبيه للمدير بأن هناك رسالة جديدة
+            # 1. إرسال تنبيه للمدير
             send_telegram_alert_by_token(
                 res.data[0]['telegram_token'], 
                 res.data[0]['telegram_chat_id'], 
                 f"🔔 رسالة إنستقرام جديدة من العميل ({sender_id}):\n{msg}"
             )
-            
             # 2. توليد الرد عبر Gemini
             response = client.models.generate_content(model='gemini-2.0-flash', contents=msg)
-            
-            # 3. إرسال الرد المقترح للمدير
+            # 3. إرسال الرد للمدير
             send_telegram_alert_by_token(
                 res.data[0]['telegram_token'], 
                 res.data[0]['telegram_chat_id'], 
