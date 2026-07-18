@@ -107,7 +107,7 @@ def settings():
     settings_data = res.data[0] if res.data else {}
     return render_template('settings.html', settings=settings_data)
 
-# مسار المخزون
+# مسار المخزون (تم التعديل لإضافة company_id_text)
 @app.route('/products', methods=['GET', 'POST'])
 @login_required
 def products():
@@ -117,7 +117,8 @@ def products():
             "name": request.form.get('name'),
             "quantity": int(request.form.get('quantity', 0)),
             "price": float(request.form.get('price', 0.0)),
-            "company_code": company_code
+            "company_code": company_code,
+            "company_id_text": company_code  # أضفنا هذا السطر هنا
         }
         supabase.table("inventory").insert(data).execute()
         return redirect(url_for('products'))
