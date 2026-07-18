@@ -68,15 +68,28 @@ def login():
         return "كود الشركة غير صحيح!", 401
     return render_template('login.html')
 
-# مسار تسجيل الحساب الجديد (المضاف حديثاً)
+# مسار إنشاء حساب جديد
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
-        # كود إضافة الشركة الجديدة لقاعدة البيانات
-        # تأكدي أن الجدول في Supabase جاهز لاستقبال البيانات
         company_code = request.form.get('company_code')
-        # هنا تضيفين كود الـ insert في جدول settings
-        return "تم إنشاء الحساب بنجاح!"
+        company_name = request.form.get('company_name')
+        
+        # التأكد من عدم وجود الكود مسبقاً
+        res = supabase.table("settings").select("company_code").eq("company_code", company_code).execute()
+        if res.data:
+            return "هذا الكود مستخدم بالفعل، يرجى اختيار كود آخر!", 400
+            
+        # إدراج الشركة الجديدة في جدول settings
+        try:
+            supabase.table("settings").insert({
+                "company_code": company_code,
+                "company_name": company_name
+            }).execute()
+            return "تم إنشاء الحساب بنجاح! يمكنك الآن تسجيل الدخول."
+        except Exception as e:
+            return f"حدث خطأ أثناء الإنشاء: {e}", 500
+            
     return render_template('signup.html')
 
 # مسار تسجيل الخروج
