@@ -143,6 +143,14 @@ def delete_product(id):
     supabase.table("inventory").delete().eq("id", id).execute()
     return redirect(url_for('products'))
 
+# مسار حذف الطلبيات (المضاف حديثاً)
+@app.route('/delete_order/<int:id>', methods=['POST'])
+@login_required
+def delete_order(id):
+    # تأكدي أن اسم الجدول هو 'orders'
+    supabase.table("orders").delete().eq("id", id).execute()
+    return redirect(url_for('orders'))
+
 # مسار الطلبيات
 @app.route('/orders', methods=['GET', 'POST'])
 @login_required
@@ -166,7 +174,7 @@ def orders():
     res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
 
-# مسار الإحصائيات (المعدل)
+# مسار الإحصائيات
 @app.route('/stats')
 @login_required
 def stats():
