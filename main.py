@@ -68,6 +68,17 @@ def login():
         return "كود الشركة غير صحيح!", 401
     return render_template('login.html')
 
+# مسار تسجيل الحساب الجديد (المضاف حديثاً)
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if request.method == 'POST':
+        # كود إضافة الشركة الجديدة لقاعدة البيانات
+        # تأكدي أن الجدول في Supabase جاهز لاستقبال البيانات
+        company_code = request.form.get('company_code')
+        # هنا تضيفين كود الـ insert في جدول settings
+        return "تم إنشاء الحساب بنجاح!"
+    return render_template('signup.html')
+
 # مسار تسجيل الخروج
 @app.route('/logout')
 def logout():
