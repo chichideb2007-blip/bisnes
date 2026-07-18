@@ -107,13 +107,13 @@ def settings():
     settings_data = res.data[0] if res.data else {}
     return render_template('settings.html', settings=settings_data)
 
-# مسار المخزون (المحدث للتعامل مع رابط الصورة)
+# مسار المخزون (المحدث للتصحيح)
 @app.route('/products', methods=['GET', 'POST'])
 @login_required
 def products():
     company_code = session.get('company_code')
     if request.method == 'POST':
-        # الحصول على رابط الصورة من النموذج (تأكد أن الـ name في الـ HTML هو product-images)
+        # التأكد من التقاط القيمة من حقل HTML يحمل الاسم product-images
         image_url = request.form.get('product-images') 
         
         data = {
@@ -122,8 +122,12 @@ def products():
             "price": float(request.form.get('price', 0.0)),
             "company_code": company_code,
             "company_id_text": company_code,
-            "product-images": image_url  # تأكد أن اسم العمود في جدول inventory هو بالضبط product-images
+            "product-images": image_url # هذا المفتاح يجب أن يطابق اسم العمود في Supabase
         }
+        
+        # طباعة للـ Logs للتأكد مما يرسله الموقع للسيرفر
+        print(f"DEBUG: Data to insert: {data}")
+        
         supabase.table("inventory").insert(data).execute()
         return redirect(url_for('products'))
     
