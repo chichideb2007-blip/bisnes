@@ -1,5 +1,5 @@
 <!-- نموذج معلومات المتجر -->
-<form action="{{ url_for('update_company') }}" method="POST">
+<form action="{{ url_for('settings') }}" method="POST">
     <div class="mb-3">
         <label>اسم المتجر</label>
         <input type="text" name="company_name" class="form-control" value="{{ settings.company_name or '' }}">
@@ -12,13 +12,18 @@
         <label>رقم تعريف المحادثة (Chat ID)</label>
         <input type="text" name="chat_id" class="form-control" value="{{ settings.telegram_chat_id or '' }}">
     </div>
+    <!-- حقل إنستقرام المضاف -->
+    <div class="mb-3">
+        <label>رابط إنستقرام</label>
+        <input type="text" name="instagram_url" class="form-control" value="{{ settings.instagram_url or '' }}">
+    </div>
     <button type="submit" class="btn btn-primary">حفظ معلومات المتجر</button>
 </form>
 
 <hr>
 
 <!-- نموذج اللون -->
-<form action="{{ url_for('update_color') }}" method="POST">
+<form action="{{ url_for('settings') }}" method="POST">
     <div class="mb-3">
         <label>لون واجهة المتجر</label>
         <input type="color" name="theme_color" class="form-control form-control-color" value="{{ settings.theme_color or '#0d6efd' }}">
@@ -32,7 +37,8 @@
 <div class="mb-3">
     <label>ربط حساب إنستقرام</label>
     <br>
-    <a href="{{ url_for('instagram_login') }}" class="btn btn-info text-white">
+    <!-- تأكد أن لديك مسار باسم instagram_login في app.py أو استبدله بالرابط المباشر -->
+    <a href="{{ url_for('instagram_login') if 'instagram_login' in url_for.__globals__ else '#' }}" class="btn btn-info text-white">
         اضغط هنا لربط حساب إنستقرام
     </a>
 </div>
