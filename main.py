@@ -73,14 +73,16 @@ def logout():
 def dashboard():
     return render_template('dashboard.html')
 
-# مسار الإعدادات (محدث لدعم رابط إنستقرام)
 @app.route('/settings', methods=['GET', 'POST'])
 @login_required
 def settings():
     company_code = session.get('company_code')
     
     if request.method == 'POST':
+        # تجميع كل البيانات الممكن إرسالها من أي نموذج
         data = {}
+        
+        # نستخدم .get() لجلب القيمة إذا كانت موجودة في النموذج المرسل
         if 'company_name' in request.form:
             data = {
                 "company_name": request.form.get('company_name'),
@@ -93,11 +95,14 @@ def settings():
         
         if data:
             try:
+                # محاولة التحديث
                 supabase.table("settings").update(data).eq("company_code", company_code).execute()
             except Exception as e:
                 print(f"Update Error: {e}")
+        
         return redirect(url_for('settings'))
     
+    # جلب البيانات الحالية للعرض
     res = supabase.table("settings").select("*").eq("company_code", company_code).execute()
     settings_data = res.data[0] if res.data else {}
     return render_template('settings.html', settings=settings_data)
