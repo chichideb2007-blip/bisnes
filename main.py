@@ -234,6 +234,3 @@ def webhook_instagram():
 if __name__ == '__main__':
     refresh_instagram_token()
     app.run(debug=True)
-
-
-هاهو كود main.py
