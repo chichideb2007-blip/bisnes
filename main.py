@@ -132,6 +132,13 @@ def products():
     res = supabase.table("inventory").select("*").eq("company_code", company_code).execute()
     return render_template('products.html', products=res.data or [])
 
+@app.route('/delete_product/<int:id>', methods=['POST'])
+@login_required
+def delete_product(id):
+    # كود الحذف من Supabase
+    supabase.table("inventory").delete().eq("id", id).execute()
+    return redirect(url_for('products'))
+
 # مسار الطلبيات
 @app.route('/orders', methods=['GET', 'POST'])
 @login_required
