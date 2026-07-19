@@ -83,8 +83,8 @@
                         {% for order in orders %}
                         <tr>
                             <td>#{{ order.id }}</td>
-                            <td>{{ order.customer_name }}<br><small class="text-muted">{{ order.customer_phone }}</small></td>
-                            <td>{{ order.product_name }}<br><small class="text-muted">الكمية: {{ order.quantity }}</small></td>
+                            <td>{{ order.customer_name if order.customer_name else 'غير معروف' }}<br><small class="text-muted">{{ order.customer_phone }}</small></td>
+                            <td>{{ order.product_name if order.product_name else '-' }}<br><small class="text-muted">الكمية: {{ order.quantity }}</small></td>
                             <td>{{ order.total_price }} {{ currency }}</td>
                             <td>
                                 <span class="badge {% if order.status == 'تم التوصيل' %}bg-success{% else %}bg-warning{% endif %}">
