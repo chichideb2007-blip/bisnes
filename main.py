@@ -89,32 +89,39 @@ def logout():
 def dashboard():
     return render_template('dashboard.html')
 
+# المسار المدمج (Settings)
 @app.route('/settings', methods=['GET', 'POST'])
 @login_required
 def settings():
     company_code = session.get('company_code')
     
     if request.method == 'POST':
+        # نأخذ البيانات من النموذج
         data = {
             "company_name": request.form.get('company_name'),
             "telegram_token": request.form.get('telegram_token'),
             "telegram_chat_id": request.form.get('chat_id'),
             "instagram_url": request.form.get('instagram_url'),
-            "currency": request.form.get('currency') # استقبال العملة من الفورم
+            "currency": request.form.get('currency') 
         }
         
         try:
+            # التحديث في القاعدة
             supabase.table("settings").update(data).eq("company_code", company_code).execute()
         except Exception as e:
-            print(f"Update Error: {e}")
+            print(f"Update Error: {e}") # هذا الخطأ سيظهر في الـ Terminal/Logs
+            return f"حدث خطأ أثناء الحفظ: {str(e)}", 500
         
         return redirect(url_for('settings'))
     
-    # جلب البيانات من القاعدة
-    res = supabase.table("settings").select("*").eq("company_code", company_code).execute()
-    settings_data = res.data[0] if res.data else {}
-    
-    # تمرير البيانات لصفحة الـ HTML
+    # جلب البيانات الحالية
+    try:
+        res = supabase.table("settings").select("*").eq("company_code", company_code).execute()
+        settings_data = res.data[0] if res.data else {}
+    except Exception as e:
+        print(f"Fetch Error: {e}")
+        settings_data = {}
+        
     return render_template('settings.html', settings=settings_data)
 
 @app.route('/products', methods=['GET', 'POST'])
