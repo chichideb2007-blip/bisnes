@@ -38,57 +38,146 @@
                 <div class="mb-3">
                     <label class="form-label">العملة الافتراضية</label>
                     <select name="currency" class="form-select">
-                        <!-- عملات مغاربية وعربية -->
-                        <option value="DZD" {% if settings.currency == 'DZD' %}selected{% endif %}>دج (DZD) - الجزائر</option>
-                        <option value="TND" {% if settings.currency == 'TND' %}selected{% endif %}>دينار (TND) - تونس</option>
-                        <option value="MAD" {% if settings.currency == 'MAD' %}selected{% endif %}>درهم (MAD) - المغرب</option>
-                        <option value="SAR" {% if settings.currency == 'SAR' %}selected{% endif %}>ريال (SAR) - السعودية</option>
-                        <option value="AED" {% if settings.currency == 'AED' %}selected{% endif %}>درهم (AED) - الإمارات</option>
-                        <option value="EGP" {% if settings.currency == 'EGP' %}selected{% endif %}>جنيه (EGP) - مصر</option>
-                        <option value="QAR" {% if settings.currency == 'QAR' %}selected{% endif %}>ريال (QAR) - قطر</option>
-                        <option value="KWD" {% if settings.currency == 'KWD' %}selected{% endif %}>دينار (KWD) - الكويت</option>
-                        
-                        <!-- عملات عالمية -->
-                        <option value="USD" {% if settings.currency == 'USD' %}selected{% endif %}>دولار ($) - أمريكي</option>
-                        <option value="EUR" {% if settings.currency == 'EUR' %}selected{% endif %}>يورو (€) - أوروبي</option>
-                        <option value="GBP" {% if settings.currency == 'GBP' %}selected{% endif %}>جنيه إسترليني (£) - بريطاني</option>
-                        <option value="CAD" {% if settings.currency == 'CAD' %}selected{% endif %}>دولار (CAD) - كندي</option>
-                        <option value="AUD" {% if settings.currency == 'AUD' %}selected{% endif %}>دولار (AUD) - أسترالي</option>
-                        <option value="JPY" {% if settings.currency == 'JPY' %}selected{% endif %}>ين (¥) - ياباني</option>
-                        <option value="TRY" {% if settings.currency == 'TRY' %}selected{% endif %}>ليرة (TRY) - تركية</option>
-                        <option value="CHF" {% if settings.currency == 'CHF' %}selected{% endif %}>فرنك (CHF) - سويسري</option>
-                    </select>
-                </div>
-                
-                <button type="submit" class="btn btn-primary w-100">حفظ معلومات المتجر والعملة</button>
-            </form>
-
-            <hr class="my-4">
-
-            <!-- نموذج اللون -->
-            <form action="{{ url_for('settings') }}" method="POST">
-                <div class="mb-3">
-                    <label class="form-label">لون واجهة المتجر</label>
-                    <input type="color" name="theme_color" class="form-control form-control-color w-100" value="{{ settings.theme_color or '#0d6efd' }}">
-                </div>
-                <button type="submit" class="btn btn-success w-100">حفظ اللون</button>
-            </form>
-
-            <hr class="my-4">
-
-            <!-- ربط إنستقرام -->
-            <div class="mb-3 text-center">
-                <label class="form-label d-block">ربط حساب إنستقرام</label>
-                <a href="{{ url_for('instagram_login') if 'instagram_login' in url_for.__globals__ else '#' }}" class="btn btn-info text-white w-100">
-                    اضغط هنا لربط حساب إنستقرام
-                </a>
-            </div>
-            
-            <div class="mt-3 text-center">
-                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary px-4">العودة للوحة التحكم</a>
-            </div>
-        </div>
-    </div>
-
-</body>
-</html>
+                        <option value="AED" {% if settings.currency == 'AED' %}selected{% endif %}>AED - درهم إماراتي</option>
+                        <option value="AFN" {% if settings.currency == 'AFN' %}selected{% endif %}>AFN - أفغاني</option>
+                        <option value="ALL" {% if settings.currency == 'ALL' %}selected{% endif %}>ALL - ليك ألباني</option>
+                        <option value="AMD" {% if settings.currency == 'AMD' %}selected{% endif %}>AMD - درام أرميني</option>
+                        <option value="ANG" {% if settings.currency == 'ANG' %}selected{% endif %}>ANG - غيلدر الأنتيل الهولندية</option>
+                        <option value="AOA" {% if settings.currency == 'AOA' %}selected{% endif %}>AOA - كوانزا أنغولي</option>
+                        <option value="ARS" {% if settings.currency == 'ARS' %}selected{% endif %}>ARS - بيزو أرجنتيني</option>
+                        <option value="AUD" {% if settings.currency == 'AUD' %}selected{% endif %}>AUD - دولار أسترالي</option>
+                        <option value="AWG" {% if settings.currency == 'AWG' %}selected{% endif %}>AWG - فلورين أروبي</option>
+                        <option value="AZN" {% if settings.currency == 'AZN' %}selected{% endif %}>AZN - مانات أذربيجاني</option>
+                        <option value="BAM" {% if settings.currency == 'BAM' %}selected{% endif %}>BAM - مارك بوسني</option>
+                        <option value="BBD" {% if settings.currency == 'BBD' %}selected{% endif %}>BBD - دولار باربادوسي</option>
+                        <option value="BDT" {% if settings.currency == 'BDT' %}selected{% endif %}>BDT - تاكا بنغلاديشي</option>
+                        <option value="BGN" {% if settings.currency == 'BGN' %}selected{% endif %}>BGN - ليف بلغاري</option>
+                        <option value="BHD" {% if settings.currency == 'BHD' %}selected{% endif %}>BHD - دينار بحريني</option>
+                        <option value="BIF" {% if settings.currency == 'BIF' %}selected{% endif %}>BIF - فرنك بوروندي</option>
+                        <option value="BMD" {% if settings.currency == 'BMD' %}selected{% endif %}>BMD - دولار برمودي</option>
+                        <option value="BND" {% if settings.currency == 'BND' %}selected{% endif %}>BND - دولار بروني</option>
+                        <option value="BOB" {% if settings.currency == 'BOB' %}selected{% endif %}>BOB - بوليفيانو</option>
+                        <option value="BRL" {% if settings.currency == 'BRL' %}selected{% endif %}>BRL - ريال برازيلي</option>
+                        <option value="BSD" {% if settings.currency == 'BSD' %}selected{% endif %}>BSD - دولار باهامي</option>
+                        <option value="BTN" {% if settings.currency == 'BTN' %}selected{% endif %}>BTN - نغولترم بوتاني</option>
+                        <option value="BWP" {% if settings.currency == 'BWP' %}selected{% endif %}>BWP - بولا بوتسواني</option>
+                        <option value="BYN" {% if settings.currency == 'BYN' %}selected{% endif %}>BYN - روبل بيلاروسي</option>
+                        <option value="BZD" {% if settings.currency == 'BZD' %}selected{% endif %}>BZD - دولار بليزي</option>
+                        <option value="CAD" {% if settings.currency == 'CAD' %}selected{% endif %}>CAD - دولار كندي</option>
+                        <option value="CDF" {% if settings.currency == 'CDF' %}selected{% endif %}>CDF - فرنك كونغولي</option>
+                        <option value="CHF" {% if settings.currency == 'CHF' %}selected{% endif %}>CHF - فرنك سويسري</option>
+                        <option value="CLP" {% if settings.currency == 'CLP' %}selected{% endif %}>CLP - بيزو تشيلي</option>
+                        <option value="CNY" {% if settings.currency == 'CNY' %}selected{% endif %}>CNY - يوان صيني</option>
+                        <option value="COP" {% if settings.currency == 'COP' %}selected{% endif %}>COP - بيزو كولومبي</option>
+                        <option value="CRC" {% if settings.currency == 'CRC' %}selected{% endif %}>CRC - كولون كوستاريكي</option>
+                        <option value="CUP" {% if settings.currency == 'CUP' %}selected{% endif %}>CUP - بيزو كوبي</option>
+                        <option value="CVE" {% if settings.currency == 'CVE' %}selected{% endif %}>CVE - إيسكودو رأس أخضر</option>
+                        <option value="CZK" {% if settings.currency == 'CZK' %}selected{% endif %}>CZK - كرونة تشيكية</option>
+                        <option value="DJF" {% if settings.currency == 'DJF' %}selected{% endif %}>DJF - فرنك جيبوتي</option>
+                        <option value="DKK" {% if settings.currency == 'DKK' %}selected{% endif %}>DKK - كرونة دنماركية</option>
+                        <option value="DOP" {% if settings.currency == 'DOP' %}selected{% endif %}>DOP - بيزو دومينيكاني</option>
+                        <option value="DZD" {% if settings.currency == 'DZD' %}selected{% endif %}>DZD - دينار جزائري</option>
+                        <option value="EGP" {% if settings.currency == 'EGP' %}selected{% endif %}>EGP - جنيه مصري</option>
+                        <option value="ERN" {% if settings.currency == 'ERN' %}selected{% endif %}>ERN - ناكفا إريتري</option>
+                        <option value="ETB" {% if settings.currency == 'ETB' %}selected{% endif %}>ETB - بير إثيوبي</option>
+                        <option value="EUR" {% if settings.currency == 'EUR' %}selected{% endif %}>EUR - يورو</option>
+                        <option value="FJD" {% if settings.currency == 'FJD' %}selected{% endif %}>FJD - دولار فيجي</option>
+                        <option value="GBP" {% if settings.currency == 'GBP' %}selected{% endif %}>GBP - جنيه إسترليني</option>
+                        <option value="GEL" {% if settings.currency == 'GEL' %}selected{% endif %}>GEL - لاري جورجي</option>
+                        <option value="GHS" {% if settings.currency == 'GHS' %}selected{% endif %}>GHS - سيدي غاني</option>
+                        <option value="GMD" {% if settings.currency == 'GMD' %}selected{% endif %}>GMD - دالاسي غامبي</option>
+                        <option value="GNF" {% if settings.currency == 'GNF' %}selected{% endif %}>GNF - فرنك غيني</option>
+                        <option value="GTQ" {% if settings.currency == 'GTQ' %}selected{% endif %}>GTQ - كيتزال غواتيمالي</option>
+                        <option value="GYD" {% if settings.currency == 'GYD' %}selected{% endif %}>GYD - دولار غياني</option>
+                        <option value="HKD" {% if settings.currency == 'HKD' %}selected{% endif %}>HKD - دولار هونج كونج</option>
+                        <option value="HNL" {% if settings.currency == 'HNL' %}selected{% endif %}>HNL - ليمبيرا هندوراسي</option>
+                        <option value="HRK" {% if settings.currency == 'HRK' %}selected{% endif %}>HRK - كونا كرواتية</option>
+                        <option value="HTG" {% if settings.currency == 'HTG' %}selected{% endif %}>HTG - غورد هايتي</option>
+                        <option value="HUF" {% if settings.currency == 'HUF' %}selected{% endif %}>HUF - فورنت مجري</option>
+                        <option value="IDR" {% if settings.currency == 'IDR' %}selected{% endif %}>IDR - روبية إندونيسية</option>
+                        <option value="ILS" {% if settings.currency == 'ILS' %}selected{% endif %}>ILS - شيكل جديد</option>
+                        <option value="INR" {% if settings.currency == 'INR' %}selected{% endif %}>INR - روبية هندية</option>
+                        <option value="IQD" {% if settings.currency == 'IQD' %}selected{% endif %}>IQD - دينار عراقي</option>
+                        <option value="IRR" {% if settings.currency == 'IRR' %}selected{% endif %}>IRR - ريال إيراني</option>
+                        <option value="ISK" {% if settings.currency == 'ISK' %}selected{% endif %}>ISK - كرونة آيسلندية</option>
+                        <option value="JMD" {% if settings.currency == 'JMD' %}selected{% endif %}>JMD - دولار جامايكي</option>
+                        <option value="JOD" {% if settings.currency == 'JOD' %}selected{% endif %}>JOD - دينار أردني</option>
+                        <option value="JPY" {% if settings.currency == 'JPY' %}selected{% endif %}>JPY - ين ياباني</option>
+                        <option value="KES" {% if settings.currency == 'KES' %}selected{% endif %}>KES - شيلينغ كيني</option>
+                        <option value="KGS" {% if settings.currency == 'KGS' %}selected{% endif %}>KGS - سوم قيرغيزستاني</option>
+                        <option value="KHR" {% if settings.currency == 'KHR' %}selected{% endif %}>KHR - رييل كمبودي</option>
+                        <option value="KMF" {% if settings.currency == 'KMF' %}selected{% endif %}>KMF - فرنك قمري</option>
+                        <option value="KPW" {% if settings.currency == 'KPW' %}selected{% endif %}>KPW - وون كوري شمالي</option>
+                        <option value="KRW" {% if settings.currency == 'KRW' %}selected{% endif %}>KRW - وون كوري جنوبي</option>
+                        <option value="KWD" {% if settings.currency == 'KWD' %}selected{% endif %}>KWD - دينار كويتي</option>
+                        <option value="KYD" {% if settings.currency == 'KYD' %}selected{% endif %}>KYD - دولار جزر كايمان</option>
+                        <option value="KZT" {% if settings.currency == 'KZT' %}selected{% endif %}>KZT - تينغي كازاخستاني</option>
+                        <option value="LAK" {% if settings.currency == 'LAK' %}selected{% endif %}>LAK - كيب لاوسي</option>
+                        <option value="LBP" {% if settings.currency == 'LBP' %}selected{% endif %}>LBP - ليرة لبنانية</option>
+                        <option value="LKR" {% if settings.currency == 'LKR' %}selected{% endif %}>LKR - روبية سريلانكية</option>
+                        <option value="LRD" {% if settings.currency == 'LRD' %}selected{% endif %}>LRD - دولار ليبيري</option>
+                        <option value="LSL" {% if settings.currency == 'LSL' %}selected{% endif %}>LSL - لوتي ليسوتو</option>
+                        <option value="LYD" {% if settings.currency == 'LYD' %}selected{% endif %}>LYD - دينار ليبي</option>
+                        <option value="MAD" {% if settings.currency == 'MAD' %}selected{% endif %}>MAD - درهم مغربي</option>
+                        <option value="MDL" {% if settings.currency == 'MDL' %}selected{% endif %}>MDL - ليو مولدوفي</option>
+                        <option value="MGA" {% if settings.currency == 'MGA' %}selected{% endif %}>MGA - أرياري مدغشقري</option>
+                        <option value="MKD" {% if settings.currency == 'MKD' %}selected{% endif %}>MKD - دينار مقدوني</option>
+                        <option value="MMK" {% if settings.currency == 'MMK' %}selected{% endif %}>MMK - كيات ميانماري</option>
+                        <option value="MNT" {% if settings.currency == 'MNT' %}selected{% endif %}>MNT - توغروغ منغولي</option>
+                        <option value="MOP" {% if settings.currency == 'MOP' %}selected{% endif %}>MOP - باتاكا ماكاوية</option>
+                        <option value="MRU" {% if settings.currency == 'MRU' %}selected{% endif %}>MRU - أوقية موريتانية</option>
+                        <option value="MUR" {% if settings.currency == 'MUR' %}selected{% endif %}>MUR - روبية موريشيسية</option>
+                        <option value="MVR" {% if settings.currency == 'MVR' %}selected{% endif %}>MVR - روفية مالديفية</option>
+                        <option value="MWK" {% if settings.currency == 'MWK' %}selected{% endif %}>MWK - كواشا مالاوي</option>
+                        <option value="MXN" {% if settings.currency == 'MXN' %}selected{% endif %}>MXN - بيزو مكسيكي</option>
+                        <option value="MYR" {% if settings.currency == 'MYR' %}selected{% endif %}>MYR - رينغيت ماليزي</option>
+                        <option value="MZN" {% if settings.currency == 'MZN' %}selected{% endif %}>MZN - ميتيكال موزمبيقي</option>
+                        <option value="NAD" {% if settings.currency == 'NAD' %}selected{% endif %}>NAD - دولار ناميبي</option>
+                        <option value="NGN" {% if settings.currency == 'NGN' %}selected{% endif %}>NGN - نايرا نيجيري</option>
+                        <option value="NIO" {% if settings.currency == 'NIO' %}selected{% endif %}>NIO - كوردوبا نيكاراغوي</option>
+                        <option value="NOK" {% if settings.currency == 'NOK' %}selected{% endif %}>NOK - كرونة نرويجية</option>
+                        <option value="NPR" {% if settings.currency == 'NPR' %}selected{% endif %}>NPR - روبية نيبالية</option>
+                        <option value="NZD" {% if settings.currency == 'NZD' %}selected{% endif %}>NZD - دولار نيوزيلندي</option>
+                        <option value="OMR" {% if settings.currency == 'OMR' %}selected{% endif %}>OMR - ريال عماني</option>
+                        <option value="PAB" {% if settings.currency == 'PAB' %}selected{% endif %}>PAB - بالبوا بنمي</option>
+                        <option value="PEN" {% if settings.currency == 'PEN' %}selected{% endif %}>PEN - سول بيروفي</option>
+                        <option value="PGK" {% if settings.currency == 'PGK' %}selected{% endif %}>PGK - كينا بابوا غينيا الجديدة</option>
+                        <option value="PHP" {% if settings.currency == 'PHP' %}selected{% endif %}>PHP - بيزو فلبيني</option>
+                        <option value="PKR" {% if settings.currency == 'PKR' %}selected{% endif %}>PKR - روبية باكستانية</option>
+                        <option value="PLN" {% if settings.currency == 'PLN' %}selected{% endif %}>PLN - زلوتي بولندي</option>
+                        <option value="PYG" {% if settings.currency == 'PYG' %}selected{% endif %}>PYG - غواراني باراغواياني</option>
+                        <option value="QAR" {% if settings.currency == 'QAR' %}selected{% endif %}>QAR - ريال قطري</option>
+                        <option value="RON" {% if settings.currency == 'RON' %}selected{% endif %}>RON - ليو روماني</option>
+                        <option value="RSD" {% if settings.currency == 'RSD' %}selected{% endif %}>RSD - دينار صربي</option>
+                        <option value="RUB" {% if settings.currency == 'RUB' %}selected{% endif %}>RUB - روبل روسي</option>
+                        <option value="RWF" {% if settings.currency == 'RWF' %}selected{% endif %}>RWF - فرنك رواندي</option>
+                        <option value="SAR" {% if settings.currency == 'SAR' %}selected{% endif %}>SAR - ريال سعودي</option>
+                        <option value="SBD" {% if settings.currency == 'SBD' %}selected{% endif %}>SBD - دولار جزر سليمان</option>
+                        <option value="SCR" {% if settings.currency == 'SCR' %}selected{% endif %}>SCR - روبية سيشيلية</option>
+                        <option value="SDG" {% if settings.currency == 'SDG' %}selected{% endif %}>SDG - جنيه سوداني</option>
+                        <option value="SEK" {% if settings.currency == 'SEK' %}selected{% endif %}>SEK - كرونة سويدية</option>
+                        <option value="SGD" {% if settings.currency == 'SGD' %}selected{% endif %}>SGD - دولار سنغافوري</option>
+                        <option value="SLL" {% if settings.currency == 'SLL' %}selected{% endif %}>SLL - ليون سيراليوني</option>
+                        <option value="SOS" {% if settings.currency == 'SOS' %}selected{% endif %}>SOS - شيلينغ صومالي</option>
+                        <option value="SRD" {% if settings.currency == 'SRD' %}selected{% endif %}>SRD - دولار سورينامي</option>
+                        <option value="SSP" {% if settings.currency == 'SSP' %}selected{% endif %}>SSP - جنيه جنوب سوداني</option>
+                        <option value="STN" {% if settings.currency == 'STN' %}selected{% endif %}>STN - دوبرا ساو تومي</option>
+                        <option value="SYP" {% if settings.currency == 'SYP' %}selected{% endif %}>SYP - ليرة سورية</option>
+                        <option value="SZL" {% if settings.currency == 'SZL' %}selected{% endif %}>SZL - ليلانغيني سوازيلندي</option>
+                        <option value="THB" {% if settings.currency == 'THB' %}selected{% endif %}>THB - باهت تايلاندي</option>
+                        <option value="TJS" {% if settings.currency == 'TJS' %}selected{% endif %}>TJS - سوموني طاجيكستاني</option>
+                        <option value="TMT" {% if settings.currency == 'TMT' %}selected{% endif %}>TMT - مانات تركماني</option>
+                        <option value="TND" {% if settings.currency == 'TND' %}selected{% endif %}>TND - دينار تونسي</option>
+                        <option value="TOP" {% if settings.currency == 'TOP' %}selected{% endif %}>TOP - بانغا تونغي</option>
+                        <option value="TRY" {% if settings.currency == 'TRY' %}selected{% endif %}>TRY - ليرة تركية</option>
+                        <option value="TTD" {% if settings.currency == 'TTD' %}selected{% endif %}>TTD - دولار ترينيداد</option>
+                        <option value="TWD" {% if settings.currency == 'TWD' %}selected{% endif %}>TWD - دولار تايواني</option>
+                        <option value="TZS" {% if settings.currency == 'TZS' %}selected{% endif %}>TZS - شيلينغ تنزاني</option>
+                        <option value="UAH" {% if settings.currency == 'UAH' %}selected{% endif %}>UAH - هريفنيا أوكرانية</option>
+                        <option value="UGX" {% if settings.currency == 'UGX' %}selected{% endif %}>UGX - شيلينغ أوغندي</option>
+                        <option value="USD" {% if settings.currency == 'USD' %}selected{% endif %}>USD - دولار أمريكي</option>
+                        <option value="UYU" {% if settings.currency == 'UYU' %}selected{% endif %}>UYU - بيزو أوروغواياني</option>
+                        <option value="UZS" {% if settings.currency == 'UZS' %}selected{% endif %}>UZS - سوم أوزبكي</option>
+                        <option value="VES" {% if settings.currency == 'VES' %}selected{% endif %}>VES - بوليفار فنزويلي</option>
+                        <option value="VND" {% if settings.currency == 'VND' %}selected{% endif %}>VND - دونغ فيتنامي</option>
+    
