@@ -175,24 +175,36 @@ def delete_order(id):
     supabase.table("orders").delete().eq("id", id).execute()
     return redirect(url_for('orders'))
 
-# مسار الطلبيات
+# مسار الطلبيات المحدث
 @app.route('/orders', methods=['GET', 'POST'])
 @login_required
 def orders():
     company_code = session.get('company_code')
     if request.method == 'POST':
+        product_name = request.form.get('product_name')
+        quantity_ordered = int(request.form.get('quantity', 0))
+        
+        # 1. إدراج الطلبية
         data = {
             "customer_name": request.form.get('customer_name'),
-            "customer_phone": request.form.get('phone'), # أضفنا الهاتف
-            "product_name": request.form.get('product_name'), # أضفنا المنتج
+            "customer_phone": request.form.get('phone'),
+            "product_name": product_name,
+            "quantity": quantity_ordered,
             "total_price": float(request.form.get('price', 0.0)),
             "company_code": company_code
         }
         supabase.table("orders").insert(data).execute()
         
+        # 2. خصم الكمية من المخزون
+        product = supabase.table("inventory").select("id, quantity").eq("name", product_name).eq("company_code", company_code).single().execute()
+        if product.data:
+            new_qty = product.data['quantity'] - quantity_ordered
+            supabase.table("inventory").update({"quantity": new_qty}).eq("id", product.data['id']).execute()
+
+        # 3. إرسال تنبيه تليجرام
         res = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
         if res.data:
-            msg = f"🚨 طلبية جديدة!\nالعميل: {data['customer_name']}\nالقيمة: {data['total_price']} دج"
+            msg = f"🚨 طلبية جديدة!\nالعميل: {data['customer_name']}\nالمنتج: {product_name}\nالكمية: {quantity_ordered}"
             send_telegram_alert_by_token(res.data[0]['telegram_token'], res.data[0]['telegram_chat_id'], msg)
             
         return redirect(url_for('orders'))
