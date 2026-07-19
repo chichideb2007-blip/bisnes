@@ -109,22 +109,19 @@ def settings():
     company_code = session.get('company_code')
     
     if request.method == 'POST':
-        data = {}
-        if 'company_name' in request.form:
-            data = {
-                "company_name": request.form.get('company_name'),
-                "telegram_token": request.form.get('telegram_token'),
-                "telegram_chat_id": request.form.get('chat_id'),
-                "instagram_url": request.form.get('instagram_url')
-            }
-        elif 'theme_color' in request.form:
-            data = {"theme_color": request.form.get('theme_color')}
+        # إضافة 'currency' إلى البيانات التي يتم تحديثها
+        data = {
+            "company_name": request.form.get('company_name'),
+            "telegram_token": request.form.get('telegram_token'),
+            "telegram_chat_id": request.form.get('chat_id'),
+            "instagram_url": request.form.get('instagram_url'),
+            "currency": request.form.get('currency') # العملة المختارة
+        }
         
-        if data:
-            try:
-                supabase.table("settings").update(data).eq("company_code", company_code).execute()
-            except Exception as e:
-                print(f"Update Error: {e}")
+        try:
+            supabase.table("settings").update(data).eq("company_code", company_code).execute()
+        except Exception as e:
+            print(f"Update Error: {e}")
         
         return redirect(url_for('settings'))
     
