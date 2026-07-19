@@ -38,12 +38,25 @@
                 <div class="mb-3">
                     <label class="form-label">العملة الافتراضية</label>
                     <select name="currency" class="form-select">
-                        <option value="DZD" {% if settings.currency == 'DZD' %}selected{% endif %}>دج (DZD)</option>
-                        <option value="USD" {% if settings.currency == 'USD' %}selected{% endif %}>دولار ($)</option>
-                        <option value="EUR" {% if settings.currency == 'EUR' %}selected{% endif %}>يورو (€)</option>
-                        <option value="SAR" {% if settings.currency == 'SAR' %}selected{% endif %}>ريال سعودي (SAR)</option>
-                        <option value="TND" {% if settings.currency == 'TND' %}selected{% endif %}>دينار تونسي (TND)</option>
-                        <option value="AED" {% if settings.currency == 'AED' %}selected{% endif %}>درهم إماراتي (AED)</option>
+                        <!-- عملات مغاربية وعربية -->
+                        <option value="DZD" {% if settings.currency == 'DZD' %}selected{% endif %}>دج (DZD) - الجزائر</option>
+                        <option value="TND" {% if settings.currency == 'TND' %}selected{% endif %}>دينار (TND) - تونس</option>
+                        <option value="MAD" {% if settings.currency == 'MAD' %}selected{% endif %}>درهم (MAD) - المغرب</option>
+                        <option value="SAR" {% if settings.currency == 'SAR' %}selected{% endif %}>ريال (SAR) - السعودية</option>
+                        <option value="AED" {% if settings.currency == 'AED' %}selected{% endif %}>درهم (AED) - الإمارات</option>
+                        <option value="EGP" {% if settings.currency == 'EGP' %}selected{% endif %}>جنيه (EGP) - مصر</option>
+                        <option value="QAR" {% if settings.currency == 'QAR' %}selected{% endif %}>ريال (QAR) - قطر</option>
+                        <option value="KWD" {% if settings.currency == 'KWD' %}selected{% endif %}>دينار (KWD) - الكويت</option>
+                        
+                        <!-- عملات عالمية -->
+                        <option value="USD" {% if settings.currency == 'USD' %}selected{% endif %}>دولار ($) - أمريكي</option>
+                        <option value="EUR" {% if settings.currency == 'EUR' %}selected{% endif %}>يورو (€) - أوروبي</option>
+                        <option value="GBP" {% if settings.currency == 'GBP' %}selected{% endif %}>جنيه إسترليني (£) - بريطاني</option>
+                        <option value="CAD" {% if settings.currency == 'CAD' %}selected{% endif %}>دولار (CAD) - كندي</option>
+                        <option value="AUD" {% if settings.currency == 'AUD' %}selected{% endif %}>دولار (AUD) - أسترالي</option>
+                        <option value="JPY" {% if settings.currency == 'JPY' %}selected{% endif %}>ين (¥) - ياباني</option>
+                        <option value="TRY" {% if settings.currency == 'TRY' %}selected{% endif %}>ليرة (TRY) - تركية</option>
+                        <option value="CHF" {% if settings.currency == 'CHF' %}selected{% endif %}>فرنك (CHF) - سويسري</option>
                     </select>
                 </div>
                 
