@@ -17,6 +17,12 @@
     </div>
 
     <div class="container mt-4">
+        <!-- شريط التنقل العلوي -->
+        <div class="d-flex justify-content-between mb-4">
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">⬅️ لوحة التحكم</a>
+            <a href="{{ url_for('logout') }}" class="btn btn-danger">🚪 خروج</a>
+        </div>
+
         <h2 class="mb-4 text-center">⚙️ إعدادات الحساب</h2>
         
         <div class="card p-4 shadow-sm">
@@ -45,8 +51,10 @@
 
                 <div class="mb-3">
                     <label class="form-label">العملة الافتراضية</label>
-                    <!-- تم دمج حلقة التكرار هنا -->
-                    <select name="currency" class="form-select">
+                    <!-- خانة البحث عن العملة -->
+                    <input type="text" id="currencySearch" class="form-control mb-2" placeholder="🔍 ابحث عن العملة...">
+                    
+                    <select name="currency" id="currencySelect" class="form-select">
                         {% for code, name in currencies %}
                             <option value="{{ code }}" {% if settings.currency == code %}selected{% endif %}>
                                 {{ code }} - {{ name }}
@@ -55,15 +63,33 @@
                     </select>
                 </div>
 
-                <button type="submit" class="btn btn-primary w-100">حفظ الإعدادات</button>
+                <button type="submit" class="btn btn-primary w-100 btn-lg">💾 حفظ كافة المعلومات</button>
             </form>
         </div>
     </div>
 
+    <!-- السكربتات -->
     <script type="text/javascript">
+        // سكربت ترجمة جوجل
         function googleTranslateElementInit() {
             new google.translate.TranslateElement({pageLanguage: 'ar'}, 'google_translate_element');
         }
+
+        // سكربت البحث في القائمة
+        document.getElementById('currencySearch').addEventListener('input', function() {
+            let filter = this.value.toUpperCase();
+            let select = document.getElementById('currencySelect');
+            let options = select.getElementsByTagName('option');
+            
+            for (let i = 0; i < options.length; i++) {
+                let txtValue = options[i].textContent || options[i].innerText;
+                if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                    options[i].style.display = "";
+                } else {
+                    options[i].style.display = "none";
+                }
+            }
+        });
     </script>
 </body>
 </html>
