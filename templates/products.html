@@ -2,87 +2,116 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>إدارة المخزون</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>إدارة المنتجات</title>
+    
+    <!-- سكربت ترجمة جوجل -->
+    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; background-color: #f4f7f6; }
-        .form-container { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        input { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
-        .btn-save { background-color: #28a745; color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; width: 100%; }
-        .btn-search { background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; margin-top: 5px; }
-        table { width: 100%; border-collapse: collapse; background: white; margin-top: 20px; }
-        th, td { padding: 12px; border: 1px solid #ddd; text-align: center; }
-        th { background-color: #f8f9fa; }
+        body { background-color: #f8f9fa; }
+        .product-card { background: white; border-radius: 15px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 30px; }
+        .table thead { background-color: #0d6efd; color: white; }
         img { width: 50px; height: 50px; border-radius: 5px; object-fit: cover; }
-        .btn-delete { background-color: red; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <h1>إدارة المخزون</h1>
-
-    <!-- نموذج إضافة منتج -->
-    <div class="form-container">
-        <h3>إضافة منتج جديد</h3>
-        <form action="/products" method="POST" enctype="multipart/form-data">
-            <input type="text" name="name" placeholder="اسم المنتج" required>
-            <input type="number" name="quantity" placeholder="الكمية" required>
-            <!-- تحديث السعر مع العملة -->
-            <input type="number" step="0.01" name="price" placeholder="السعر ({{ currency }})" required>
-            <label style="display:block; margin-top:10px;">اختر صورة المنتج:</label>
-            <input type="file" name="product_image" accept="image/*">
-            <button type="submit" class="btn-save">حفظ المنتج</button>
-        </form>
+    <!-- قائمة اختيار اللغات في أعلى الصفحة -->
+    <div class="container mt-3 text-center">
+        <div id="google_translate_element"></div>
     </div>
 
-    <!-- نموذج البحث -->
-    <div class="form-container">
-        <form method="GET" action="/products">
-            <input type="text" name="search" placeholder="ابحث عن منتج..." value="{{ search if search else '' }}">
-            <button type="submit" class="btn-search">بحث</button>
-        </form>
+    <div class="container mt-4">
+        <h2 class="mb-4 text-center fw-bold">📦 إدارة المنتجات والمخزون</h2>
+        
+        <!-- نموذج إضافة منتج -->
+        <div class="product-card">
+            <h4 class="mb-3">إضافة منتج جديد</h4>
+            <form action="/products" method="POST" enctype="multipart/form-data" class="row g-3">
+                <div class="col-md-3">
+                    <input type="text" name="name" class="form-control" placeholder="اسم المنتج" required>
+                </div>
+                <div class="col-md-2">
+                    <input type="number" name="quantity" class="form-control" placeholder="الكمية" required>
+                </div>
+                <div class="col-md-2">
+                    <input type="number" step="0.01" name="price" class="form-control" placeholder="السعر ({{ currency }})" required>
+                </div>
+                <div class="col-md-3">
+                    <input type="file" name="product_image" class="form-control" accept="image/*">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-success w-100">حفظ المنتج</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- نموذج البحث -->
+        <div class="product-card">
+            <form method="GET" action="/products" class="d-flex">
+                <input type="text" name="search" class="form-control me-2" placeholder="ابحث عن منتج..." value="{{ search if search else '' }}">
+                <button type="submit" class="btn btn-primary">بحث</button>
+            </form>
+        </div>
+
+        <!-- جدول المنتجات -->
+        <div class="product-card">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle text-center">
+                    <thead>
+                        <tr>
+                            <th>الصورة</th>
+                            <th>اسم المنتج</th>
+                            <th>الكمية</th>
+                            <th>السعر</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in products %}
+                        <tr>
+                            <td>
+                                {% if p['product-images'] %}
+                                    <img src="{{ p['product-images'] }}" alt="صورة">
+                                {% else %}
+                                    <span class="text-muted">لا توجد</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ p.name }}</td>
+                            <td>{{ p.quantity }}</td>
+                            <td>{{ p.price }} {{ currency }}</td>
+                            <td>
+                                <a href="{{ url_for('edit_product', id=p.id) }}" class="btn btn-sm btn-warning">تعديل</a>
+                                <form action="/delete_product/{{ p.id }}" method="POST" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-danger">حذف</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5">لا توجد منتجات مطابقة للبحث</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="text-center mb-5">
+            <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary px-4">العودة للوحة التحكم</a>
+        </div>
     </div>
 
-    <!-- جدول المنتجات -->
-    <table>
-        <thead>
-            <tr>
-                <th>الصورة</th>
-                <th>اسم المنتج</th>
-                <th>الكمية</th>
-                <th>السعر</th>
-                <th>إجراءات</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for p in products %}
-            <tr>
-                <td>
-                    {% if p['product-images'] %}
-                        <img src="{{ p['product-images'] }}" alt="صورة">
-                    {% else %}
-                        <span>لا توجد</span>
-                    {% endif %}
-                </td>
-                <td>{{ p.name }}</td>
-                <td>{{ p.quantity }}</td>
-                <!-- تحديث عرض السعر -->
-                <td>{{ p.price }} {{ currency }}</td>
-                <td>
-                    <form action="/delete_product/{{ p.id }}" method="POST">
-                        <button type="submit" class="btn-delete">حذف</button>
-                    </form>
-                </td>
-            </tr>
-            {% else %}
-            <tr>
-                <td colspan="5">لا توجد منتجات مطابقة للبحث</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    <br>
-    <a href="/dashboard">الرجوع للوحة التحكم</a>
-
+    <!-- سكربت تهيئة الترجمة -->
+    <script type="text/javascript">
+        function googleTranslateElementInit() {
+            new google.translate.TranslateElement({
+                pageLanguage: 'ar',
+                layout: google.translate.TranslateElement.InlineLayout.SIMPLE
+            }, 'google_translate_element');
+        }
+    </script>
 </body>
 </html>
