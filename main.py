@@ -169,8 +169,10 @@ def products():
 @app.route('/delete_product/<int:id>', methods=['POST'])
 @login_required
 def delete_product(id):
-    # كود الحذف من Supabase
-    supabase.table("inventory").delete().eq("id", id).execute()
+    try:
+        supabase.table("inventory").delete().eq("id", id).execute()
+    except Exception as e:
+        print(f"Delete Error: {e}")
     return redirect(url_for('products'))
 
 # مسار حذف الطلبيات
