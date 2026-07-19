@@ -195,7 +195,7 @@ def orders():
         # 1. إدراج الطلبية
         data = {
             "customer_name": request.form.get('customer_name'),
-            "customer_phone": request.form.get('customer_phone'), # تم التعديل هنا
+            "customer_phone": request.form.get('customer_phone'),
             "product_name": product_name,
             "quantity": quantity_ordered,
             "total_price": float(request.form.get('price', 0.0)),
@@ -203,12 +203,16 @@ def orders():
         }
         supabase.table("orders").insert(data).execute()
         
-        # 2. خصم الكمية
-        product = supabase.table("inventory").select("id, quantity, name").eq("name", product_name).eq("company_code", company_code).single().execute()
+        # 2. خصم الكمية (تم التعديل هنا: إزالة .single() واستخدام .data)
+        products_res = supabase.table("inventory").select("id, quantity, name").eq("name", product_name).eq("company_code", company_code).execute()
         
-        if product.data:
-            new_qty = product.data['quantity'] - quantity_ordered
-            supabase.table("inventory").update({"quantity": new_qty}).eq("id", product.data['id']).execute()
+        if products_res.data and len(products_res.data) > 0:
+            # نأخذ أول منتج تم العثور عليه
+            product = products_res.data[0]
+            new_qty = product['quantity'] - quantity_ordered
+            
+            # تحديث الكمية في المخزون
+            supabase.table("inventory").update({"quantity": new_qty}).eq("id", product['id']).execute()
             
             # تنبيه إذا أوشك المنتج على النفاذ
             if new_qty <= 5:
