@@ -141,23 +141,32 @@ def products():
     
     # كود الإضافة (POST)
     if request.method == 'POST':
-        file = request.files.get('product_image')
-        image_data = ""
-        # معالجة الصورة وتحويلها إلى Base64
-        if file and file.filename != '':
-            encoded_string = base64.b64encode(file.read()).decode('utf-8')
-            image_data = f"data:image/jpeg;base64,{encoded_string}"
+        try:
+            # 1. معالجة الصورة
+            file = request.files.get('product_image')
+            image_data = ""
+            if file and file.filename != '':
+                # قراءة الملف وتحويله إلى Base64
+                encoded_string = base64.b64encode(file.read()).decode('utf-8')
+                image_data = f"data:image/jpeg;base64,{encoded_string}"
             
-        data = {
-            "name": request.form.get('name'),
-            "quantity": int(request.form.get('quantity', 0)),
-            "price": float(request.form.get('price', 0.0)),
-            "company_code": company_code,
-            "product-images": image_data
-        }
-        # إدراج البيانات في Supabase
-        supabase.table("inventory").insert(data).execute()
-        return redirect(url_for('products'))
+            # 2. تجهيز البيانات
+            data = {
+                "name": request.form.get('name'),
+                "quantity": int(request.form.get('quantity', 0)),
+                "price": float(request.form.get('price', 0.0)),
+                "company_code": company_code,
+                "product-images": image_data
+            }
+            
+            # 3. محاولة الإدخال في قاعدة البيانات
+            supabase.table("inventory").insert(data).execute()
+            return redirect(url_for('products'))
+            
+        except Exception as e:
+            # طباعة الخطأ في الكونسول لتتمكن من رؤيته وتصحيحه
+            print(f"خطأ في حفظ المنتج: {e}")
+            return f"حدث خطأ أثناء حفظ المنتج في قاعدة البيانات: {str(e)}", 500
     
     # كود العرض والبحث (GET)
     search_query = request.args.get('search', '')
