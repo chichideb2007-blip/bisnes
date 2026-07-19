@@ -196,7 +196,6 @@ def orders():
         # 1. إدراج الطلبية في جدول orders
         data = {
             "customer_name": request.form.get('customer_name'),
-            # هنا تم دمج سحب رقم الهاتف من النموذج
             "customer_phone": request.form.get('customer_phone'), 
             "product_name": product_name,
             "quantity": requested_qty, 
@@ -206,21 +205,29 @@ def orders():
         supabase.table("orders").insert(data).execute()
         
         # 2. خصم الكمية من جدول inventory
+        # هنا سنبحث عن كل المنتجات التي لها نفس الاسم لنقوم بالخصم منها
         products_res = supabase.table("inventory").select("id, quantity, name").eq("name", product_name).eq("company_code", company_code).execute()
         
-        if products_res.data and len(products_res.data) > 0:
-            product = products_res.data[0]
-            # نقوم بالخصم باستخدام الكمية التي أدخلها المستخدم (requested_qty)
-            new_qty = product['quantity'] - requested_qty 
+        if products_res.data:
+            # 1. نحسب إجمالي الكمية الموجودة حالياً (للتأكد من الحساب)
+            total_current_qty = sum(p['quantity'] for p in products_res.data)
             
-            # تحديث الكمية في جدول inventory
+            # 2. نقوم بالخصم من أول سطر وجدناه (أو يمكنك توزيعها على كل الأسطر)
+            product = products_res.data[0] 
+            new_qty = product['quantity'] - requested_qty
+            
+            # 3. تحديث السطر الأول فقط بالكمية الجديدة
             supabase.table("inventory").update({"quantity": new_qty}).eq("id", product['id']).execute()
             
-            # تنبيه إذا أوشك المنتج على النفاذ
-            if new_qty <= 5:
+            # 4. نحسب إجمالي الكمية المتبقية بعد الخصم (للتنبيه)
+            # نأخذ إجمالي الكمية القديمة وننقص منها الكمية المطلوبة
+            final_total_qty = total_current_qty - requested_qty
+            
+            # تنبيه إذا أوشك الإجمالي على النفاذ
+            if final_total_qty <= 5:
                 res = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
                 if res.data:
-                    msg = f"⚠️ تنبيه مخزون!\nالمنتج '{product_name}' أوشك على النفاذ. الكمية المتبقية: {new_qty}"
+                    msg = f"⚠️ تنبيه مخزون!\nالمنتج '{product_name}' أوشك على النفاذ.\nالكمية الإجمالية المتبقية في المخزن: {final_total_qty}"
                     send_telegram_alert_by_token(res.data[0]['telegram_token'], res.data[0]['telegram_chat_id'], msg)
             
         return redirect(url_for('orders'))
