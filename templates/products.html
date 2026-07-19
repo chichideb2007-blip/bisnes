@@ -81,7 +81,7 @@
                             </td>
                             <td>{{ p.name }}</td>
                             <td>{{ p.quantity }}</td>
-                            <td>{{ p.price }} {{ currency }}</td>
+                            <td>السعر: {{ p.price }} {{ currency }}</td>
                             <td>
                                 <a href="{{ url_for('edit_product', id=p.id) }}" class="btn btn-sm btn-warning">تعديل</a>
                                 <form action="/delete_product/{{ p.id }}" method="POST" class="d-inline">
