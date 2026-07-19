@@ -118,10 +118,10 @@ def settings():
     
     if request.method == 'POST':
         data = {
-            "company_name": request.form.get('company_name'),
-            "telegram_token": request.form.get('telegram_token'),
+            "company_name": request.form.get('shop_name'),
+            "telegram_token": request.form.get('bot_token'),
             "telegram_chat_id": request.form.get('chat_id'),
-            "instagram_url": request.form.get('instagram_url'),
+            "instagram_url": request.form.get('instagram_link'),
             "currency": request.form.get('currency') 
         }
         try:
