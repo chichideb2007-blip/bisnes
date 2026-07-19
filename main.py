@@ -190,28 +190,30 @@ def orders():
     company_code = session.get('company_code')
     if request.method == 'POST':
         product_name = request.form.get('product_name')
-        quantity_ordered = int(request.form.get('quantity', 0))
+        # هذه هي الكمية التي أدخلها المستخدم في النموذج
+        requested_qty = int(request.form.get('quantity', 0)) 
         
-        # 1. إدراج الطلبية
+        # 1. إدراج الطلبية في جدول orders
         data = {
             "customer_name": request.form.get('customer_name'),
-            "customer_phone": request.form.get('customer_phone'),
+            # هنا تم دمج سحب رقم الهاتف من النموذج
+            "customer_phone": request.form.get('customer_phone'), 
             "product_name": product_name,
-            "quantity": quantity_ordered,
+            "quantity": requested_qty, 
             "total_price": float(request.form.get('price', 0.0)),
             "company_code": company_code
         }
         supabase.table("orders").insert(data).execute()
         
-        # 2. خصم الكمية (تم التعديل هنا: إزالة .single() واستخدام .data)
+        # 2. خصم الكمية من جدول inventory
         products_res = supabase.table("inventory").select("id, quantity, name").eq("name", product_name).eq("company_code", company_code).execute()
         
         if products_res.data and len(products_res.data) > 0:
-            # نأخذ أول منتج تم العثور عليه
             product = products_res.data[0]
-            new_qty = product['quantity'] - quantity_ordered
+            # نقوم بالخصم باستخدام الكمية التي أدخلها المستخدم (requested_qty)
+            new_qty = product['quantity'] - requested_qty 
             
-            # تحديث الكمية في المخزون
+            # تحديث الكمية في جدول inventory
             supabase.table("inventory").update({"quantity": new_qty}).eq("id", product['id']).execute()
             
             # تنبيه إذا أوشك المنتج على النفاذ
