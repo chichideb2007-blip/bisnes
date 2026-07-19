@@ -141,6 +141,9 @@ def products():
     
     # كود الإضافة (POST)
     if request.method == 'POST':
+        # أضف هذا السطر هنا لرؤية البيانات في السجلات
+        print(f"DEBUG: Form data received: {request.form.to_dict()}")
+        
         try:
             # 1. معالجة الصورة
             file = request.files.get('product_image')
@@ -155,7 +158,7 @@ def products():
                 "name": request.form.get('name'),
                 "quantity": int(request.form.get('quantity', 0)),
                 "price": float(request.form.get('price', 0.0)),
-                "company_id_text": company_code,  # تم التعديل لتطابق اسم العمود في سوبابيس
+                "company_id_text": company_code,
                 "product-images": image_data
             }
             
