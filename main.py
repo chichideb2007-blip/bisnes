@@ -93,23 +93,29 @@ def dashboard():
 @login_required
 def settings():
     company_code = session.get('company_code')
+    
     if request.method == 'POST':
         data = {
             "company_name": request.form.get('company_name'),
             "telegram_token": request.form.get('telegram_token'),
             "telegram_chat_id": request.form.get('chat_id'),
             "instagram_url": request.form.get('instagram_url'),
-            "currency": request.form.get('currency', 'DA') # إضافة العملة
+            "currency": request.form.get('currency') # استقبال العملة من الفورم
         }
+        
         try:
             supabase.table("settings").update(data).eq("company_code", company_code).execute()
         except Exception as e:
             print(f"Update Error: {e}")
+        
         return redirect(url_for('settings'))
     
+    # جلب البيانات من القاعدة
     res = supabase.table("settings").select("*").eq("company_code", company_code).execute()
     settings_data = res.data[0] if res.data else {}
-    return render_template('settings.html', settings=settings_data, currency=settings_data.get('currency', 'DA'))
+    
+    # تمرير البيانات لصفحة الـ HTML
+    return render_template('settings.html', settings=settings_data)
 
 @app.route('/products', methods=['GET', 'POST'])
 @login_required
@@ -138,7 +144,6 @@ def products():
     res = query.execute()
     return render_template('products.html', products=res.data or [], search=search_query)
 
-# --- المسارات الجديدة المطلوبة ---
 @app.route('/edit_product/<int:id>')
 @login_required
 def edit_product(id):
