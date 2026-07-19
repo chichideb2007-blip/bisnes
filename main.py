@@ -4,7 +4,9 @@ from collections import defaultdict
 from datetime import datetime
 from functools import wraps
 import os
+import time
 import requests
+import urllib.parse
 import base64
 from google import genai  # مكتبة Gemini
 
@@ -25,7 +27,6 @@ def send_telegram_alert_by_token(token, chat_id, message):
             print(f"Error: {e}")
 
 def refresh_instagram_token():
-    """دالة التجديد التلقائي لتوكن إنستقرام"""
     res = supabase.table("settings").select("company_code, instagram_token").execute()
     for row in res.data:
         old_token = row.get('instagram_token')
@@ -93,28 +94,32 @@ def dashboard():
 def settings():
     company_code = session.get('company_code')
     if request.method == 'POST':
+        # التعديل: إضافة حقل العملة
         data = {
             "company_name": request.form.get('company_name'),
             "telegram_token": request.form.get('telegram_token'),
             "telegram_chat_id": request.form.get('chat_id'),
             "instagram_url": request.form.get('instagram_url'),
-            "currency": request.form.get('currency', 'DA')
+            "currency": request.form.get('currency') 
         }
-        supabase.table("settings").update(data).eq("company_code", company_code).execute()
+        try:
+            supabase.table("settings").update(data).eq("company_code", company_code).execute()
+        except Exception as e:
+            print(f"Update Error: {e}")
         return redirect(url_for('settings'))
     
     res = supabase.table("settings").select("*").eq("company_code", company_code).execute()
     settings_data = res.data[0] if res.data else {}
-    return render_template('settings.html', settings=settings_data, currency=settings_data.get('currency', 'DA'))
+    return render_template('settings.html', settings=settings_data)
 
-# مسارات منع الانهيار
+# --- إضافات لمنع الانهيار (الأخطاء التي ظهرت في الفيديو) ---
 @app.route('/edit_product/<int:id>')
 @login_required
-def edit_product(id): return "صفحة التعديل قيد التطوير"
+def edit_product(id): return "جاري التحديث..."
 
 @app.route('/view_order/<int:id>')
 @login_required
-def view_order(id): return "تفاصيل الطلب قيد التطوير"
+def view_order(id): return "جاري التحميل..."
 
 @app.route('/products', methods=['GET', 'POST'])
 @login_required
@@ -126,13 +131,22 @@ def products():
         if file:
             encoded_string = base64.b64encode(file.read()).decode('utf-8')
             image_data = f"data:image/jpeg;base64,{encoded_string}"
-        data = {"name": request.form.get('name'), "quantity": int(request.form.get('quantity', 0)), "price": float(request.form.get('price', 0.0)), "company_code": company_code, "product-images": image_data}
+        data = {
+            "name": request.form.get('name'),
+            "quantity": int(request.form.get('quantity', 0)),
+            "price": float(request.form.get('price', 0.0)),
+            "company_code": company_code,
+            "company_id_text": company_code,
+            "product-images": image_data
+        }
         supabase.table("inventory").insert(data).execute()
         return redirect(url_for('products'))
+    
     search_query = request.args.get('search', '')
     query = supabase.table("inventory").select("*").eq("company_code", company_code)
     if search_query: query = query.ilike("name", f"%{search_query}%")
-    return render_template('products.html', products=query.execute().data or [], search=search_query)
+    res = query.execute()
+    return render_template('products.html', products=res.data or [], search=search_query)
 
 @app.route('/delete_product/<int:id>', methods=['POST'])
 @login_required
@@ -149,40 +163,4 @@ def delete_order(id):
 @app.route('/orders', methods=['GET', 'POST'])
 @login_required
 def orders():
-    company_code = session.get('company_code')
-    if request.method == 'POST':
-        product_name = request.form.get('product_name')
-        requested_qty = int(request.form.get('quantity', 0))
-        data = {"customer_name": request.form.get('customer_name'), "product_name": product_name, "quantity": requested_qty, "total_price": float(request.form.get('price', 0.0)), "company_code": company_code}
-        supabase.table("orders").insert(data).execute()
-        # التنبيهات
-        res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
-        if res_settings.data:
-            send_telegram_alert_by_token(res_settings.data[0]['telegram_token'], res_settings.data[0]['telegram_chat_id'], f"🛒 طلبية جديدة: {product_name}")
-        return redirect(url_for('orders'))
-    return render_template('orders_dashboard.html', orders=supabase.table("orders").select("*").eq("company_code", company_code).execute().data or [])
-
-@app.route('/stats')
-@login_required
-def stats():
-    company_code = session.get('company_code')
-    res_orders = supabase.table("orders").select("total_price, created_at").eq("company_code", company_code).execute().data or []
-    return render_template('stats.html', total_sales=sum(float(o.get('total_price') or 0) for o in res_orders), total_orders=len(res_orders))
-
-@app.route('/webhook_instagram', methods=['GET', 'POST'])
-def webhook_instagram():
-    if request.method == 'GET': return request.args.get('hub.challenge')
-    data = request.json
-    try:
-        page_id = data['entry'][0]['id']
-        msg = data['entry'][0]['messaging'][0]['message']['text']
-        res = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("instagram_page_id", page_id).execute()
-        if res.data:
-            response = client.models.generate_content(model='gemini-2.0-flash', contents=msg)
-            send_telegram_alert_by_token(res.data[0]['telegram_token'], res.data[0]['telegram_chat_id'], f"🤖 الرد: {response.text}")
-        return 'OK', 200
-    except: return 'Error', 500
-
-if __name__ == '__main__':
-    refresh_instagram_token()
-    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
+    company_code = session.get('company_
