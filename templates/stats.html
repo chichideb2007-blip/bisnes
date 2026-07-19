@@ -55,6 +55,11 @@
             </div>
         </div>
 
+        <!-- إضافة العنوان المطلوب هنا -->
+        <div class="text-center mb-4">
+            <h3 class="fw-bold">إجمالي المبيعات: {{ total_sales }} {{ currency }}</h3>
+        </div>
+
         <div class="row">
             <div class="col-12">
                 <div class="chart-box">
@@ -119,7 +124,7 @@
         createChart('yearlyChart', 'المبيعات السنوية', yearlyData, null, '#dc3545');
     </script>
 
-    <!-- سكربت تهيئة الترجمة لدعم جميع لغات العالم -->
+    <!-- سكربت تهيئة الترجمة -->
     <script type="text/javascript">
         function googleTranslateElementInit() {
             new google.translate.TranslateElement({
