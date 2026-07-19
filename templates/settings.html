@@ -5,55 +5,55 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <title>إعدادات الحساب</title>
-    <!-- سكربت ترجمة جوجل -->
-    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
     <style>
         .card { border-radius: 15px; }
         .form-label { font-weight: bold; }
+        .section-title { color: #0d6efd; border-bottom: 2px solid #0d6efd; padding-bottom: 10px; margin-bottom: 20px; }
     </style>
 </head>
 <body class="bg-light">
 
-    <!-- شريط الأدوات العلوي -->
-    <div class="container mt-3">
-        <div class="d-flex justify-content-between align-items-center">
-            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">⬅️ لوحة التحكم</a>
-            <div id="google_translate_element"></div>
+    <div class="container mt-4">
+        <!-- أزرار التحكم العلوية -->
+        <div class="d-flex justify-content-between mb-4">
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">⬅️ رجوع للوحة التحكم</a>
             <a href="{{ url_for('logout') }}" class="btn btn-danger">🚪 خروج</a>
         </div>
-    </div>
 
-    <div class="container mt-4">
         <h2 class="text-center mb-4">⚙️ إعدادات الحساب العامة</h2>
         
         <div class="card p-4 shadow-sm">
             <form action="{{ url_for('settings') }}" method="POST">
                 
-                <div class="row">
-                    <!-- اسم المتجر و الـ ID -->
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">اسم المتجر / البوت</label>
-                        <input type="text" name="company_name" class="form-control" value="{{ settings.company_name or '' }}" required>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">معرف الشركة (ID)</label>
-                        <input type="text" name="company_id" class="form-control" value="{{ settings.company_id or '' }}" readonly>
-                    </div>
+                <!-- قسم المتجر -->
+                <h5 class="section-title">🏠 معلومات المتجر</h5>
+                <div class="mb-3">
+                    <label class="form-label">اسم المتجر</label>
+                    <input type="text" name="shop_name" class="form-control" value="{{ settings.shop_name or '' }}">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">معرف الشركة (ID)</label>
+                    <input type="text" name="company_id" class="form-control" value="{{ settings.company_id or '' }}" readonly>
                 </div>
 
-                <!-- رابط انستقرام -->
+                <!-- قسم البوت -->
+                <h5 class="section-title mt-4">🤖 إعدادات البوت</h5>
+                <div class="mb-3">
+                    <label class="form-label">اسم البوت</label>
+                    <input type="text" name="bot_name" class="form-control" value="{{ settings.bot_name or '' }}">
+                </div>
                 <div class="mb-3">
                     <label class="form-label">رابط حساب انستقرام</label>
-                    <input type="url" name="instagram_link" class="form-control" placeholder="https://instagram.com/your-account" value="{{ settings.instagram_link or '' }}">
+                    <input type="url" name="instagram_link" class="form-control" value="{{ settings.instagram_link or '' }}">
                 </div>
 
-                <!-- خانة اختيار العملة مع البحث الذكي -->
+                <!-- قسم العملات -->
+                <h5 class="section-title mt-4">💰 إعدادات العملة</h5>
                 <div class="mb-3">
-                    <label class="form-label">العملة الافتراضية</label>
-                    <div class="input-group mb-2">
-                        <span class="input-group-text">🔍</span>
-                        <input type="text" id="currencySearch" class="form-control" placeholder="اكتب اسم العملة للبحث (مثلاً: دينار)...">
-                    </div>
+                    <label class="form-label">البحث عن عملة</label>
+                    <input type="text" id="currencySearch" class="form-control mb-2" placeholder="🔍 اكتب اسم العملة للبحث (مثلاً: دينار)...">
+                    
+                    <label class="form-label">قائمة العملات العالمية</label>
                     <select name="currency" id="currencySelect" class="form-select" size="5">
                         {% for code, name in currencies %}
                             <option value="{{ code }}" {% if settings.currency == code %}selected{% endif %}>
@@ -61,39 +61,22 @@
                             </option>
                         {% endfor %}
                     </select>
-                    <small class="text-muted">اختر العملة من القائمة (يمكنك استخدام مربع البحث أعلاه)</small>
                 </div>
 
-                <!-- اختيار اللون -->
-                <div class="mb-3">
-                    <label class="form-label">لون واجهة المتجر</label>
-                    <input type="color" name="theme_color" class="form-control form-control-color w-100" value="{{ settings.theme_color or '#0d6efd' }}">
-                </div>
-
-                <button type="submit" class="btn btn-primary btn-lg w-100 mt-3">💾 حفظ كافة المعلومات</button>
+                <!-- زر الحفظ -->
+                <button type="submit" class="btn btn-primary btn-lg w-100 mt-4">💾 حفظ كافة المعلومات</button>
             </form>
         </div>
     </div>
 
-    <script type="text/javascript">
-        // ترجمة جوجل
-        function googleTranslateElementInit() {
-            new google.translate.TranslateElement({pageLanguage: 'ar', layout: google.translate.TranslateElement.InlineLayout.SIMPLE}, 'google_translate_element');
-        }
-
-        // سكربت البحث في قائمة العملات
+    <script>
+        // سكربت البحث في القائمة
         document.getElementById('currencySearch').addEventListener('keyup', function() {
             let input = this.value.toLowerCase();
-            let select = document.getElementById('currencySelect');
-            let options = select.getElementsByTagName('option');
-            
+            let options = document.getElementById('currencySelect').options;
             for (let i = 0; i < options.length; i++) {
-                let txtValue = options[i].textContent || options[i].innerText;
-                if (txtValue.toLowerCase().indexOf(input) > -1) {
-                    options[i].style.display = "";
-                } else {
-                    options[i].style.display = "none";
-                }
+                let txtValue = options[i].textContent.toLowerCase();
+                options[i].style.display = txtValue.indexOf(input) > -1 ? "" : "none";
             }
         });
     </script>
