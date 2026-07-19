@@ -50,17 +50,14 @@ def login_required(f):
 
 # --- المسارات ---
 
-# مسار الصفحة الرئيسية
 @app.route('/')
 def home():
     return redirect(url_for('login'))
 
-# مسار تسجيل الدخول
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         company_code = request.form.get('company_code')
-        # تحقق من وجود الشركة في Supabase
         res = supabase.table("settings").select("company_code").eq("company_code", company_code).execute()
         if res.data:
             session['company_code'] = company_code
@@ -68,31 +65,21 @@ def login():
         return "كود الشركة غير صحيح!", 401
     return render_template('login.html')
 
-# مسار إنشاء حساب جديد
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
         company_code = request.form.get('company_code')
         company_name = request.form.get('company_name')
-        
-        # التأكد من عدم وجود الكود مسبقاً
         res = supabase.table("settings").select("company_code").eq("company_code", company_code).execute()
         if res.data:
             return "هذا الكود مستخدم بالفعل، يرجى اختيار كود آخر!", 400
-            
-        # إدراج الشركة الجديدة في جدول settings
         try:
-            supabase.table("settings").insert({
-                "company_code": company_code,
-                "company_name": company_name
-            }).execute()
+            supabase.table("settings").insert({"company_code": company_code, "company_name": company_name}).execute()
             return "تم إنشاء الحساب بنجاح! يمكنك الآن تسجيل الدخول."
         except Exception as e:
             return f"حدث خطأ أثناء الإنشاء: {e}", 500
-            
     return render_template('signup.html')
 
-# مسار تسجيل الخروج
 @app.route('/logout')
 def logout():
     session.pop('company_code', None)
@@ -107,75 +94,51 @@ def dashboard():
 @login_required
 def settings():
     company_code = session.get('company_code')
-    
     if request.method == 'POST':
-        data = {}
-        if 'company_name' in request.form:
-            data = {
-                "company_name": request.form.get('company_name'),
-                "telegram_token": request.form.get('telegram_token'),
-                "telegram_chat_id": request.form.get('chat_id'),
-                "instagram_url": request.form.get('instagram_url')
-            }
-        elif 'theme_color' in request.form:
-            data = {"theme_color": request.form.get('theme_color')}
-        
-        if data:
-            try:
-                supabase.table("settings").update(data).eq("company_code", company_code).execute()
-            except Exception as e:
-                print(f"Update Error: {e}")
-        
+        data = {
+            "company_name": request.form.get('company_name'),
+            "telegram_token": request.form.get('telegram_token'),
+            "telegram_chat_id": request.form.get('chat_id'),
+            "instagram_url": request.form.get('instagram_url')
+        }
+        supabase.table("settings").update(data).eq("company_code", company_code).execute()
         return redirect(url_for('settings'))
-    
     res = supabase.table("settings").select("*").eq("company_code", company_code).execute()
-    settings_data = res.data[0] if res.data else {}
-    return render_template('settings.html', settings=settings_data)
+    return render_template('settings.html', settings=res.data[0] if res.data else {})
 
-# مسار المخزون
 @app.route('/products', methods=['GET', 'POST'])
 @login_required
 def products():
     company_code = session.get('company_code')
     if request.method == 'POST':
-        # استقبال الملف من الـ Form
-        file = request.files.get('product_image')
-        image_data = ""
-        if file:
-            encoded_string = base64.b64encode(file.read()).decode('utf-8')
-            image_data = f"data:image/jpeg;base64,{encoded_string}"
-        
         data = {
             "name": request.form.get('name'),
             "quantity": int(request.form.get('quantity', 0)),
             "price": float(request.form.get('price', 0.0)),
-            "company_code": company_code,
-            "company_id_text": company_code,
-            "product-images": image_data
+            "company_code": company_code
         }
-        
         supabase.table("inventory").insert(data).execute()
         return redirect(url_for('products'))
     
-    res = supabase.table("inventory").select("*").eq("company_code", company_code).execute()
-    return render_template('products.html', products=res.data or [])
+    search_query = request.args.get('search', '')
+    query = supabase.table("inventory").select("*").eq("company_code", company_code)
+    if search_query:
+        query = query.ilike("name", f"%{search_query}%")
+    res = query.execute()
+    return render_template('products.html', products=res.data or [], search=search_query)
 
 @app.route('/delete_product/<int:id>', methods=['POST'])
 @login_required
 def delete_product(id):
-    # كود الحذف من Supabase
     supabase.table("inventory").delete().eq("id", id).execute()
     return redirect(url_for('products'))
 
-# مسار حذف الطلبيات
 @app.route('/delete_order/<int:id>', methods=['POST'])
 @login_required
 def delete_order(id):
-    # تأكدي أن اسم الجدول هو 'orders'
     supabase.table("orders").delete().eq("id", id).execute()
     return redirect(url_for('orders'))
 
-# مسار الطلبيات
 @app.route('/orders', methods=['GET', 'POST'])
 @login_required
 def orders():
@@ -185,110 +148,60 @@ def orders():
         quantity_ordered = int(request.form.get('quantity', 0))
         
         # 1. إدراج الطلبية
-        data = {
+        supabase.table("orders").insert({
             "customer_name": request.form.get('customer_name'),
             "customer_phone": request.form.get('phone'),
             "product_name": product_name,
             "quantity": quantity_ordered,
             "total_price": float(request.form.get('price', 0.0)),
             "company_code": company_code
-        }
-        supabase.table("orders").insert(data).execute()
+        }).execute()
         
-        # 2. محاولة خصم الكمية من المخزون بأمان
-        try:
-            # البحث عن المنتج أولاً
-            product = supabase.table("inventory").select("id, quantity").eq("name", product_name).eq("company_code", company_code).execute()
+        # 2. خصم الكمية وتنبيه النفاذ
+        product = supabase.table("inventory").select("id, quantity, name").eq("name", product_name).eq("company_code", company_code).single().execute()
+        if product.data:
+            old_qty = product.data['quantity']
+            new_qty = old_qty - quantity_ordered
             
-            if product.data and len(product.data) > 0:
-                product_id = product.data[0]['id']
-                current_qty = product.data[0]['quantity']
-                new_qty = current_qty - quantity_ordered
-                # تحديث الكمية
-                supabase.table("inventory").update({"quantity": new_qty}).eq("id", product_id).execute()
-        except Exception as e:
-            print(f"Inventory Update Error: {e}") # لن يظهر خطأ للمستخدم، سيتم طباعته في السجلات فقط
-
-        # 3. إرسال تنبيه تليجرام
-        res = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
-        if res.data:
-            msg = f"🚨 طلبية جديدة!\nالعميل: {data['customer_name']}\nالمنتج: {product_name}\nالكمية: {quantity_ordered}"
-            send_telegram_alert_by_token(res.data[0]['telegram_token'], res.data[0]['telegram_chat_id'], msg)
+            # تحديث الكمية في المخزون
+            supabase.table("inventory").update({"quantity": new_qty}).eq("id", product.data['id']).execute()
+            
+            # تنبيه إذا أوشك المنتج على النفاذ (مثلاً أقل من 5 قطع)
+            if new_qty <= 5:
+                res = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
+                if res.data:
+                    msg = f"⚠️ تنبيه مخزون!\nالمنتج '{product_name}' أوشك على النفاذ. الكمية المتبقية: {new_qty}"
+                    send_telegram_alert_by_token(res.data[0]['telegram_token'], res.data[0]['telegram_chat_id'], msg)
             
         return redirect(url_for('orders'))
     
     res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
 
-# مسار الإحصائيات
 @app.route('/stats')
 @login_required
 def stats():
     company_code = session.get('company_code')
-    try:
-        res_orders = supabase.table("orders").select("total_price, created_at").eq("company_code", company_code).execute()
-        orders = res_orders.data or []
-        
-        res_expenses = supabase.table("expenses").select("amount, created_at").eq("company_code", company_code).execute()
-        expenses = res_expenses.data or []
-        
-        daily_data, monthly_data, yearly_data = defaultdict(float), defaultdict(float), defaultdict(float)
-        days_order = ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"]
-        months_order = ["جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان", "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
+    res_orders = supabase.table("orders").select("total_price, created_at").eq("company_code", company_code).execute()
+    orders = res_orders.data or []
+    total_sales = sum(float(o.get('total_price') or 0) for o in orders)
+    return render_template('stats.html', total_sales=total_sales, total_orders=len(orders))
 
-        for o in orders:
-            if o.get('created_at'):
-                dt = datetime.fromisoformat(o['created_at'].replace('Z', '+00:00'))
-                price = float(o.get('total_price') or 0)
-                day_name = days_order[dt.weekday()] if dt.weekday() < 7 else "السبت"
-                daily_data[day_name] += price
-                monthly_data[months_order[dt.month - 1]] += price
-                yearly_data[str(dt.year)] += price
-
-        total_sales = sum(float(o.get('total_price') or 0) for o in orders)
-        total_expenses = sum(float(e.get('amount') or 0) for e in expenses)
-        total_orders = len(orders)
-
-        return render_template('stats.html', 
-                               total_sales=float(total_sales), 
-                               total_expenses=float(total_expenses), 
-                               total_orders=int(total_orders), 
-                               daily=dict(daily_data), 
-                               monthly=dict(monthly_data), 
-                               yearly=dict(yearly_data))
-                               
-    except Exception as e:
-        print(f"Stats Error: {e}")
-        return render_template('stats.html', total_sales=0, total_expenses=0, total_orders=0, daily={}, monthly={}, yearly={})
-
-# مسار الرد الذكي
 @app.route('/webhook_instagram', methods=['GET', 'POST'])
 def webhook_instagram():
     if request.method == 'GET':
         return request.args.get('hub.challenge')
-    
     data = request.json
     try:
         page_id = data['entry'][0]['id']
         messaging = data['entry'][0]['messaging'][0]
         msg = messaging['message']['text']
         sender_id = messaging['sender']['id']
-        
         res = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("instagram_page_id", page_id).execute()
-        
         if res.data:
-            send_telegram_alert_by_token(
-                res.data[0]['telegram_token'], 
-                res.data[0]['telegram_chat_id'], 
-                f"🔔 رسالة إنستقرام جديدة من العميل ({sender_id}):\n{msg}"
-            )
+            send_telegram_alert_by_token(res.data[0]['telegram_token'], res.data[0]['telegram_chat_id'], f"🔔 رسالة إنستقرام جديدة من العميل ({sender_id}):\n{msg}")
             response = client.models.generate_content(model='gemini-2.0-flash', contents=msg)
-            send_telegram_alert_by_token(
-                res.data[0]['telegram_token'], 
-                res.data[0]['telegram_chat_id'], 
-                f"🤖 الرد المقترح من Gemini:\n{response.text}"
-            )
-            
+            send_telegram_alert_by_token(res.data[0]['telegram_token'], res.data[0]['telegram_chat_id'], f"🤖 الرد المقترح من Gemini:\n{response.text}")
         return 'OK', 200
     except Exception as e:
         print(f"Webhook Error: {e}")
