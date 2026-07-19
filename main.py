@@ -4,7 +4,9 @@ from collections import defaultdict
 from datetime import datetime
 from functools import wraps
 import os
+import time
 import requests
+import urllib.parse
 import base64
 from google import genai  # مكتبة Gemini
 
@@ -104,7 +106,9 @@ def dashboard():
 @login_required
 def settings():
     company_code = session.get('company_code')
-    currencies = [("AED", "درهم إماراتي"), ("EUR", "يورو"), ("USD", "دولار أمريكي"), ("DZD", "دينار جزائري"), ("SAR", "ريال سعودي"), ("EGP", "جنيه مصري"), ("KWD", "دينار كويتي"), ("QAR", "ريال قطري")] # يمكنك إضافة البقية هنا
+    # قائمة العملات
+    currencies = [("AED", "درهم إماراتي"), ("EUR", "يورو"), ("USD", "دولار أمريكي"), ("DZD", "دينار جزائري"), ("SAR", "ريال سعودي"), ("EGP", "جنيه مصري"), ("KWD", "دينار كويتي"), ("QAR", "ريال قطري")]
+    
     if request.method == 'POST':
         data = {
             "company_name": request.form.get('company_name'),
@@ -118,6 +122,7 @@ def settings():
         except Exception as e:
             return f"حدث خطأ أثناء الحفظ: {str(e)}", 500
         return redirect(url_for('settings'))
+    
     res = supabase.table("settings").select("*").eq("company_code", company_code).execute()
     settings_data = res.data[0] if res.data else {}
     return render_template('settings.html', settings=settings_data, currencies=currencies)
@@ -142,11 +147,22 @@ def products():
         }
         supabase.table("inventory").insert(data).execute()
         return redirect(url_for('products'))
+    
     search_query = request.args.get('search', '')
     query = supabase.table("inventory").select("*").eq("company_code", company_code)
     if search_query: query = query.ilike("name", f"%{search_query}%")
     res = query.execute()
     return render_template('products.html', products=res.data or [], search=search_query)
+
+@app.route('/edit_product/<int:id>')
+@login_required
+def edit_product(id):
+    return "صفحة التعديل"
+
+@app.route('/view_order/<int:id>')
+@login_required
+def view_order(id):
+    return "تفاصيل الطلب"
 
 @app.route('/delete_product/<int:id>', methods=['POST'])
 @login_required
@@ -154,6 +170,12 @@ def delete_product(id):
     try: supabase.table("inventory").delete().eq("id", id).execute()
     except Exception as e: print(f"Delete Error: {e}")
     return redirect(url_for('products'))
+
+@app.route('/delete_order/<int:id>', methods=['POST'])
+@login_required
+def delete_order(id):
+    supabase.table("orders").delete().eq("id", id).execute()
+    return redirect(url_for('orders'))
 
 @app.route('/orders', methods=['GET', 'POST'])
 @login_required
@@ -180,6 +202,9 @@ def orders():
             product = products_res.data[0] 
             new_qty = product['quantity'] - requested_qty
             supabase.table("inventory").update({"quantity": new_qty}).eq("id", product['id']).execute()
+            if new_qty <= 5:
+                msg_low = f"⚠️ تنبيه مخزون!\nالمنتج '{product_name}' أوشك على النفاذ."
+                send_telegram_alert_by_token(res_settings.data[0]['telegram_token'], res_settings.data[0]['telegram_chat_id'], msg_low)
         return redirect(url_for('orders'))
     res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
@@ -209,6 +234,7 @@ def stats():
         total_orders = len(orders)
         return render_template('stats.html', total_sales=float(total_sales), total_expenses=float(total_expenses), total_orders=int(total_orders), daily=dict(daily_data), monthly=dict(monthly_data), yearly=dict(yearly_data))
     except Exception as e:
+        print(f"Stats Error: {e}")
         return render_template('stats.html', total_sales=0, total_expenses=0, total_orders=0, daily={}, monthly={}, yearly={})
 
 @app.route('/webhook_instagram', methods=['GET', 'POST'])
@@ -227,6 +253,7 @@ def webhook_instagram():
             send_telegram_alert_by_token(res.data[0]['telegram_token'], res.data[0]['telegram_chat_id'], f"🤖 الرد المقترح من Gemini:\n{response.text}")
         return 'OK', 200
     except Exception as e:
+        print(f"Webhook Error: {e}")
         return 'Error', 500
 
 if __name__ == '__main__':
