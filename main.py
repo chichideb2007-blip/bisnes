@@ -155,7 +155,7 @@ def products():
                 "name": request.form.get('name'),
                 "quantity": int(request.form.get('quantity', 0)),
                 "price": float(request.form.get('price', 0.0)),
-                "company_code": company_code,
+                "company_id": company_code,  # تم التعديل إلى company_id كما طلبت
                 "product-images": image_data
             }
             
