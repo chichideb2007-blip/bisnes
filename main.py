@@ -139,9 +139,11 @@ def settings():
 def products():
     company_code = session.get('company_code')
     
+    # كود الإضافة (POST)
     if request.method == 'POST':
         file = request.files.get('product_image')
         image_data = ""
+        # معالجة الصورة وتحويلها إلى Base64
         if file and file.filename != '':
             encoded_string = base64.b64encode(file.read()).decode('utf-8')
             image_data = f"data:image/jpeg;base64,{encoded_string}"
@@ -153,9 +155,11 @@ def products():
             "company_code": company_code,
             "product-images": image_data
         }
+        # إدراج البيانات في Supabase
         supabase.table("inventory").insert(data).execute()
         return redirect(url_for('products'))
     
+    # كود العرض والبحث (GET)
     search_query = request.args.get('search', '')
     query = supabase.table("inventory").select("*").eq("company_code", company_code)
     
@@ -212,7 +216,7 @@ def orders():
         }
         supabase.table("orders").insert(data).execute()
         
-        # التعديل هنا: استخدام البيانات المستخرجة
+        # استخدام البيانات المستخرجة
         if res_settings.data:
             settings_info = res_settings.data[0] # جلب أول صف
             token = settings_info.get('telegram_token')
