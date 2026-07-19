@@ -106,8 +106,8 @@ def dashboard():
 @login_required
 def settings():
     company_code = session.get('company_code')
-    # قائمة العملات
-    currencies = [("AED", "درهم إماراتي"), ("EUR", "يورو"), ("USD", "دولار أمريكي"), ("DZD", "دينار جزائري"), ("SAR", "ريال سعودي"), ("EGP", "جنيه مصري"), ("KWD", "دينار كويتي"), ("QAR", "ريال قطري")]
+    # قائمة عملات العالم للبحث
+    currencies = [("AED", "درهم إماراتي"), ("EUR", "يورو"), ("USD", "دولار أمريكي"), ("DZD", "دينار جزائري"), ("SAR", "ريال سعودي"), ("EGP", "جنيه مصري"), ("KWD", "دينار كويتي"), ("QAR", "ريال قطري"), ("GBP", "جنيه إسترليني"), ("JPY", "ين ياباني"), ("CAD", "دولار كندي"), ("AUD", "دولار أسترالي")]
     
     if request.method == 'POST':
         data = {
@@ -154,28 +154,12 @@ def products():
     res = query.execute()
     return render_template('products.html', products=res.data or [], search=search_query)
 
-@app.route('/edit_product/<int:id>')
-@login_required
-def edit_product(id):
-    return "صفحة التعديل"
-
-@app.route('/view_order/<int:id>')
-@login_required
-def view_order(id):
-    return "تفاصيل الطلب"
-
 @app.route('/delete_product/<int:id>', methods=['POST'])
 @login_required
 def delete_product(id):
     try: supabase.table("inventory").delete().eq("id", id).execute()
     except Exception as e: print(f"Delete Error: {e}")
     return redirect(url_for('products'))
-
-@app.route('/delete_order/<int:id>', methods=['POST'])
-@login_required
-def delete_order(id):
-    supabase.table("orders").delete().eq("id", id).execute()
-    return redirect(url_for('orders'))
 
 @app.route('/orders', methods=['GET', 'POST'])
 @login_required
