@@ -177,6 +177,17 @@ def delete_product(id):
     except Exception as e: print(f"Delete Error: {e}")
     return redirect(url_for('products'))
 
+@app.route('/delete_order/<int:id>', methods=['POST'])
+@login_required
+def delete_order(id):
+    company_code = session.get('company_code')
+    try:
+        # حذف الطلبية بناءً على معرفها والتأكد من أنها تابعة لنفس الشركة
+        supabase.table("orders").delete().eq("id", id).eq("company_code", company_code).execute()
+    except Exception as e:
+        print(f"Delete Order Error: {e}")
+    return redirect(url_for('orders'))
+
 @app.route('/orders', methods=['GET', 'POST'])
 @login_required
 def orders():
