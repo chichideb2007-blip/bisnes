@@ -15,7 +15,7 @@
         <!-- شريط الأزرار العلوي -->
         <div class="d-flex justify-content-between mb-4">
             <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">⬅️ لوحة التحكم</a>
-            <!-- زر اختيار اللغة (سيظهر هنا) -->
+            <!-- زر اختيار اللغة -->
             <div id="google_translate_element"></div>
             <a href="{{ url_for('logout') }}" class="btn btn-danger">🚪 خروج</a>
         </div>
@@ -30,10 +30,10 @@
                     <input type="text" name="company_name" class="form-control" value="{{ settings.company_name or '' }}" required>
                 </div>
 
-                <!-- خانة البحث في العملات -->
+                <!-- خانة البحث في العملات لكل عملات العالم -->
                 <div class="mb-3">
                     <label class="form-label">العملة الافتراضية</label>
-                    <input type="text" id="currencySearch" class="form-control mb-2" placeholder="🔍 ابحث عن العملة...">
+                    <input type="text" id="currencySearch" class="form-control mb-2" placeholder="🔍 ابحث عن أي عملة في العالم...">
                     
                     <select name="currency" id="currencySelect" class="form-select">
                         {% for code, name in currencies %}
@@ -62,16 +62,9 @@
         // سكربت البحث في العملات
         document.getElementById('currencySearch').addEventListener('input', function() {
             let filter = this.value.toUpperCase();
-            let select = document.getElementById('currencySelect');
-            let options = select.getElementsByTagName('option');
-            
+            let options = document.getElementById('currencySelect').options;
             for (let i = 0; i < options.length; i++) {
-                let txtValue = options[i].textContent || options[i].innerText;
-                if (txtValue.toUpperCase().indexOf(filter) > -1) {
-                    options[i].style.display = "";
-                } else {
-                    options[i].style.display = "none";
-                }
+                options[i].style.display = (options[i].text.toUpperCase().includes(filter)) ? "" : "none";
             }
         });
     </script>
