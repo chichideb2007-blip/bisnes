@@ -175,7 +175,7 @@ def delete_order(id):
     supabase.table("orders").delete().eq("id", id).execute()
     return redirect(url_for('orders'))
 
-# مسار الطلبيات المحدث
+# مسار الطلبيات
 @app.route('/orders', methods=['GET', 'POST'])
 @login_required
 def orders():
@@ -195,11 +195,19 @@ def orders():
         }
         supabase.table("orders").insert(data).execute()
         
-        # 2. خصم الكمية من المخزون
-        product = supabase.table("inventory").select("id, quantity").eq("name", product_name).eq("company_code", company_code).single().execute()
-        if product.data:
-            new_qty = product.data['quantity'] - quantity_ordered
-            supabase.table("inventory").update({"quantity": new_qty}).eq("id", product.data['id']).execute()
+        # 2. محاولة خصم الكمية من المخزون بأمان
+        try:
+            # البحث عن المنتج أولاً
+            product = supabase.table("inventory").select("id, quantity").eq("name", product_name).eq("company_code", company_code).execute()
+            
+            if product.data and len(product.data) > 0:
+                product_id = product.data[0]['id']
+                current_qty = product.data[0]['quantity']
+                new_qty = current_qty - quantity_ordered
+                # تحديث الكمية
+                supabase.table("inventory").update({"quantity": new_qty}).eq("id", product_id).execute()
+        except Exception as e:
+            print(f"Inventory Update Error: {e}") # لن يظهر خطأ للمستخدم، سيتم طباعته في السجلات فقط
 
         # 3. إرسال تنبيه تليجرام
         res = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
