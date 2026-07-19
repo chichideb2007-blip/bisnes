@@ -27,6 +27,7 @@ def send_telegram_alert_by_token(token, chat_id, message):
             print(f"Error: {e}")
 
 def refresh_instagram_token():
+    """دالة التجديد التلقائي لتوكن إنستقرام"""
     res = supabase.table("settings").select("company_code, instagram_token").execute()
     for row in res.data:
         old_token = row.get('instagram_token')
@@ -94,13 +95,12 @@ def dashboard():
 def settings():
     company_code = session.get('company_code')
     if request.method == 'POST':
-        # التعديل: إضافة حقل العملة
         data = {
             "company_name": request.form.get('company_name'),
             "telegram_token": request.form.get('telegram_token'),
             "telegram_chat_id": request.form.get('chat_id'),
             "instagram_url": request.form.get('instagram_url'),
-            "currency": request.form.get('currency') 
+            "currency": request.form.get('currency', 'DA') # إضافة العملة
         }
         try:
             supabase.table("settings").update(data).eq("company_code", company_code).execute()
@@ -110,16 +110,7 @@ def settings():
     
     res = supabase.table("settings").select("*").eq("company_code", company_code).execute()
     settings_data = res.data[0] if res.data else {}
-    return render_template('settings.html', settings=settings_data)
-
-# --- إضافات لمنع الانهيار (الأخطاء التي ظهرت في الفيديو) ---
-@app.route('/edit_product/<int:id>')
-@login_required
-def edit_product(id): return "جاري التحديث..."
-
-@app.route('/view_order/<int:id>')
-@login_required
-def view_order(id): return "جاري التحميل..."
+    return render_template('settings.html', settings=settings_data, currency=settings_data.get('currency', 'DA'))
 
 @app.route('/products', methods=['GET', 'POST'])
 @login_required
@@ -148,10 +139,24 @@ def products():
     res = query.execute()
     return render_template('products.html', products=res.data or [], search=search_query)
 
+# --- المسارات الجديدة المضافة ---
+@app.route('/edit_product/<int:id>')
+@login_required
+def edit_product(id):
+    return "صفحة التعديل"
+
+@app.route('/view_order/<int:id>')
+@login_required
+def view_order(id):
+    return "تفاصيل الطلب"
+
 @app.route('/delete_product/<int:id>', methods=['POST'])
 @login_required
 def delete_product(id):
-    supabase.table("inventory").delete().eq("id", id).execute()
+    try:
+        supabase.table("inventory").delete().eq("id", id).execute()
+    except Exception as e:
+        print(f"Delete Error: {e}")
     return redirect(url_for('products'))
 
 @app.route('/delete_order/<int:id>', methods=['POST'])
@@ -163,4 +168,60 @@ def delete_order(id):
 @app.route('/orders', methods=['GET', 'POST'])
 @login_required
 def orders():
-    company_code = session.get('company_
+    company_code = session.get('company_code')
+    if request.method == 'POST':
+        product_name = request.form.get('product_name')
+        requested_qty = int(request.form.get('quantity', 0)) 
+        data = {
+            "customer_name": request.form.get('customer_name'),
+            "customer_phone": request.form.get('customer_phone'), 
+            "product_name": product_name,
+            "quantity": requested_qty, 
+            "total_price": float(request.form.get('price', 0.0)),
+            "company_code": company_code
+        }
+        supabase.table("orders").insert(data).execute()
+        res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
+        if res_settings.data:
+            msg = f"🛒 طلبية جديدة!\nالعميل: {request.form.get('customer_name')}\nالمنتج: {product_name}\nالكمية: {requested_qty}"
+            send_telegram_alert_by_token(res_settings.data[0]['telegram_token'], res_settings.data[0]['telegram_chat_id'], msg)
+        return redirect(url_for('orders'))
+    
+    res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
+    return render_template('orders_dashboard.html', orders=res.data or [])
+
+@app.route('/stats')
+@login_required
+def stats():
+    company_code = session.get('company_code')
+    try:
+        res_orders = supabase.table("orders").select("total_price, created_at").eq("company_code", company_code).execute()
+        orders = res_orders.data or []
+        res_expenses = supabase.table("expenses").select("amount, created_at").eq("company_code", company_code).execute()
+        expenses = res_expenses.data or []
+        return render_template('stats.html', total_sales=sum(float(o.get('total_price') or 0) for o in orders))
+    except Exception as e:
+        print(f"Stats Error: {e}")
+        return render_template('stats.html', total_sales=0)
+
+@app.route('/webhook_instagram', methods=['GET', 'POST'])
+def webhook_instagram():
+    if request.method == 'GET': return request.args.get('hub.challenge')
+    data = request.json
+    try:
+        page_id = data['entry'][0]['id']
+        messaging = data['entry'][0]['messaging'][0]
+        msg = messaging['message']['text']
+        res = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("instagram_page_id", page_id).execute()
+        if res.data:
+            response = client.models.generate_content(model='gemini-2.0-flash', contents=msg)
+            send_telegram_alert_by_token(res.data[0]['telegram_token'], res.data[0]['telegram_chat_id'], response.text)
+        return 'OK', 200
+    except Exception as e:
+        print(f"Webhook Error: {e}")
+        return 'Error', 500
+
+if __name__ == '__main__':
+    refresh_instagram_token()
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
