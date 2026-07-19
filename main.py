@@ -17,7 +17,7 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "fallback_dev_key")
 supabase = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY"))
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
-# --- المعالج التلقائي للعملة (يجعل متغير currency متاحاً في كل الصفحات) ---
+# --- المعالج التلقائي للعملة ---
 @app.context_processor
 def inject_currency():
     company_code = session.get('company_code')
@@ -106,8 +106,15 @@ def dashboard():
 @login_required
 def settings():
     company_code = session.get('company_code')
-    # قائمة عملات العالم للبحث
-    currencies = [("AED", "درهم إماراتي"), ("EUR", "يورو"), ("USD", "دولار أمريكي"), ("DZD", "دينار جزائري"), ("SAR", "ريال سعودي"), ("EGP", "جنيه مصري"), ("KWD", "دينار كويتي"), ("QAR", "ريال قطري"), ("GBP", "جنيه إسترليني"), ("JPY", "ين ياباني"), ("CAD", "دولار كندي"), ("AUD", "دولار أسترالي")]
+    currencies = [
+        ("USD", "دولار أمريكي"), ("EUR", "يورو"), ("GBP", "جنيه إسترليني"), ("JPY", "ين ياباني"),
+        ("AUD", "دولار أسترالي"), ("CAD", "دولار كندي"), ("CHF", "فرنك سويسري"), ("CNY", "يوان صيني"),
+        ("SAR", "ريال سعودي"), ("AED", "درهم إماراتي"), ("DZD", "دينار جزائري"), ("EGP", "جنيه مصري"),
+        ("KWD", "دينار كويتي"), ("QAR", "ريال قطري"), ("BHD", "دينار بحريني"), ("OMR", "ريال عماني"),
+        ("JOD", "دينار أردني"), ("LBP", "ليرة لبنانية"), ("LYD", "دينار ليبي"), ("MAD", "درهم مغربي"),
+        ("TND", "دينار تونسي"), ("IQD", "دينار عراقي"), ("SYP", "ليرة سورية"), ("YER", "ريال يمني"),
+        ("TRY", "ليرة تركية"), ("INR", "روبية هندية"), ("RUB", "روبل روسي"), ("SGD", "دولار سنغافوري")
+    ]
     
     if request.method == 'POST':
         data = {
@@ -131,27 +138,34 @@ def settings():
 @login_required
 def products():
     company_code = session.get('company_code')
+    
     if request.method == 'POST':
         file = request.files.get('product_image')
         image_data = ""
-        if file:
+        # معالجة رفع الصورة
+        if file and file.filename != '':
             encoded_string = base64.b64encode(file.read()).decode('utf-8')
             image_data = f"data:image/jpeg;base64,{encoded_string}"
+            
         data = {
             "name": request.form.get('name'),
             "quantity": int(request.form.get('quantity', 0)),
             "price": float(request.form.get('price', 0.0)),
             "company_code": company_code,
-            "company_id_text": company_code,
             "product-images": image_data
         }
         supabase.table("inventory").insert(data).execute()
         return redirect(url_for('products'))
     
+    # جلب المنتجات
     search_query = request.args.get('search', '')
     query = supabase.table("inventory").select("*").eq("company_code", company_code)
-    if search_query: query = query.ilike("name", f"%{search_query}%")
+    
+    if search_query:
+        query = query.ilike("name", f"%{search_query}%")
+    
     res = query.execute()
+    # تمرير المتغيرات للقالب
     return render_template('products.html', products=res.data or [], search=search_query)
 
 @app.route('/delete_product/<int:id>', methods=['POST'])
@@ -165,6 +179,9 @@ def delete_product(id):
 @login_required
 def orders():
     company_code = session.get('company_code')
+    res_settings = supabase.table("settings").select("currency, telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
+    currency = res_settings.data[0].get('currency', '') if res_settings.data else ""
+
     if request.method == 'POST':
         product_name = request.form.get('product_name')
         requested_qty = int(request.form.get('quantity', 0)) 
@@ -174,13 +191,17 @@ def orders():
             "product_name": product_name,
             "quantity": requested_qty, 
             "total_price": float(request.form.get('price', 0.0)),
-            "company_code": company_code
+            "company_code": company_code,
+            "status": "قيد الانتظار"
         }
         supabase.table("orders").insert(data).execute()
-        res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
+        
         if res_settings.data:
+            token = res_settings.data[0].get('telegram_token')
+            chat_id = res_settings.data[0].get('telegram_chat_id')
             msg = f"🛒 طلبية جديدة!\nالعميل: {request.form.get('customer_name')}\nالمنتج: {product_name}\nالكمية: {requested_qty}"
-            send_telegram_alert_by_token(res_settings.data[0]['telegram_token'], res_settings.data[0]['telegram_chat_id'], msg)
+            send_telegram_alert_by_token(token, chat_id, msg)
+            
         products_res = supabase.table("inventory").select("id, quantity, name").eq("name", product_name).eq("company_code", company_code).execute()
         if products_res.data:
             product = products_res.data[0] 
@@ -188,10 +209,12 @@ def orders():
             supabase.table("inventory").update({"quantity": new_qty}).eq("id", product['id']).execute()
             if new_qty <= 5:
                 msg_low = f"⚠️ تنبيه مخزون!\nالمنتج '{product_name}' أوشك على النفاذ."
-                send_telegram_alert_by_token(res_settings.data[0]['telegram_token'], res_settings.data[0]['telegram_chat_id'], msg_low)
+                send_telegram_alert_by_token(res_settings.data[0].get('telegram_token'), res_settings.data[0].get('telegram_chat_id'), msg_low)
+            
         return redirect(url_for('orders'))
+
     res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
-    return render_template('orders_dashboard.html', orders=res.data or [])
+    return render_template('orders_dashboard.html', orders=res.data or [], currency=currency)
 
 @app.route('/stats')
 @login_required
