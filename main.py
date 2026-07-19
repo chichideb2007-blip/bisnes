@@ -168,7 +168,6 @@ def products():
 @app.route('/edit_product/<int:id>', methods=['GET', 'POST'])
 @login_required
 def edit_product(id):
-    # هنا تضع كود تعديل المنتج (جلب البيانات من Supabase وتحديثها)
     return "صفحة التعديل قيد التطوير"
 
 @app.route('/delete_product/<int:id>', methods=['POST'])
@@ -182,8 +181,12 @@ def delete_product(id):
 @login_required
 def orders():
     company_code = session.get('company_code')
+    
+    # جلب الإعدادات مع معالجة الخطأ
     res_settings = supabase.table("settings").select("currency, telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
-    currency = res_settings.data[0].get('currency', '') if res_settings.data else ""
+    currency = ""
+    if res_settings.data and len(res_settings.data) > 0:
+        currency = res_settings.data[0].get('currency', '')
 
     if request.method == 'POST':
         product_name = request.form.get('product_name')
@@ -216,8 +219,11 @@ def orders():
             
         return redirect(url_for('orders'))
 
+    # جلب الطلبيات
     res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
-    return render_template('orders_dashboard.html', orders=res.data or [], currency=currency)
+    orders_list = res.data if res.data else []
+    
+    return render_template('orders_dashboard.html', orders=orders_list, currency=currency)
 
 @app.route('/stats')
 @login_required
