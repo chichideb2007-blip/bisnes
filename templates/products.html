@@ -15,34 +15,21 @@
 </head>
 <body>
 
-    <!-- شريط الأدوات العلوي الموحد -->
     <div class="container mt-3">
         <div class="d-flex justify-content-between align-items-center">
             <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">⬅️ لوحة التحكم</a>
-            
             <div id="google_translate_element"></div>
-            
             <a href="{{ url_for('logout') }}" class="btn btn-danger">🚪 خروج</a>
         </div>
     </div>
 
-    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
-    <script type="text/javascript">
-        function googleTranslateElementInit() {
-            new google.translate.TranslateElement({
-                pageLanguage: 'ar',
-                layout: google.translate.TranslateElement.InlineLayout.SIMPLE
-            }, 'google_translate_element');
-        }
-    </script>
-
     <div class="container mt-4">
         <h2 class="mb-4 text-center fw-bold">📦 إدارة المنتجات والمخزون</h2>
         
-        <!-- نموذج إضافة منتج -->
+        <!-- نموذج إضافة منتج - تأكد من enctype للصور -->
         <div class="product-card">
             <h4 class="mb-3">إضافة منتج جديد</h4>
-            <form action="/products" method="POST" enctype="multipart/form-data" class="row g-3">
+            <form action="{{ url_for('products') }}" method="POST" enctype="multipart/form-data" class="row g-3">
                 <div class="col-md-3">
                     <input type="text" name="name" class="form-control" placeholder="اسم المنتج" required>
                 </div>
@@ -63,7 +50,7 @@
 
         <!-- نموذج البحث -->
         <div class="product-card">
-            <form method="GET" action="/products" class="d-flex">
+            <form method="GET" action="{{ url_for('products') }}" class="d-flex">
                 <input type="text" name="search" class="form-control me-2" placeholder="ابحث عن منتج..." value="{{ search if search else '' }}">
                 <button type="submit" class="btn btn-primary">بحث</button>
             </form>
@@ -97,7 +84,7 @@
                             <td>{{ p.price }} {{ currency }}</td>
                             <td>
                                 <a href="{{ url_for('edit_product', id=p.id) }}" class="btn btn-sm btn-warning">تعديل</a>
-                                <form action="/delete_product/{{ p.id }}" method="POST" class="d-inline">
+                                <form action="{{ url_for('delete_product', id=p.id) }}" method="POST" class="d-inline">
                                     <button type="submit" class="btn btn-sm btn-danger">حذف</button>
                                 </form>
                             </td>
@@ -111,11 +98,13 @@
                 </table>
             </div>
         </div>
-
-        <div class="text-center mb-5">
-            <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary px-4">العودة للوحة التحكم</a>
-        </div>
     </div>
 
+    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+    <script type="text/javascript">
+        function googleTranslateElementInit() {
+            new google.translate.TranslateElement({pageLanguage: 'ar', layout: google.translate.TranslateElement.InlineLayout.SIMPLE}, 'google_translate_element');
+        }
+    </script>
 </body>
 </html>
