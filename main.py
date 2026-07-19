@@ -183,7 +183,7 @@ def delete_order(id):
     supabase.table("orders").delete().eq("id", id).execute()
     return redirect(url_for('orders'))
 
-# مسار الطلبيات (معدل مع خصم الكمية وتنبيه النفاذ)
+# مسار الطلبيات المدمج
 @app.route('/orders', methods=['GET', 'POST'])
 @login_required
 def orders():
@@ -195,7 +195,7 @@ def orders():
         # 1. إدراج الطلبية
         data = {
             "customer_name": request.form.get('customer_name'),
-            "customer_phone": request.form.get('phone'),
+            "customer_phone": request.form.get('customer_phone'), # تم التعديل هنا
             "product_name": product_name,
             "quantity": quantity_ordered,
             "total_price": float(request.form.get('price', 0.0)),
@@ -203,16 +203,14 @@ def orders():
         }
         supabase.table("orders").insert(data).execute()
         
-        # 2. خصم الكمية وتنبيه النفاذ
+        # 2. خصم الكمية
         product = supabase.table("inventory").select("id, quantity, name").eq("name", product_name).eq("company_code", company_code).single().execute()
+        
         if product.data:
-            old_qty = product.data['quantity']
-            new_qty = old_qty - quantity_ordered
-            
-            # تحديث الكمية في المخزون
+            new_qty = product.data['quantity'] - quantity_ordered
             supabase.table("inventory").update({"quantity": new_qty}).eq("id", product.data['id']).execute()
             
-            # تنبيه إذا أوشك المنتج على النفاذ (مثلاً أقل من 5 قطع)
+            # تنبيه إذا أوشك المنتج على النفاذ
             if new_qty <= 5:
                 res = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
                 if res.data:
