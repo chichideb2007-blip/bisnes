@@ -27,7 +27,6 @@ def send_telegram_alert_by_token(token, chat_id, message):
             print(f"Error: {e}")
 
 def refresh_instagram_token():
-    """دالة التجديد التلقائي لتوكن إنستقرام"""
     res = supabase.table("settings").select("company_code, instagram_token").execute()
     for row in res.data:
         old_token = row.get('instagram_token')
@@ -139,7 +138,7 @@ def products():
     res = query.execute()
     return render_template('products.html', products=res.data or [], search=search_query)
 
-# --- المسارات الجديدة المضافة ---
+# --- المسارات الجديدة المطلوبة ---
 @app.route('/edit_product/<int:id>')
 @login_required
 def edit_product(id):
@@ -185,8 +184,15 @@ def orders():
         if res_settings.data:
             msg = f"🛒 طلبية جديدة!\nالعميل: {request.form.get('customer_name')}\nالمنتج: {product_name}\nالكمية: {requested_qty}"
             send_telegram_alert_by_token(res_settings.data[0]['telegram_token'], res_settings.data[0]['telegram_chat_id'], msg)
+        products_res = supabase.table("inventory").select("id, quantity, name").eq("name", product_name).eq("company_code", company_code).execute()
+        if products_res.data:
+            product = products_res.data[0] 
+            new_qty = product['quantity'] - requested_qty
+            supabase.table("inventory").update({"quantity": new_qty}).eq("id", product['id']).execute()
+            if new_qty <= 5:
+                msg_low = f"⚠️ تنبيه مخزون!\nالمنتج '{product_name}' أوشك على النفاذ."
+                send_telegram_alert_by_token(res_settings.data[0]['telegram_token'], res_settings.data[0]['telegram_chat_id'], msg_low)
         return redirect(url_for('orders'))
-    
     res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
 
@@ -199,10 +205,24 @@ def stats():
         orders = res_orders.data or []
         res_expenses = supabase.table("expenses").select("amount, created_at").eq("company_code", company_code).execute()
         expenses = res_expenses.data or []
-        return render_template('stats.html', total_sales=sum(float(o.get('total_price') or 0) for o in orders))
+        daily_data, monthly_data, yearly_data = defaultdict(float), defaultdict(float), defaultdict(float)
+        days_order = ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"]
+        months_order = ["جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان", "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
+        for o in orders:
+            if o.get('created_at'):
+                dt = datetime.fromisoformat(o['created_at'].replace('Z', '+00:00'))
+                price = float(o.get('total_price') or 0)
+                day_name = days_order[dt.weekday()] if dt.weekday() < 7 else "السبت"
+                daily_data[day_name] += price
+                monthly_data[months_order[dt.month - 1]] += price
+                yearly_data[str(dt.year)] += price
+        total_sales = sum(float(o.get('total_price') or 0) for o in orders)
+        total_expenses = sum(float(e.get('amount') or 0) for e in expenses)
+        total_orders = len(orders)
+        return render_template('stats.html', total_sales=float(total_sales), total_expenses=float(total_expenses), total_orders=int(total_orders), daily=dict(daily_data), monthly=dict(monthly_data), yearly=dict(yearly_data))
     except Exception as e:
         print(f"Stats Error: {e}")
-        return render_template('stats.html', total_sales=0)
+        return render_template('stats.html', total_sales=0, total_expenses=0, total_orders=0, daily={}, monthly={}, yearly={})
 
 @app.route('/webhook_instagram', methods=['GET', 'POST'])
 def webhook_instagram():
@@ -212,10 +232,12 @@ def webhook_instagram():
         page_id = data['entry'][0]['id']
         messaging = data['entry'][0]['messaging'][0]
         msg = messaging['message']['text']
+        sender_id = messaging['sender']['id']
         res = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("instagram_page_id", page_id).execute()
         if res.data:
+            send_telegram_alert_by_token(res.data[0]['telegram_token'], res.data[0]['telegram_chat_id'], f"🔔 رسالة إنستقرام جديدة من العميل ({sender_id}):\n{msg}")
             response = client.models.generate_content(model='gemini-2.0-flash', contents=msg)
-            send_telegram_alert_by_token(res.data[0]['telegram_token'], res.data[0]['telegram_chat_id'], response.text)
+            send_telegram_alert_by_token(res.data[0]['telegram_token'], res.data[0]['telegram_chat_id'], f"🤖 الرد المقترح من Gemini:\n{response.text}")
         return 'OK', 200
     except Exception as e:
         print(f"Webhook Error: {e}")
