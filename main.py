@@ -142,7 +142,6 @@ def products():
     if request.method == 'POST':
         file = request.files.get('product_image')
         image_data = ""
-        # معالجة رفع الصورة
         if file and file.filename != '':
             encoded_string = base64.b64encode(file.read()).decode('utf-8')
             image_data = f"data:image/jpeg;base64,{encoded_string}"
@@ -157,7 +156,6 @@ def products():
         supabase.table("inventory").insert(data).execute()
         return redirect(url_for('products'))
     
-    # جلب المنتجات
     search_query = request.args.get('search', '')
     query = supabase.table("inventory").select("*").eq("company_code", company_code)
     
@@ -165,8 +163,13 @@ def products():
         query = query.ilike("name", f"%{search_query}%")
     
     res = query.execute()
-    # تمرير المتغيرات للقالب
     return render_template('products.html', products=res.data or [], search=search_query)
+
+@app.route('/edit_product/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit_product(id):
+    # هنا تضع كود تعديل المنتج (جلب البيانات من Supabase وتحديثها)
+    return "صفحة التعديل قيد التطوير"
 
 @app.route('/delete_product/<int:id>', methods=['POST'])
 @login_required
