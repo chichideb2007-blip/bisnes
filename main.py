@@ -89,40 +89,58 @@ def logout():
 def dashboard():
     return render_template('dashboard.html')
 
-# المسار المدمج (Settings)
 @app.route('/settings', methods=['GET', 'POST'])
 @login_required
 def settings():
     company_code = session.get('company_code')
     
+    # قائمة العملات العالمية
+    currencies = [
+        ("AED", "درهم إماراتي"), ("AFN", "أفغاني"), ("ALL", "ليك ألباني"), ("AMD", "درام أرميني"),
+        ("ANG", "غيلدر الأنتيل"), ("AOA", "كوانزا أنغولي"), ("ARS", "بيزو أرجنتيني"), ("AUD", "دولار أسترالي"),
+        ("AWG", "فلورين أروبي"), ("AZN", "مانات أذربيجاني"), ("BAM", "مارك بوسني"), ("BBD", "دولار باربادوسي"),
+        ("BDT", "تاكا بنغلاديشي"), ("BGN", "ليف بلغاري"), ("BHD", "دينار بحريني"), ("BIF", "فرنك بوروندي"),
+        ("BMD", "دولار برمودي"), ("BND", "دولار بروني"), ("BOB", "بوليفيانو"), ("BRL", "ريال برازيلي"),
+        ("BSD", "دولار باهامي"), ("BTN", "نغولترم بوتاني"), ("BWP", "بولا بوتسواني"), ("BYN", "روبل بيلاروسي"),
+        ("BZD", "دولار بليزي"), ("CAD", "دولار كندي"), ("CDF", "فرنك كونغولي"), ("CHF", "فرنك سويسري"),
+        ("CLP", "بيزو تشيلي"), ("CNY", "يوان صيني"), ("COP", "بيزو كولومبي"), ("CRC", "كولون كوستاريكي"),
+        ("CUP", "بيزو كوبي"), ("CVE", "إيسكودو رأس أخضر"), ("CZK", "كرونة تشيكية"), ("DA", "دينار جزائري"),
+        ("DJF", "فرنك جيبوتي"), ("DKK", "كرونة دنماركية"), ("DOP", "بيزو دومينيكاني"), ("DZD", "دينار جزائري"),
+        ("EGP", "جنيه مصري"), ("ERN", "ناكفا إريتري"), ("ETB", "بير إثيوبي"), ("EUR", "يورو"),
+        ("FJD", "دولار فيجي"), ("GBP", "جنيه إسترليني"), ("GEL", "لاري جورجي"), ("GHS", "سيدي غاني"),
+        ("GMD", "دالاسي غامبي"), ("GNF", "فرنك غيني"), ("GTQ", "كيتزال غواتيمالي"), ("GYD", "دولار غياني"),
+        ("HKD", "دولار هونج كونج"), ("HNL", "ليمبيرا هندوراسي"), ("HRK", "كونا كرواتية"), ("HTG", "غورد هايتي"),
+        ("HUF", "فورنت مجري"), ("IDR", "روبية إندونيسية"), ("ILS", "شيكل جديد"), ("INR", "روبية هندية"),
+        ("IQD", "دينار عراقي"), ("IRR", "ريال إيراني"), ("ISK", "كرونة آيسلندية"), ("JMD", "دولار جامايكي"),
+        ("JOD", "دينار أردني"), ("JPY", "ين ياباني"), ("KES", "شيلينغ كيني"), ("KGS", "سوم قيرغيزستاني"),
+        ("KHR", "رييل كمبودي"), ("KMF", "فرنك قمري"), ("KRW", "وون كوري جنوبي"), ("KWD", "دينار كويتي"),
+        ("KYD", "دولار جزر كايمان"), ("KZT", "تينغي كازاخستاني"), ("LAK", "كيب لاوسي"), ("LBP", "ليرة لبنانية"),
+        ("LKR", "روبية سريلانكية"), ("LYD", "دينار ليبي"), ("MAD", "درهم مغربي"), ("MUR", "روبية موريشيسية"),
+        ("MXN", "بيزو مكسيكي"), ("MYR", "رينغيت ماليزي"), ("NGN", "نايرا نيجيري"), ("NOK", "كرونة نرويجية"),
+        ("OMR", "ريال عماني"), ("PHP", "بيزو فلبيني"), ("PKR", "روبية باكستانية"), ("PLN", "زلوتي بولندي"),
+        ("QAR", "ريال قطري"), ("RUB", "روبل روسي"), ("SAR", "ريال سعودي"), ("SEK", "كرونة سويدية"),
+        ("SGD", "دولار سنغافوري"), ("SYP", "ليرة سورية"), ("THB", "باهت تايلاندي"), ("TND", "دينار تونسي"),
+        ("TRY", "ليرة تركية"), ("USD", "دولار أمريكي"), ("YER", "ريال يمني"), ("ZAR", "راند جنوب أفريقي")
+    ]
+
     if request.method == 'POST':
-        # نأخذ البيانات من النموذج
         data = {
             "company_name": request.form.get('company_name'),
             "telegram_token": request.form.get('telegram_token'),
             "telegram_chat_id": request.form.get('chat_id'),
             "instagram_url": request.form.get('instagram_url'),
-            "currency": request.form.get('currency') 
+            "currency": request.form.get('currency')
         }
-        
         try:
-            # التحديث في القاعدة
             supabase.table("settings").update(data).eq("company_code", company_code).execute()
         except Exception as e:
-            print(f"Update Error: {e}") # هذا الخطأ سيظهر في الـ Terminal/Logs
-            return f"حدث خطأ أثناء الحفظ: {str(e)}", 500
-        
+            print(f"Update Error: {e}")
         return redirect(url_for('settings'))
     
-    # جلب البيانات الحالية
-    try:
-        res = supabase.table("settings").select("*").eq("company_code", company_code).execute()
-        settings_data = res.data[0] if res.data else {}
-    except Exception as e:
-        print(f"Fetch Error: {e}")
-        settings_data = {}
+    res = supabase.table("settings").select("*").eq("company_code", company_code).execute()
+    settings_data = res.data[0] if res.data else {}
         
-    return render_template('settings.html', settings=settings_data)
+    return render_template('settings.html', settings=settings_data, currencies=currencies)
 
 @app.route('/products', methods=['GET', 'POST'])
 @login_required
