@@ -26,7 +26,8 @@
         <form action="/products" method="POST" enctype="multipart/form-data">
             <input type="text" name="name" placeholder="اسم المنتج" required>
             <input type="number" name="quantity" placeholder="الكمية" required>
-            <input type="number" step="0.01" name="price" placeholder="السعر" required>
+            <!-- تحديث السعر مع العملة -->
+            <input type="number" step="0.01" name="price" placeholder="السعر ({{ currency }})" required>
             <label style="display:block; margin-top:10px;">اختر صورة المنتج:</label>
             <input type="file" name="product_image" accept="image/*">
             <button type="submit" class="btn-save">حفظ المنتج</button>
@@ -64,7 +65,8 @@
                 </td>
                 <td>{{ p.name }}</td>
                 <td>{{ p.quantity }}</td>
-                <td>{{ p.price }} دج</td>
+                <!-- تحديث عرض السعر -->
+                <td>{{ p.price }} {{ currency }}</td>
                 <td>
                     <form action="/delete_product/{{ p.id }}" method="POST">
                         <button type="submit" class="btn-delete">حذف</button>
