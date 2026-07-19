@@ -32,18 +32,16 @@
                     <input type="text" name="shop_name" class="form-control" value="{{ settings.shop_name or '' }}">
                 </div>
                 
-                <!-- قسم معرف الشركة (ID) المحدث -->
+                <!-- قسم البوت المحدث -->
+                <h5 class="section-title mt-4">🤖 إعدادات البوت</h5>
+                
+                <!-- حقل معرف البوت الجديد -->
                 <div class="mb-3">
-                    <label class="form-label">معرف الشركة (ID)</label>
-                    <div class="input-group">
-                        <input type="text" name="company_id" class="form-control bg-light" value="{{ settings.company_code or settings.company_id or '' }}" readonly>
-                        <span class="input-group-text">🔒</span>
-                    </div>
-                    <small class="text-muted">هذا المعرف لا يمكن تغييره.</small>
+                    <label class="form-label">معرف البوت (Bot Token)</label>
+                    <input type="text" name="bot_token" class="form-control" placeholder="أدخل توكن البوت هنا" value="{{ settings.telegram_token or '' }}">
+                    <small class="text-muted">هذا المعرف يستخدم لربط البوت الخاص بك.</small>
                 </div>
 
-                <!-- قسم البوت -->
-                <h5 class="section-title mt-4">🤖 إعدادات البوت</h5>
                 <div class="mb-3">
                     <label class="form-label">اسم البوت</label>
                     <input type="text" name="bot_name" class="form-control" value="{{ settings.bot_name or '' }}">
