@@ -8,6 +8,7 @@
         .form-container { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
         input { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
         .btn-save { background-color: #28a745; color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; width: 100%; }
+        .btn-search { background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; margin-top: 5px; }
         table { width: 100%; border-collapse: collapse; background: white; margin-top: 20px; }
         th, td { padding: 12px; border: 1px solid #ddd; text-align: center; }
         th { background-color: #f8f9fa; }
@@ -19,22 +20,28 @@
 
     <h1>إدارة المخزون</h1>
 
+    <!-- نموذج إضافة منتج -->
     <div class="form-container">
         <h3>إضافة منتج جديد</h3>
-        <!-- أضفنا enctype لدعم رفع الملفات من الهاتف -->
         <form action="/products" method="POST" enctype="multipart/form-data">
             <input type="text" name="name" placeholder="اسم المنتج" required>
             <input type="number" name="quantity" placeholder="الكمية" required>
             <input type="number" step="0.01" name="price" placeholder="السعر" required>
-            
-            <!-- حقل اختيار الصورة من الهاتف -->
-            <label style="display:block; margin-top:10px;">اختر صورة المنتج من هاتفك:</label>
-            <input type="file" name="product_image" accept="image/*" required>
-            
+            <label style="display:block; margin-top:10px;">اختر صورة المنتج:</label>
+            <input type="file" name="product_image" accept="image/*">
             <button type="submit" class="btn-save">حفظ المنتج</button>
         </form>
     </div>
 
+    <!-- نموذج البحث -->
+    <div class="form-container">
+        <form method="GET" action="/products">
+            <input type="text" name="search" placeholder="ابحث عن منتج..." value="{{ search if search else '' }}">
+            <button type="submit" class="btn-search">بحث</button>
+        </form>
+    </div>
+
+    <!-- جدول المنتجات -->
     <table>
         <thead>
             <tr>
@@ -50,7 +57,7 @@
             <tr>
                 <td>
                     {% if p['product-images'] %}
-                        <img src="{{ p['product-images'] }}" alt="صورة المنتج">
+                        <img src="{{ p['product-images'] }}" alt="صورة">
                     {% else %}
                         <span>لا توجد</span>
                     {% endif %}
@@ -66,15 +73,14 @@
             </tr>
             {% else %}
             <tr>
-                <td colspan="5">لا توجد منتجات مضافة حالياً</td>
+                <td colspan="5">لا توجد منتجات مطابقة للبحث</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 
     <br>
-    <a href="/dashboard">الرجوع للوحة التحكم</a> | 
-    <a href="/logout" style="color: red;">تسجيل الخروج</a>
+    <a href="/dashboard">الرجوع للوحة التحكم</a>
 
 </body>
 </html>
