@@ -182,7 +182,6 @@ def delete_product(id):
 def delete_order(id):
     company_code = session.get('company_code')
     try:
-        # حذف الطلبية بناءً على معرفها والتأكد من أنها تابعة لنفس الشركة
         supabase.table("orders").delete().eq("id", id).eq("company_code", company_code).execute()
     except Exception as e:
         print(f"Delete Order Error: {e}")
@@ -213,20 +212,26 @@ def orders():
         }
         supabase.table("orders").insert(data).execute()
         
+        # التعديل هنا: استخدام البيانات المستخرجة
         if res_settings.data:
-            token = res_settings.data[0].get('telegram_token')
-            chat_id = res_settings.data[0].get('telegram_chat_id')
+            settings_info = res_settings.data[0] # جلب أول صف
+            token = settings_info.get('telegram_token')
+            chat_id = settings_info.get('telegram_chat_id')
+            
+            # رسالة طلبية جديدة
             msg = f"🛒 طلبية جديدة!\nالعميل: {request.form.get('customer_name')}\nالمنتج: {product_name}\nالكمية: {requested_qty}"
             send_telegram_alert_by_token(token, chat_id, msg)
             
-        products_res = supabase.table("inventory").select("id, quantity, name").eq("name", product_name).eq("company_code", company_code).execute()
-        if products_res.data:
-            product = products_res.data[0] 
-            new_qty = product['quantity'] - requested_qty
-            supabase.table("inventory").update({"quantity": new_qty}).eq("id", product['id']).execute()
-            if new_qty <= 5:
-                msg_low = f"⚠️ تنبيه مخزون!\nالمنتج '{product_name}' أوشك على النفاذ."
-                send_telegram_alert_by_token(res_settings.data[0].get('telegram_token'), res_settings.data[0].get('telegram_chat_id'), msg_low)
+            products_res = supabase.table("inventory").select("id, quantity, name").eq("name", product_name).eq("company_code", company_code).execute()
+            if products_res.data:
+                product = products_res.data[0] 
+                new_qty = product['quantity'] - requested_qty
+                supabase.table("inventory").update({"quantity": new_qty}).eq("id", product['id']).execute()
+                
+                # تنبيه المخزون
+                if new_qty <= 5:
+                    msg_low = f"⚠️ تنبيه مخزون!\nالمنتج '{product_name}' أوشك على النفاذ."
+                    send_telegram_alert_by_token(token, chat_id, msg_low)
             
         return redirect(url_for('orders'))
 
