@@ -4,9 +4,7 @@ from collections import defaultdict
 from datetime import datetime
 from functools import wraps
 import os
-import time
 import requests
-import urllib.parse
 import base64
 from google import genai  # مكتبة Gemini
 
@@ -16,6 +14,19 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "fallback_dev_key")
 # إعداد Supabase و Gemini
 supabase = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY"))
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+
+# --- المعالج التلقائي للعملة (يجعل متغير currency متاحاً في كل الصفحات) ---
+@app.context_processor
+def inject_currency():
+    company_code = session.get('company_code')
+    if company_code:
+        try:
+            res = supabase.table("settings").select("currency").eq("company_code", company_code).execute()
+            currency = res.data[0]['currency'] if res.data else ""
+            return dict(currency=currency)
+        except:
+            return dict(currency="")
+    return dict(currency="")
 
 # --- الدوال المساعدة ---
 
@@ -93,53 +104,22 @@ def dashboard():
 @login_required
 def settings():
     company_code = session.get('company_code')
-    
-    # قائمة العملات العالمية
-    currencies = [
-        ("AED", "درهم إماراتي"), ("AFN", "أفغاني"), ("ALL", "ليك ألباني"), ("AMD", "درام أرميني"),
-        ("ANG", "غيلدر الأنتيل"), ("AOA", "كوانزا أنغولي"), ("ARS", "بيزو أرجنتيني"), ("AUD", "دولار أسترالي"),
-        ("AWG", "فلورين أروبي"), ("AZN", "مانات أذربيجاني"), ("BAM", "مارك بوسني"), ("BBD", "دولار باربادوسي"),
-        ("BDT", "تاكا بنغلاديشي"), ("BGN", "ليف بلغاري"), ("BHD", "دينار بحريني"), ("BIF", "فرنك بوروندي"),
-        ("BMD", "دولار برمودي"), ("BND", "دولار بروني"), ("BOB", "بوليفيانو"), ("BRL", "ريال برازيلي"),
-        ("BSD", "دولار باهامي"), ("BTN", "نغولترم بوتاني"), ("BWP", "بولا بوتسواني"), ("BYN", "روبل بيلاروسي"),
-        ("BZD", "دولار بليزي"), ("CAD", "دولار كندي"), ("CDF", "فرنك كونغولي"), ("CHF", "فرنك سويسري"),
-        ("CLP", "بيزو تشيلي"), ("CNY", "يوان صيني"), ("COP", "بيزو كولومبي"), ("CRC", "كولون كوستاريكي"),
-        ("CUP", "بيزو كوبي"), ("CVE", "إيسكودو رأس أخضر"), ("CZK", "كرونة تشيكية"), ("DA", "دينار جزائري"),
-        ("DJF", "فرنك جيبوتي"), ("DKK", "كرونة دنماركية"), ("DOP", "بيزو دومينيكاني"), ("DZD", "دينار جزائري"),
-        ("EGP", "جنيه مصري"), ("ERN", "ناكفا إريتري"), ("ETB", "بير إثيوبي"), ("EUR", "يورو"),
-        ("FJD", "دولار فيجي"), ("GBP", "جنيه إسترليني"), ("GEL", "لاري جورجي"), ("GHS", "سيدي غاني"),
-        ("GMD", "دالاسي غامبي"), ("GNF", "فرنك غيني"), ("GTQ", "كيتزال غواتيمالي"), ("GYD", "دولار غياني"),
-        ("HKD", "دولار هونج كونج"), ("HNL", "ليمبيرا هندوراسي"), ("HRK", "كونا كرواتية"), ("HTG", "غورد هايتي"),
-        ("HUF", "فورنت مجري"), ("IDR", "روبية إندونيسية"), ("ILS", "شيكل جديد"), ("INR", "روبية هندية"),
-        ("IQD", "دينار عراقي"), ("IRR", "ريال إيراني"), ("ISK", "كرونة آيسلندية"), ("JMD", "دولار جامايكي"),
-        ("JOD", "دينار أردني"), ("JPY", "ين ياباني"), ("KES", "شيلينغ كيني"), ("KGS", "سوم قيرغيزستاني"),
-        ("KHR", "رييل كمبودي"), ("KMF", "فرنك قمري"), ("KRW", "وون كوري جنوبي"), ("KWD", "دينار كويتي"),
-        ("KYD", "دولار جزر كايمان"), ("KZT", "تينغي كازاخستاني"), ("LAK", "كيب لاوسي"), ("LBP", "ليرة لبنانية"),
-        ("LKR", "روبية سريلانكية"), ("LYD", "دينار ليبي"), ("MAD", "درهم مغربي"), ("MUR", "روبية موريشيسية"),
-        ("MXN", "بيزو مكسيكي"), ("MYR", "رينغيت ماليزي"), ("NGN", "نايرا نيجيري"), ("NOK", "كرونة نرويجية"),
-        ("OMR", "ريال عماني"), ("PHP", "بيزو فلبيني"), ("PKR", "روبية باكستانية"), ("PLN", "زلوتي بولندي"),
-        ("QAR", "ريال قطري"), ("RUB", "روبل روسي"), ("SAR", "ريال سعودي"), ("SEK", "كرونة سويدية"),
-        ("SGD", "دولار سنغافوري"), ("SYP", "ليرة سورية"), ("THB", "باهت تايلاندي"), ("TND", "دينار تونسي"),
-        ("TRY", "ليرة تركية"), ("USD", "دولار أمريكي"), ("YER", "ريال يمني"), ("ZAR", "راند جنوب أفريقي")
-    ]
-
+    currencies = [("AED", "درهم إماراتي"), ("EUR", "يورو"), ("USD", "دولار أمريكي"), ("DZD", "دينار جزائري"), ("SAR", "ريال سعودي"), ("EGP", "جنيه مصري"), ("KWD", "دينار كويتي"), ("QAR", "ريال قطري")] # يمكنك إضافة البقية هنا
     if request.method == 'POST':
         data = {
             "company_name": request.form.get('company_name'),
             "telegram_token": request.form.get('telegram_token'),
             "telegram_chat_id": request.form.get('chat_id'),
             "instagram_url": request.form.get('instagram_url'),
-            "currency": request.form.get('currency')
+            "currency": request.form.get('currency') 
         }
         try:
             supabase.table("settings").update(data).eq("company_code", company_code).execute()
         except Exception as e:
-            print(f"Update Error: {e}")
+            return f"حدث خطأ أثناء الحفظ: {str(e)}", 500
         return redirect(url_for('settings'))
-    
     res = supabase.table("settings").select("*").eq("company_code", company_code).execute()
     settings_data = res.data[0] if res.data else {}
-        
     return render_template('settings.html', settings=settings_data, currencies=currencies)
 
 @app.route('/products', methods=['GET', 'POST'])
@@ -162,37 +142,18 @@ def products():
         }
         supabase.table("inventory").insert(data).execute()
         return redirect(url_for('products'))
-    
     search_query = request.args.get('search', '')
     query = supabase.table("inventory").select("*").eq("company_code", company_code)
     if search_query: query = query.ilike("name", f"%{search_query}%")
     res = query.execute()
     return render_template('products.html', products=res.data or [], search=search_query)
 
-@app.route('/edit_product/<int:id>')
-@login_required
-def edit_product(id):
-    return "صفحة التعديل"
-
-@app.route('/view_order/<int:id>')
-@login_required
-def view_order(id):
-    return "تفاصيل الطلب"
-
 @app.route('/delete_product/<int:id>', methods=['POST'])
 @login_required
 def delete_product(id):
-    try:
-        supabase.table("inventory").delete().eq("id", id).execute()
-    except Exception as e:
-        print(f"Delete Error: {e}")
+    try: supabase.table("inventory").delete().eq("id", id).execute()
+    except Exception as e: print(f"Delete Error: {e}")
     return redirect(url_for('products'))
-
-@app.route('/delete_order/<int:id>', methods=['POST'])
-@login_required
-def delete_order(id):
-    supabase.table("orders").delete().eq("id", id).execute()
-    return redirect(url_for('orders'))
 
 @app.route('/orders', methods=['GET', 'POST'])
 @login_required
@@ -219,9 +180,6 @@ def orders():
             product = products_res.data[0] 
             new_qty = product['quantity'] - requested_qty
             supabase.table("inventory").update({"quantity": new_qty}).eq("id", product['id']).execute()
-            if new_qty <= 5:
-                msg_low = f"⚠️ تنبيه مخزون!\nالمنتج '{product_name}' أوشك على النفاذ."
-                send_telegram_alert_by_token(res_settings.data[0]['telegram_token'], res_settings.data[0]['telegram_chat_id'], msg_low)
         return redirect(url_for('orders'))
     res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
     return render_template('orders_dashboard.html', orders=res.data or [])
@@ -251,7 +209,6 @@ def stats():
         total_orders = len(orders)
         return render_template('stats.html', total_sales=float(total_sales), total_expenses=float(total_expenses), total_orders=int(total_orders), daily=dict(daily_data), monthly=dict(monthly_data), yearly=dict(yearly_data))
     except Exception as e:
-        print(f"Stats Error: {e}")
         return render_template('stats.html', total_sales=0, total_expenses=0, total_orders=0, daily={}, monthly={}, yearly={})
 
 @app.route('/webhook_instagram', methods=['GET', 'POST'])
@@ -270,7 +227,6 @@ def webhook_instagram():
             send_telegram_alert_by_token(res.data[0]['telegram_token'], res.data[0]['telegram_chat_id'], f"🤖 الرد المقترح من Gemini:\n{response.text}")
         return 'OK', 200
     except Exception as e:
-        print(f"Webhook Error: {e}")
         return 'Error', 500
 
 if __name__ == '__main__':
