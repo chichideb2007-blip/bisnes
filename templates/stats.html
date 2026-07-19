@@ -1,46 +1,35 @@
-# مسار الإحصائيات المحدث
-@app.route('/stats')
-@login_required
-def stats():
-    company_code = session.get('company_code')
-    try:
-        # جلب العملة من الإعدادات
-        res_settings = supabase.table("settings").select("currency").eq("company_code", company_code).execute()
-        # نضع العملة التي اخترتها، وإذا لم توجد نستخدم "دج" كافتراضي
-        currency = res_settings.data[0].get('currency') if (res_settings.data and res_settings.data[0].get('currency')) else "دج"
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>الإحصائيات</title>
+    <!-- استخدم Bootstrap لتنسيق الصفحة -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h2 class="text-center">إحصائيات المتجر</h2>
         
-        res_orders = supabase.table("orders").select("total_price, created_at").eq("company_code", company_code).execute()
-        orders = res_orders.data or []
-        
-        res_expenses = supabase.table("expenses").select("amount, created_at").eq("company_code", company_code).execute()
-        expenses = res_expenses.data or []
-        
-        daily_data, monthly_data, yearly_data = defaultdict(float), defaultdict(float), defaultdict(float)
-        days_order = ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"]
-        months_order = ["جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان", "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
-
-        for o in orders:
-            if o.get('created_at'):
-                dt = datetime.fromisoformat(o['created_at'].replace('Z', '+00:00'))
-                price = float(o.get('total_price') or 0)
-                day_name = days_order[dt.weekday()] if dt.weekday() < 7 else "السبت"
-                daily_data[day_name] += price
-                monthly_data[months_order[dt.month - 1]] += price
-                yearly_data[str(dt.year)] += price
-
-        total_sales = sum(float(o.get('total_price') or 0) for o in orders)
-        total_expenses = sum(float(e.get('amount') or 0) for e in expenses)
-        total_orders = len(orders)
-
-        return render_template('stats.html', 
-                               total_sales=float(total_sales), 
-                               total_expenses=float(total_expenses), 
-                               total_orders=int(total_orders), 
-                               daily=dict(daily_data), 
-                               monthly=dict(monthly_data), 
-                               yearly=dict(yearly_data),
-                               currency=currency) # تمرير العملة هنا
-                               
-    except Exception as e:
-        print(f"Stats Error: {e}")
-        return render_template('stats.html', total_sales=0, total_expenses=0, total_orders=0, daily={}, monthly={}, yearly={}, currency="دج")
+        <div class="row mt-4">
+            <div class="col-md-4">
+                <div class="card bg-primary text-white p-3 text-center">
+                    <h5>إجمالي المبيعات</h5>
+                    <h3>{{ total_sales }} {{ currency }}</h3>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-success text-white p-3 text-center">
+                    <h5>إجمالي المصاريف</h5>
+                    <h3>{{ total_expenses }} {{ currency }}</h3>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-warning text-white p-3 text-center">
+                    <h5>عدد الطلبات</h5>
+                    <h3>{{ total_orders }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
