@@ -47,17 +47,21 @@
                     <input type="url" name="instagram_link" class="form-control" placeholder="https://instagram.com/your-account" value="{{ settings.instagram_link or '' }}">
                 </div>
 
-                <!-- اختيار العملة مع البحث -->
+                <!-- خانة اختيار العملة مع البحث الذكي -->
                 <div class="mb-3">
                     <label class="form-label">العملة الافتراضية</label>
-                    <input type="text" id="currencySearch" class="form-control mb-2" placeholder="🔍 ابحث عن أي عملة في العالم...">
-                    <select name="currency" id="currencySelect" class="form-select">
+                    <div class="input-group mb-2">
+                        <span class="input-group-text">🔍</span>
+                        <input type="text" id="currencySearch" class="form-control" placeholder="اكتب اسم العملة للبحث (مثلاً: دينار)...">
+                    </div>
+                    <select name="currency" id="currencySelect" class="form-select" size="5">
                         {% for code, name in currencies %}
                             <option value="{{ code }}" {% if settings.currency == code %}selected{% endif %}>
                                 {{ code }} - {{ name }}
                             </option>
                         {% endfor %}
                     </select>
+                    <small class="text-muted">اختر العملة من القائمة (يمكنك استخدام مربع البحث أعلاه)</small>
                 </div>
 
                 <!-- اختيار اللون -->
@@ -77,12 +81,19 @@
             new google.translate.TranslateElement({pageLanguage: 'ar', layout: google.translate.TranslateElement.InlineLayout.SIMPLE}, 'google_translate_element');
         }
 
-        // بحث العملات
-        document.getElementById('currencySearch').addEventListener('input', function() {
-            let filter = this.value.toUpperCase();
-            let options = document.getElementById('currencySelect').options;
+        // سكربت البحث في قائمة العملات
+        document.getElementById('currencySearch').addEventListener('keyup', function() {
+            let input = this.value.toLowerCase();
+            let select = document.getElementById('currencySelect');
+            let options = select.getElementsByTagName('option');
+            
             for (let i = 0; i < options.length; i++) {
-                options[i].style.display = (options[i].text.toUpperCase().includes(filter)) ? "" : "none";
+                let txtValue = options[i].textContent || options[i].innerText;
+                if (txtValue.toLowerCase().indexOf(input) > -1) {
+                    options[i].style.display = "";
+                } else {
+                    options[i].style.display = "none";
+                }
             }
         });
     </script>
