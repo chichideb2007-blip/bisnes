@@ -139,47 +139,41 @@ def settings():
 def products():
     company_code = session.get('company_code')
     
-    # كود الإضافة (POST)
     if request.method == 'POST':
-        # أضف هذا السطر هنا لرؤية البيانات في السجلات
-        print(f"DEBUG: Form data received: {request.form.to_dict()}")
-        
+        # 1. معالجة الصورة
+        file = request.files.get('product_image')
+        encoded_string = ""
+        if file and file.filename != '':
+            image_data = file.read()
+            encoded_string = base64.b64encode(image_data).decode('utf-8')
+            encoded_string = f'data:image/jpeg;base64,{encoded_string}'
+
+        # 2. تجهيز البيانات
+        data = {
+            'name': request.form.get('name'),
+            'quantity': int(request.form.get('quantity', 0)),
+            'price': float(request.form.get('price', 0.0)),
+            'company_code': company_code,
+            'product_image': encoded_string
+        }
+
+        # 3. محاولة الإدخال في قاعدة البيانات
         try:
-            # 1. معالجة الصورة
-            file = request.files.get('product_image')
-            image_data = ""
-            if file and file.filename != '':
-                # قراءة الملف وتحويله إلى Base64
-                encoded_string = base64.b64encode(file.read()).decode('utf-8')
-                image_data = f"data:image/jpeg;base64,{encoded_string}"
-            
-            # 2. تجهيز البيانات
-            data = {
-                "name": request.form.get('name'),
-                "quantity": int(request.form.get('quantity', 0)),
-                "price": float(request.form.get('price', 0.0)),
-                "company_id_text": company_code,  # تم التعديل لتطابق اسم العمود في سوبابيس
-                "product-images": image_data
-            }
-            
-            # 3. محاولة الإدخال في قاعدة البيانات
-            supabase.table("inventory").insert(data).execute()
+            supabase.table('inventory').insert(data).execute()
             return redirect(url_for('products'))
-            
         except Exception as e:
-            # طباعة الخطأ في الكونسول لتتمكن من رؤيته وتصحيحه
-            print(f"خطأ في حفظ المنتج: {e}")
-            return f"حدث خطأ أثناء حفظ المنتج في قاعدة البيانات: {str(e)}", 500
-    
-    # كود العرض والبحث (GET)
-    search_query = request.args.get('search', '')
-    query = supabase.table("inventory").select("*").eq("company_code", company_code)
+            print(f"خطأ في الحفظ: {e}")
+            return f"حدث خطأ أثناء حفظ المنتج: {str(e)}", 500
+
+    # كود الـ GET (عرض المنتجات)
+    search_query = request.args.get('search')
+    query = supabase.table('inventory').select('*').eq('company_code', company_code)
     
     if search_query:
-        query = query.ilike("name", f"%{search_query}%")
-    
-    res = query.execute()
-    return render_template('products.html', products=res.data or [], search=search_query)
+        query = query.ilike('name', f'%{search_query}%')
+        
+    products = query.execute().data
+    return render_template('products.html', products=products or [])
 
 @app.route('/edit_product/<int:id>', methods=['GET', 'POST'])
 @login_required
