@@ -140,33 +140,32 @@ def products():
     company_code = session.get('company_code')
     
     if request.method == 'POST':
-        # 1. معالجة الصورة
+        # معالجة الصورة
         file = request.files.get('product_image')
         encoded_string = ""
         if file and file.filename != '':
             encoded_string = f'data:image/jpeg;base64,{base64.b64encode(file.read()).decode("utf-8")}'
 
-        # 2. تجهيز البيانات (تم تحديث اسم العمود ليكون company_id_texte)
+        # تجهيز البيانات
         data = {
             'name': request.form.get('name'),
             'quantity': int(request.form.get('quantity', 0)),
             'price': float(request.form.get('price', 0.0)),
             'company_code': company_code,
-            'company_id_texte': company_code,      # التعديل هنا ليتطابق مع اسم العمود في قاعدتك
-            'product-images': encoded_string
+            'company_id_texte': company_code, 
+            'product-images': encoded_string 
         }
 
-        # 3. الحفظ
+        # تنفيذ الإدخال
         try:
             supabase.table('inventory').insert(data).execute()
             return redirect(url_for('products'))
         except Exception as e:
-            print(f"DEBUG ERROR: {e}")
-            return f"خطأ في القاعدة: {str(e)}", 500
+            return f"خطأ في قاعدة البيانات: {str(e)}", 500
 
     # العرض
-    products = supabase.table('inventory').select('*').eq('company_code', company_code).execute().data
-    return render_template('products.html', products=products or [])
+    products_data = supabase.table('inventory').select('*').eq('company_code', company_code).execute().data
+    return render_template('products.html', products=products_data or [])
 
 @app.route('/edit_product/<int:id>', methods=['GET', 'POST'])
 @login_required
