@@ -154,7 +154,7 @@ def products():
             'quantity': int(request.form.get('quantity', 0)),
             'price': float(request.form.get('price', 0.0)),
             'company_code': company_code,
-            'product_image': encoded_string
+            'product-images': encoded_string
         }
 
         # 3. محاولة الإدخال في قاعدة البيانات
