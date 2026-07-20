@@ -175,7 +175,6 @@ def products():
             print(f"DEBUG ERROR: {e}")
             return f"خطأ في قاعدة البيانات: {str(e)}", 500
 
-    # تأكد من أن هذا السطر يطابق اسم الجدول في قاعدة البيانات لديك
     res = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
     return render_template('products.html', products=res.data or [])
 
@@ -202,16 +201,13 @@ def orders():
     company_code = session.get('company_code')
     
     res_settings = supabase.table("settings").select("currency, telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
-    settings_info = res_settings.data[0] if res_settings.data else {}
-    currency = settings_info.get('currency', '')
+    currency = res_settings.data[0].get('currency', '') if res_settings.data else ""
 
     if request.method == 'POST':
         product_name = request.form.get('product_name')
-        requested_qty = int(request.form.get('quantity', 0))
-        customer_name = request.form.get('customer_name')
-        
+        requested_qty = int(request.form.get('quantity', 0)) 
         data = {
-            "customer_name": customer_name,
+            "customer_name": request.form.get('customer_name'),
             "customer_phone": request.form.get('customer_phone'), 
             "product_name": product_name,
             "quantity": requested_qty, 
@@ -221,23 +217,25 @@ def orders():
         }
         supabase.table("orders").insert(data).execute()
         
-        token = settings_info.get('telegram_token')
-        chat_id = settings_info.get('telegram_chat_id')
-        
-        if token and chat_id:
-            msg = f"🛒 طلبية جديدة!\nالعميل: {customer_name}\nالمنتج: {product_name}\nالكمية: {requested_qty}"
+        if res_settings.data:
+            settings_info = res_settings.data[0]
+            token = settings_info.get('telegram_token')
+            chat_id = settings_info.get('telegram_chat_id')
+            
+            # إرسال تنبيه الطلبية
+            msg = f"🛒 طلبية جديدة!\nالعميل: {request.form.get('customer_name')}\nالمنتج: {product_name}\nالكمية: {requested_qty}"
             send_telegram_alert_by_token(token, chat_id, msg)
             
-            products_res = supabase.table("inventory").select("id, quantity").eq("name", product_name).eq("company_id_text", company_code).execute()
+            # جلب المنتج وتحديث الكمية
+            products_res = supabase.table("inventory").select("id, quantity, name").eq("name", product_name).eq("company_id_text", company_code).execute()
             if products_res.data:
-                product = products_res.data[0]
+                product = products_res.data[0] 
                 new_qty = product['quantity'] - requested_qty
                 supabase.table("inventory").update({"quantity": new_qty}).eq("id", product['id']).execute()
                 
+                # تنبيه المخزون
                 if new_qty <= 5:
-                    send_telegram_alert_by_token(token, chat_id, f"⚠️ تنبيه مخزون!\nالمنتج '{product_name}' أوشك على النفاذ (المتبقي: {new_qty})")
-        else:
-            print("DEBUG: البيانات في قاعدة البيانات ناقصة (Token أو Chat ID غير موجود)")
+                    send_telegram_alert_by_token(token, chat_id, f"⚠️ تنبيه مخزون!\nالمنتج '{product_name}' أوشك على النفاذ (الكمية المتبقية: {new_qty})")
             
         return redirect(url_for('orders'))
 
