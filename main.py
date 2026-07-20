@@ -200,7 +200,6 @@ def delete_order(id):
 def orders():
     company_code = session.get('company_code')
     
-    # 1. جلب البيانات من جدول الإعدادات
     res_settings = supabase.table("settings").select("currency, telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
     settings_info = res_settings.data[0] if res_settings.data else {}
     currency = settings_info.get('currency', '')
@@ -210,7 +209,6 @@ def orders():
         requested_qty = int(request.form.get('quantity', 0))
         customer_name = request.form.get('customer_name')
         
-        # 2. حفظ الطلبية
         data = {
             "customer_name": customer_name,
             "customer_phone": request.form.get('customer_phone'), 
@@ -222,7 +220,6 @@ def orders():
         }
         supabase.table("orders").insert(data).execute()
         
-        # 3. إرسال التنبيه
         token = settings_info.get('telegram_token')
         chat_id = settings_info.get('telegram_chat_id')
         
@@ -230,7 +227,6 @@ def orders():
             msg = f"🛒 طلبية جديدة!\nالعميل: {customer_name}\nالمنتج: {product_name}\nالكمية: {requested_qty}"
             send_telegram_alert_by_token(token, chat_id, msg)
             
-            # تحديث المخزون
             products_res = supabase.table("inventory").select("id, quantity").eq("name", product_name).eq("company_id_text", company_code).execute()
             if products_res.data:
                 product = products_res.data[0]
