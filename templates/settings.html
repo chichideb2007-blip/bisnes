@@ -35,11 +35,18 @@
                 <!-- قسم البوت المحدث -->
                 <h5 class="section-title mt-4">🤖 إعدادات البوت</h5>
                 
-                <!-- حقل معرف البوت الجديد -->
+                <!-- حقل معرف البوت -->
                 <div class="mb-3">
                     <label class="form-label">معرف البوت (Bot Token)</label>
                     <input type="text" name="bot_token" class="form-control" placeholder="أدخل توكن البوت هنا" value="{{ settings.telegram_token or '' }}">
                     <small class="text-muted">هذا المعرف يستخدم لربط البوت الخاص بك.</small>
+                </div>
+
+                <!-- حقل معرف المحادثة (Chat ID) المضاف -->
+                <div class="mb-3">
+                    <label class="form-label">معرف المحادثة (Chat ID)</label>
+                    <input type="text" name="chat_id" class="form-control" placeholder="أدخل معرف الشات ID هنا" value="{{ settings.telegram_chat_id or '' }}">
+                    <small class="text-muted">هذا المعرف يستخدم لإرسال التنبيهات إلى حسابك.</small>
                 </div>
 
                 <div class="mb-3">
