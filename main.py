@@ -175,6 +175,7 @@ def products():
             print(f"DEBUG ERROR: {e}")
             return f"خطأ في قاعدة البيانات: {str(e)}", 500
 
+    # تأكد من أن هذا السطر يطابق اسم الجدول في قاعدة البيانات لديك
     res = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
     return render_template('products.html', products=res.data or [])
 
