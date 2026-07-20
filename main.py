@@ -33,11 +33,24 @@ def inject_currency():
 # --- الدوال المساعدة ---
 
 def send_telegram_alert_by_token(token, chat_id, message):
-    if token and chat_id:
-        try:
-            requests.get(f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={message}")
-        except Exception as e:
-            print(f"Error: {e}")
+    if not token or not chat_id:
+        print("DEBUG: فشل إرسال التنبيه - التوكن أو Chat ID فارغ")
+        return False
+    
+    try:
+        url = f"https://api.telegram.org/bot{token}/sendMessage"
+        params = {"chat_id": chat_id, "text": message}
+        response = requests.get(url, params=params)
+        
+        if response.status_code == 200:
+            print("DEBUG: تم إرسال التنبيه إلى تيلجرام بنجاح!")
+            return True
+        else:
+            print(f"DEBUG: فشل الإرسال. الكود: {response.status_code}, الرد: {response.text}")
+            return False
+    except Exception as e:
+        print(f"DEBUG: خطأ في الاتصال بتليجرام: {e}")
+        return False
 
 def refresh_instagram_token():
     res = supabase.table("settings").select("company_code, instagram_token").execute()
@@ -108,12 +121,14 @@ def settings():
     company_code = session.get('company_code')
     currencies = [
         ("USD", "دولار أمريكي"), ("EUR", "يورو"), ("GBP", "جنيه إسترليني"), ("JPY", "ين ياباني"),
-        ("AUD", "دولار أسترالي"), ("CAD", "دولار كندي"), ("CHF", "فرنك سويسري"), ("CNY", "يوان صيني"),
         ("SAR", "ريال سعودي"), ("AED", "درهم إماراتي"), ("DZD", "دينار جزائري"), ("EGP", "جنيه مصري"),
         ("KWD", "دينار كويتي"), ("QAR", "ريال قطري"), ("BHD", "دينار بحريني"), ("OMR", "ريال عماني"),
         ("JOD", "دينار أردني"), ("LBP", "ليرة لبنانية"), ("LYD", "دينار ليبي"), ("MAD", "درهم مغربي"),
         ("TND", "دينار تونسي"), ("IQD", "دينار عراقي"), ("SYP", "ليرة سورية"), ("YER", "ريال يمني"),
-        ("TRY", "ليرة تركية"), ("INR", "روبية هندية"), ("RUB", "روبل روسي"), ("SGD", "دولار سنغافوري")
+        ("TRY", "ليرة تركية"), ("AUD", "دولار أسترالي"), ("CAD", "دولار كندي"), ("CHF", "فرنك سويسري"),
+        ("CNY", "يوان صيني"), ("INR", "روبية هندية"), ("RUB", "روبل روسي"), ("SGD", "دولار سنغافوري"),
+        ("SDG", "جنيه سوداني"), ("MRU", "أوقية موريتانية"), ("SOS", "شلن صومالي"), ("KMF", "فرنك جزر القمر"),
+        ("DJF", "فرنك جيبوتي"), ("BND", "دولار بروناي"), ("KRW", "وون كوري جنوبي"), ("MXN", "بيزو مكسيكي")
     ]
     
     if request.method == 'POST':
@@ -140,13 +155,11 @@ def products():
     company_code = session.get('company_code')
     
     if request.method == 'POST':
-        # 1. معالجة الصورة
         file = request.files.get('product_image')
         encoded_string = ""
         if file and file.filename != '':
             encoded_string = f'data:image/jpeg;base64,{base64.b64encode(file.read()).decode("utf-8")}'
 
-        # 2. تجهيز البيانات
         data = {
             'name': request.form.get('name'),
             'quantity': int(request.form.get('quantity', 0)),
@@ -155,7 +168,6 @@ def products():
             'product-images': encoded_string
         }
 
-        # 3. محاولة الحفظ
         try:
             supabase.table('inventory').insert(data).execute()
             return redirect(url_for('products'))
@@ -163,14 +175,8 @@ def products():
             print(f"DEBUG ERROR: {e}")
             return f"خطأ في قاعدة البيانات: {str(e)}", 500
 
-    # العرض مع مراعاة اسم العمود الجديد
     res = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
     return render_template('products.html', products=res.data or [])
-
-@app.route('/edit_product/<int:id>', methods=['GET', 'POST'])
-@login_required
-def edit_product(id):
-    return "صفحة التعديل قيد التطوير"
 
 @app.route('/delete_product/<int:id>', methods=['POST'])
 @login_required
@@ -207,7 +213,7 @@ def orders():
             "quantity": requested_qty, 
             "total_price": float(request.form.get('price', 0.0)),
             "company_code": company_code,
-            "status": "قيد الانتظار"
+            "status": "قيد الانتظار"  # تم التصحيح هنا
         }
         supabase.table("orders").insert(data).execute()
         
@@ -216,18 +222,20 @@ def orders():
             token = settings_info.get('telegram_token')
             chat_id = settings_info.get('telegram_chat_id')
             
+            # إرسال تنبيه الطلبية
             msg = f"🛒 طلبية جديدة!\nالعميل: {request.form.get('customer_name')}\nالمنتج: {product_name}\nالكمية: {requested_qty}"
             send_telegram_alert_by_token(token, chat_id, msg)
             
-            # تحديث الكمية باستخدام company_id_text
+            # جلب المنتج وتحديث الكمية
             products_res = supabase.table("inventory").select("id, quantity, name").eq("name", product_name).eq("company_id_text", company_code).execute()
             if products_res.data:
                 product = products_res.data[0] 
                 new_qty = product['quantity'] - requested_qty
                 supabase.table("inventory").update({"quantity": new_qty}).eq("id", product['id']).execute()
                 
+                # تنبيه المخزون
                 if new_qty <= 5:
-                    send_telegram_alert_by_token(token, chat_id, f"⚠️ تنبيه مخزون!\nالمنتج '{product_name}' أوشك على النفاذ.")
+                    send_telegram_alert_by_token(token, chat_id, f"⚠️ تنبيه مخزون!\nالمنتج '{product_name}' أوشك على النفاذ (الكمية المتبقية: {new_qty})")
             
         return redirect(url_for('orders'))
 
