@@ -195,50 +195,57 @@ def delete_order(id):
         print(f"Delete Order Error: {e}")
     return redirect(url_for('orders'))
 
+# --- مسار الطلبيات الجديد والمجمع ---
 @app.route('/orders', methods=['GET', 'POST'])
 @login_required
 def orders():
     company_code = session.get('company_code')
     
+    # 1. جلب إعدادات التنبيه والعملة من جدول الإعدادات
     res_settings = supabase.table("settings").select("currency, telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
     currency = res_settings.data[0].get('currency', '') if res_settings.data else ""
+    settings_info = res_settings.data[0] if res_settings.data else {}
 
     if request.method == 'POST':
         product_name = request.form.get('product_name')
-        requested_qty = int(request.form.get('quantity', 0)) 
-        data = {
-            "customer_name": request.form.get('customer_name'),
+        requested_qty = int(request.form.get('quantity', 0))
+        customer_name = request.form.get('customer_name')
+        
+        # 2. إضافة الطلبية للجدول
+        order_data = {
+            "customer_name": customer_name,
             "customer_phone": request.form.get('customer_phone'), 
             "product_name": product_name,
             "quantity": requested_qty, 
             "total_price": float(request.form.get('price', 0.0)),
             "company_code": company_code,
-            "status": "قيد الانتظار"  # تم التصحيح هنا
+            "status": "قيد الانتظار"
         }
-        supabase.table("orders").insert(data).execute()
+        supabase.table("orders").insert(order_data).execute()
         
-        if res_settings.data:
-            settings_info = res_settings.data[0]
+        # 3. معالجة التنبيهات وتحديث المخزون
+        if settings_info:
             token = settings_info.get('telegram_token')
             chat_id = settings_info.get('telegram_chat_id')
             
-            # إرسال تنبيه الطلبية
-            msg = f"🛒 طلبية جديدة!\nالعميل: {request.form.get('customer_name')}\nالمنتج: {product_name}\nالكمية: {requested_qty}"
+            # أ. إرسال تنبيه طلبية جديدة
+            msg = f"🛒 طلبية جديدة!\nالعميل: {customer_name}\nالمنتج: {product_name}\nالكمية: {requested_qty}"
             send_telegram_alert_by_token(token, chat_id, msg)
             
-            # جلب المنتج وتحديث الكمية
+            # ب. جلب المنتج من المخزون وتحديث الكمية
             products_res = supabase.table("inventory").select("id, quantity, name").eq("name", product_name).eq("company_id_text", company_code).execute()
             if products_res.data:
                 product = products_res.data[0] 
                 new_qty = product['quantity'] - requested_qty
                 supabase.table("inventory").update({"quantity": new_qty}).eq("id", product['id']).execute()
                 
-                # تنبيه المخزون
+                # ج. تنبيه إذا انخفض المخزون عن 5
                 if new_qty <= 5:
-                    send_telegram_alert_by_token(token, chat_id, f"⚠️ تنبيه مخزون!\nالمنتج '{product_name}' أوشك على النفاذ (الكمية المتبقية: {new_qty})")
+                    send_telegram_alert_by_token(token, chat_id, f"⚠️ تنبيه مخزون!\nالمنتج '{product_name}' أوشك على النفاذ (المتبقي: {new_qty})")
             
         return redirect(url_for('orders'))
 
+    # عرض الطلبات
     res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
     return render_template('orders_dashboard.html', orders=res.data or [], currency=currency)
 
