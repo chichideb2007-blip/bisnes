@@ -144,36 +144,28 @@ def products():
         file = request.files.get('product_image')
         encoded_string = ""
         if file and file.filename != '':
-            image_data = file.read()
-            encoded_string = base64.b64encode(image_data).decode('utf-8')
-            encoded_string = f'data:image/jpeg;base64,{encoded_string}'
+            encoded_string = f'data:image/jpeg;base64,{base64.b64encode(file.read()).decode("utf-8")}'
 
-        # 2. تجهيز البيانات (تم دمج القيم المطلوبة لحل خطأ الـ Not-null)
+        # 2. تجهيز البيانات (تم تحديث اسم العمود ليكون company_id_texte)
         data = {
             'name': request.form.get('name'),
             'quantity': int(request.form.get('quantity', 0)),
             'price': float(request.form.get('price', 0.0)),
             'company_code': company_code,
-            'company_id': company_code,  # إضافة هذه القيمة لحل خطأ الـ Not-null
+            'company_id_texte': company_code,      # التعديل هنا ليتطابق مع اسم العمود في قاعدتك
             'product-images': encoded_string
         }
 
-        # 3. محاولة الإدخال في قاعدة البيانات
+        # 3. الحفظ
         try:
             supabase.table('inventory').insert(data).execute()
             return redirect(url_for('products'))
         except Exception as e:
-            print(f"خطأ في الحفظ: {e}")
-            return f"حدث خطأ أثناء حفظ المنتج: {str(e)}", 500
+            print(f"DEBUG ERROR: {e}")
+            return f"خطأ في القاعدة: {str(e)}", 500
 
-    # كود الـ GET (عرض المنتجات)
-    search_query = request.args.get('search')
-    query = supabase.table('inventory').select('*').eq('company_code', company_code)
-    
-    if search_query:
-        query = query.ilike('name', f'%{search_query}%')
-        
-    products = query.execute().data
+    # العرض
+    products = supabase.table('inventory').select('*').eq('company_code', company_code).execute().data
     return render_template('products.html', products=products or [])
 
 @app.route('/edit_product/<int:id>', methods=['GET', 'POST'])
@@ -202,12 +194,8 @@ def delete_order(id):
 @login_required
 def orders():
     company_code = session.get('company_code')
-    
-    # جلب الإعدادات مع معالجة الخطأ
     res_settings = supabase.table("settings").select("currency, telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
-    currency = ""
-    if res_settings.data and len(res_settings.data) > 0:
-        currency = res_settings.data[0].get('currency', '')
+    currency = res_settings.data[0].get('currency', '') if res_settings.data else ""
 
     if request.method == 'POST':
         product_name = request.form.get('product_name')
@@ -223,13 +211,10 @@ def orders():
         }
         supabase.table("orders").insert(data).execute()
         
-        # استخدام البيانات المستخرجة
         if res_settings.data:
-            settings_info = res_settings.data[0] # جلب أول صف
+            settings_info = res_settings.data[0]
             token = settings_info.get('telegram_token')
             chat_id = settings_info.get('telegram_chat_id')
-            
-            # رسالة طلبية جديدة
             msg = f"🛒 طلبية جديدة!\nالعميل: {request.form.get('customer_name')}\nالمنتج: {product_name}\nالكمية: {requested_qty}"
             send_telegram_alert_by_token(token, chat_id, msg)
             
@@ -238,19 +223,12 @@ def orders():
                 product = products_res.data[0] 
                 new_qty = product['quantity'] - requested_qty
                 supabase.table("inventory").update({"quantity": new_qty}).eq("id", product['id']).execute()
-                
-                # تنبيه المخزون
                 if new_qty <= 5:
-                    msg_low = f"⚠️ تنبيه مخزون!\nالمنتج '{product_name}' أوشك على النفاذ."
-                    send_telegram_alert_by_token(token, chat_id, msg_low)
-            
+                    send_telegram_alert_by_token(token, chat_id, f"⚠️ تنبيه مخزون! المنتج '{product_name}' أوشك على النفاذ.")
         return redirect(url_for('orders'))
 
-    # جلب الطلبيات
     res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
-    orders_list = res.data if res.data else []
-    
-    return render_template('orders_dashboard.html', orders=orders_list, currency=currency)
+    return render_template('orders_dashboard.html', orders=res.data or [], currency=currency)
 
 @app.route('/stats')
 @login_required
@@ -268,16 +246,11 @@ def stats():
             if o.get('created_at'):
                 dt = datetime.fromisoformat(o['created_at'].replace('Z', '+00:00'))
                 price = float(o.get('total_price') or 0)
-                day_name = days_order[dt.weekday()] if dt.weekday() < 7 else "السبت"
-                daily_data[day_name] += price
+                daily_data[days_order[dt.weekday()] if dt.weekday() < 7 else "السبت"] += price
                 monthly_data[months_order[dt.month - 1]] += price
                 yearly_data[str(dt.year)] += price
-        total_sales = sum(float(o.get('total_price') or 0) for o in orders)
-        total_expenses = sum(float(e.get('amount') or 0) for e in expenses)
-        total_orders = len(orders)
-        return render_template('stats.html', total_sales=float(total_sales), total_expenses=float(total_expenses), total_orders=int(total_orders), daily=dict(daily_data), monthly=dict(monthly_data), yearly=dict(yearly_data))
+        return render_template('stats.html', total_sales=sum(float(o.get('total_price') or 0) for o in orders), total_expenses=sum(float(e.get('amount') or 0) for e in expenses), total_orders=len(orders), daily=dict(daily_data), monthly=dict(monthly_data), yearly=dict(yearly_data))
     except Exception as e:
-        print(f"Stats Error: {e}")
         return render_template('stats.html', total_sales=0, total_expenses=0, total_orders=0, daily={}, monthly={}, yearly={})
 
 @app.route('/webhook_instagram', methods=['GET', 'POST'])
@@ -296,7 +269,6 @@ def webhook_instagram():
             send_telegram_alert_by_token(res.data[0]['telegram_token'], res.data[0]['telegram_chat_id'], f"🤖 الرد المقترح من Gemini:\n{response.text}")
         return 'OK', 200
     except Exception as e:
-        print(f"Webhook Error: {e}")
         return 'Error', 500
 
 if __name__ == '__main__':
