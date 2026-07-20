@@ -6,6 +6,8 @@ from functools import wraps
 import os
 import time
 import requests
+import urllib.parse
+import base64
 from google import genai  # مكتبة Gemini
 
 app = Flask(__name__)
@@ -15,7 +17,7 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "fallback_dev_key")
 supabase = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY"))
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
-# --- (بقية الدوال المساعدة كما هي: inject_currency, send_telegram, refresh_instagram, login_required) ---
+# --- المعالج التلقائي للعملة ---
 @app.context_processor
 def inject_currency():
     company_code = session.get('company_code')
@@ -27,6 +29,8 @@ def inject_currency():
         except:
             return dict(currency="")
     return dict(currency="")
+
+# --- الدوال المساعدة ---
 
 def send_telegram_alert_by_token(token, chat_id, message):
     if token and chat_id:
@@ -102,6 +106,16 @@ def dashboard():
 @login_required
 def settings():
     company_code = session.get('company_code')
+    currencies = [
+        ("USD", "دولار أمريكي"), ("EUR", "يورو"), ("GBP", "جنيه إسترليني"), ("JPY", "ين ياباني"),
+        ("AUD", "دولار أسترالي"), ("CAD", "دولار كندي"), ("CHF", "فرنك سويسري"), ("CNY", "يوان صيني"),
+        ("SAR", "ريال سعودي"), ("AED", "درهم إماراتي"), ("DZD", "دينار جزائري"), ("EGP", "جنيه مصري"),
+        ("KWD", "دينار كويتي"), ("QAR", "ريال قطري"), ("BHD", "دينار بحريني"), ("OMR", "ريال عماني"),
+        ("JOD", "دينار أردني"), ("LBP", "ليرة لبنانية"), ("LYD", "دينار ليبي"), ("MAD", "درهم مغربي"),
+        ("TND", "دينار تونسي"), ("IQD", "دينار عراقي"), ("SYP", "ليرة سورية"), ("YER", "ريال يمني"),
+        ("TRY", "ليرة تركية"), ("INR", "روبية هندية"), ("RUB", "روبل روسي"), ("SGD", "دولار سنغافوري")
+    ]
+    
     if request.method == 'POST':
         data = {
             "company_name": request.form.get('shop_name'),
@@ -110,55 +124,180 @@ def settings():
             "instagram_url": request.form.get('instagram_link'),
             "currency": request.form.get('currency') 
         }
-        supabase.table("settings").update(data).eq("company_code", company_code).execute()
+        try:
+            supabase.table("settings").update(data).eq("company_code", company_code).execute()
+        except Exception as e:
+            return f"حدث خطأ أثناء الحفظ: {str(e)}", 500
         return redirect(url_for('settings'))
     
     res = supabase.table("settings").select("*").eq("company_code", company_code).execute()
-    return render_template('settings.html', settings=res.data[0] if res.data else {})
+    settings_data = res.data[0] if res.data else {}
+    return render_template('settings.html', settings=settings_data, currencies=currencies)
 
-# --- المسار المحدث للمنتجات ---
 @app.route('/products', methods=['GET', 'POST'])
 @login_required
 def products():
     company_code = session.get('company_code')
     
     if request.method == 'POST':
+        # 1. معالجة الصورة
         file = request.files.get('product_image')
-        image_url = ""
-        
+        encoded_string = ""
         if file and file.filename != '':
-            file_name = f"{company_code}_{int(time.time())}_{file.filename}"
-            try:
-                supabase.storage.from_("product-images").upload(
-                    path=file_name,
-                    file=file.read(),
-                    file_options={"content-type": file.content_type}
-                )
-                image_url = supabase.storage.from_("product-images").get_public_url(file_name)
-            except Exception as e:
-                print(f"Error uploading image: {e}")
+            image_data = file.read()
+            encoded_string = base64.b64encode(image_data).decode('utf-8')
+            encoded_string = f'data:image/jpeg;base64,{encoded_string}'
 
+        # 2. تجهيز البيانات (تم دمج القيم المطلوبة لحل خطأ الـ Not-null)
         data = {
             'name': request.form.get('name'),
             'quantity': int(request.form.get('quantity', 0)),
             'price': float(request.form.get('price', 0.0)),
             'company_code': company_code,
-            'company_id': company_code,
-            'image_url': image_url 
+            'company_id': company_code,  # إضافة هذه القيمة لحل خطأ الـ Not-null
+            'product-images': encoded_string
         }
 
+        # 3. محاولة الإدخال في قاعدة البيانات
         try:
             supabase.table('inventory').insert(data).execute()
             return redirect(url_for('products'))
         except Exception as e:
-            return f"خطأ في الحفظ: {str(e)}", 500
+            print(f"خطأ في الحفظ: {e}")
+            return f"حدث خطأ أثناء حفظ المنتج: {str(e)}", 500
 
+    # كود الـ GET (عرض المنتجات)
+    search_query = request.args.get('search')
     query = supabase.table('inventory').select('*').eq('company_code', company_code)
-    search = request.args.get('search')
-    if search: query = query.ilike('name', f'%{search}%')
-    return render_template('products.html', products=query.execute().data or [])
+    
+    if search_query:
+        query = query.ilike('name', f'%{search_query}%')
+        
+    products = query.execute().data
+    return render_template('products.html', products=products or [])
 
-# --- (بقية المسارات: orders, stats, webhook كما هي) ---
+@app.route('/edit_product/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit_product(id):
+    return "صفحة التعديل قيد التطوير"
+
+@app.route('/delete_product/<int:id>', methods=['POST'])
+@login_required
+def delete_product(id):
+    try: supabase.table("inventory").delete().eq("id", id).execute()
+    except Exception as e: print(f"Delete Error: {e}")
+    return redirect(url_for('products'))
+
+@app.route('/delete_order/<int:id>', methods=['POST'])
+@login_required
+def delete_order(id):
+    company_code = session.get('company_code')
+    try:
+        supabase.table("orders").delete().eq("id", id).eq("company_code", company_code).execute()
+    except Exception as e:
+        print(f"Delete Order Error: {e}")
+    return redirect(url_for('orders'))
+
+@app.route('/orders', methods=['GET', 'POST'])
+@login_required
+def orders():
+    company_code = session.get('company_code')
+    
+    # جلب الإعدادات مع معالجة الخطأ
+    res_settings = supabase.table("settings").select("currency, telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
+    currency = ""
+    if res_settings.data and len(res_settings.data) > 0:
+        currency = res_settings.data[0].get('currency', '')
+
+    if request.method == 'POST':
+        product_name = request.form.get('product_name')
+        requested_qty = int(request.form.get('quantity', 0)) 
+        data = {
+            "customer_name": request.form.get('customer_name'),
+            "customer_phone": request.form.get('customer_phone'), 
+            "product_name": product_name,
+            "quantity": requested_qty, 
+            "total_price": float(request.form.get('price', 0.0)),
+            "company_code": company_code,
+            "status": "قيد الانتظار"
+        }
+        supabase.table("orders").insert(data).execute()
+        
+        # استخدام البيانات المستخرجة
+        if res_settings.data:
+            settings_info = res_settings.data[0] # جلب أول صف
+            token = settings_info.get('telegram_token')
+            chat_id = settings_info.get('telegram_chat_id')
+            
+            # رسالة طلبية جديدة
+            msg = f"🛒 طلبية جديدة!\nالعميل: {request.form.get('customer_name')}\nالمنتج: {product_name}\nالكمية: {requested_qty}"
+            send_telegram_alert_by_token(token, chat_id, msg)
+            
+            products_res = supabase.table("inventory").select("id, quantity, name").eq("name", product_name).eq("company_code", company_code).execute()
+            if products_res.data:
+                product = products_res.data[0] 
+                new_qty = product['quantity'] - requested_qty
+                supabase.table("inventory").update({"quantity": new_qty}).eq("id", product['id']).execute()
+                
+                # تنبيه المخزون
+                if new_qty <= 5:
+                    msg_low = f"⚠️ تنبيه مخزون!\nالمنتج '{product_name}' أوشك على النفاذ."
+                    send_telegram_alert_by_token(token, chat_id, msg_low)
+            
+        return redirect(url_for('orders'))
+
+    # جلب الطلبيات
+    res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
+    orders_list = res.data if res.data else []
+    
+    return render_template('orders_dashboard.html', orders=orders_list, currency=currency)
+
+@app.route('/stats')
+@login_required
+def stats():
+    company_code = session.get('company_code')
+    try:
+        res_orders = supabase.table("orders").select("total_price, created_at").eq("company_code", company_code).execute()
+        orders = res_orders.data or []
+        res_expenses = supabase.table("expenses").select("amount, created_at").eq("company_code", company_code).execute()
+        expenses = res_expenses.data or []
+        daily_data, monthly_data, yearly_data = defaultdict(float), defaultdict(float), defaultdict(float)
+        days_order = ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"]
+        months_order = ["جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان", "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
+        for o in orders:
+            if o.get('created_at'):
+                dt = datetime.fromisoformat(o['created_at'].replace('Z', '+00:00'))
+                price = float(o.get('total_price') or 0)
+                day_name = days_order[dt.weekday()] if dt.weekday() < 7 else "السبت"
+                daily_data[day_name] += price
+                monthly_data[months_order[dt.month - 1]] += price
+                yearly_data[str(dt.year)] += price
+        total_sales = sum(float(o.get('total_price') or 0) for o in orders)
+        total_expenses = sum(float(e.get('amount') or 0) for e in expenses)
+        total_orders = len(orders)
+        return render_template('stats.html', total_sales=float(total_sales), total_expenses=float(total_expenses), total_orders=int(total_orders), daily=dict(daily_data), monthly=dict(monthly_data), yearly=dict(yearly_data))
+    except Exception as e:
+        print(f"Stats Error: {e}")
+        return render_template('stats.html', total_sales=0, total_expenses=0, total_orders=0, daily={}, monthly={}, yearly={})
+
+@app.route('/webhook_instagram', methods=['GET', 'POST'])
+def webhook_instagram():
+    if request.method == 'GET': return request.args.get('hub.challenge')
+    data = request.json
+    try:
+        page_id = data['entry'][0]['id']
+        messaging = data['entry'][0]['messaging'][0]
+        msg = messaging['message']['text']
+        sender_id = messaging['sender']['id']
+        res = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("instagram_page_id", page_id).execute()
+        if res.data:
+            send_telegram_alert_by_token(res.data[0]['telegram_token'], res.data[0]['telegram_chat_id'], f"🔔 رسالة إنستقرام جديدة من العميل ({sender_id}):\n{msg}")
+            response = client.models.generate_content(model='gemini-2.0-flash', contents=msg)
+            send_telegram_alert_by_token(res.data[0]['telegram_token'], res.data[0]['telegram_chat_id'], f"🤖 الرد المقترح من Gemini:\n{response.text}")
+        return 'OK', 200
+    except Exception as e:
+        print(f"Webhook Error: {e}")
+        return 'Error', 500
 
 if __name__ == '__main__':
     refresh_instagram_token()
