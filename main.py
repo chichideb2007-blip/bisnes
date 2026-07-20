@@ -154,6 +154,7 @@ def products():
             'quantity': int(request.form.get('quantity', 0)),
             'price': float(request.form.get('price', 0.0)),
             'company_code': company_code,
+            'company_id': company_code,  # إضافة هذه القيمة لحل خطأ الـ Not-null
             'product-images': encoded_string
         }
 
@@ -202,7 +203,6 @@ def delete_order(id):
 def orders():
     company_code = session.get('company_code')
     
-    # جلب الإعدادات مع معالجة الخطأ
     res_settings = supabase.table("settings").select("currency, telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
     currency = ""
     if res_settings.data and len(res_settings.data) > 0:
@@ -222,13 +222,11 @@ def orders():
         }
         supabase.table("orders").insert(data).execute()
         
-        # استخدام البيانات المستخرجة
         if res_settings.data:
-            settings_info = res_settings.data[0] # جلب أول صف
+            settings_info = res_settings.data[0]
             token = settings_info.get('telegram_token')
             chat_id = settings_info.get('telegram_chat_id')
             
-            # رسالة طلبية جديدة
             msg = f"🛒 طلبية جديدة!\nالعميل: {request.form.get('customer_name')}\nالمنتج: {product_name}\nالكمية: {requested_qty}"
             send_telegram_alert_by_token(token, chat_id, msg)
             
@@ -238,14 +236,12 @@ def orders():
                 new_qty = product['quantity'] - requested_qty
                 supabase.table("inventory").update({"quantity": new_qty}).eq("id", product['id']).execute()
                 
-                # تنبيه المخزون
                 if new_qty <= 5:
                     msg_low = f"⚠️ تنبيه مخزون!\nالمنتج '{product_name}' أوشك على النفاذ."
                     send_telegram_alert_by_token(token, chat_id, msg_low)
             
         return redirect(url_for('orders'))
 
-    # جلب الطلبيات
     res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
     orders_list = res.data if res.data else []
     
