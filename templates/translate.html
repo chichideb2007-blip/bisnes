@@ -1,10 +1,15 @@
+<!-- مكان زر الترجمة -->
 <div id="google_translate_element"></div>
 
+<!-- السكريبت المحدث لضمان بقاء اللغة مفعلة -->
 <script type="text/javascript">
     function googleTranslateElementInit() {
         new google.translate.TranslateElement({
             pageLanguage: 'ar',
-            layout: google.translate.TranslateElement.InlineLayout.SIMPLE
+            // هذا السطر يضمن ظهور كل لغات العالم
+            includedLanguages: 'ar,en,fr,es,de,it,ru,tr,ja,zh-CN,hi,pt,nl',
+            layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+            autoDisplay: false
         }, 'google_translate_element');
     }
 </script>
