@@ -18,9 +18,10 @@
 <body>
 
 <div class="login-container">
+    {% include 'translate.html' %}
+    
     <h2>تسجيل الدخول</h2>
     
-    <!-- النموذج الآن يرسل 'company_code' ليطابق كود البايثون -->
     <form action="/login" method="POST">
         <input type="text" name="company_code" placeholder="أدخل كود شركتك" required>
         <button type="submit">دخول</button>
