@@ -217,6 +217,34 @@ def inventory_management():
     res = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
     return render_template('inventory_management.html', inventory=res.data or [])
 
+@app.route('/edit_product/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit_product(id):
+    company_code = session.get('company_code')
+    
+    # جلب المنتج الحالي
+    res = supabase.table("inventory").select("*").eq("id", id).eq("company_id_text", company_code).execute()
+    product = res.data[0] if res.data else None
+    
+    if not product:
+        return "المنتج غير موجود", 404
+
+    if request.method == 'POST':
+        # منطق التحديث
+        new_name = request.form.get('name')
+        new_quantity = request.form.get('quantity')
+        new_price = request.form.get('price')
+        
+        supabase.table("inventory").update({
+            "name": new_name,
+            "quantity": int(new_quantity),
+            "price": float(new_price)
+        }).eq("id", id).execute()
+        
+        return redirect(url_for('products'))
+        
+    return render_template('edit_product.html', product=product)
+
 @app.route('/delete_product/<int:id>', methods=['POST'])
 @login_required
 def delete_product(id):
