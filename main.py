@@ -178,6 +178,45 @@ def products():
     res = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
     return render_template('products.html', products=res.data or [])
 
+@app.route('/inventory_management', methods=['GET', 'POST'])
+@login_required
+def inventory_management():
+    company_code = session.get('company_code')
+    
+    if request.method == 'POST':
+        product_id = request.form.get('product_id')
+        new_quantity = request.form.get('quantity')
+        file = request.files.get('product_image')
+        
+        # 1. تجهيز البيانات الأساسية
+        update_data = {"quantity": int(new_quantity)}
+        
+        # 2. رفع الصورة لـ Buckets إذا وجدت
+        if file and file.filename != '':
+            # إنشاء مسار فريد للصورة داخل الـ Bucket (باسم products)
+            filename = f"{company_code}/{int(time.time())}_{file.filename}"
+            
+            # رفع الملف إلى الـ Bucket
+            supabase.storage.from_("products").upload(
+                path=filename,
+                file=file.read(),
+                file_options={"content-type": file.content_type}
+            )
+            
+            # 3. الحصول على الرابط العام وإضافته للبيانات
+            public_url = supabase.storage.from_("products").get_public_url(filename)
+            update_data["product-images"] = public_url
+        
+        # 4. تحديث الجدول في Supabase
+        try:
+            supabase.table('inventory').update(update_data).eq("id", product_id).eq("company_id_text", company_code).execute()
+        except Exception as e:
+            print(f"Error updating: {e}")
+            
+    # جلب المنتجات للعرض
+    res = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
+    return render_template('inventory_management.html', inventory=res.data or [])
+
 @app.route('/delete_product/<int:id>', methods=['POST'])
 @login_required
 def delete_product(id):
