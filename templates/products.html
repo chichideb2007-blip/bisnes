@@ -18,7 +18,10 @@
     <div class="container mt-3">
         <div class="d-flex justify-content-between align-items-center">
             <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">⬅️ لوحة التحكم</a>
-            <div id="google_translate_element"></div>
+            
+            <!-- تم دمج زر الترجمة هنا -->
+            {% include 'translate.html' %}
+            
             <a href="{{ url_for('logout') }}" class="btn btn-danger">🚪 خروج</a>
         </div>
     </div>
@@ -26,25 +29,15 @@
     <div class="container mt-4">
         <h2 class="mb-4 text-center fw-bold">📦 إدارة المنتجات والمخزون</h2>
         
-        <!-- نموذج إضافة منتج - تأكد من enctype للصور -->
+        <!-- نموذج إضافة منتج -->
         <div class="product-card">
             <h4 class="mb-3">إضافة منتج جديد</h4>
             <form action="{{ url_for('products') }}" method="POST" enctype="multipart/form-data" class="row g-3">
-                <div class="col-md-3">
-                    <input type="text" name="name" class="form-control" placeholder="اسم المنتج" required>
-                </div>
-                <div class="col-md-2">
-                    <input type="number" name="quantity" class="form-control" placeholder="الكمية" required>
-                </div>
-                <div class="col-md-2">
-                    <input type="number" step="0.01" name="price" class="form-control" placeholder="السعر ({{ currency }})" required>
-                </div>
-                <div class="col-md-3">
-                    <input type="file" name="product_image" class="form-control" accept="image/*">
-                </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-success w-100">حفظ المنتج</button>
-                </div>
+                <div class="col-md-3"><input type="text" name="name" class="form-control" placeholder="اسم المنتج" required></div>
+                <div class="col-md-2"><input type="number" name="quantity" class="form-control" placeholder="الكمية" required></div>
+                <div class="col-md-2"><input type="number" step="0.01" name="price" class="form-control" placeholder="السعر ({{ currency }})" required></div>
+                <div class="col-md-3"><input type="file" name="product_image" class="form-control" accept="image/*"></div>
+                <div class="col-md-2"><button type="submit" class="btn btn-success w-100">حفظ المنتج</button></div>
             </form>
         </div>
 
@@ -89,10 +82,6 @@
                                 </form>
                             </td>
                         </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="5">لا توجد منتجات مطابقة للبحث</td>
-                        </tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -100,11 +89,5 @@
         </div>
     </div>
 
-    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
-    <script type="text/javascript">
-        function googleTranslateElementInit() {
-            new google.translate.TranslateElement({pageLanguage: 'ar', layout: google.translate.TranslateElement.InlineLayout.SIMPLE}, 'google_translate_element');
-        }
-    </script>
 </body>
 </html>
