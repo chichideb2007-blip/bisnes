@@ -4,7 +4,7 @@
     function googleTranslateElementInit() {
         new google.translate.TranslateElement({
             pageLanguage: 'ar',
-            includedLanguages: 'ar,en,fr,es', // حددي اللغات المهمة فقط
+            includedLanguages: 'ar,en,fr,es,de,it,ru,tr,ja,zh-CN,pt', 
             layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
             autoDisplay: false
         }, 'google_translate_element');
@@ -12,25 +12,26 @@
 </script>
 <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
-<!-- سكربت إضافي لإجبار المتصفح على الاحتفاظ باللغة -->
 <script>
-    // عند تغيير اللغة، يتم حفظها في ذاكرة المتصفح
-    document.addEventListener('DOMContentLoaded', function() {
-        var select = document.querySelector('.goog-te-combo');
-        if (select) {
-            select.addEventListener('change', function() {
-                localStorage.setItem('userLanguage', select.value);
-            });
+    // هذا الجزء هو المسؤول عن تذكر اللغة عند الانتقال بين الصفحات
+    window.addEventListener('load', function() {
+        var lang = localStorage.getItem('googtrans');
+        if (lang) {
+            // المحاولة لفرض اللغة المحفوظة
+            setTimeout(function() {
+                var select = document.querySelector('.goog-te-combo');
+                if (select) {
+                    select.value = lang.split('/')[2];
+                    select.dispatchEvent(new Event('change'));
+                }
+            }, 1000);
         }
-        
-        // عند تحميل أي صفحة، نقوم بتطبيق اللغة المحفوظة
-        var savedLang = localStorage.getItem('userLanguage');
-        if (savedLang) {
-            var select = document.querySelector('.goog-te-combo');
-            if (select) {
-                select.value = savedLang;
-                select.dispatchEvent(new Event('change'));
-            }
+    });
+
+    // حفظ اللغة عند التغيير
+    document.addEventListener('change', function(e) {
+        if (e.target.className === 'goog-te-combo') {
+            localStorage.setItem('googtrans', '/auto/' + e.target.value);
         }
     });
 </script>
