@@ -14,9 +14,13 @@
 <body class="bg-light">
 
     <div class="container mt-4">
-        <!-- أزرار التحكم العلوية -->
-        <div class="d-flex justify-content-between mb-4">
+        <!-- أزرار التحكم العلوية مع زر الترجمة -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
             <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">⬅️ رجوع للوحة التحكم</a>
+            
+            <!-- استدعاء ملف الترجمة الموحد -->
+            {% include 'translate.html' %}
+            
             <a href="{{ url_for('logout') }}" class="btn btn-danger">🚪 خروج</a>
         </div>
 
@@ -34,15 +38,12 @@
                 
                 <!-- قسم البوت المحدث -->
                 <h5 class="section-title mt-4">🤖 إعدادات البوت</h5>
-                
-                <!-- حقل معرف البوت -->
                 <div class="mb-3">
                     <label class="form-label">معرف البوت (Bot Token)</label>
                     <input type="text" name="bot_token" class="form-control" placeholder="أدخل توكن البوت هنا" value="{{ settings.telegram_token or '' }}">
                     <small class="text-muted">هذا المعرف يستخدم لربط البوت الخاص بك.</small>
                 </div>
 
-                <!-- حقل معرف المحادثة (Chat ID) المضاف -->
                 <div class="mb-3">
                     <label class="form-label">معرف المحادثة (Chat ID)</label>
                     <input type="text" name="chat_id" class="form-control" placeholder="أدخل معرف الشات ID هنا" value="{{ settings.telegram_chat_id or '' }}">
