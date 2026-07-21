@@ -295,16 +295,24 @@ def orders():
             msg = f"🛒 طلبية جديدة!\nالعميل: {customer_name}\nالمنتج: {product_name}\nالكمية: {requested_qty}"
             send_telegram_alert_by_token(token, chat_id, msg)
             
-            # فحص المخزون بعد الطلب
+            # 1. جلب بيانات المنتج الحالي من المخزون
             products_res = supabase.table("inventory").select("id, quantity").eq("name", product_name).eq("company_id_text", company_code).execute()
+            
             if products_res.data:
                 product = products_res.data[0]
-                new_qty = product['quantity'] - requested_qty
+                current_qty = product['quantity']
+                
+                # 2. حساب الكمية الجديدة (تأكد ألا تنزل عن صفر)
+                new_qty = max(0, current_qty - requested_qty)
+                
+                # 3. تحديث المخزون في قاعدة البيانات
                 supabase.table("inventory").update({"quantity": new_qty}).eq("id", product['id']).execute()
                 
-                # تنبيه إذا كان المخزون المتبقي 5 أو أقل
-                if new_qty <= 5:
-                    send_telegram_alert_by_token(token, chat_id, f"⚠️ تنبيه مخزون!\nالمنتج '{product_name}' أوشك على النفاذ (المتبقي: {new_qty})")
+                # 4. إرسال التنبيهات بناءً على الكمية المتبقية
+                if new_qty == 0:
+                    send_telegram_alert_by_token(token, chat_id, f"❌ تنبيه هام!\nالمنتج '{product_name}' قد نفذ تماماً من المخزون.")
+                elif new_qty <= 5:
+                    send_telegram_alert_by_token(token, chat_id, f"⚠️ تنبيه مخزون!\nالمنتج '{product_name}' أوشك على النفاذ، المتبقي حالياً: {new_qty}")
         else:
             print("DEBUG: البيانات في قاعدة البيانات ناقصة (Token أو Chat ID غير موجود)")
             
