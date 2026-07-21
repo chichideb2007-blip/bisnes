@@ -291,15 +291,18 @@ def orders():
         chat_id = settings_info.get('telegram_chat_id')
         
         if token and chat_id:
+            # إرسال تنبيه طلبية جديدة
             msg = f"🛒 طلبية جديدة!\nالعميل: {customer_name}\nالمنتج: {product_name}\nالكمية: {requested_qty}"
             send_telegram_alert_by_token(token, chat_id, msg)
             
+            # فحص المخزون بعد الطلب
             products_res = supabase.table("inventory").select("id, quantity").eq("name", product_name).eq("company_id_text", company_code).execute()
             if products_res.data:
                 product = products_res.data[0]
                 new_qty = product['quantity'] - requested_qty
                 supabase.table("inventory").update({"quantity": new_qty}).eq("id", product['id']).execute()
                 
+                # تنبيه إذا كان المخزون المتبقي 5 أو أقل
                 if new_qty <= 5:
                     send_telegram_alert_by_token(token, chat_id, f"⚠️ تنبيه مخزون!\nالمنتج '{product_name}' أوشك على النفاذ (المتبقي: {new_qty})")
         else:
