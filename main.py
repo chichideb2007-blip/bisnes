@@ -320,29 +320,32 @@ def webhook_instagram():
     try:
         for entry in data.get('entry', []):
             page_id = entry.get('id')
-            for messaging_event in entry.get('messaging', []):
-                if 'message' in messaging_event and 'text' in messaging_event['message']:
-                    msg = messaging_event['message']['text']
-                    sender_id = messaging_event['sender']['id']
-                    
-                    res = supabase.table("settings").select("telegram_token, telegram_chat_id, instagram_token").eq("instagram_page_id", page_id).execute()
-                    if res.data:
-                        setting = res.data[0]
-                        page_token = setting.get('instagram_token')
+            # جلب البيانات باستخدام instagram_page_id الموجود في جدولك
+            res = supabase.table("settings").select("telegram_token, telegram_chat_id, instagram_token").eq("instagram_page_id", str(page_id)).execute()
+            
+            if res.data:
+                setting = res.data[0]
+                page_token = setting.get('instagram_token')
+                
+                for messaging_event in entry.get('messaging', []):
+                    if 'message' in messaging_event and 'text' in messaging_event['message']:
+                        msg = messaging_event['message']['text']
+                        sender_id = messaging_event['sender']['id']
                         
+                        # إرسال التنبيه
                         send_telegram_alert_by_token(setting['telegram_token'], setting['telegram_chat_id'], f"🔔 رسالة إنستقرام جديدة ({sender_id}):\n{msg}")
                         
+                        # توليد الرد
                         response = client.models.generate_content(model='gemini-2.0-flash', contents=msg)
                         reply_text = response.text
                         
-                        send_telegram_alert_by_token(setting['telegram_token'], setting['telegram_chat_id'], f"🤖 الرد المقترح من Gemini:\n{reply_text}")
-                        
-                        # التحقق من وجود التوكن قبل الرد
-                        if not page_token:
-                            print("الـ Token مفقود، لا يمكن الرد.")
-                            return 'OK', 200
-                        
-                        send_instagram_reply(page_token, sender_id, reply_text)
+                        # التحقق من وجود التوكن
+                        if page_token:
+                            send_instagram_reply(page_token, sender_id, reply_text)
+                            send_telegram_alert_by_token(setting['telegram_token'], setting['telegram_chat_id'], f"✅ تم الرد بنجاح!")
+                        else:
+                            print("الـ Token مفقود")
+                            
         return 'OK', 200
     except Exception as e:
         print(f"Webhook Error: {e}")
