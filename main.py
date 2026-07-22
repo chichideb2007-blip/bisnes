@@ -9,6 +9,7 @@ import requests
 import urllib.parse
 import base64
 from google import genai  # مكتبة Gemini
+from google.genai import types # استيراد الأنواع اللازمة للـ Config
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "fallback_dev_key")
@@ -65,16 +66,6 @@ def refresh_instagram_token():
                     supabase.table("settings").update({"instagram_token": new_token}).eq("company_code", row['company_code']).execute()
             except Exception as e:
                 print(f"Token Refresh Error: {e}")
-
-# دالة الرد على إنستقرام
-def send_instagram_reply(page_token, recipient_id, message_text):
-    url = f"https://graph.facebook.com/v20.0/me/messages"
-    params = {"access_token": page_token}
-    payload = {
-        "recipient": {"id": recipient_id},
-        "message": {"text": message_text}
-    }
-    requests.post(url, params=params, json=payload)
 
 def login_required(f):
     @wraps(f)
@@ -198,23 +189,32 @@ def inventory_management():
         new_quantity = request.form.get('quantity')
         file = request.files.get('product_image')
         
+        # 1. تجهيز البيانات الأساسية
         update_data = {"quantity": int(new_quantity)}
         
+        # 2. رفع الصورة لـ Buckets إذا وجدت
         if file and file.filename != '':
+            # إنشاء مسار فريد للصورة داخل الـ Bucket (باسم products)
             filename = f"{company_code}/{int(time.time())}_{file.filename}"
+            
+            # رفع الملف إلى الـ Bucket
             supabase.storage.from_("products").upload(
                 path=filename,
                 file=file.read(),
                 file_options={"content-type": file.content_type}
             )
+            
+            # 3. الحصول على الرابط العام وإضافته للبيانات
             public_url = supabase.storage.from_("products").get_public_url(filename)
             update_data["product-images"] = public_url
         
+        # 4. تحديث الجدول في Supabase
         try:
             supabase.table('inventory').update(update_data).eq("id", product_id).eq("company_id_text", company_code).execute()
         except Exception as e:
             print(f"Error updating: {e}")
             
+    # جلب المنتجات للعرض
     res = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
     return render_template('inventory_management.html', inventory=res.data or [])
 
@@ -222,16 +222,28 @@ def inventory_management():
 @login_required
 def edit_product(id):
     company_code = session.get('company_code')
+    
+    # جلب المنتج الحالي
     res = supabase.table("inventory").select("*").eq("id", id).eq("company_id_text", company_code).execute()
     product = res.data[0] if res.data else None
-    if not product: return "المنتج غير موجود", 404
+    
+    if not product:
+        return "المنتج غير موجود", 404
+
     if request.method == 'POST':
+        # منطق التحديث
+        new_name = request.form.get('name')
+        new_quantity = request.form.get('quantity')
+        new_price = request.form.get('price')
+        
         supabase.table("inventory").update({
-            "name": request.form.get('name'),
-            "quantity": int(request.form.get('quantity')),
-            "price": float(request.form.get('price'))
+            "name": new_name,
+            "quantity": int(new_quantity),
+            "price": float(new_price)
         }).eq("id", id).execute()
+        
         return redirect(url_for('products'))
+        
     return render_template('edit_product.html', product=product)
 
 @app.route('/delete_product/<int:id>', methods=['POST'])
@@ -245,14 +257,17 @@ def delete_product(id):
 @login_required
 def delete_order(id):
     company_code = session.get('company_code')
-    try: supabase.table("orders").delete().eq("id", id).eq("company_code", company_code).execute()
-    except Exception as e: print(f"Delete Order Error: {e}")
+    try:
+        supabase.table("orders").delete().eq("id", id).eq("company_code", company_code).execute()
+    except Exception as e:
+        print(f"Delete Order Error: {e}")
     return redirect(url_for('orders'))
 
 @app.route('/orders', methods=['GET', 'POST'])
 @login_required
 def orders():
     company_code = session.get('company_code')
+    
     res_settings = supabase.table("settings").select("currency, telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
     settings_info = res_settings.data[0] if res_settings.data else {}
     currency = settings_info.get('currency', '')
@@ -272,18 +287,38 @@ def orders():
             "status": "قيد الانتظار"
         }
         supabase.table("orders").insert(data).execute()
+        
         token = settings_info.get('telegram_token')
         chat_id = settings_info.get('telegram_chat_id')
         
         if token and chat_id:
+            # إرسال تنبيه طلبية جديدة
             msg = f"🛒 طلبية جديدة!\nالعميل: {customer_name}\nالمنتج: {product_name}\nالكمية: {requested_qty}"
             send_telegram_alert_by_token(token, chat_id, msg)
+            
+            # 1. جلب بيانات المنتج الحالي من المخزون
             products_res = supabase.table("inventory").select("id, quantity").eq("name", product_name).eq("company_id_text", company_code).execute()
+            
             if products_res.data:
                 product = products_res.data[0]
-                new_qty = max(0, product['quantity'] - requested_qty)
+                current_qty = product['quantity']
+                
+                # 2. حساب الكمية الجديدة (تأكد ألا تنزل عن صفر)
+                new_qty = max(0, current_qty - requested_qty)
+                
+                # 3. تحديث المخزون في قاعدة البيانات
                 supabase.table("inventory").update({"quantity": new_qty}).eq("id", product['id']).execute()
+                
+                # 4. إرسال التنبيهات بناءً على الكمية المتبقية
+                if new_qty == 0:
+                    send_telegram_alert_by_token(token, chat_id, f"❌ تنبيه هام!\nالمنتج '{product_name}' قد نفذ تماماً من المخزون.")
+                elif new_qty <= 5:
+                    send_telegram_alert_by_token(token, chat_id, f"⚠️ تنبيه مخزون!\nالمنتج '{product_name}' أوشك على النفاذ، المتبقي حالياً: {new_qty}")
+        else:
+            print("DEBUG: البيانات في قاعدة البيانات ناقصة (Token أو Chat ID غير موجود)")
+            
         return redirect(url_for('orders'))
+
     res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
     return render_template('orders_dashboard.html', orders=res.data or [], currency=currency)
 
@@ -312,44 +347,38 @@ def stats():
         print(f"Stats Error: {e}")
         return render_template('stats.html', total_sales=0, total_expenses=0, total_orders=0, daily={}, monthly={}, yearly={})
 
-# --- Webhook المدمج ---
 @app.route('/webhook_instagram', methods=['GET', 'POST'])
 def webhook_instagram():
     if request.method == 'GET': return request.args.get('hub.challenge')
     data = request.json
     try:
-        for entry in data.get('entry', []):
-            page_id = entry.get('id')
-            # جلب البيانات باستخدام instagram_page_id الموجود في جدولك
-            res = supabase.table("settings").select("telegram_token, telegram_chat_id, instagram_token").eq("instagram_page_id", str(page_id)).execute()
+        page_id = data['entry'][0]['id']
+        messaging = data['entry'][0]['messaging'][0]
+        msg = messaging['message']['text']
+        sender_id = messaging['sender']['id']
+        res = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("instagram_page_id", page_id).execute()
+        if res.data:
+            send_telegram_alert_by_token(res.data[0]['telegram_token'], res.data[0]['telegram_chat_id'], f"🔔 رسالة إنستقرام جديدة من العميل ({sender_id}):\n{msg}")
             
-            if res.data:
-                setting = res.data[0]
-                page_token = setting.get('instagram_token')
-                
-                for messaging_event in entry.get('messaging', []):
-                    if 'message' in messaging_event and 'text' in messaging_event['message']:
-                        msg = messaging_event['message']['text']
-                        sender_id = messaging_event['sender']['id']
-                        
-                        # إرسال التنبيه
-                        send_telegram_alert_by_token(setting['telegram_token'], setting['telegram_chat_id'], f"🔔 رسالة إنستقرام جديدة ({sender_id}):\n{msg}")
-                        
-                        # توليد الرد
-                        response = client.models.generate_content(model='gemini-2.0-flash', contents=msg)
-                        reply_text = response.text
-                        
-                        # التحقق من وجود التوكن
-                        if page_token:
-                            send_instagram_reply(page_token, sender_id, reply_text)
-                            send_telegram_alert_by_token(setting['telegram_token'], setting['telegram_chat_id'], f"✅ تم الرد بنجاح!")
-                        else:
-                            print("الـ Token مفقود")
-                            
+            # التعليمات الجديدة المدمجة
+            my_system_instruction = """أنتِ مساعد مبيعات محترف يعمل لصالح "ChichiDeb". مهمتك هي مساعدة العملاء في إكمال طلباتهم.
+1. عندما يعبر العميل عن رغبته في الشراء، قومي بتلخيص الطلب والتأكد من تفاصيله.
+2. بمجرد تأكيد العميل، يجب أن تخرجي البيانات حصراً بتنسيق JSON، بدون أي مقدمات أو كلام إضافي، بالتنسيق التالي:
+{ "client_id": "...", "page_id": "...", "total_amount": 0, "items": [...], "customer_phone": "...", "shipping_address": "..." }"""
+
+            response = client.models.generate_content(
+                model='gemini-2.0-flash',
+                contents=msg,
+                config=types.GenerateContentConfig(
+                    system_instruction=my_system_instruction
+                )
+            )
+            
+            send_telegram_alert_by_token(res.data[0]['telegram_token'], res.data[0]['telegram_chat_id'], f"🤖 الرد المقترح من Gemini:\n{response.text}")
         return 'OK', 200
     except Exception as e:
         print(f"Webhook Error: {e}")
-        return 'OK', 200
+        return 'Error', 500
 
 if __name__ == '__main__':
     refresh_instagram_token()
