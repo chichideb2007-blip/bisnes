@@ -1,20 +1,59 @@
-<form id="orderForm">
-    <!-- بيانات الزبون -->
-    <input type="text" id="customer_name" placeholder="الاسم الكامل" required>
-    <input type="tel" id="phone" placeholder="رقم الهاتف" required>
-    
-    <!-- اختيار الولاية والبلدية -->
-    <select id="wilaya" onchange="updateDelivery()"> <!-- هنا تضعين قائمة الولايات --> </select>
-    <select id="commune"></select>
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>إتمام الطلب - {{ product.name }}</title>
+</head>
+<body>
 
-    <!-- خيار التوصيل -->
-    <select id="delivery_type" onchange="calculateTotal()">
-        <option value="home">توصيل للمنزل</option>
-        <option value="office">توصيل للمكتب</option>
-    </select>
+    <h1>إتمام الطلب: {{ product.name }}</h1>
+    <!-- السعر الأساسي مخزن هنا لاستخدامه في الحساب -->
+    <input type="hidden" id="base_price" value="{{ product.price }}">
+    <p>السعر الأساسي: {{ product.price }} دج</p>
 
-    <!-- المجموع التلقائي -->
-    <div id="total_price">المجموع: 0 دج</div>
-    
-    <button type="submit">تأكيد الطلب</button>
-</form>
+    <form id="orderForm" action="/submit-order" method="POST">
+        <!-- إرسال رقم المنتج ضمن الطلب -->
+        <input type="hidden" name="product_id" value="{{ product.id }}">
+        
+        <input type="text" name="customer_name" placeholder="الاسم الكامل" required>
+        <input type="tel" name="phone" placeholder="رقم الهاتف" required>
+        
+        <!-- اختيار الولاية والبلدية -->
+        <select id="wilaya" name="wilaya" onchange="updateDelivery()">
+            <option value="">اختر الولاية</option>
+            <!-- هنا ستضعين قائمة الولايات -->
+        </select>
+        <select id="commune" name="commune"></select>
+
+        <!-- خيار التوصيل -->
+        <select id="delivery_type" name="delivery_type" onchange="calculateTotal()">
+            <option value="home">توصيل للمنزل</option>
+            <option value="office">توصيل للمكتب</option>
+        </select>
+
+        <!-- المجموع التلقائي -->
+        <div id="total_price_display">المجموع: {{ product.price }} دج</div>
+        
+        <button type="submit">تأكيد الطلب</button>
+    </form>
+
+    <script>
+        function calculateTotal() {
+            const basePrice = parseFloat(document.getElementById('base_price').value);
+            const deliveryType = document.getElementById('delivery_type').value;
+            
+            // يمكنك هنا وضع منطق أسعار التوصيل الفعلي
+            const deliveryCost = (deliveryType === 'home') ? 500 : 300; 
+            const total = basePrice + deliveryCost;
+            
+            document.getElementById('total_price_display').innerText = "المجموع: " + total + " دج";
+        }
+
+        function updateDelivery() {
+            // كود جلب البلديات بناءً على الولاية
+            console.log("تحديث البلديات...");
+            calculateTotal();
+        }
+    </script>
+</body>
+</html>
