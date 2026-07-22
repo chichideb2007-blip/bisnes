@@ -55,7 +55,6 @@ def send_telegram_alert_by_token(token, chat_id, message):
 
 # دالة مساعدة لعمل `submit_order`
 def get_delivery_price(wilaya, delivery_type):
-    # TODO: هنا يجب كتابة منطق جلب سعر التوصيل الحقيقي من قاعدة البيانات
     return 500  # سعر افتراضي
 
 def refresh_instagram_token():
@@ -93,7 +92,8 @@ def login():
         if res.data:
             session['company_code'] = company_code
             return redirect(url_for('dashboard'))
-        return "كود الشركة غير صحيح!", 401
+        else:
+            return "كود الشركة غير صحيح، يرجى التأكد منه أو إنشاء حساب جديد.", 401
     return render_template('login.html')
 
 @app.route('/signup', methods=['GET', 'POST'])
@@ -113,10 +113,10 @@ def signup():
                 "company_code": company_code, 
                 "company_name": company_name
             }).execute()
-            print("DEBUG: تم إضافة الشركة بنجاح:", response.data) # ستظهر في Logs
+            print("DEBUG: تم إضافة الشركة بنجاح:", response.data) 
             return "تم إنشاء الحساب بنجاح!"
         except Exception as e:
-            print(f"DEBUG ERROR: حدث خطأ أثناء الإضافة: {e}") # ستظهر في Logs إذا فشل الإدخال
+            print(f"DEBUG ERROR: حدث خطأ أثناء الإضافة: {e}")
             return f"حدث خطأ: {e}", 500
             
     return render_template('signup.html')
