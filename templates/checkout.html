@@ -1,0 +1,21 @@
+<div class="checkout-container">
+    <form method="POST">
+        <h1>إتمام طلب: {{ product.name }}</h1>
+        
+        <img src="{{ product['product-images'] }}" alt="{{ product.name }}" width="200">
+        <p><strong>السعر:</strong> {{ product.price }} دج</p>
+        
+        <hr>
+        
+        <label>اسمك الكامل:</label>
+        <input type="text" name="customer_name" placeholder="أدخل اسمك الكامل" required>
+        
+        <label>رقم الهاتف:</label>
+        <input type="tel" name="customer_phone" placeholder="أدخل رقم الهاتف" required>
+        
+        <label>الولاية:</label>
+        <input type="text" name="state" placeholder="أدخل ولايتك" required>
+        
+        <button type="submit" class="btn-submit">تأكيد الشراء</button>
+    </form>
+</div>
