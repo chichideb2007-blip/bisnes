@@ -101,14 +101,24 @@ def signup():
     if request.method == 'POST':
         company_code = request.form.get('company_code')
         company_name = request.form.get('company_name')
+        
+        # تحقق من وجود الكود مسبقاً
         res = supabase.table("settings").select("company_code").eq("company_code", company_code).execute()
         if res.data:
             return "هذا الكود مستخدم بالفعل، يرجى اختيار كود آخر!", 400
+            
         try:
-            supabase.table("settings").insert({"company_code": company_code, "company_name": company_name}).execute()
-            return "تم إنشاء الحساب بنجاح! يمكنك الآن تسجيل الدخول."
+            # محاولة الإضافة
+            response = supabase.table("settings").insert({
+                "company_code": company_code, 
+                "company_name": company_name
+            }).execute()
+            print("DEBUG: تم إضافة الشركة بنجاح:", response.data) # ستظهر في Logs
+            return "تم إنشاء الحساب بنجاح!"
         except Exception as e:
-            return f"حدث خطأ أثناء الإنشاء: {e}", 500
+            print(f"DEBUG ERROR: حدث خطأ أثناء الإضافة: {e}") # ستظهر في Logs إذا فشل الإدخال
+            return f"حدث خطأ: {e}", 500
+            
     return render_template('signup.html')
 
 @app.route('/logout')
