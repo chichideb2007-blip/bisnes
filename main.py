@@ -88,7 +88,13 @@ def home():
 def login():
     if request.method == 'POST':
         company_code = request.form.get('company_code')
+        
+        # --- إضافة أسطر التصحيح هذه ---
+        print(f"DEBUG: الكود الذي تم إدخاله هو: {company_code}")
         res = supabase.table("settings").select("company_code").eq("company_code", company_code).execute()
+        print(f"DEBUG: بيانات قاعدة البيانات المسترجعة: {res.data}")
+        # ------------------------------
+        
         if res.data:
             session['company_code'] = company_code
             return redirect(url_for('dashboard'))
