@@ -9,7 +9,6 @@ import requests
 import urllib.parse
 import base64
 from google import genai  # مكتبة Gemini
-from google.genai import types # استيراد الأنواع اللازمة للـ Config
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "fallback_dev_key")
@@ -192,38 +191,38 @@ def inventory_management():
         # 1. تجهيز البيانات الأساسية
         update_data = {"quantity": int(new_quantity)}
         
-        # 2. رفع الصورة لـ Buckets إذا وجدت (تم دمج منطق الرفع هنا)
+        # 2. رفع الصورة لـ Buckets إذا وجدت
         if file and file.filename != '':
+            # إنشاء مسار فريد للصورة داخل الـ Bucket (باسم products)
             filename = f"{company_code}/{int(time.time())}_{file.filename}"
+            
+            # رفع الملف إلى الـ Bucket
             supabase.storage.from_("products").upload(
                 path=filename,
                 file=file.read(),
                 file_options={"content-type": file.content_type}
             )
+            
+            # 3. الحصول على الرابط العام وإضافته للبيانات
             public_url = supabase.storage.from_("products").get_public_url(filename)
             update_data["product-images"] = public_url
         
-        # 3. تحديث الجدول في Supabase مع معالجة الأخطاء
+        # 4. تحديث الجدول في Supabase
         try:
             supabase.table('inventory').update(update_data).eq("id", product_id).eq("company_id_text", company_code).execute()
         except Exception as e:
-            print(f"DEBUG: خطأ في تحديث المخزون: {e}")
+            print(f"Error updating: {e}")
             
-    # جلب البيانات مع معالجة الأخطاء
-    try:
-        res = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
-        inventory_data = res.data or []
-    except Exception as e:
-        print(f"DEBUG: خطأ في جلب المخزون: {e}")
-        inventory_data = []
-        
-    return render_template('inventory_management.html', inventory=inventory_data)
+    # جلب المنتجات للعرض
+    res = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
+    return render_template('inventory_management.html', inventory=res.data or [])
 
 @app.route('/edit_product/<int:id>', methods=['GET', 'POST'])
 @login_required
 def edit_product(id):
     company_code = session.get('company_code')
     
+    # جلب المنتج الحالي
     res = supabase.table("inventory").select("*").eq("id", id).eq("company_id_text", company_code).execute()
     product = res.data[0] if res.data else None
     
@@ -231,6 +230,7 @@ def edit_product(id):
         return "المنتج غير موجود", 404
 
     if request.method == 'POST':
+        # منطق التحديث
         new_name = request.form.get('name')
         new_quantity = request.form.get('quantity')
         new_price = request.form.get('price')
@@ -291,21 +291,30 @@ def orders():
         chat_id = settings_info.get('telegram_chat_id')
         
         if token and chat_id:
+            # إرسال تنبيه طلبية جديدة
             msg = f"🛒 طلبية جديدة!\nالعميل: {customer_name}\nالمنتج: {product_name}\nالكمية: {requested_qty}"
             send_telegram_alert_by_token(token, chat_id, msg)
             
+            # 1. جلب بيانات المنتج الحالي من المخزون
             products_res = supabase.table("inventory").select("id, quantity").eq("name", product_name).eq("company_id_text", company_code).execute()
             
             if products_res.data:
                 product = products_res.data[0]
                 current_qty = product['quantity']
+                
+                # 2. حساب الكمية الجديدة (تأكد ألا تنزل عن صفر)
                 new_qty = max(0, current_qty - requested_qty)
+                
+                # 3. تحديث المخزون في قاعدة البيانات
                 supabase.table("inventory").update({"quantity": new_qty}).eq("id", product['id']).execute()
                 
+                # 4. إرسال التنبيهات بناءً على الكمية المتبقية
                 if new_qty == 0:
                     send_telegram_alert_by_token(token, chat_id, f"❌ تنبيه هام!\nالمنتج '{product_name}' قد نفذ تماماً من المخزون.")
                 elif new_qty <= 5:
                     send_telegram_alert_by_token(token, chat_id, f"⚠️ تنبيه مخزون!\nالمنتج '{product_name}' أوشك على النفاذ، المتبقي حالياً: {new_qty}")
+        else:
+            print("DEBUG: البيانات في قاعدة البيانات ناقصة (Token أو Chat ID غير موجود)")
             
         return redirect(url_for('orders'))
 
@@ -316,44 +325,26 @@ def orders():
 @login_required
 def stats():
     company_code = session.get('company_code')
-    
-    # قيم افتراضية لتفادي تعطل الصفحة
-    total_sales = 0
-    total_expenses = 0
-    total_orders = 0
-    daily, monthly, yearly = {}, {}, {}
-
     try:
-        # جلب الطلبات
         res_orders = supabase.table("orders").select("total_price, created_at").eq("company_code", company_code).execute()
         orders = res_orders.data or []
-        total_orders = len(orders)
-        
-        # جلب المصاريف
         res_expenses = supabase.table("expenses").select("amount, created_at").eq("company_code", company_code).execute()
         expenses = res_expenses.data or []
-        total_expenses = sum(float(e.get('amount') or 0) for e in expenses)
-
         daily_data, monthly_data, yearly_data = defaultdict(float), defaultdict(float), defaultdict(float)
         days_order = ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"]
         months_order = ["جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان", "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
-        
         for o in orders:
-            price = float(o.get('total_price') or 0)
-            total_sales += price
             if o.get('created_at'):
                 dt = datetime.fromisoformat(o['created_at'].replace('Z', '+00:00'))
+                price = float(o.get('total_price') or 0)
                 day_name = days_order[dt.weekday()] if dt.weekday() < 7 else "السبت"
                 daily_data[day_name] += price
                 monthly_data[months_order[dt.month - 1]] += price
                 yearly_data[str(dt.year)] += price
-        
-        daily, monthly, yearly = dict(daily_data), dict(monthly_data), dict(yearly_data)
-
+        return render_template('stats.html', total_sales=sum(float(o.get('total_price') or 0) for o in orders), total_expenses=sum(float(e.get('amount') or 0) for e in expenses), total_orders=len(orders), daily=dict(daily_data), monthly=dict(monthly_data), yearly=dict(yearly_data))
     except Exception as e:
-        print(f"DEBUG: خطأ في صفحة الإحصائيات: {e}")
-        
-    return render_template('stats.html', total_sales=total_sales, total_expenses=total_expenses, total_orders=total_orders, daily=daily, monthly=monthly, yearly=yearly)
+        print(f"Stats Error: {e}")
+        return render_template('stats.html', total_sales=0, total_expenses=0, total_orders=0, daily={}, monthly={}, yearly={})
 
 @app.route('/webhook_instagram', methods=['GET', 'POST'])
 def webhook_instagram():
@@ -367,20 +358,7 @@ def webhook_instagram():
         res = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("instagram_page_id", page_id).execute()
         if res.data:
             send_telegram_alert_by_token(res.data[0]['telegram_token'], res.data[0]['telegram_chat_id'], f"🔔 رسالة إنستقرام جديدة من العميل ({sender_id}):\n{msg}")
-            
-            my_system_instruction = """أنتِ مساعد مبيعات محترف يعمل لصالح "ChichiDeb". مهمتك هي مساعدة العملاء في إكمال طلباتهم.
-1. عندما يعبر العميل عن رغبته في الشراء، قومي بتلخيص الطلب والتأكد من تفاصيله.
-2. بمجرد تأكيد العميل، يجب أن تخرجي البيانات حصراً بتنسيق JSON، بدون أي مقدمات أو كلام إضافي، بالتنسيق التالي:
-{ "client_id": "...", "page_id": "...", "total_amount": 0, "items": [...], "customer_phone": "...", "shipping_address": "..." }"""
-
-            response = client.models.generate_content(
-                model='gemini-2.0-flash',
-                contents=msg,
-                config=types.GenerateContentConfig(
-                    system_instruction=my_system_instruction
-                )
-            )
-            
+            response = client.models.generate_content(model='gemini-2.0-flash', contents=msg)
             send_telegram_alert_by_token(res.data[0]['telegram_token'], res.data[0]['telegram_chat_id'], f"🤖 الرد المقترح من Gemini:\n{response.text}")
         return 'OK', 200
     except Exception as e:
