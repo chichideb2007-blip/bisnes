@@ -157,6 +157,7 @@ def orders():
         if token and chat_id:
             msg = f"🛒 طلبية جديدة!\nالعميل: {request.form.get('customer_name')}\nالمنتج: {product_name}"
             send_telegram_alert_by_token(token, chat_id, msg)
+            # تحديث المخزون
             inv = supabase.table("inventory").select("id, quantity").eq("name", product_name).eq("company_id_text", company_code).execute().data
             if inv:
                 new_qty = max(0, inv[0]['quantity'] - requested_qty)
@@ -178,7 +179,9 @@ def webhook_instagram():
         if res.data:
             s = res.data[0]
             send_telegram_alert_by_token(s['telegram_token'], s['telegram_chat_id'], f"🔔 رسالة من ({sender_id}):\n{msg}")
-            response = client.models.generate_content(model='gemini-2.0-flash', contents=msg)
+            # التفاعل عبر Gemini
+            my_system_instruction = "أنت مساعد مبيعات ذكي..." 
+            response = client.models.generate_content(model='gemini-2.0-flash', contents=msg, config=types.GenerateContentConfig(system_instruction=my_system_instruction))
             send_telegram_alert_by_token(s['telegram_token'], s['telegram_chat_id'], f"🤖 الرد: {response.text}")
         return 'OK', 200
     except Exception as e:
@@ -209,7 +212,7 @@ def finalize_order(product_id):
         # التحقق من الكمية
         if product['quantity'] <= 0: return "عذراً، المنتج قد نفذ."
 
-        # 3. حساب المجموع الكلي (سعر المنتج + سعر التوصيل المختار)
+        # 3. حساب المجموع الكلي (سعر المنتج + سعر التوصيل المختار من الفورم)
         shipping = float(request.form.get('shipping_cost', 0))
         total_price = float(product['price']) + shipping
         
@@ -232,7 +235,7 @@ def finalize_order(product_id):
         token = settings.get('telegram_token')
         chat_id = settings.get('telegram_chat_id')
         if token and chat_id:
-            msg = f"📦 طلبية جديدة!\nالمنتج: {product['name']}\nالزبون: {request.form.get('customer_name')}\nالمجموع: {total_price} دج"
+            msg = f"📦 طلبية جديدة عبر الموقع!\nالمنتج: {product['name']}\nالزبون: {request.form.get('customer_name')}\nالمجموع: {total_price}"
             send_telegram_alert_by_token(token, chat_id, msg)
             
         return "تم الطلب بنجاح!"
