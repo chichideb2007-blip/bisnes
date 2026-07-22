@@ -29,7 +29,6 @@ def send_telegram_alert_by_token(token, chat_id, message):
     except: return False
 
 def send_instagram_message(page_access_token, recipient_id, message_text):
-    # هذه الدالة ترسل الرد فعلياً إلى إنستغرام
     url = f"https://graph.facebook.com/v20.0/me/messages"
     params = {"access_token": page_access_token}
     data = {
@@ -136,7 +135,6 @@ def orders():
 @app.route('/webhook_instagram', methods=['GET', 'POST'])
 def webhook_instagram():
     if request.method == 'GET':
-        # تحقق من التوكن (غير هذا التوكن إلى ما وضعته في Meta Developer)
         if request.args.get('hub.verify_token') == "MY_VERIFY_TOKEN_SECRET":
             return request.args.get('hub.challenge')
         return 'Invalid token', 403
@@ -148,23 +146,16 @@ def webhook_instagram():
         sender_id = messaging['sender']['id']
         msg = messaging['message']['text']
 
-        # جلب إعدادات الشركة
         res = supabase.table("settings").select("*").eq("instagram_page_id", page_id).execute()
         if res.data:
             s = res.data[0]
-            
-            # 1. إعلام المدير عبر تليجرام بالرسالة الواردة
             send_telegram_alert_by_token(s['telegram_token'], s['telegram_chat_id'], f"🔔 رسالة من ({sender_id}):\n{msg}")
             
-            # 2. توليد الرد من Gemini
-            my_system_instruction = "أنت مساعد مبيعات ذكي..." 
-            response = client.models.generate_content(model='gemini-2.0-flash', contents=msg, config=types.GenerateContentConfig(system_instruction=my_system_instruction))
+            response = client.models.generate_content(model='gemini-2.0-flash', contents=msg)
             ai_reply = response.text
             
-            # 3. إرسال الرد للعميل عبر إنستغرام
             send_instagram_message(s['page_access_token'], sender_id, ai_reply)
             
-            # 4. إعلام المدير بالرد الذي تم إرساله
             send_telegram_alert_by_token(s['telegram_token'], s['telegram_chat_id'], f"🤖 الرد التلقائي: {ai_reply}")
 
         return 'OK', 200
@@ -200,7 +191,6 @@ def finalize_order(product_id):
         supabase.table("orders").insert(order_data).execute()
         supabase.table("inventory").update({"quantity": product['quantity'] - 1}).eq("id", product_id).execute()
         
-        # تنبيه بالتليجرام
         msg = f"طلب جديد: {product['name']} | المجموع: {total}"
         send_telegram_alert_by_token(company.get('telegram_token'), company.get('telegram_chat_id'), msg)
         
