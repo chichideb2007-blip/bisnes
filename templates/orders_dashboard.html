@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <title>إدارة الطلبات</title>
-    
     <style>
         body { background-color: #f8f9fa; }
         .content-card { background: white; border-radius: 15px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 30px; }
@@ -13,15 +12,10 @@
     </style>
 </head>
 <body>
-
-    <!-- شريط الأدوات العلوي -->
     <div class="container mt-3">
         <div class="d-flex justify-content-between align-items-center">
             <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">⬅️ لوحة التحكم</a>
-            
-            <!-- استدعاء ملف الترجمة الموحد -->
             {% include 'translate.html' %}
-            
             <a href="{{ url_for('logout') }}" class="btn btn-danger">🚪 خروج</a>
         </div>
     </div>
@@ -29,11 +23,9 @@
     <div class="container mt-4">
         <h2 class="mb-4 text-center fw-bold">📦 لوحة إدارة الطلبات</h2>
 
-        <!-- نموذج إضافة طلبية جديدة -->
         <div class="content-card">
-            <h4 class="mb-3">إضافة طلبية جديدة</h4>
-            <form action="/orders" method="POST" class="row g-3">
-                <!-- بقية حقول النموذج تبقى كما هي -->
+            <h4 class="mb-3">إضافة طلبية جديدة يدوياً</h4>
+            <form action="{{ url_for('orders') }}" method="POST" class="row g-3">
                 <div class="col-md-4"><input type="text" name="customer_name" class="form-control" placeholder="اسم الزبون" required></div>
                 <div class="col-md-4"><input type="text" name="customer_phone" class="form-control" placeholder="رقم الهاتف" required></div>
                 <div class="col-md-4"><input type="text" name="product_name" class="form-control" placeholder="اسم المنتج" required></div>
@@ -43,7 +35,6 @@
             </form>
         </div>
 
-        <!-- جدول الطلبات -->
         <div class="content-card">
             <div class="table-responsive">
                 <table class="table table-hover align-middle text-center">
@@ -77,6 +68,5 @@
             </div>
         </div>
     </div>
-
 </body>
 </html>
