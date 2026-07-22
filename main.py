@@ -197,7 +197,7 @@ def inventory_management():
         # 1. تجهيز البيانات الأساسية
         update_data = {"quantity": int(new_quantity)}
         
-        # 2. رفع الصورة لـ Buckets إذا وجدت (تم دمج منطق الرفع هنا)
+        # 2. رفع الصورة لـ Buckets إذا وجدت
         if file and file.filename != '':
             filename = f"{company_code}/{int(time.time())}_{file.filename}"
             supabase.storage.from_("products").upload(
@@ -214,7 +214,7 @@ def inventory_management():
         except Exception as e:
             print(f"DEBUG: خطأ في تحديث المخزون: {e}")
             
-    # جلب البيانات مع معالجة الأخطاء
+    # جلب البيانات
     try:
         res = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
         inventory_data = res.data or []
@@ -321,36 +321,31 @@ def orders():
 
 @app.route('/shop')
 def shop():
-    # جلب كل المنتجات من جدول products
     response = supabase.table("products").select("*").execute()
     products = response.data
     return render_template('shop.html', products=products)
 
 @app.route('/product/<int:product_id>')
 def product_details(product_id):
-    # جلب تفاصيل المنتج من سوبابيس
     response = supabase.table("products").select("*").eq("id", product_id).single().execute()
     product = response.data
     return render_template('product_view.html', product=product)
 
 @app.route('/submit-order', methods=['POST'])
 def submit_order():
-    # 1. استلام البيانات من النموذج
     data = request.form
     product_id = data.get('product_id')
     customer_name = data.get('customer_name')
     phone = data.get('phone')
     wilaya = data.get('wilaya')
-    delivery_type = data.get('delivery_type') # 'home' or 'office'
+    delivery_type = data.get('delivery_type') 
     
-    # 2. جلب سعر المنتج وسعر التوصيل
     product_res = supabase.table("products").select("price, name, company_id_text").eq("id", product_id).single().execute()
     product = product_res.data
     
     delivery_price = get_delivery_price(wilaya, delivery_type)
     total_price = product['price'] + delivery_price
 
-    # 3. حفظ الطلب في جدول orders
     order_data = {
         "customer_name": customer_name,
         "phone": phone,
@@ -360,11 +355,8 @@ def submit_order():
     }
     supabase.table("orders").insert(order_data).execute()
 
-    # 4. نقص الكمية من جدول inventory (أو products حسب تصميمك)
     supabase.rpc('decrement_stock', {'p_id': product_id, 'qty': 1}).execute()
 
-    # 5. إرسال تنبيه لتليجرام
-    # البحث عن معلومات التليجرام للشركة صاحبة المنتج
     settings_res = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", product['company_id_text']).execute()
     if settings_res.data:
         token = settings_res.data[0]['telegram_token']
@@ -376,13 +368,10 @@ def submit_order():
 
 @app.route('/order/<int:product_id>')
 def order_page(product_id):
-    # جلب بيانات المنتج من سوبابيس
     response = supabase.table("products").select("*").eq("id", product_id).single().execute()
     product = response.data
-    
     if not product:
         return "هذا المنتج غير موجود", 404
-        
     return render_template('order.html', product=product)
 
 @app.route('/stats')
@@ -438,7 +427,7 @@ def webhook_instagram():
             send_telegram_alert_by_token(res.data[0]['telegram_token'], res.data[0]['telegram_chat_id'], f"🔔 رسالة إنستقرام جديدة من العميل ({sender_id}):\n{msg}")
             
             my_system_instruction = """أنتِ مساعد مبيعات محترف يعمل لصالح "ChichiDeb". مهمته هي مساعدة العملاء في إكمال طلباتهم.
-1. عندما يعبر العميل عن رغبته في الشراء، قومي بتلخيص الطلب والتأكد من تفاصيله.
+1. عندما يعبر العميل عن رغبته في الشراء، قومي بتلخيص الطلب والتأكد من تفاصيل.
 2. بمجرد تأكيد العميل، يجب أن تخرجي البيانات حصراً بتنسيق JSON، بدون أي مقدمات أو كلام إضافي، بالتنسيق التالي:
 { "client_id": "...", "page_id": "...", "total_amount": 0, "items": [...], "customer_phone": "...", "shipping_address": "..." }"""
 
