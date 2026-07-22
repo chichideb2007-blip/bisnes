@@ -2,17 +2,27 @@
     <h1>مرحباً بكم في متجر {{ company_name }}</h1>
 
     <div class="products-grid">
-        {% for p in products %}
+        {% for product in products %}
             <div class="product-card">
-                <img src="{{ p['product-images'] }}" alt="{{ p.name }}" width="200">
-                <h3>{{ p.name }}</h3>
-                <p>السعر: {{ p.price }} دج</p>
-                <p>الكمية المتبقية: {{ p.quantity }}</p>
+                <!-- عرض الصورة -->
+                <!-- ملاحظة: تأكد أن المفتاح المستخدم هو نفسه في قاعدة بياناتك (product['product-images'] أو product.image_url) -->
+                <img src="{{ product['product-images'] }}" alt="{{ product.name }}" width="200">
+                
+                <!-- عرض الاسم -->
+                <h3>{{ product.name }}</h3>
+                
+                <!-- عرض السعر -->
+                <p>السعر: {{ product.price }} دج</p>
+                
+                <!-- عرض الكمية -->
+                <p>الكمية المتبقية: {{ product.quantity }}</p>
 
-                {% if p.quantity > 0 %}
-                    <!-- هذا الزر يفتح صفحة الطلب الخاصة بهذا المنتج -->
-                    <a href="/order/{{ p.id }}" class="btn-buy">شراء الآن</a>
+                <!-- منطق زر الشراء (شروط التوفر) -->
+                {% if product.quantity > 0 %}
+                    <!-- الرابط المحدث يوجه إلى صفحة checkout -->
+                    <a href="/checkout/{{ product.id }}" class="btn-buy">شراء الآن</a>
                 {% else %}
+                    <!-- الزر معطل في حال نفاذ الكمية -->
                     <button disabled class="btn-out">غير متوفر حالياً</button>
                 {% endif %}
             </div>
