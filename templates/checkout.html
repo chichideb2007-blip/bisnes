@@ -1,21 +1,32 @@
-<div class="checkout-container">
-    <form method="POST">
-        <h1>إتمام طلب: {{ product.name }}</h1>
-        
-        <img src="{{ product['product-images'] }}" alt="{{ product.name }}" width="200">
-        <p><strong>السعر:</strong> {{ product.price }} دج</p>
-        
-        <hr>
-        
-        <label>اسمك الكامل:</label>
-        <input type="text" name="customer_name" placeholder="أدخل اسمك الكامل" required>
-        
-        <label>رقم الهاتف:</label>
-        <input type="tel" name="customer_phone" placeholder="أدخل رقم الهاتف" required>
-        
-        <label>الولاية:</label>
-        <input type="text" name="state" placeholder="أدخل ولايتك" required>
-        
-        <button type="submit" class="btn-submit">تأكيد الشراء</button>
-    </form>
-</div>
+<form method="POST" id="orderForm">
+    <!-- حقول المنتج والبيانات الشخصية -->
+    ...
+    
+    <label>الولاية:</label>
+    <select name="state" id="state" onchange="updateMunicipalities()">
+        <!-- هنا نضع قائمة ولايات الجزائر الـ 58 (تصحيح: الجزائر فيها 58 ولاية) -->
+        <option value="1">أدرار</option>
+        <option value="2">الشلف</option>
+        <!-- ... باقي الولايات ... -->
+    </select>
+
+    <label>البلدية:</label>
+    <select name="municipality" id="municipality"></select>
+
+    <label>طريقة التوصيل:</label>
+    <select name="shipping_cost" id="shipping" onchange="calculateTotal()">
+        <option value="{{ settings.delivery_home_price }}">توصيل للمنزل ({{ settings.delivery_home_price }} دج)</option>
+        <option value="{{ settings.delivery_office_price }}">توصيل للمكتب ({{ settings.delivery_office_price }} دج)</option>
+    </select>
+
+    <h3>السعر الإجمالي: <span id="totalPrice">{{ product.price }}</span> دج</h3>
+    <button type="submit">تأكيد الشراء</button>
+</form>
+
+<script>
+function calculateTotal() {
+    let productPrice = {{ product.price }};
+    let shippingPrice = parseFloat(document.getElementById('shipping').value);
+    document.getElementById('totalPrice').innerText = productPrice + shippingPrice;
+}
+</script>
