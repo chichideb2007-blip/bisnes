@@ -157,6 +157,7 @@ def orders():
         if token and chat_id:
             msg = f"🛒 طلبية جديدة!\nالعميل: {request.form.get('customer_name')}\nالمنتج: {product_name}"
             send_telegram_alert_by_token(token, chat_id, msg)
+            # تحديث المخزون
             inv = supabase.table("inventory").select("id, quantity").eq("name", product_name).eq("company_id_text", company_code).execute().data
             if inv:
                 new_qty = max(0, inv[0]['quantity'] - requested_qty)
@@ -178,13 +179,14 @@ def webhook_instagram():
         if res.data:
             s = res.data[0]
             send_telegram_alert_by_token(s['telegram_token'], s['telegram_chat_id'], f"🔔 رسالة من ({sender_id}):\n{msg}")
-            response = client.models.generate_content(model='gemini-2.0-flash', contents=msg)
+            my_system_instruction = "أنت مساعد مبيعات..." # (إختصاراً للكود الأصلي)
+            response = client.models.generate_content(model='gemini-2.0-flash', contents=msg, config=types.GenerateContentConfig(system_instruction=my_system_instruction))
             send_telegram_alert_by_token(s['telegram_token'], s['telegram_chat_id'], f"🤖 الرد: {response.text}")
         return 'OK', 200
     except Exception as e:
         return 'Error', 500
 
-# --- المسارات الجديدة للمتجر العام ---
+# --- المسارات الجديدة للمتجر العام (Multi-tenant) ---
 
 @app.route('/shop/<company_code>')
 def shop_page(company_code):
@@ -195,49 +197,36 @@ def shop_page(company_code):
 
 @app.route('/order/<int:product_id>', methods=['GET', 'POST'])
 def finalize_order(product_id):
-    # 1. جلب بيانات المنتج
     res = supabase.table("inventory").select("*").eq("id", product_id).execute()
     if not res.data: return "المنتج غير موجود", 404
     product = res.data[0]
     company_code = product['company_id_text']
     
-    # 2. جلب أسعار التوصيل الخاصة بالشركة من الإعدادات
-    settings_res = supabase.table("settings").select("telegram_token, telegram_chat_id, delivery_home_price, delivery_office_price").eq("company_code", company_code).execute()
-    settings = settings_res.data[0] if settings_res.data else {"delivery_home_price": 0, "delivery_office_price": 0}
-    
-    if request.method == 'POST':
-        # التحقق من الكمية
-        if product['quantity'] <= 0: return "عذراً، المنتج قد نفذ."
+    settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute().data[0] if supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute().data else {}
 
-        # 3. حساب المجموع الكلي (سعر المنتج + سعر التوصيل المختار)
-        shipping = float(request.form.get('shipping_cost', 0))
-        total_price = float(product['price']) + shipping
+    if request.method == 'POST':
+        if product['quantity'] <= 0: return "عذراً، المنتج قد نفذ."
         
-        # 4. حفظ الطلب في قاعدة البيانات
         order_data = {
             "customer_name": request.form.get('customer_name'),
             "customer_phone": request.form.get('customer_phone'),
             "shipping_address": request.form.get('state'),
             "product_name": product['name'],
-            "total_price": total_price, # السعر الإجمالي
+            "total_price": product['price'],
             "company_code": company_code,
             "status": "قيد الانتظار"
         }
         supabase.table("orders").insert(order_data).execute()
-        
-        # 5. تنقيص المخزون
         supabase.table("inventory").update({"quantity": product['quantity'] - 1}).eq("id", product_id).execute()
         
-        # 6. التنبيه بالتليجرام
-        token = settings.get('telegram_token')
-        chat_id = settings.get('telegram_chat_id')
-        if token and chat_id:
-            msg = f"📦 طلبية جديدة!\nالمنتج: {product['name']}\nالزبون: {request.form.get('customer_name')}\nالمجموع: {total_price} دج"
-            send_telegram_alert_by_token(token, chat_id, msg)
+        # التنبيه بالتليجرام
+        if settings:
+            msg = f"📦 طلبية جديدة عبر الموقع!\nالمنتج: {product['name']}\nالزبون: {request.form.get('customer_name')}"
+            send_telegram_alert_by_token(settings.get('telegram_token'), settings.get('telegram_chat_id'), msg)
             
         return "تم الطلب بنجاح!"
     
-    return render_template('checkout.html', product=product, settings=settings)
+    return render_template('checkout.html', product=product)
 
 if __name__ == '__main__':
     refresh_instagram_token()
