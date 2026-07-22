@@ -1,0 +1,21 @@
+<div class="shop-container">
+    <h1>مرحباً بكم في متجر {{ company_name }}</h1>
+
+    <div class="products-grid">
+        {% for p in products %}
+            <div class="product-card">
+                <img src="{{ p['product-images'] }}" alt="{{ p.name }}" width="200">
+                <h3>{{ p.name }}</h3>
+                <p>السعر: {{ p.price }} دج</p>
+                <p>الكمية المتبقية: {{ p.quantity }}</p>
+
+                {% if p.quantity > 0 %}
+                    <!-- هذا الزر يفتح صفحة الطلب الخاصة بهذا المنتج -->
+                    <a href="/order/{{ p.id }}" class="btn-buy">شراء الآن</a>
+                {% else %}
+                    <button disabled class="btn-out">غير متوفر حالياً</button>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+</div>
