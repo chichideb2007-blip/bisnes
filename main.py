@@ -53,6 +53,11 @@ def send_telegram_alert_by_token(token, chat_id, message):
         print(f"DEBUG: خطأ في الاتصال بتليجرام: {e}")
         return False
 
+# دالة مساعدة لعمل `submit_order`
+def get_delivery_price(wilaya, delivery_type):
+    # TODO: هنا يجب كتابة منطق جلب سعر التوصيل الحقيقي من قاعدة البيانات
+    return 500  # سعر افتراضي
+
 def refresh_instagram_token():
     res = supabase.table("settings").select("company_code, instagram_token").execute()
     for row in res.data:
@@ -312,24 +317,88 @@ def orders():
     res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
     return render_template('orders_dashboard.html', orders=res.data or [], currency=currency)
 
+# --- مسارات الزبائن ---
+
+@app.route('/shop')
+def shop():
+    # جلب كل المنتجات من جدول products
+    response = supabase.table("products").select("*").execute()
+    products = response.data
+    return render_template('shop.html', products=products)
+
+@app.route('/product/<int:product_id>')
+def product_details(product_id):
+    # جلب تفاصيل المنتج من سوبابيس
+    response = supabase.table("products").select("*").eq("id", product_id).single().execute()
+    product = response.data
+    return render_template('product_view.html', product=product)
+
+@app.route('/submit-order', methods=['POST'])
+def submit_order():
+    # 1. استلام البيانات من النموذج
+    data = request.form
+    product_id = data.get('product_id')
+    customer_name = data.get('customer_name')
+    phone = data.get('phone')
+    wilaya = data.get('wilaya')
+    delivery_type = data.get('delivery_type') # 'home' or 'office'
+    
+    # 2. جلب سعر المنتج وسعر التوصيل
+    product_res = supabase.table("products").select("price, name, company_id_text").eq("id", product_id).single().execute()
+    product = product_res.data
+    
+    delivery_price = get_delivery_price(wilaya, delivery_type)
+    total_price = product['price'] + delivery_price
+
+    # 3. حفظ الطلب في جدول orders
+    order_data = {
+        "customer_name": customer_name,
+        "phone": phone,
+        "product_name": product['name'],
+        "total_price": total_price,
+        "status": "pending"
+    }
+    supabase.table("orders").insert(order_data).execute()
+
+    # 4. نقص الكمية من جدول inventory (أو products حسب تصميمك)
+    supabase.rpc('decrement_stock', {'p_id': product_id, 'qty': 1}).execute()
+
+    # 5. إرسال تنبيه لتليجرام
+    # البحث عن معلومات التليجرام للشركة صاحبة المنتج
+    settings_res = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", product['company_id_text']).execute()
+    if settings_res.data:
+        token = settings_res.data[0]['telegram_token']
+        chat_id = settings_res.data[0]['telegram_chat_id']
+        message = f"طلب جديد! 📦\nالمنتج: {product['name']}\nالزبون: {customer_name}\nالهاتف: {phone}\nالمجموع: {total_price} دج"
+        send_telegram_alert_by_token(token, chat_id, message)
+
+    return "تم تسجيل طلبك بنجاح!"
+
+@app.route('/order/<int:product_id>')
+def order_page(product_id):
+    # جلب بيانات المنتج من سوبابيس
+    response = supabase.table("products").select("*").eq("id", product_id).single().execute()
+    product = response.data
+    
+    if not product:
+        return "هذا المنتج غير موجود", 404
+        
+    return render_template('order.html', product=product)
+
 @app.route('/stats')
 @login_required
 def stats():
     company_code = session.get('company_code')
-    
-    # قيم افتراضية لتفادي تعطل الصفحة
     total_sales = 0
     total_expenses = 0
     total_orders = 0
     daily, monthly, yearly = {}, {}, {}
 
     try:
-        # جلب الطلبات
         res_orders = supabase.table("orders").select("total_price, created_at").eq("company_code", company_code).execute()
         orders = res_orders.data or []
         total_orders = len(orders)
         
-        # جلب المصاريف
         res_expenses = supabase.table("expenses").select("amount, created_at").eq("company_code", company_code).execute()
         expenses = res_expenses.data or []
         total_expenses = sum(float(e.get('amount') or 0) for e in expenses)
@@ -368,7 +437,7 @@ def webhook_instagram():
         if res.data:
             send_telegram_alert_by_token(res.data[0]['telegram_token'], res.data[0]['telegram_chat_id'], f"🔔 رسالة إنستقرام جديدة من العميل ({sender_id}):\n{msg}")
             
-            my_system_instruction = """أنتِ مساعد مبيعات محترف يعمل لصالح "ChichiDeb". مهمتك هي مساعدة العملاء في إكمال طلباتهم.
+            my_system_instruction = """أنتِ مساعد مبيعات محترف يعمل لصالح "ChichiDeb". مهمته هي مساعدة العملاء في إكمال طلباتهم.
 1. عندما يعبر العميل عن رغبته في الشراء، قومي بتلخيص الطلب والتأكد من تفاصيله.
 2. بمجرد تأكيد العميل، يجب أن تخرجي البيانات حصراً بتنسيق JSON، بدون أي مقدمات أو كلام إضافي، بالتنسيق التالي:
 { "client_id": "...", "page_id": "...", "total_amount": 0, "items": [...], "customer_phone": "...", "shipping_address": "..." }"""
