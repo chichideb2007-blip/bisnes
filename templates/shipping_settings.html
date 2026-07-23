@@ -1,0 +1,25 @@
+<form action="/shipping_settings" method="POST">
+    <table>
+        <thead>
+            <tr>
+                <th>الولاية</th>
+                <th>سعر المكتب</th>
+                <th>سعر المنزل</th>
+                <th>إجراء</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for rate in rates %}
+            <tr>
+                <td>{{ rate.wilaya }}</td>
+                <td><input type="number" name="office_price" value="{{ rate.office_price }}"></td>
+                <td><input type="number" name="home_price" value="{{ rate.home_price }}"></td>
+                <td>
+                    <input type="hidden" name="id" value="{{ rate.id }}">
+                    <button type="submit">حفظ</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</form>
