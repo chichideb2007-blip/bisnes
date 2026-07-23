@@ -473,7 +473,14 @@ def webhook_instagram():
 2. بمجرد تأكيد العميل، يجب أن تخرجي البيانات حصراً بتنسيق JSON، بدون أي مقدمات أو كلام إضافي، بالتنسيق التالي:
 { "client_id": "...", "page_id": "...", "total_amount": 0, "items": [...], "customer_phone": "...", "shipping_address": "..." }"""
 
-      return "تم إرسال الرسالة للنموذج بنجاح"
+response = client.models.generate_content(
+                model='gemini-1.5-flash',
+                contents=msg,
+                config=types.GenerateContentConfig(
+                    system_instruction=my_system_instruction
+                )
+            )
+            return "تم إرسال الرسالة للنموذج بنجاح"
         
     except Exception as e:
         print(f"DEBUG: خطأ في معالجة رسالة إنستقرام: {e}")
