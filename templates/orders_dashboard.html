@@ -25,13 +25,25 @@
 
         <div class="content-card">
             <h4 class="mb-3">إضافة طلبية جديدة يدوياً</h4>
+            <!-- تم دمج الحقول الجديدة داخل الفورم -->
             <form action="{{ url_for('orders') }}" method="POST" class="row g-3">
                 <div class="col-md-4"><input type="text" name="customer_name" class="form-control" placeholder="اسم الزبون" required></div>
                 <div class="col-md-4"><input type="text" name="customer_phone" class="form-control" placeholder="رقم الهاتف" required></div>
                 <div class="col-md-4"><input type="text" name="product_name" class="form-control" placeholder="اسم المنتج" required></div>
                 <div class="col-md-4"><input type="number" step="0.01" name="price" class="form-control" placeholder="السعر ({{ currency }})" required></div>
                 <div class="col-md-4"><input type="number" name="quantity" class="form-control" placeholder="الكمية" required></div>
-                <div class="col-md-4"><button type="submit" class="btn btn-success w-100">حفظ الطلبية</button></div>
+                
+                <!-- الحقول الجديدة -->
+                <div class="col-md-4"><input type="text" id="state" name="state" class="form-control" placeholder="الولاية" required></div>
+                <div class="col-md-4">
+                    <select id="delivery_type" name="delivery_type" class="form-select" required>
+                        <option value="مكتب">توصيل للمكتب</option>
+                        <option value="منزل">توصيل للمنزل</option>
+                    </select>
+                </div>
+                <div class="col-md-4"><input type="number" step="0.01" id="delivery_price" name="delivery_price" class="form-control" placeholder="سعر التوصيل" required></div>
+                
+                <div class="col-md-12"><button type="submit" class="btn btn-success w-100">حفظ الطلبية</button></div>
             </form>
         </div>
 
@@ -43,6 +55,7 @@
                             <th>رقم الطلب</th>
                             <th>الزبون / الهاتف</th>
                             <th>المنتج / الكمية</th>
+                            <th>معلومات التوصيل</th> <!-- عمود جديد -->
                             <th>الإجمالي</th>
                             <th>الحالة</th>
                             <th>الإجراءات</th>
@@ -54,6 +67,8 @@
                             <td>#{{ order.id }}</td>
                             <td>{{ order.customer_name }}<br><small class="text-muted">{{ order.customer_phone }}</small></td>
                             <td>{{ order.product_name }}<br><small class="text-muted">الكمية: {{ order.quantity }}</small></td>
+                            <!-- عرض معلومات التوصيل الجديدة -->
+                            <td>{{ order.state }}<br><small class="text-muted">{{ order.delivery_type }} ({{ order.delivery_price }} {{ currency }})</small></td>
                             <td>{{ order.total_price }} {{ currency }}</td>
                             <td><span class="badge {% if order.status == 'تم التوصيل' %}bg-success{% else %}bg-warning{% endif %}">{{ order.status }}</span></td>
                             <td>
