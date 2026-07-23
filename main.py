@@ -89,11 +89,9 @@ def login():
     if request.method == 'POST':
         company_code = request.form.get('company_code')
         
-        # --- إضافة أسطر التصحيح هذه ---
         print(f"DEBUG: الكود الذي تم إدخاله هو: {company_code}")
         res = supabase.table("settings").select("company_code").eq("company_code", company_code).execute()
         print(f"DEBUG: بيانات قاعدة البيانات المسترجعة: {res.data}")
-        # ------------------------------
         
         if res.data:
             session['company_code'] = company_code
@@ -108,13 +106,11 @@ def signup():
         company_code = request.form.get('company_code')
         company_name = request.form.get('company_name')
         
-        # تحقق من وجود الكود مسبقاً
         res = supabase.table("settings").select("company_code").eq("company_code", company_code).execute()
         if res.data:
             return "هذا الكود مستخدم بالفعل، يرجى اختيار كود آخر!", 400
             
         try:
-            # محاولة الإضافة
             response = supabase.table("settings").insert({
                 "company_code": company_code, 
                 "company_name": company_name
@@ -175,7 +171,6 @@ def settings():
 @login_required
 def shipping_settings():
     if request.method == 'POST':
-        # استقبال بيانات التعديل
         wilaya_id = request.form.get('id')
         office_price = request.form.get('office_price')
         home_price = request.form.get('home_price')
@@ -187,7 +182,6 @@ def shipping_settings():
         
         return redirect(url_for('shipping_settings'))
 
-    # جلب قائمة الولايات للتحكم بها
     res = supabase.table("shipping_rates").select("*").order("id").execute()
     return render_template('shipping_settings.html', rates=res.data)
 
@@ -230,10 +224,8 @@ def inventory_management():
         new_quantity = request.form.get('quantity')
         file = request.files.get('product_image')
         
-        # 1. تجهيز البيانات الأساسية
         update_data = {"quantity": int(new_quantity)}
         
-        # 2. رفع الصورة لـ Buckets إذا وجدت
         if file and file.filename != '':
             filename = f"{company_code}/{int(time.time())}_{file.filename}"
             supabase.storage.from_("products").upload(
@@ -244,13 +236,11 @@ def inventory_management():
             public_url = supabase.storage.from_("products").get_public_url(filename)
             update_data["product-images"] = public_url
         
-        # 3. تحديث الجدول في Supabase مع معالجة الأخطاء
         try:
             supabase.table('inventory').update(update_data).eq("id", product_id).eq("company_id_text", company_code).execute()
         except Exception as e:
             print(f"DEBUG: خطأ في تحديث المخزون: {e}")
             
-    # جلب البيانات
     try:
         res = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
         inventory_data = res.data or []
@@ -369,7 +359,6 @@ def product_details(product_id):
 
 @app.route('/submit-order', methods=['POST'])
 def submit_order():
-    # هنا يتم استقبال بيانات الزبون
     data = request.form
     customer_name = data.get('customer_name')
     phone = data.get('phone')
@@ -377,15 +366,12 @@ def submit_order():
     wilaya = data.get('wilaya')
     delivery_type = data.get('delivery_type')
     
-    # جلب معلومات المنتج (تم تغيير الجدول من products إلى inventory)
     product_res = supabase.table("inventory").select("price, name, company_id_text").eq("id", product_id).single().execute()
     product = product_res.data
     
-    # حساب السعر
     delivery_price = get_delivery_price(wilaya, delivery_type)
     total_price = product['price'] + delivery_price
     
-    # 1. إرسال الطلب لـ Supabase في جدول orders
     order_data = {
         "customer_name": customer_name,
         "phone": phone,
@@ -396,10 +382,8 @@ def submit_order():
     }
     supabase.table("orders").insert(order_data).execute()
     
-    # 2. نقص الكمية من جدول inventory (Update)
     supabase.rpc('decrement_stock', {'p_id': int(product_id), 'qty': 1}).execute()
     
-    # 3. إرسال إشعار تليجرام للمدير
     settings_res = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", product['company_id_text']).execute()
     if settings_res.data:
         token = settings_res.data[0]['telegram_token']
@@ -475,4 +459,17 @@ def webhook_instagram():
 { "client_id": "...", "page_id": "...", "total_amount": 0, "items": [...], "customer_phone": "...", "shipping_address": "..." }"""
 
             response = client.models.generate_content(
-   
+                model='gemini-1.5-flash',
+                contents=msg,
+                config=types.GenerateContentConfig(
+                    system_instruction=my_system_instruction
+                )
+            )
+            return "تم إرسال الرسالة للنموذج بنجاح"
+        
+    except Exception as e:
+        print(f"DEBUG: خطأ في معالجة رسالة إنستقرام: {e}")
+        return "خطأ في المعالجة", 500
+
+if __name__ == '__main__':
+    app.run(debug=True)
