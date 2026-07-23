@@ -171,6 +171,26 @@ def settings():
     settings_data = res.data[0] if res.data else {}
     return render_template('settings.html', settings=settings_data, currencies=currencies)
 
+@app.route('/shipping_settings', methods=['GET', 'POST'])
+@login_required
+def shipping_settings():
+    if request.method == 'POST':
+        # استقبال بيانات التعديل
+        wilaya_id = request.form.get('id')
+        office_price = request.form.get('office_price')
+        home_price = request.form.get('home_price')
+        
+        supabase.table("shipping_rates").update({
+            "office_price": float(office_price),
+            "home_price": float(home_price)
+        }).eq("id", wilaya_id).execute()
+        
+        return redirect(url_for('shipping_settings'))
+
+    # جلب قائمة الولايات للتحكم بها
+    res = supabase.table("shipping_rates").select("*").order("id").execute()
+    return render_template('shipping_settings.html', rates=res.data)
+
 @app.route('/products', methods=['GET', 'POST'])
 @login_required
 def products():
@@ -349,26 +369,45 @@ def product_details(product_id):
 
 @app.route('/submit-order', methods=['POST'])
 def submit_order():
+    # هنا يتم استقبال بيانات الزبون
     data = request.form
+    customer_name = data.get('customer_name')
+    phone = data.get('phone')
     product_id = data.get('product_id')
-    product = supabase.table("inventory").select("*").eq("id", product_id).single().execute().data
+    wilaya = data.get('wilaya')
+    delivery_type = data.get('delivery_type')
+    
+    # جلب معلومات المنتج (تم تغيير الجدول من products إلى inventory)
+    product_res = supabase.table("inventory").select("price, name, company_id_text").eq("id", product_id).single().execute()
+    product = product_res.data
     
     # حساب السعر
-    delivery_fee = 600 if data.get('delivery_type') == 'home' else 300
-    total = float(product['price']) + delivery_fee
+    delivery_price = get_delivery_price(wilaya, delivery_type)
+    total_price = product['price'] + delivery_price
     
+    # 1. إرسال الطلب لـ Supabase في جدول orders
     order_data = {
-        "customer_name": f"{data.get('first_name')} {data.get('last_name')}",
-        "customer_phone": data.get('phone'),
-        "wilaya": data.get('wilaya'),
-        "commune": data.get('commune'),
+        "customer_name": customer_name,
+        "phone": phone,
         "product_name": product['name'],
-        "total_price": total,
+        "total_price": total_price,
         "status": "pending",
         "company_code": product['company_id_text']
     }
     supabase.table("orders").insert(order_data).execute()
-    return "تم تأكيد طلبك بنجاح!"
+    
+    # 2. نقص الكمية من جدول inventory (Update)
+    supabase.rpc('decrement_stock', {'p_id': int(product_id), 'qty': 1}).execute()
+    
+    # 3. إرسال إشعار تليجرام للمدير
+    settings_res = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", product['company_id_text']).execute()
+    if settings_res.data:
+        token = settings_res.data[0]['telegram_token']
+        chat_id = settings_res.data[0]['telegram_chat_id']
+        message = f"طلب جديد! 📦\nالمنتج: {product['name']}\nالزبون: {customer_name}\nالهاتف: {phone}\nالمجموع: {total_price} دج"
+        send_telegram_alert_by_token(token, chat_id, message)
+    
+    return "تم استلام طلبك بنجاح! سنتصل بك قريباً."
 
 @app.route('/order/<int:product_id>')
 def order_page(product_id):
@@ -436,20 +475,4 @@ def webhook_instagram():
 { "client_id": "...", "page_id": "...", "total_amount": 0, "items": [...], "customer_phone": "...", "shipping_address": "..." }"""
 
             response = client.models.generate_content(
-                model='gemini-2.0-flash',
-                contents=msg,
-                config=types.GenerateContentConfig(
-                    system_instruction=my_system_instruction
-                )
-            )
-            
-            send_telegram_alert_by_token(res.data[0]['telegram_token'], res.data[0]['telegram_chat_id'], f"🤖 الرد المقترح من Gemini:\n{response.text}")
-        return 'OK', 200
-    except Exception as e:
-        print(f"Webhook Error: {e}")
-        return 'Error', 500
-
-if __name__ == '__main__':
-    refresh_instagram_token()
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
+   
