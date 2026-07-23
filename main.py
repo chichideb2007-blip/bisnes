@@ -35,19 +35,17 @@ def inject_currency():
 
 def send_telegram_alert_by_token(token, chat_id, message):
     if not token or not chat_id:
-        print("DEBUG: فشل إرسال التنبيه - التوكن أو Chat ID فارغ")
         return False
     try:
         url = f"https://api.telegram.org/bot{token}/sendMessage"
         params = {"chat_id": chat_id, "text": message}
         response = requests.get(url, params=params)
         return response.status_code == 200
-    except Exception as e:
-        print(f"DEBUG: خطأ في الاتصال بتليجرام: {e}")
+    except:
         return False
 
 def get_delivery_price(wilaya, delivery_type):
-    return 500
+    return 500  # سعر افتراضي
 
 def refresh_instagram_token():
     res = supabase.table("settings").select("company_code, instagram_token").execute()
@@ -60,8 +58,7 @@ def refresh_instagram_token():
                 new_token = response.get('access_token')
                 if new_token:
                     supabase.table("settings").update({"instagram_token": new_token}).eq("company_code", row['company_code']).execute()
-            except Exception as e:
-                print(f"Token Refresh Error: {e}")
+            except: pass
 
 def login_required(f):
     @wraps(f)
@@ -85,7 +82,7 @@ def login():
             session['company_code'] = company_code
             return redirect(url_for('dashboard'))
         else:
-            return "كود الشركة غير صحيح، يرجى التأكد منه أو إنشاء حساب جديد.", 401
+            return "كود الشركة غير صحيح", 401
     return render_template('login.html')
 
 @app.route('/signup', methods=['GET', 'POST'])
@@ -94,12 +91,9 @@ def signup():
         company_code = request.form.get('company_code')
         company_name = request.form.get('company_name')
         res = supabase.table("settings").select("company_code").eq("company_code", company_code).execute()
-        if res.data: return "هذا الكود مستخدم بالفعل، يرجى اختيار كود آخر!", 400
-        try:
-            supabase.table("settings").insert({"company_code": company_code, "company_name": company_name}).execute()
-            return "تم إنشاء الحساب بنجاح!"
-        except Exception as e:
-            return f"حدث خطأ: {e}", 500
+        if res.data: return "هذا الكود مستخدم بالفعل", 400
+        supabase.table("settings").insert({"company_code": company_code, "company_name": company_name}).execute()
+        return "تم إنشاء الحساب بنجاح!"
     return render_template('signup.html')
 
 @app.route('/logout')
@@ -127,7 +121,9 @@ def settings():
         supabase.table("settings").update(data).eq("company_code", company_code).execute()
         return redirect(url_for('settings'))
     res = supabase.table("settings").select("*").eq("company_code", company_code).execute()
-    return render_template('settings.html', settings=res.data[0] if res.data else {}, currencies=[])
+    return render_template('settings.html', settings=res.data[0] if res.data else {})
+
+# --- إدارة المخزون ---
 
 @app.route('/products', methods=['GET', 'POST'])
 @login_required
@@ -135,7 +131,7 @@ def products():
     company_code = session.get('company_code')
     if request.method == 'POST':
         file = request.files.get('product_image')
-        encoded_string = f'data:image/jpeg;base64,{base64.b64encode(file.read()).decode("utf-8")}' if file and file.filename != '' else ""
+        encoded_string = f'data:image/jpeg;base64,{base64.b64encode(file.read()).decode("utf-8")}' if file else ""
         data = {
             'name': request.form.get('name'),
             'quantity': int(request.form.get('quantity', 0)),
@@ -154,40 +150,10 @@ def inventory_management():
     company_code = session.get('company_code')
     if request.method == 'POST':
         product_id = request.form.get('product_id')
-        new_quantity = request.form.get('quantity')
-        file = request.files.get('product_image')
-        update_data = {"quantity": int(new_quantity)}
-        if file and file.filename != '':
-            filename = f"{company_code}/{int(time.time())}_{file.filename}"
-            supabase.storage.from_("products").upload(path=filename, file=file.read(), file_options={"content-type": file.content_type})
-            update_data["product-images"] = supabase.storage.from_("products").get_public_url(filename)
-        supabase.table('inventory').update(update_data).eq("id", product_id).eq("company_id_text", company_code).execute()
+        new_quantity = int(request.form.get('quantity'))
+        supabase.table('inventory').update({"quantity": new_quantity}).eq("id", product_id).eq("company_id_text", company_code).execute()
     res = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
     return render_template('inventory_management.html', inventory=res.data or [])
-
-@app.route('/edit_product/<int:id>', methods=['GET', 'POST'])
-@login_required
-def edit_product(id):
-    company_code = session.get('company_code')
-    res = supabase.table("inventory").select("*").eq("id", id).eq("company_id_text", company_code).execute()
-    product = res.data[0] if res.data else None
-    if not product: return "المنتج غير موجود", 404
-    if request.method == 'POST':
-        supabase.table("inventory").update({"name": request.form.get('name'), "quantity": int(request.form.get('quantity')), "price": float(request.form.get('price'))}).eq("id", id).execute()
-        return redirect(url_for('products'))
-    return render_template('edit_product.html', product=product)
-
-@app.route('/delete_product/<int:id>', methods=['POST'])
-@login_required
-def delete_product(id):
-    supabase.table("inventory").delete().eq("id", id).execute()
-    return redirect(url_for('products'))
-
-@app.route('/delete_order/<int:id>', methods=['POST'])
-@login_required
-def delete_order(id):
-    supabase.table("orders").delete().eq("id", id).execute()
-    return redirect(url_for('orders'))
 
 @app.route('/orders', methods=['GET', 'POST'])
 @login_required
@@ -195,6 +161,7 @@ def orders():
     company_code = session.get('company_code')
     res_settings = supabase.table("settings").select("*").eq("company_code", company_code).execute()
     settings_info = res_settings.data[0] if res_settings.data else {}
+    
     if request.method == 'POST':
         data = {
             "customer_name": request.form.get('customer_name'),
@@ -207,10 +174,11 @@ def orders():
         }
         supabase.table("orders").insert(data).execute()
         return redirect(url_for('orders'))
+
     res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
     return render_template('orders_dashboard.html', orders=res.data or [], currency=settings_info.get('currency', ''))
 
-# --- مسارات الزبائن (محدثة للمتجر) ---
+# --- مسارات الزبائن (تم التعديل لتستخدم جدول inventory) ---
 
 @app.route('/shop')
 def shop():
@@ -220,33 +188,52 @@ def shop():
     except Exception as e:
         return f"خطأ: {str(e)}", 500
 
+@app.route('/product/<int:product_id>')
+def product_details(product_id):
+    response = supabase.table("inventory").select("*").eq("id", product_id).single().execute()
+    return render_template('product_view.html', product=response.data)
+
+@app.route('/order/<int:product_id>')
+def order_page(product_id):
+    response = supabase.table("inventory").select("*").eq("id", product_id).single().execute()
+    if not response.data: return "المنتج غير موجود", 404
+    return render_template('order.html', product=response.data)
+
 @app.route('/submit-order', methods=['POST'])
 def submit_order():
     data = request.form
     product_id = data.get('product_id')
+    
+    # جلب المنتج من المخزون
     product_res = supabase.table("inventory").select("*").eq("id", product_id).single().execute()
     product = product_res.data
     if not product: return "المنتج غير موجود", 404
     
-    total_price = float(product['price'])
+    # حساب السعر وإضافة الطلب
+    total_price = float(product['price']) + get_delivery_price(data.get('wilaya'), data.get('delivery_type'))
+    
     order_data = {
         "customer_name": data.get('customer_name'),
         "customer_phone": data.get('phone'),
         "product_name": product['name'],
         "total_price": total_price,
-        "status": "قيد الانتظار",
+        "status": "pending",
         "company_code": product['company_id_text']
     }
     supabase.table("orders").insert(order_data).execute()
+    
+    # نقص الكمية
+    supabase.rpc('decrement_stock', {'p_id': int(product_id), 'qty': 1}).execute()
     
     # تنبيه المدير
     settings_res = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", product['company_id_text']).execute()
     if settings_res.data:
         t = settings_res.data[0]
-        send_telegram_alert_by_token(t.get('telegram_token'), t.get('telegram_chat_id'), f"📦 طلب جديد من {data.get('customer_name')}: {product['name']}")
-    
-    return "تم تأكيد طلبك بنجاح! شكراً لك."
+        send_telegram_alert_by_token(t.get('telegram_token'), t.get('telegram_chat_id'), f"📦 طلب جديد!\nالمنتج: {product['name']}\nالزبون: {data.get('customer_name')}")
+            
+    return "تم استلام طلبك بنجاح!"
 
+# --- مسارات إضافية ---
 @app.route('/stats')
 @login_required
 def stats():
@@ -254,20 +241,8 @@ def stats():
 
 @app.route('/webhook_instagram', methods=['GET', 'POST'])
 def webhook_instagram():
-    if request.method == 'GET': return request.args.get('hub.challenge')
-    data = request.json
-    try:
-        page_id = data['entry'][0]['id']
-        messaging = data['entry'][0]['messaging'][0]
-        msg = messaging['message']['text']
-        res = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("instagram_page_id", page_id).execute()
-        if res.data:
-            t = res.data[0]
-            send_telegram_alert_by_token(t['telegram_token'], t['telegram_chat_id'], f"رسالة إنستقرام: {msg}")
-        return 'OK', 200
-    except: return 'Error', 500
+    return 'OK', 200
 
 if __name__ == '__main__':
-    refresh_instagram_token()
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
