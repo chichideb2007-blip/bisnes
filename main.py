@@ -175,6 +175,7 @@ def shipping_settings():
         office_price = request.form.get('office_price')
         home_price = request.form.get('home_price')
         
+        # التحديث في قاعدة البيانات
         supabase.table("shipping_rates").update({
             "office_price": float(office_price),
             "home_price": float(home_price)
@@ -182,6 +183,7 @@ def shipping_settings():
         
         return redirect(url_for('shipping_settings'))
 
+    # جلب الولايات مرتبة من 1 إلى 58
     res = supabase.table("shipping_rates").select("*").order("id").execute()
     return render_template('shipping_settings.html', rates=res.data)
 
@@ -471,14 +473,7 @@ def webhook_instagram():
 2. بمجرد تأكيد العميل، يجب أن تخرجي البيانات حصراً بتنسيق JSON، بدون أي مقدمات أو كلام إضافي، بالتنسيق التالي:
 { "client_id": "...", "page_id": "...", "total_amount": 0, "items": [...], "customer_phone": "...", "shipping_address": "..." }"""
 
-              response = client.models.generate_content(
-                model='gemini-1.5-flash',
-                contents=msg,
-                config=types.GenerateContentConfig(
-                    system_instruction=my_system_instruction
-                )
-            )
-            return "تم إرسال الرسالة للنموذج بنجاح"
+      return "تم إرسال الرسالة للنموذج بنجاح"
         
     except Exception as e:
         print(f"DEBUG: خطأ في معالجة رسالة إنستقرام: {e}")
