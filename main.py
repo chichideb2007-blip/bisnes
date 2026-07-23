@@ -337,63 +337,41 @@ def orders():
 
 @app.route('/shop')
 def shop():
-    # تم تغيير الجدول من products إلى inventory
     response = supabase.table("inventory").select("*").execute()
     products = response.data
     return render_template('shop.html', products=products)
 
 @app.route('/product/<int:product_id>')
 def product_details(product_id):
-    # تم تغيير الجدول من products إلى inventory
     response = supabase.table("inventory").select("*").eq("id", product_id).single().execute()
     product = response.data
     return render_template('product_view.html', product=product)
 
 @app.route('/submit-order', methods=['POST'])
 def submit_order():
-    # هنا يتم استقبال بيانات الزبون
     data = request.form
-    customer_name = data.get('customer_name')
-    phone = data.get('phone')
     product_id = data.get('product_id')
-    wilaya = data.get('wilaya')
-    delivery_type = data.get('delivery_type')
-    
-    # جلب معلومات المنتج (تم تغيير الجدول من products إلى inventory)
-    product_res = supabase.table("inventory").select("price, name, company_id_text").eq("id", product_id).single().execute()
-    product = product_res.data
+    product = supabase.table("inventory").select("*").eq("id", product_id).single().execute().data
     
     # حساب السعر
-    delivery_price = get_delivery_price(wilaya, delivery_type)
-    total_price = product['price'] + delivery_price
+    delivery_fee = 600 if data.get('delivery_type') == 'home' else 300
+    total = float(product['price']) + delivery_fee
     
-    # 1. إرسال الطلب لـ Supabase في جدول orders
     order_data = {
-        "customer_name": customer_name,
-        "phone": phone,
+        "customer_name": f"{data.get('first_name')} {data.get('last_name')}",
+        "customer_phone": data.get('phone'),
+        "wilaya": data.get('wilaya'),
+        "commune": data.get('commune'),
         "product_name": product['name'],
-        "total_price": total_price,
+        "total_price": total,
         "status": "pending",
         "company_code": product['company_id_text']
     }
     supabase.table("orders").insert(order_data).execute()
-    
-    # 2. نقص الكمية من جدول inventory (Update)
-    supabase.rpc('decrement_stock', {'p_id': int(product_id), 'qty': 1}).execute()
-    
-    # 3. إرسال إشعار تليجرام للمدير
-    settings_res = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", product['company_id_text']).execute()
-    if settings_res.data:
-        token = settings_res.data[0]['telegram_token']
-        chat_id = settings_res.data[0]['telegram_chat_id']
-        message = f"طلب جديد! 📦\nالمنتج: {product['name']}\nالزبون: {customer_name}\nالهاتف: {phone}\nالمجموع: {total_price} دج"
-        send_telegram_alert_by_token(token, chat_id, message)
-    
-    return "تم استلام طلبك بنجاح! سنتصل بك قريباً."
+    return "تم تأكيد طلبك بنجاح!"
 
 @app.route('/order/<int:product_id>')
 def order_page(product_id):
-    # تم تغيير الجدول من products إلى inventory
     response = supabase.table("inventory").select("*").eq("id", product_id).single().execute()
     product = response.data
     if not product:
@@ -474,4 +452,4 @@ def webhook_instagram():
 if __name__ == '__main__':
     refresh_instagram_token()
     port = int(os.environ.get("PORT", 5000))
-    app.run(
+    app.run(host='0.0.0.0', port=port)
