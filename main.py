@@ -457,34 +457,25 @@ def stats():
 
 @app.route('/webhook_instagram', methods=['GET', 'POST'])
 def webhook_instagram():
-    if request.method == 'GET': return request.args.get('hub.challenge')
+    if request.method == 'GET': 
+        return request.args.get('hub.challenge')
+    
     data = request.json
     try:
+        # استخراج البيانات من رسالة إنستقرام
         page_id = data['entry'][0]['id']
         messaging = data['entry'][0]['messaging'][0]
         msg = messaging['message']['text']
         sender_id = messaging['sender']['id']
+        
+        # جلب إعدادات البوت
         res = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("instagram_page_id", page_id).execute()
+        
         if res.data:
+            # إرسال التنبيه لتليجرام
             send_telegram_alert_by_token(res.data[0]['telegram_token'], res.data[0]['telegram_chat_id'], f"🔔 رسالة إنستقرام جديدة من العميل ({sender_id}):\n{msg}")
             
+            # تعليمات Gemini
             my_system_instruction = """أنتِ مساعد مبيعات محترف يعمل لصالح "ChichiDeb". مهمته هي مساعدة العملاء في إكمال طلباتهم.
 1. عندما يعبر العميل عن رغبته في الشراء، قومي بتلخيص الطلب والتأكد من تفاصيل.
-2. بمجرد تأكيد العميل، يجب أن تخرجي البيانات حصراً بتنسيق JSON، بدون أي مقدمات أو كلام إضافي، بالتنسيق التالي:
-{ "client_id": "...", "page_id": "...", "total_amount": 0, "items": [...], "customer_phone": "...", "shipping_address": "..." }"""
-
-response = client.models.generate_content(
-                model='gemini-1.5-flash',
-                contents=msg,
-                config=types.GenerateContentConfig(
-                    system_instruction=my_system_instruction
-                )
-            )
-            return "تم إرسال الرسالة للنموذج بنجاح"
-        
-    except Exception as e:
-        print(f"DEBUG: خطأ في معالجة رسالة إنستقرام: {e}")
-        return "خطأ في المعالجة", 500
-
-if __name__ == '__main__':
-    app.run(debug=True)
+2. بمجرد تأكيد العميل، يجب أن تخرجي البيانات حصراً بتنسيق JSON، بدون أي مقدمات
