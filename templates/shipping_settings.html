@@ -1,25 +1,33 @@
-<form action="/shipping_settings" method="POST">
-    <table>
-        <thead>
-            <tr>
-                <th>الولاية</th>
-                <th>سعر المكتب</th>
-                <th>سعر المنزل</th>
-                <th>إجراء</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for rate in rates %}
-            <tr>
-                <td>{{ rate.wilaya }}</td>
-                <td><input type="number" name="office_price" value="{{ rate.office_price }}"></td>
-                <td><input type="number" name="home_price" value="{{ rate.home_price }}"></td>
+<table class="table table-hover table-bordered align-middle">
+    <thead class="table-success">
+        <tr>
+            <th>الولاية (رقم)</th>
+            <th>سعر المكتب</th>
+            <th>سعر المنزل</th>
+            <th>إجراء</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for rate in rates %}
+        <tr>
+            <!-- نبدأ النموذج (Form) من هنا ليشمل الحقول فقط -->
+            <form action="{{ url_for('shipping_settings') }}" method="POST">
                 <td>
+                    {{ rate.id }}
+                    <!-- الـ ID مخفي لنرسله مع الطلب -->
                     <input type="hidden" name="id" value="{{ rate.id }}">
-                    <button type="submit">حفظ</button>
                 </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</form>
+                <td>
+                    <input type="number" name="office_price" value="{{ rate.office_price }}" class="form-control form-control-sm">
+                </td>
+                <td>
+                    <input type="number" name="home_price" value="{{ rate.home_price }}" class="form-control form-control-sm">
+                </td>
+                <td>
+                    <button type="submit" class="btn btn-sm btn-success">حفظ</button>
+                </td>
+            </form>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
