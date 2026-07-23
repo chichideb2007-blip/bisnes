@@ -2,121 +2,40 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>طلب المنتج: {{ product['name'] }}</title>
+    <title>إعدادات التوصيل</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-light p-4">
-    <div class="container" style="max-width: 500px;">
+    <div class="container" style="max-width: 800px;">
+        <h2 class="mb-4">تعديل أسعار التوصيل</h2>
         <div class="card p-4 shadow">
-            <!-- قسم عرض المنتج -->
-            <img src="{{ product['product-images'] }}" class="img-fluid rounded mb-3" style="width: 100%; height: 200px; object-fit: cover;">
-            <h2 class="text-center">{{ product['name'] }}</h2>
-            <p class="text-center text-muted">السعر: <span id="price">{{ product['price'] }}</span> دج</p>
-
-            <form action="/submit-order" method="POST" id="orderForm">
-                <input type="hidden" name="product_id" value="{{ product['id'] }}">
-                
-                <div class="mb-3">
-                    <input type="text" name="first_name" class="form-control" placeholder="الاسم" required>
-                </div>
-                <div class="mb-3">
-                    <input type="text" name="last_name" class="form-control" placeholder="اللقب" required>
-                </div>
-                <div class="mb-3">
-                    <input type="tel" name="phone" class="form-control" placeholder="رقم الهاتف" required>
-                </div>
-                
-                <div class="mb-3">
-                    <select name="wilaya" id="wilaya" class="form-select" required onchange="calculateTotal()">
-                        <option value="">اختر الولاية</option>
-                        <option value="1">01 - أدرار</option>
-                        <option value="2">02 - الشلف</option>
-                        <option value="3">03 - الأغواط</option>
-                        <option value="4">04 - أم البواقي</option>
-                        <option value="5">05 - باتنة</option>
-                        <option value="6">06 - بجاية</option>
-                        <option value="7">07 - بسكرة</option>
-                        <option value="8">08 - بشار</option>
-                        <option value="9">09 - البليدة</option>
-                        <option value="10">10 - البويرة</option>
-                        <option value="11">11 - تمنراست</option>
-                        <option value="12">12 - تبسة</option>
-                        <option value="13">13 - تلمسان</option>
-                        <option value="14">14 - تيارت</option>
-                        <option value="15">15 - تيزي وزو</option>
-                        <option value="16">16 - الجزائر</option>
-                        <option value="17">17 - الجلفة</option>
-                        <option value="18">18 - جيجل</option>
-                        <option value="19">19 - سطيف</option>
-                        <option value="20">20 - سعيدة</option>
-                        <option value="21">21 - سكيكدة</option>
-                        <option value="22">22 - سيدي بلعباس</option>
-                        <option value="23">23 - عنابة</option>
-                        <option value="24">24 - قالمة</option>
-                        <option value="25">25 - قسنطينة</option>
-                        <option value="26">26 - المدية</option>
-                        <option value="27">27 - مستغانم</option>
-                        <option value="28">28 - المسيلة</option>
-                        <option value="29">29 - معسكر</option>
-                        <option value="30">30 - ورقلة</option>
-                        <option value="31">31 - وهران</option>
-                        <option value="32">32 - البيض</option>
-                        <option value="33">33 - إليزي</option>
-                        <option value="34">34 - برج بوعريريج</option>
-                        <option value="35">35 - بومرداس</option>
-                        <option value="36">36 - الطارف</option>
-                        <option value="37">37 - تندوف</option>
-                        <option value="38">38 - تيسمسيلت</option>
-                        <option value="39">39 - الوادي</option>
-                        <option value="40">40 - خنشلة</option>
-                        <option value="41">41 - سوق أهراس</option>
-                        <option value="42">42 - تيبازة</option>
-                        <option value="43">43 - ميلة</option>
-                        <option value="44">44 - عين الدفلى</option>
-                        <option value="45">45 - النعامة</option>
-                        <option value="46">46 - عين تموشنت</option>
-                        <option value="47">47 - غرداية</option>
-                        <option value="48">48 - غليزان</option>
-                        <option value="49">49 - تيميمون</option>
-                        <option value="50">50 - برج باجي مختار</option>
-                        <option value="51">51 - أولاد جلال</option>
-                        <option value="52">52 - بني عباس</option>
-                        <option value="53">53 - إن صالح</option>
-                        <option value="54">54 - إن قزام</option>
-                        <option value="55">55 - تقرت</option>
-                        <option value="56">56 - جانت</option>
-                        <option value="57">57 - المغير</option>
-                        <option value="58">58 - المنيعة</option>
-                    </select>
-                </div>
-
-                <div class="mb-3">
-                    <input type="text" name="commune" class="form-control" placeholder="البلدية" required>
-                </div>
-
-                <div class="mb-3">
-                    <select name="delivery_type" id="delivery_type" class="form-select" onchange="calculateTotal()">
-                        <option value="home">توصيل للمنزل</option>
-                        <option value="office">توصيل للمكتب</option>
-                    </select>
-                </div>
-
-                <div class="alert alert-info text-center">
-                    المجموع الإجمالي: <span id="total" class="fw-bold">0</span> دج
-                </div>
-                
-                <button type="submit" class="btn btn-primary w-100">تأكيد الطلب</button>
-            </form>
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>الولاية</th>
+                        <th>سعر المكتب (دج)</th>
+                        <th>سعر المنزل (دج)</th>
+                        <th>إجراء</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rate in rates %}
+                    <!-- كل سطر عبارة عن فورم مستقل للحفظ -->
+                    <form action="/shipping_settings" method="POST">
+                        <tr>
+                            <td>{{ rate.wilaya }}</td>
+                            <td><input type="number" name="office_price" class="form-control" value="{{ rate.office_price }}"></td>
+                            <td><input type="number" name="home_price" class="form-control" value="{{ rate.home_price }}"></td>
+                            <td>
+                                <input type="hidden" name="id" value="{{ rate.id }}">
+                                <button type="submit" class="btn btn-sm btn-success">حفظ</button>
+                            </td>
+                        </tr>
+                    </form>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
-
-    <script>
-        function calculateTotal() {
-            let productPrice = parseFloat(document.getElementById('price').innerText);
-            let delivery = document.getElementById('delivery_type').value == 'home' ? 600 : 300; // الأسعار
-            document.getElementById('total').innerText = productPrice + delivery;
-        }
-        window.onload = calculateTotal;
-    </script>
 </body>
 </html>
