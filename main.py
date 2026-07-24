@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+هههfrom flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from supabase import create_client
 from collections import defaultdict
 from datetime import datetime
@@ -481,4 +481,12 @@ def webhook_instagram():
         res = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("instagram_page_id", page_id).execute()
         
         if res.data:
-            send_telegram_alert_by_token(res.data[0]['telegram_token'], res.data[0]['telegram_chat_id'], f"🔔 رسالة إنستقرام جديدة من العميل ({sender_
+            send_telegram_alert_by_token(res.data[0]['telegram_token'], res.data[0]['telegram_chat_id'],             send_telegram_alert_by_token(res.data[0]['telegram_token'], res.data[0]['telegram_chat_id'], f"🔔 رسالة إنستقرام جديدة من العميل ({sender_id}):\n{msg}")
+            
+        return "OK", 200
+
+    except Exception as e:
+        return "Error", 500
+
+if __name__ == '__main__':
+    app.run(debug=True)
