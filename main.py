@@ -376,29 +376,44 @@ def product_details(product_id):
 def submit_order():
     data = request.form
     customer_name = data.get('customer_name')
+    customer_last_name = data.get('customer_last_name')
     phone = data.get('phone')
     product_id = data.get('product_id')
-    wilaya = data.get('wilaya')
-    delivery_type = data.get('delivery_type')
+    wilaya_id = data.get('wilaya') # هذا الـ ID الذي اختاره الزبون
+    delivery_type = data.get('delivery_type') # 'home' أو 'office'
     
+    # 1. جلب بيانات المنتج
     product_res = supabase.table("inventory").select("price, name, company_id_text").eq("id", product_id).single().execute()
     product = product_res.data
     
-    delivery_price = get_delivery_price(wilaya, delivery_type)
-    total_price = product['price'] + delivery_price
+    # 2. جلب سعر التوصيل من جدول الولايات (الذي قمتِ بتعبئته يدوياً في لوحة التحكم)
+    # نحن نبحث عن السطر الذي يحمل نفس ID الولاية التي اختارها الزبون
+    shipping_res = supabase.table("shipping_rates").select("home_price, office_price").eq("id", int(wilaya_id)).single().execute()
+    shipping_data = shipping_res.data
     
+    # تحديد السعر بناءً على اختيار الزبون (منزل أو مكتب)
+    delivery_price = float(shipping_data['home_price']) if delivery_type == 'home' else float(shipping_data['office_price'])
+    
+    # 3. حساب الإجمالي
+    base_price = float(product['price'])
+    total_price = base_price + delivery_price
+    
+    # 4. حفظ الطلب في قاعدة البيانات
     order_data = {
-        "customer_name": customer_name,
-        "phone": phone,
+        "customer_name": f"{customer_name} {customer_last_name}",
+        "customer_phone": phone,
         "product_name": product['name'],
         "total_price": total_price,
-        "status": "pending",
+        "delivery_price": delivery_price, # تخزين سعر التوصيل في الطلب
+        "status": "قيد الانتظار",
         "company_code": product['company_id_text']
     }
     supabase.table("orders").insert(order_data).execute()
     
+    # تحديث المخزون
     supabase.rpc('decrement_stock', {'p_id': int(product_id), 'qty': 1}).execute()
     
+    # إشعار تليجرام
     settings_res = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", product['company_id_text']).execute()
     if settings_res.data:
         token = settings_res.data[0]['telegram_token']
