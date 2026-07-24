@@ -478,4 +478,26 @@ def webhook_instagram():
             # تعليمات Gemini
             my_system_instruction = """أنتِ مساعد مبيعات محترف يعمل لصالح "ChichiDeb". مهمته هي مساعدة العملاء في إكمال طلباتهم.
 1. عندما يعبر العميل عن رغبته في الشراء، قومي بتلخيص الطلب والتأكد من تفاصيل.
-2. بمجرد تأكيد العميل، يجب أن تخرجي البيانات حصراً بتنسيق JSON، بدون أي مقدمات
+2. بمجرد تأكيد العميل، يجب أن تخرجي البيانات حصراً بتنسيق JSON، بدون أي مقدمات أو كلام إضافي، بالتنسيق التالي:
+{ "client_id": "...", "page_id": "...", "total_amount": 0, "items": [...], "customer_phone": "...", "shipping_address": "..." }"""
+
+            # استدعاء Gemini
+            response = client.models.generate_content(
+                model='gemini-1.5-flash',
+                contents=msg,
+                config=types.GenerateContentConfig(
+                    system_instruction=my_system_instruction
+                )
+            )
+            print(f"DEBUG: رد Gemini هو: {response.text}")
+        
+        # إرجاع رد ناجح لمنصة Meta (إنستقرام)
+        return "OK", 200
+
+    except Exception as e:
+        print(f"DEBUG: خطأ في معالجة رسالة إنستقرام: {e}")
+        # حتى في حالة حدوث خطأ، يجب إرجاع كود 200 أو 500 ليقبل الويب هوك الطلب
+        return "Internal Server Error", 500
+
+if __name__ == '__main__':
+    app.run(debug=True)
