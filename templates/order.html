@@ -9,9 +9,15 @@
         <input type="text" name="phone" placeholder="رقم الهاتف" required class="form-control mb-2">
     </div>
 
+    <!-- خانة الكمية -->
+    <div class="mb-3">
+        <label>الكمية:</label>
+        <input type="number" name="quantity" id="quantity" value="1" min="1" onchange="calculateOrder()" class="form-control">
+    </div>
+
     <div class="mb-3">
         <label>اختر الولاية:</label>
-        <select id="wilaya" name="wilaya" onchange="calculateDelivery()" class="form-control mb-2" required>
+        <select id="wilaya" name="wilaya" onchange="calculateOrder()" class="form-control mb-2" required>
             <option value="">-- اختر الولاية --</option>
             {% for wilaya in wilayas %}
                 <option value="{{ wilaya.id }}">{{ wilaya.wilaya_name }}</option>
@@ -21,15 +27,16 @@
 
     <div class="mb-3">
         <label>طريقة التوصيل:</label>
-        <select id="delivery_type" name="delivery_type" onchange="calculateDelivery()" class="form-control mb-2" required>
+        <select id="delivery_type" name="delivery_type" onchange="calculateOrder()" class="form-control mb-2" required>
             <option value="home">توصيل للمنزل</option>
             <option value="office">توصيل للمكتب</option>
         </select>
     </div>
 
+    <!-- مكان عرض السعر النهائي -->
     <div class="card p-3 bg-light">
         <h4>سعر التوصيل: <span id="shipping_display">0</span> دج</h4>
-        <h4 class="text-primary">الإجمالي الكلي: <span id="total_display">{{ product.price }}</span> دج</h4>
+        <h4 class="text-primary">المجموع النهائي: <span id="total_display">{{ product.price }}</span> دج</h4>
     </div>
     
     <div class="mt-3 d-flex gap-2">
@@ -39,11 +46,11 @@
 </form>
 
 <script>
-function calculateDelivery() {
-    // 1. جلب القيم من الصفحة
-    const companyCode = document.getElementById('company_code').value;
-    const stateId = document.getElementById('wilaya').value; 
+async function calculateOrder() {
+    // 1. جلب القيم من العناصر
+    const stateId = document.getElementById('wilaya').value;
     const type = document.getElementById('delivery_type').value;
+    const qty = parseInt(document.getElementById('quantity').value) || 1;
     const basePrice = parseFloat(document.getElementById('base_price').value) || 0;
     
     const shippingDisplay = document.getElementById('shipping_display');
@@ -52,25 +59,25 @@ function calculateDelivery() {
     // 2. التحقق من اختيار الولاية
     if (!stateId || stateId === "") {
         shippingDisplay.innerText = "0";
-        totalDisplay.innerText = basePrice;
+        totalDisplay.innerText = basePrice * qty;
         return;
     }
 
-    // 3. جلب السعر من المسار (تأكد أن المسار في main.py يقرأ state_id المرسل هنا)
-    fetch(`/get_delivery_price?company_code=${companyCode}&state_id=${stateId}&type=${type}`)
-    .then(response => response.json())
-    .then(data => {
+    try {
+        // 3. جلب سعر التوصيل من السيرفر
+        const response = await fetch(`/get_shipping_rates?state_id=${stateId}&type=${type}`);
+        const data = await response.json();
+        
         const deliveryPrice = parseFloat(data.price) || 0;
-        const total = basePrice + deliveryPrice;
+        const total = (basePrice * qty) + deliveryPrice;
 
         // 4. تحديث الشاشة
         shippingDisplay.innerText = deliveryPrice;
         totalDisplay.innerText = total;
-    })
-    .catch(error => {
+    } catch (error) {
         console.error('Error fetching price:', error);
         shippingDisplay.innerText = "0";
-        totalDisplay.innerText = basePrice;
-    });
+        totalDisplay.innerText = basePrice * qty;
+    }
 }
 </script>
