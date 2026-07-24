@@ -171,19 +171,15 @@ def settings():
 @login_required
 def shipping_settings():
     if request.method == 'POST':
+        # إذا تم الضغط على زر الحفظ
         wilaya_id = request.form.get('id')
-        office_price = request.form.get('office_price')
-        home_price = request.form.get('home_price')
-        
-        # التحديث في قاعدة البيانات
         supabase.table("shipping_rates").update({
-            "office_price": float(office_price),
-            "home_price": float(home_price)
+            "office_price": float(request.form.get('office_price')),
+            "home_price": float(request.form.get('home_price'))
         }).eq("id", wilaya_id).execute()
-        
         return redirect(url_for('shipping_settings'))
 
-    # جلب الولايات مرتبة من 1 إلى 58
+    # جلب جميع الولايات
     res = supabase.table("shipping_rates").select("*").order("id").execute()
     return render_template('shipping_settings.html', rates=res.data)
 
@@ -315,7 +311,6 @@ def orders():
         delivery_price = float(request.form.get('delivery_price', 0.0))
         
         # حساب الإجمالي الكلي (سعر المنتج + سعر التوصيل)
-        # ملاحظة: تأكد أنك تجمعهم بشكل صحيح حسب منطق عملك
         base_price = float(request.form.get('price', 0.0))
         total_price = base_price + delivery_price
         
@@ -379,41 +374,32 @@ def submit_order():
     customer_last_name = data.get('customer_last_name')
     phone = data.get('phone')
     product_id = data.get('product_id')
-    wilaya_id = data.get('wilaya') # هذا الـ ID الذي اختاره الزبون
-    delivery_type = data.get('delivery_type') # 'home' أو 'office'
+    wilaya_id = data.get('wilaya') 
+    delivery_type = data.get('delivery_type') 
     
-    # 1. جلب بيانات المنتج
     product_res = supabase.table("inventory").select("price, name, company_id_text").eq("id", product_id).single().execute()
     product = product_res.data
     
-    # 2. جلب سعر التوصيل من جدول الولايات (الذي قمتِ بتعبئته يدوياً في لوحة التحكم)
-    # نحن نبحث عن السطر الذي يحمل نفس ID الولاية التي اختارها الزبون
     shipping_res = supabase.table("shipping_rates").select("home_price, office_price").eq("id", int(wilaya_id)).single().execute()
     shipping_data = shipping_res.data
     
-    # تحديد السعر بناءً على اختيار الزبون (منزل أو مكتب)
     delivery_price = float(shipping_data['home_price']) if delivery_type == 'home' else float(shipping_data['office_price'])
-    
-    # 3. حساب الإجمالي
     base_price = float(product['price'])
     total_price = base_price + delivery_price
     
-    # 4. حفظ الطلب في قاعدة البيانات
     order_data = {
         "customer_name": f"{customer_name} {customer_last_name}",
         "customer_phone": phone,
         "product_name": product['name'],
         "total_price": total_price,
-        "delivery_price": delivery_price, # تخزين سعر التوصيل في الطلب
+        "delivery_price": delivery_price,
         "status": "قيد الانتظار",
         "company_code": product['company_id_text']
     }
     supabase.table("orders").insert(order_data).execute()
     
-    # تحديث المخزون
     supabase.rpc('decrement_stock', {'p_id': int(product_id), 'qty': 1}).execute()
     
-    # إشعار تليجرام
     settings_res = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", product['company_id_text']).execute()
     if settings_res.data:
         token = settings_res.data[0]['telegram_token']
@@ -477,26 +463,21 @@ def webhook_instagram():
     
     data = request.json
     try:
-        # استخراج البيانات من رسالة إنستقرام
         page_id = data['entry'][0]['id']
         messaging = data['entry'][0]['messaging'][0]
         msg = messaging['message']['text']
         sender_id = messaging['sender']['id']
         
-        # جلب إعدادات البوت
         res = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("instagram_page_id", page_id).execute()
         
         if res.data:
-            # إرسال التنبيه لتليجرام
             send_telegram_alert_by_token(res.data[0]['telegram_token'], res.data[0]['telegram_chat_id'], f"🔔 رسالة إنستقرام جديدة من العميل ({sender_id}):\n{msg}")
             
-            # تعليمات Gemini
             my_system_instruction = """أنتِ مساعد مبيعات محترف يعمل لصالح "ChichiDeb". مهمته هي مساعدة العملاء في إكمال طلباتهم.
-1. عندما يعبر العميل عن رغبته في الشراء، قومي بتلخيص الطلب والتأكد من تفاصيل.
+1.عندما يعبر العميل عن رغبته في الشراء، قومي بتلخيص الطلب والتأكد من تفاصيل.
 2. بمجرد تأكيد العميل، يجب أن تخرجي البيانات حصراً بتنسيق JSON، بدون أي مقدمات أو كلام إضافي، بالتنسيق التالي:
 { "client_id": "...", "page_id": "...", "total_amount": 0, "items": [...], "customer_phone": "...", "shipping_address": "..." }"""
 
-            # استدعاء Gemini
             response = client.models.generate_content(
                 model='gemini-1.5-flash',
                 contents=msg,
@@ -504,14 +485,10 @@ def webhook_instagram():
                     system_instruction=my_system_instruction
                 )
             )
-            print(f"DEBUG: رد Gemini هو: {response.text}")
-        
-        # إرجاع رد ناجح لمنصة Meta (إنستقرام)
         return "OK", 200
 
     except Exception as e:
         print(f"DEBUG: خطأ في معالجة رسالة إنستقرام: {e}")
-        # حتى في حالة حدوث خطأ، يجب إرجاع كود 200 أو 500 ليقبل الويب هوك الطلب
         return "Internal Server Error", 500
 
 if __name__ == '__main__':
