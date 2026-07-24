@@ -16,7 +16,7 @@
         <div class="d-flex justify-content-between align-items-center">
             <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">⬅️ لوحة التحكم</a>
             
-            <!-- الرابط الجديد الذي طلبته -->
+            <!-- الرابط الجديد -->
             <a href="{{ url_for('shipping_settings') }}" class="btn btn-secondary">إدارة أسعار التوصيل</a>
             
             {% include 'translate.html' ignore missing %}
@@ -27,7 +27,7 @@
     <div class="container mt-4">
         <h2 class="mb-4 text-center fw-bold">📦 لوحة إدارة الطلبات</h2>
 
-        <!-- نموذج إضافة طلب يدوي -->
+        <!-- نموذج إضافة طلب يدوي (تم تحديثه) -->
         <div class="content-card">
             <h4 class="mb-3">إضافة طلب جديد يدوياً</h4>
             <form action="{{ url_for('orders') }}" method="POST" class="row g-3">
@@ -46,17 +46,26 @@
                 <div class="col-md-3">
                     <input type="number" step="0.01" name="price" class="form-control" placeholder="سعر المنتج الأساسي" required>
                 </div>
+                
+                <!-- القائمة المنسدلة للولايات -->
                 <div class="col-md-3">
-                    <input type="text" name="state" class="form-control" placeholder="الولاية" required>
+                    <select name="state" class="form-select" required>
+                        <option value="">اختر الولاية</option>
+                        {% for wilaya in wilayas %}
+                            <option value="{{ wilaya.wilaya_name }}">{{ wilaya.wilaya_name }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
+                
                 <div class="col-md-3">
                     <select name="delivery_type" class="form-select" required>
                         <option value="home">توصيل للمنزل</option>
                         <option value="office">توصيل للمكتب</option>
                     </select>
                 </div>
+                
                 <div class="col-md-3">
-                    <input type="number" step="0.01" name="delivery_price" class="form-control" placeholder="سعر التوصيل" required>
+                    <input type="number" step="0.01" name="delivery_price" class="form-control" placeholder="أدخلي سعر التوصيل يدوياً" required>
                 </div>
                 
                 <div class="col-md-12">
@@ -105,7 +114,7 @@
             </div>
         </div>
 
-        <!-- إضافة جدول تعديل أسعار التوصيل في الأسفل -->
+        <!-- جدول تعديل أسعار التوصيل -->
         <div class="card mt-4 content-card">
             <div class="card-header bg-primary text-white">
                 <h5>تعديل أسعار التوصيل</h5>
@@ -134,7 +143,7 @@
             .then(res => res.json())
             .then(data => {
                 const tbody = document.getElementById('wilayas-table');
-                tbody.innerHTML = ''; // تفريغ الجدول أولاً
+                tbody.innerHTML = ''; 
                 data.forEach(item => {
                     tbody.innerHTML += `
                         <tr>
