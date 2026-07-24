@@ -47,12 +47,12 @@
 
 <script>
 async function calculateOrder() {
-    // 1. جلب القيم
+    // 1. جلب القيم من النموذج
     const stateId = document.getElementById('wilaya').value;
     const type = document.getElementById('delivery_type').value;
     const qty = parseInt(document.getElementById('quantity').value) || 1;
     const basePrice = parseFloat(document.getElementById('base_price').value) || 0;
-    const companyCode = document.getElementById('company_code').value; // جلب كود الشركة
+    const companyCode = document.getElementById('company_code').value; 
     
     const shippingDisplay = document.getElementById('shipping_display');
     const totalDisplay = document.getElementById('total_display');
@@ -64,16 +64,24 @@ async function calculateOrder() {
     }
 
     try {
-        // 2. إرسال company_code إلى السيرفر
+        // 2. جلب السعر من السيرفر
         const response = await fetch(`/get_shipping_rates?state_id=${stateId}&type=${type}&company_code=${companyCode}`);
         const data = await response.json();
         
-        const deliveryPrice = parseFloat(data.price) || 0;
-        const total = (basePrice * qty) + deliveryPrice;
+        // --- سطر التصحيح (Debug) ---
+        // سيظهر لك هذا السطر في Console المتصفح لتعرف القيمة الحقيقية القادمة
+        console.log("السعر الذي وصل من السيرفر هو:", data.price); 
+        // --------------------------
 
-        // 3. تحديث الشاشة
-        shippingDisplay.innerText = deliveryPrice;
+        const deliveryPrice = parseFloat(data.price) || 0;
+        
+        // 3. تحديث خانة سعر التوصيل في الشاشة فوراً
+        shippingDisplay.innerText = deliveryPrice; 
+        
+        // 4. حساب المجموع الكلي وتحديثه
+        const total = (basePrice * qty) + deliveryPrice;
         totalDisplay.innerText = total;
+
     } catch (error) {
         console.error('Error fetching price:', error);
         shippingDisplay.innerText = "0";
