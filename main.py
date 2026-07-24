@@ -198,30 +198,26 @@ def update_delivery_price():
     
     return jsonify({"status": "success"})
 
-# --- مسار الحصول على سعر التوصيل ---
-@app.route('/get_delivery_price')
-def get_delivery_price():
-    company_code = request.args.get('company_code')
+# --- المسار الجديد shipping_rates ---
+@app.route('/get_shipping_rates')
+def get_shipping_rates():
+    # استلام الـ id الخاص بالولاية المرسل من الجافاسكريبت
+    state_id = request.args.get('state_id')
     delivery_type = request.args.get('type')
     
+    # جلب السعر من جدول shipping_rates
     try:
-        # جلب أسعار التوصيل من جدول إعدادات الشركة بناءً على كود الشركة
-        response = supabase.table("company_settings").select("delivery_home_price, delivery_office_price").eq("company_code", company_code).single().execute()
-        settings = response.data
+        # تأكد أن أسماء الأعمدة (home_price, office_price) تطابق أسماء الأعمدة في جدولك
+        res = supabase.table("shipping_rates").select("home_price, office_price").eq("id", int(state_id)).single().execute()
         
-        if not settings:
-            return jsonify({"price": 0})
-        
-        # اختيار السعر بناءً على نوع التوصيل
-        if delivery_type == 'home':
-            price = settings.get('delivery_home_price', 0)
-        else:
-            price = settings.get('delivery_office_price', 0)
+        if res.data:
+            price = res.data['home_price'] if delivery_type == 'home' else res.data['office_price']
+            return jsonify({"price": float(price)})
             
-        return jsonify({"price": float(price)})
     except Exception as e:
-        print(f"DEBUG: خطأ في جلب سعر التوصيل: {e}")
-        return jsonify({"price": 0})
+        print(f"Error fetching from shipping_rates: {e}")
+        
+    return jsonify({"price": 0})
 
 # --- المسارات الجديدة المضافة ---
 @app.route('/get_delivery_settings', methods=['GET'])
@@ -494,10 +490,10 @@ def stats():
         res_orders = supabase.table("orders").select("total_price, created_at").eq("company_code", company_code).execute()
         orders = res_orders.data or []
         total_orders = len(orders)
-        
+
         res_expenses = supabase.table("expenses").select("amount, created_at").eq("company_code", company_code).execute()
         expenses = res_expenses.data or []
-        total_expenses = sum(float(e.get('amount') or 0) for e in expenses)
+        total_expenses =sum(float(e.get('amount') or 0) for e in expenses)
 
         daily_data, monthly_data, yearly_data = defaultdict(float), defaultdict(float), defaultdict(float)
         days_order = ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"]
