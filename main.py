@@ -463,11 +463,18 @@ def submit_order():
 
 @app.route('/order/<int:product_id>')
 def order_page(product_id):
+    # جلب تفاصيل المنتج
     response = supabase.table("inventory").select("*").eq("id", product_id).single().execute()
     product = response.data
+    
+    # جلب قائمة الولايات من جدول shipping_rates
+    wilayas_res = supabase.table("shipping_rates").select("*").execute()
+    wilayas = wilayas_res.data
+    
     if not product:
         return "هذا المنتج غير موجود", 404
-    return render_template('order.html', product=product)
+        
+    return render_template('order.html', product=product, wilayas=wilayas)
 
 @app.route('/checkout/<int:product_id>')
 def checkout(product_id):
