@@ -1,5 +1,0 @@
-/* هذا الملف داخل مجلد static */
-body {
-    direction: rtl;
-    font-family: 'Tajawal', sans-serif;
-}
