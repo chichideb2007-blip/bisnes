@@ -47,16 +47,16 @@
 
 <script>
 async function calculateOrder() {
-    // 1. جلب القيم من العناصر
+    // 1. جلب القيم
     const stateId = document.getElementById('wilaya').value;
     const type = document.getElementById('delivery_type').value;
     const qty = parseInt(document.getElementById('quantity').value) || 1;
     const basePrice = parseFloat(document.getElementById('base_price').value) || 0;
+    const companyCode = document.getElementById('company_code').value; // جلب كود الشركة
     
     const shippingDisplay = document.getElementById('shipping_display');
     const totalDisplay = document.getElementById('total_display');
 
-    // 2. التحقق من اختيار الولاية
     if (!stateId || stateId === "") {
         shippingDisplay.innerText = "0";
         totalDisplay.innerText = basePrice * qty;
@@ -64,14 +64,14 @@ async function calculateOrder() {
     }
 
     try {
-        // 3. جلب سعر التوصيل من السيرفر
-        const response = await fetch(`/get_shipping_rates?state_id=${stateId}&type=${type}`);
+        // 2. إرسال company_code إلى السيرفر
+        const response = await fetch(`/get_shipping_rates?state_id=${stateId}&type=${type}&company_code=${companyCode}`);
         const data = await response.json();
         
         const deliveryPrice = parseFloat(data.price) || 0;
         const total = (basePrice * qty) + deliveryPrice;
 
-        // 4. تحديث الشاشة
+        // 3. تحديث الشاشة
         shippingDisplay.innerText = deliveryPrice;
         totalDisplay.innerText = total;
     } catch (error) {
