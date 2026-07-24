@@ -117,23 +117,28 @@
         <div class="content-card mt-5">
             <h4 class="mb-3">أسعار التوصيل (ضبط يدوي)</h4>
             <div class="table-responsive">
-                <table class="table table-bordered text-center">
+                <table class="table table-bordered align-middle text-center">
                     <thead>
                         <tr>
                             <th>الولاية</th>
                             <th>سعر التوصيل للمنزل</th>
                             <th>سعر التوصيل للمكتب</th>
-                            <th>الإجراء</th>
+                            <th>الإجراء</th> <!-- هذه الخانة مخصصة للزر فقط -->
                         </tr>
                     </thead>
                     <tbody>
                         {% for w in wilayas %}
                         <tr>
-                            <td>{{ w.wilaya_name }}</td>
-                            <td><input type="number" id="home-{{ w.id }}" value="{{ w.home_price }}" class="form-control"></td>
-                            <td><input type="number" id="office-{{ w.id }}" value="{{ w.office_price }}" class="form-control"></td>
+                            <td class="fw-bold">{{ w.wilaya_name }}</td>
                             <td>
-                                <button class="btn btn-success btn-sm" onclick="savePrice({{ w.id }})">حفظ التعديل</button>
+                                <input type="number" id="home-{{ w.id }}" value="{{ w.home_price }}" class="form-control text-center">
+                            </td>
+                            <td>
+                                <input type="number" id="office-{{ w.id }}" value="{{ w.office_price }}" class="form-control text-center">
+                            </td>
+                            <td>
+                                <!-- الزر في خانة مستقلة تماماً -->
+                                <button class="btn btn-success px-4" onclick="savePrice({{ w.id }})">حفظ</button>
                             </td>
                         </tr>
                         {% endfor %}
