@@ -200,6 +200,27 @@ def update_delivery_price():
     
     return jsonify({"status": "success"})
 
+# --- المسارات الجديدة المضافة ---
+@app.route('/get_delivery_settings', methods=['GET'])
+@login_required
+def get_delivery_settings():
+    company_code = session.get('company_code')
+    # جلب الأسعار الخاصة بشركتك من جدول company_settings
+    data = supabase.table("company_settings").select("*").eq("company_code", company_code).single().execute()
+    return jsonify(data.data)
+
+@app.route('/update_delivery_settings', methods=['POST'])
+@login_required
+def update_delivery_settings():
+    data = request.json
+    company_code = session.get('company_code')
+    # تحديث الأسعار في قاعدة البيانات
+    supabase.table("company_settings").update({
+        "delivery_office_price": data.get('office_price'),
+        "delivery_home_price": data.get('home_price')
+    }).eq("company_code", company_code).execute()
+    return jsonify({"status": "success"})
+
 @app.route('/products', methods=['GET', 'POST'])
 @login_required
 def products():
