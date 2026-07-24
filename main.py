@@ -191,12 +191,17 @@ def update_delivery_price():
     new_office = data.get('office_price')
     new_home = data.get('home_price')
     
-    supabase.table("delivery_prices").update({
-        "office_price": new_office,
-        "home_price": new_home
-    }).eq("id", row_id).execute()
-    
-    return jsonify({"status": "success"})
+    # التعديل هنا: غيرنا 'delivery_prices' إلى 'shipping_rates'
+    try:
+        response = supabase.table("shipping_rates").update({
+            "office_price": new_office,
+            "home_price": new_home
+        }).eq("id", row_id).execute()
+        
+        return jsonify({"status": "success"})
+    except Exception as e:
+        print(f"Error: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 # --- المسار الجديد shipping_rates ---
 @app.route('/get_shipping_rates')
@@ -489,7 +494,7 @@ def stats():
     try:
         res_orders = supabase.table("orders").select("total_price, created_at").eq("company_code", company_code).execute()
         orders = res_orders.data or []
-        total_orders = len(orders)
+     total_orders = len(orders)
 
         res_expenses = supabase.table("expenses").select("amount, created_at").eq("company_code", company_code).execute()
         expenses = res_expenses.data or []
