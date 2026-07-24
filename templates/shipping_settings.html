@@ -2,116 +2,45 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>إدارة أسعار التوصيل</title>
+    <title>إدارة أسعار التوصيل اليدوية</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body { background-color: #f8f9fa; }
-        .table thead { background-color: #198754; color: white; }
-    </style>
 </head>
-<body>
+<body class="bg-light">
 
-<div class="container mt-4" style="max-width: 900px;">
-    <h2 class="mb-4 text-center">إدارة أسعار التوصيل</h2>
-    <div class="d-flex justify-content-between mb-3">
-        <a href="/dashboard" class="btn btn-secondary">⬅️ الرجوع للوحة التحكم</a>
-    </div>
-
-    <div class="card shadow-sm mb-4">
-        <div class="card-header bg-primary text-white">ضبط الأسعار العامة</div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-5">
-                    <label class="form-label">سعر التوصيل للمكتب (دج)</label>
-                    <input type="number" id="office-price" class="form-control">
-                </div>
-                <div class="col-md-5">
-                    <label class="form-label">سعر التوصيل للمنزل (دج)</label>
-                    <input type="number" id="home-price" class="form-control">
-                </div>
-                <div class="col-md-2 d-flex align-items-end">
-                    <button class="btn btn-primary w-100" onclick="savePrices()">حفظ</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="card shadow-sm">
-        <div class="card-header bg-success text-white">أسعار الولايات</div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-hover table-bordered align-middle text-center">
-                    <thead>
-                        <tr>
-                            <th>الولاية</th>
-                            <th>سعر التوصيل للمكتب (دج)</th>
-                            <th>سعر التوصيل للمنزل (دج)</th>
-                            <th>إجراء</th>
-                        </tr>
-                    </thead>
-                    <tbody id="delivery-table"></tbody>
-                </table>
-            </div>
-        </div>
+<div class="container mt-5" style="max-width: 600px;">
+    <h2 class="text-center mb-4">ادخلي الأسعار يدوياً</h2>
+    
+    <div class="card shadow-sm p-4">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>اسم الولاية</th>
+                    <th>سعر المكتب</th>
+                    <th>سعر المنزل</th>
+                </tr>
+            </thead>
+            <tbody id="manual-table">
+                </tbody>
+        </table>
+        <button class="btn btn-primary" onclick="printPrices()">طباعة أو حفظ الصفحة</button>
     </div>
 </div>
 
 <script>
-    // 1. جلب الأسعار العامة
-    async function loadPrices() {
-        try {
-            const res = await fetch('/get_delivery_settings');
-            const data = await res.json();
-            document.getElementById('office-price').value = data.delivery_office_price || 0;
-            document.getElementById('home-price').value = data.delivery_home_price || 0;
-        } catch (e) { console.error("خطأ في جلب الأسعار العامة"); }
-
-        // 2. جلب أسعار الولايات
-        try {
-            const res = await fetch('/get_delivery_prices');
-            const data = await res.json();
-            const tbody = document.getElementById('delivery-table');
-            tbody.innerHTML = '';
-            data.forEach(row => {
-                tbody.innerHTML += `
-                <tr>
-                    <td>${row.wilaya_name || row.state_name}</td>
-                    <td><input type="number" id="office-${row.id}" value="${row.office_price}" class="form-control form-control-sm"></td>
-                    <td><input type="number" id="home-${row.id}" value="${row.home_price}" class="form-control form-control-sm"></td>
-                    <td><button class="btn btn-sm btn-success" onclick="savePrice(${row.id})">حفظ</button></td>
-                </tr>`;
-            });
-        } catch (e) { console.error("خطأ في جلب أسعار الولايات"); }
+    // إنشاء 58 خانة للولايات (تلقائياً)
+    const tbody = document.getElementById('manual-table');
+    for (let i = 1; i <= 58; i++) {
+        tbody.innerHTML += `
+        <tr>
+            <td><input type="text" class="form-control" placeholder="الولاية ${i}"></td>
+            <td><input type="number" class="form-control" placeholder="0"></td>
+            <td><input type="number" class="form-control" placeholder="0"></td>
+        </tr>`;
     }
 
-    // حفظ الأسعار العامة
-    async function savePrices() {
-        const office = document.getElementById('office-price').value;
-        const home = document.getElementById('home-price').value;
-        await fetch('/update_delivery_settings', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({office_price: office, home_price: home})
-        });
-        alert('تم تحديث الأسعار العامة!');
+    function printPrices() {
+        window.print(); // سيفتح لكِ نافذة الطباعة لحفظ الصفحة كـ PDF أو طباعتها
     }
-
-    // حفظ سعر ولاية محددة
-    async function savePrice(id) {
-        const office = document.getElementById(`office-${id}`).value;
-        const home = document.getElementById(`home-${id}`).value;
-        await fetch('/update_delivery_price', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({id: id, office_price: office, home_price: home})
-        });
-        alert('تم حفظ السعر!');
-    }
-
-    loadPrices();
 </script>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
