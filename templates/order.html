@@ -1,5 +1,4 @@
 <form action="/submit-order" method="POST" class="p-3 border rounded">
-    <!-- الحقول المخفية الضرورية -->
     <input type="hidden" name="product_id" value="{{ product.id }}">
     <input type="hidden" id="base_price" value="{{ product.price }}">
     <input type="hidden" id="company_code" value="{{ product.company_id_text }}">
@@ -12,18 +11,16 @@
 
     <div class="mb-3">
         <label>اختر الولاية:</label>
-        <!-- قمنا بتغيير الدالة المستدعاة إلى calculateDelivery -->
         <select id="wilaya" name="wilaya" onchange="calculateDelivery()" class="form-control mb-2" required>
             <option value="">-- اختر الولاية --</option>
-            {% for rate in rates %}
-                <option value="{{ rate.id }}">{{ rate.wilaya_name }}</option>
+            {% for wilaya in wilayas %}
+                <option value="{{ wilaya.id }}">{{ wilaya.wilaya_name }}</option>
             {% endfor %}
         </select>
     </div>
 
     <div class="mb-3">
         <label>طريقة التوصيل:</label>
-        <!-- قمنا بتغيير الدالة المستدعاة إلى calculateDelivery -->
         <select id="delivery_type" name="delivery_type" onchange="calculateDelivery()" class="form-control mb-2" required>
             <option value="home">توصيل للمنزل</option>
             <option value="office">توصيل للمكتب</option>
@@ -40,11 +37,12 @@
         <a href="/shop" class="btn btn-secondary">رجوع</a>
     </div>
 </form>
+
 <script>
 function calculateDelivery() {
     // 1. جلب القيم من الصفحة
     const companyCode = document.getElementById('company_code').value;
-    const stateId = document.getElementById('wilaya').value;
+    const stateId = document.getElementById('wilaya').value; 
     const type = document.getElementById('delivery_type').value;
     const basePrice = parseFloat(document.getElementById('base_price').value) || 0;
     
@@ -58,8 +56,7 @@ function calculateDelivery() {
         return;
     }
 
-    // 3. جلب السعر من المسار الذي برمجناه في main.py
-    // لاحظ أننا نرسل الكود والنوع والولاية
+    // 3. جلب السعر من المسار (تأكد أن المسار في main.py يقرأ state_id المرسل هنا)
     fetch(`/get_delivery_price?company_code=${companyCode}&state_id=${stateId}&type=${type}`)
     .then(response => response.json())
     .then(data => {
@@ -72,7 +69,8 @@ function calculateDelivery() {
     })
     .catch(error => {
         console.error('Error fetching price:', error);
-        shippingDisplay.innerText = "خطأ";
+        shippingDisplay.innerText = "0";
+        totalDisplay.innerText = basePrice;
     });
 }
 </script>
