@@ -1,7 +1,8 @@
 <form action="/submit-order" method="POST" class="p-3 border rounded">
-    <!-- حقول مخفية للمنتج والسعر الأساسي للحساب -->
+    <!-- الحقول المخفية الضرورية -->
     <input type="hidden" name="product_id" value="{{ product.id }}">
     <input type="hidden" id="base_price" value="{{ product.price }}">
+    <input type="hidden" id="company_code" value="{{ product.company_id_text }}">
 
     <div class="mb-3">
         <input type="text" name="customer_name" placeholder="الاسم" required class="form-control mb-2">
@@ -11,21 +12,19 @@
 
     <div class="mb-3">
         <label>اختر الولاية:</label>
-        <select id="wilaya" name="wilaya" onchange="calculateTotal()" class="form-control mb-2" required>
+        <!-- قمنا بتغيير الدالة المستدعاة إلى calculateDelivery -->
+        <select id="wilaya" name="wilaya" onchange="calculateDelivery()" class="form-control mb-2" required>
             <option value="">-- اختر الولاية --</option>
             {% for rate in rates %}
-                <option value="{{ rate.id }}" 
-                        data-home="{{ rate.home_price }}" 
-                        data-office="{{ rate.office_price }}">
-                    {{ rate.wilaya_name }}
-                </option>
+                <option value="{{ rate.id }}">{{ rate.wilaya_name }}</option>
             {% endfor %}
         </select>
     </div>
 
     <div class="mb-3">
         <label>طريقة التوصيل:</label>
-        <select id="delivery_type" name="delivery_type" onchange="calculateTotal()" class="form-control mb-2" required>
+        <!-- قمنا بتغيير الدالة المستدعاة إلى calculateDelivery -->
+        <select id="delivery_type" name="delivery_type" onchange="calculateDelivery()" class="form-control mb-2" required>
             <option value="home">توصيل للمنزل</option>
             <option value="office">توصيل للمكتب</option>
         </select>
@@ -41,30 +40,39 @@
         <a href="/shop" class="btn btn-secondary">رجوع</a>
     </div>
 </form>
-
 <script>
-function calculateTotal() {
-    // 1. جلب العناصر
+function calculateDelivery() {
+    // 1. جلب القيم من الصفحة
+    const companyCode = document.getElementById('company_code').value;
+    const stateId = document.getElementById('wilaya').value;
+    const type = document.getElementById('delivery_type').value;
     const basePrice = parseFloat(document.getElementById('base_price').value) || 0;
-    const wilayaSelect = document.getElementById('wilaya');
-    const deliveryType = document.getElementById('delivery_type').value;
+    
     const shippingDisplay = document.getElementById('shipping_display');
     const totalDisplay = document.getElementById('total_display');
-    
-    // 2. التحقق من اختيار ولاية
-    if(wilayaSelect.value !== "") {
-        const selectedOption = wilayaSelect.options[wilayaSelect.selectedIndex];
-        
-        // 3. تحديد السعر بناءً على النوع
-        const shippingPrice = parseFloat(deliveryType === 'home' ? selectedOption.dataset.home : selectedOption.dataset.office) || 0;
-        
-        // 4. تحديث العرض
-        shippingDisplay.innerText = shippingPrice;
-        totalDisplay.innerText = basePrice + shippingPrice;
-    } else {
-        // في حال لم يختر الولاية
+
+    // 2. التحقق من اختيار الولاية
+    if (!stateId || stateId === "") {
         shippingDisplay.innerText = "0";
         totalDisplay.innerText = basePrice;
+        return;
     }
+
+    // 3. جلب السعر من المسار الذي برمجناه في main.py
+    // لاحظ أننا نرسل الكود والنوع والولاية
+    fetch(`/get_delivery_price?company_code=${companyCode}&state_id=${stateId}&type=${type}`)
+    .then(response => response.json())
+    .then(data => {
+        const deliveryPrice = parseFloat(data.price) || 0;
+        const total = basePrice + deliveryPrice;
+
+        // 4. تحديث الشاشة
+        shippingDisplay.innerText = deliveryPrice;
+        totalDisplay.innerText = total;
+    })
+    .catch(error => {
+        console.error('Error fetching price:', error);
+        shippingDisplay.innerText = "خطأ";
+    });
 }
 </script>
