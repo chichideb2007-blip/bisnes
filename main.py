@@ -191,7 +191,7 @@ def update_delivery_price():
     new_office = data.get('office_price')
     new_home = data.get('home_price')
     
-    # التعديل هنا: غيرنا 'delivery_prices' إلى 'shipping_rates'
+    # التعديل هنا: استخدام shipping_rates
     try:
         response = supabase.table("shipping_rates").update({
             "office_price": new_office,
@@ -433,7 +433,8 @@ def submit_order():
     product_res = supabase.table("inventory").select("price, name, company_id_text").eq("id", product_id).single().execute()
     product = product_res.data
     
-    shipping_res = supabase.table("delivery_prices").select("home_price, office_price").eq("id", int(wilaya_id)).single().execute()
+    # التعديل هنا: الجلب من shipping_rates
+    shipping_res = supabase.table("shipping_rates").select("home_price, office_price").eq("id", int(wilaya_id)).single().execute()
     shipping_data = shipping_res.data
     
     delivery_price = float(shipping_data['home_price']) if delivery_type == 'home' else float(shipping_data['office_price'])
@@ -494,7 +495,7 @@ def stats():
     try:
         res_orders = supabase.table("orders").select("total_price, created_at").eq("company_code", company_code).execute()
         orders = res_orders.data or []
-     total_orders = len(orders)
+        total_orders = len(orders)
 
         res_expenses = supabase.table("expenses").select("amount, created_at").eq("company_code", company_code).execute()
         expenses = res_expenses.data or []
