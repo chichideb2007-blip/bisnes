@@ -1,5 +1,20 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة أسعار التوصيل</title>
+    <!-- استيراد Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+    </style>
+</head>
+<body>
+
 <div class="container mt-4" style="max-width: 900px;">
     <h2 class="mb-4">إدارة أسعار توصيل الولايات</h2>
+    <a href="/dashboard" class="btn btn-secondary mb-3">الرجوع للوحة التحكم</a>
     
     <div class="card shadow-sm">
         <div class="card-body">
@@ -12,28 +27,63 @@
                         <th>إجراء</th>
                     </tr>
                 </thead>
-                <tbody>
-                    {% for rate in rates %}
-                    <tr>
-                        <form action="{{ url_for('shipping_settings') }}" method="POST">
-                            <td>
-                                {{ rate.wilaya_name if rate.wilaya_name else "ولاية رقم " ~ rate.id }}
-                                <input type="hidden" name="id" value="{{ rate.id }}">
-                            </td>
-                            <td>
-                                <input type="number" name="office_price" value="{{ rate.office_price }}" class="form-control form-control-sm">
-                            </td>
-                            <td>
-                                <input type="number" name="home_price" value="{{ rate.home_price }}" class="form-control form-control-sm">
-                            </td>
-                            <td>
-                                <button type="submit" class="btn btn-sm btn-success">حفظ</button>
-                            </td>
-                        </form>
-                    </tr>
-                    {% endfor %}
+                <tbody id="delivery-table">
+                    <!-- سيتم ملء البيانات هنا بواسطة الجافا سكريبت -->
                 </tbody>
             </table>
         </div>
     </div>
 </div>
+
+<script>
+    // دالة جلب البيانات من السيرفر
+    async function loadPrices() {
+        const res = await fetch('/get_delivery_prices');
+        const data = await res.json();
+        const tbody = document.getElementById('delivery-table');
+        
+        tbody.innerHTML = '';
+        data.forEach(row => {
+            tbody.innerHTML += `
+            <tr>
+                <td>${row.state_name}</td>
+                <td>
+                    <input type="number" id="office_${row.id}" value="${row.office_price}" class="form-control form-control-sm">
+                </td>
+                <td>
+                    <input type="number" id="home_${row.id}" value="${row.home_price}" class="form-control form-control-sm">
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-success" onclick="savePrice(${row.id})">حفظ</button>
+                </td>
+            </tr>`;
+        });
+    }
+
+    // دالة حفظ السعر عند الضغط على الزر
+    async function savePrice(id) {
+        const office = document.getElementById(`office_${id}`).value;
+        const home = document.getElementById(`home_${id}`).value;
+        
+        const res = await fetch('/update_delivery_price', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({id: id, office_price: office, home_price: home})
+        });
+        
+        if(res.ok) {
+            // إضافة تنبيه بصري بسيط
+            alert('تم حفظ السعر بنجاح!');
+        } else {
+            alert('حدث خطأ أثناء الحفظ');
+        }
+    }
+
+    // تشغيل الدالة عند تحميل الصفحة
+    loadPrices();
+</script>
+
+<!-- استيراد ملفات جافاسكريبت الخاصة بـ Bootstrap -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
