@@ -1,45 +1,70 @@
-<form action="/submit-order" method="POST">
+<form action="/submit-order" method="POST" class="p-3 border rounded">
+    <!-- حقول مخفية للمنتج والسعر الأساسي للحساب -->
     <input type="hidden" name="product_id" value="{{ product.id }}">
+    <input type="hidden" id="base_price" value="{{ product.price }}">
+
+    <div class="mb-3">
+        <input type="text" name="customer_name" placeholder="الاسم" required class="form-control mb-2">
+        <input type="text" name="customer_last_name" placeholder="اللقب" required class="form-control mb-2">
+        <input type="text" name="phone" placeholder="رقم الهاتف" required class="form-control mb-2">
+    </div>
+
+    <div class="mb-3">
+        <label>اختر الولاية:</label>
+        <select id="wilaya" name="wilaya" onchange="calculateTotal()" class="form-control mb-2" required>
+            <option value="">-- اختر الولاية --</option>
+            {% for rate in rates %}
+                <option value="{{ rate.id }}" 
+                        data-home="{{ rate.home_price }}" 
+                        data-office="{{ rate.office_price }}">
+                    {{ rate.wilaya_name }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label>طريقة التوصيل:</label>
+        <select id="delivery_type" name="delivery_type" onchange="calculateTotal()" class="form-control mb-2" required>
+            <option value="home">توصيل للمنزل</option>
+            <option value="office">توصيل للمكتب</option>
+        </select>
+    </div>
+
+    <div class="card p-3 bg-light">
+        <h4>سعر التوصيل: <span id="shipping_display">0</span> دج</h4>
+        <h4 class="text-primary">الإجمالي الكلي: <span id="total_display">{{ product.price }}</span> دج</h4>
+    </div>
     
-    <input type="text" name="customer_name" placeholder="الاسم" required class="form-control mb-2">
-    <input type="text" name="phone" placeholder="الهاتف" required class="form-control mb-2">
-
-    <label>اختر الولاية:</label>
-    <select id="wilaya" name="wilaya" onchange="calculateShipping()" class="form-control mb-2" required>
-        <option value="">-- اختر الولاية --</option>
-        {% for rate in rates %}
-            <option value="{{ rate.id }}" 
-                    data-office="{{ rate.office_price }}" 
-                    data-home="{{ rate.home_price }}">
-                {{ rate.wilaya }}
-            </option>
-        {% endfor %}
-    </select>
-
-    <label>طريقة التوصيل:</label>
-    <select id="delivery_type" name="delivery_type" onchange="calculateShipping()" class="form-control mb-2" required>
-        <option value="office">توصيل للمكتب</option>
-        <option value="home">توصيل للمنزل</option>
-    </select>
-
-    <h4 class="mt-3">سعر التوصيل: <span id="price-display">0</span> دج</h4>
-    
-    <button type="submit" class="btn btn-primary w-100">تأكيد الطلب</button>
+    <div class="mt-3 d-flex gap-2">
+        <button type="submit" class="btn btn-success flex-grow-1">تأكيد الطلب</button>
+        <a href="/shop" class="btn btn-secondary">رجوع</a>
+    </div>
 </form>
 
 <script>
-function calculateShipping() {
-    let wilayaSelect = document.getElementById('wilaya');
-    let typeSelect = document.getElementById('delivery_type').value;
-    let priceDisplay = document.getElementById('price-display');
+function calculateTotal() {
+    // 1. جلب العناصر
+    const basePrice = parseFloat(document.getElementById('base_price').value) || 0;
+    const wilayaSelect = document.getElementById('wilaya');
+    const deliveryType = document.getElementById('delivery_type').value;
+    const shippingDisplay = document.getElementById('shipping_display');
+    const totalDisplay = document.getElementById('total_display');
     
-    let selectedOption = wilayaSelect.options[wilayaSelect.selectedIndex];
-    
+    // 2. التحقق من اختيار ولاية
     if(wilayaSelect.value !== "") {
-        let price = (typeSelect === 'home') ? selectedOption.dataset.home : selectedOption.dataset.office;
-        priceDisplay.innerText = price;
+        const selectedOption = wilayaSelect.options[wilayaSelect.selectedIndex];
+        
+        // 3. تحديد السعر بناءً على النوع
+        const shippingPrice = parseFloat(deliveryType === 'home' ? selectedOption.dataset.home : selectedOption.dataset.office) || 0;
+        
+        // 4. تحديث العرض
+        shippingDisplay.innerText = shippingPrice;
+        totalDisplay.innerText = basePrice + shippingPrice;
     } else {
-        priceDisplay.innerText = "0";
+        // في حال لم يختر الولاية
+        shippingDisplay.innerText = "0";
+        totalDisplay.innerText = basePrice;
     }
 }
 </script>
