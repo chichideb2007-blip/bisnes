@@ -44,11 +44,14 @@
         try {
             const res = await fetch('/get_delivery_prices');
             const data = await res.json();
+            
+            // السطر الذي طلبته للفحص
+            console.log("البيانات المستلمة من السيرفر:", data); 
+            
             const tbody = document.getElementById('delivery-table');
             
             tbody.innerHTML = '';
             data.forEach(row => {
-                // ملاحظة: تأكد أن اسم الحقل في قاعدة البيانات هو wilaya_name أو state_name حسب ما تستخدمه
                 const name = row.wilaya_name || row.state_name; 
                 
                 tbody.innerHTML += `
