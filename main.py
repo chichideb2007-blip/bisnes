@@ -173,7 +173,7 @@ def settings():
 def shipping_settings():
     return render_template('shipping_settings.html')
 
-# --- مسارات API لأسعار التوصيل الجديدة ---
+# --- مسارات API لأسعار التوصيل ---
 @app.route('/get_delivery_prices', methods=['GET'])
 @login_required
 def get_delivery_prices():
@@ -185,13 +185,10 @@ def get_delivery_prices():
 @login_required
 def update_delivery_price():
     data = request.json
-    print(f"DEBUG: البيانات المستلمة هي: {data}")
-    
     row_id = data.get('id')
     new_office = data.get('office_price')
     new_home = data.get('home_price')
     
-    # التعديل هنا: استخدام shipping_rates
     try:
         response = supabase.table("shipping_rates").update({
             "office_price": new_office,
@@ -203,16 +200,12 @@ def update_delivery_price():
         print(f"Error: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
-# --- المسار الجديد shipping_rates ---
 @app.route('/get_shipping_rates')
 def get_shipping_rates():
-    # استلام الـ id الخاص بالولاية المرسل من الجافاسكريبت
     state_id = request.args.get('state_id')
     delivery_type = request.args.get('type')
     
-    # جلب السعر من جدول shipping_rates
     try:
-        # تأكد أن أسماء الأعمدة (home_price, office_price) تطابق أسماء الأعمدة في جدولك
         res = supabase.table("shipping_rates").select("home_price, office_price").eq("id", int(state_id)).single().execute()
         
         if res.data:
@@ -224,7 +217,12 @@ def get_shipping_rates():
         
     return jsonify({"price": 0})
 
-# --- المسارات الجديدة المضافة ---
+@app.route('/get_all_shipping_rates', methods=['GET'])
+@login_required
+def get_all_shipping_rates():
+    res = supabase.table("shipping_rates").select("*").order("id").execute()
+    return jsonify(res.data)
+
 @app.route('/get_delivery_settings', methods=['GET'])
 @login_required
 def get_delivery_settings():
@@ -433,8 +431,7 @@ def submit_order():
     product_res = supabase.table("inventory").select("price, name, company_id_text").eq("id", product_id).single().execute()
     product = product_res.data
     
-    # التعديل هنا: الجلب من shipping_rates
-    shipping_res = supabase.table("shipping_rates").select("home_price, office_price").eq("id", int(wilaya_id)).single().execute()
+    shipping_res = supabase.table("delivery_prices").select("home_price, office_price").eq("id", int(wilaya_id)).single().execute()
     shipping_data = shipping_res.data
     
     delivery_price = float(shipping_data['home_price']) if delivery_type == 'home' else float(shipping_data['office_price'])
@@ -480,7 +477,6 @@ def order_page(product_id):
 
 @app.route('/checkout/<int:product_id>')
 def checkout(product_id):
-    # يمكنك إعادة توجيهه لدالة order_page أو عرض صفحة الـ checkout
     return redirect(url_for('order_page', product_id=product_id))
 
 @app.route('/stats')
@@ -499,9 +495,8 @@ def stats():
 
         res_expenses = supabase.table("expenses").select("amount, created_at").eq("company_code", company_code).execute()
         expenses = res_expenses.data or []
-        total_expenses =sum(float(e.get('amount') or 0) for e in expenses)
-
-        daily_data, monthly_data, yearly_data = defaultdict(float), defaultdict(float), defaultdict(float)
+        total_expenses =sum(float(e.get('amount')
+daily_data, monthly_data, yearly_data = defaultdict(float), defaultdict(float), defaultdict(float)
         days_order = ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"]
         months_order =["جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان", "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
         
