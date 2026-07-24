@@ -469,6 +469,11 @@ def order_page(product_id):
         return "هذا المنتج غير موجود", 404
     return render_template('order.html', product=product)
 
+@app.route('/checkout/<int:product_id>')
+def checkout(product_id):
+    # يمكنك إعادة توجيهه لدالة order_page أو عرض صفحة الـ checkout
+    return redirect(url_for('order_page', product_id=product_id))
+
 @app.route('/stats')
 @login_required
 def stats():
@@ -489,7 +494,7 @@ def stats():
 
         daily_data, monthly_data, yearly_data = defaultdict(float), defaultdict(float), defaultdict(float)
         days_order = ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"]
-        months_order = ["جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان", "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
+        months_order =["جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان", "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
         
         for o in orders:
             price = float(o.get('total_price') or 0)
