@@ -15,7 +15,10 @@
     <div class="container mt-3">
         <div class="d-flex justify-content-between align-items-center">
             <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">⬅️ لوحة التحكم</a>
-            <!-- يمكنك إبقاء تضمين الترجمة إذا كنت تستخدمه -->
+            
+            <!-- الرابط الجديد الذي طلبته -->
+            <a href="{{ url_for('shipping_settings') }}" class="btn btn-secondary">إدارة أسعار التوصيل</a>
+            
             {% include 'translate.html' ignore missing %}
             <a href="{{ url_for('logout') }}" class="btn btn-danger">🚪 خروج</a>
         </div>
@@ -101,6 +104,58 @@
                 </table>
             </div>
         </div>
+
+        <!-- إضافة جدول تعديل أسعار التوصيل في الأسفل -->
+        <div class="card mt-4 content-card">
+            <div class="card-header bg-primary text-white">
+                <h5>تعديل أسعار التوصيل</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>الولاية</th>
+                            <th>للمنزل</th>
+                            <th>للمكتب</th>
+                            <th>حفظ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="wilayas-table">
+                        <!-- البيانات ستظهر هنا تلقائياً -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
+
+    <script>
+        // جلب البيانات وإظهارها في الجدول
+        fetch('/get_delivery_prices')
+            .then(res => res.json())
+            .then(data => {
+                const tbody = document.getElementById('wilayas-table');
+                tbody.innerHTML = ''; // تفريغ الجدول أولاً
+                data.forEach(item => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${item.wilaya_name}</td>
+                            <td><input type="number" id="home-${item.id}" value="${item.home_price}" class="form-control"></td>
+                            <td><input type="number" id="office-${item.id}" value="${item.office_price}" class="form-control"></td>
+                            <td><button class="btn btn-success" onclick="updatePrice(${item.id})">حفظ</button></td>
+                        </tr>`;
+                });
+            });
+
+        function updatePrice(id) {
+            const home = document.getElementById(`home-${id}`).value;
+            const office = document.getElementById(`office-${id}`).value;
+            
+            fetch('/update_delivery_price', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({id: id, home_price: home, office_price: office})
+            }).then(() => alert('تم تحديث السعر بنجاح'));
+        }
+    </script>
 </body>
 </html>
