@@ -49,7 +49,7 @@
 
                     <!-- منطق المخزون -->
                     {% if product.quantity > 0 %}
-                        <a href="{{ url_for('checkout', product_id=product.id) }}" class="btn btn-primary w-100">شراء</a>
+                        <a href="{{ url_for('order_page', product_id=product.id) }}" class="btn btn-primary w-100">شراء الآن</a>
                     {% else %}
                         <button class="btn btn-secondary w-100" disabled>غير متوفر</button>
                     {% endif %}
