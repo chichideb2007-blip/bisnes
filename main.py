@@ -332,8 +332,8 @@ def delete_order(id):
 def orders():
     company_code = session.get('company_code')
     
-    # جلب قائمة الولايات من الجدول (لإظهارها في القائمة المنسدلة)
-    wilayas = supabase.table("shipping_rates").select("wilaya_name").order("id").execute()
+    # جلب جميع الولايات من جدول shipping_rates
+    wilayas_res = supabase.table("shipping_rates").select("*").order("id").execute()
     
     if request.method == 'POST':
         product_name = request.form.get('product_name')
@@ -386,8 +386,9 @@ def orders():
         return redirect(url_for('orders'))
 
     res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
-    # نرسل wilayas للقالب
-    return render_template('orders_dashboard.html', orders=res.data or [], wilayas=wilayas.data)
+    
+    # تمرير wilayas للقالب
+    return render_template('orders_dashboard.html', orders=res.data or [], wilayas=wilayas_res.data)
 
 # --- مسارات الزبائن ---
 
@@ -482,6 +483,12 @@ def stats():
                 dt = datetime.fromisoformat(o['created_at'].replace('Z', '+00:00'))
                 day_name = days_order[dt.weekday()] if dt.weekday() < 7 else "السبت"
                 daily_data[day_name] += price
+                monthly_data[months_order[dt.month - 1]] += price = float(o.get('total_price') or 0)
+            total_sales += price
+            if o.get('created_at'):
+                dt = datetime.fromisoformat(o['created_at'].replace('Z', '+00:00'))
+                day_name = days_order[dt.weekday()] if dt.weekday() < 7 else "السبت"
+                daily_data[day_name] += price
                 monthly_data[months_order[dt.month - 1]] += price
                 yearly_data[str(dt.year)] += price
         
@@ -516,3 +523,4 @@ def webhook_instagram():
 
 if __name__ == '__main__':
     app.run(debug=True)
+  
