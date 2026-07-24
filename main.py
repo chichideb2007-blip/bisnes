@@ -186,10 +186,13 @@ def get_delivery_prices():
 @login_required
 def update_delivery_price():
     data = request.json
-    row_id = data['id']
-    new_office = data['office_price']
-    new_home = data['home_price']
+    print(f"DEBUG: البيانات المستلمة هي: {data}") # هذا السطر مهم جداً
     
+    row_id = data.get('id')
+    new_office = data.get('office_price')
+    new_home = data.get('home_price')
+    
+    # تأكد أن أسماء الأعمدة هنا تطابق تماماً أسماء الأعمدة في جدول Supabase
     supabase.table("delivery_prices").update({
         "office_price": new_office,
         "home_price": new_home
