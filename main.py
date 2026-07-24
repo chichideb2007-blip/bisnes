@@ -18,18 +18,19 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "fallback_dev_key")
 supabase = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY"))
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
-# --- المعالج التلقائي للعملة ---
+# --- المعالج التلقائي للعملة (مُحدث) ---
 @app.context_processor
 def inject_currency():
     company_code = session.get('company_code')
     if company_code:
         try:
-            res = supabase.table("settings").select("currency").eq("company_code", company_code).execute()
-            currency = res.data[0]['currency'] if res.data else ""
-            return dict(currency=currency)
+            # نجلب العملة مرة واحدة للمتجر
+            res = supabase.table('settings').select("currency").eq("company_code", company_code).single().execute()
+            if res.data:
+                return dict(currency=res.data.get('currency', ''))
         except:
-            return dict(currency="")
-    return dict(currency="")
+            pass
+    return dict(currency='DA') # العملة الافتراضية إذا لم توجد
 
 # --- الدوال المساعدة ---
 
@@ -296,10 +297,7 @@ def delete_order(id):
 def orders():
     company_code = session.get('company_code')
     
-    res_settings = supabase.table("settings").select("currency, telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
-    settings_info = res_settings.data[0] if res_settings.data else {}
-    currency = settings_info.get('currency', '')
-
+    # لم تعد بحاجة لجلب العملة هنا لأن context_processor يقوم بذلك تلقائياً
     if request.method == 'POST':
         product_name = request.form.get('product_name')
         requested_qty = int(request.form.get('quantity', 0))
@@ -328,6 +326,9 @@ def orders():
         }
         supabase.table("orders").insert(data).execute()
         
+        # جلب إعدادات التلغرام فقط عند الحاجة
+        res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
+        settings_info = res_settings.data[0] if res_settings.data else {}
         token = settings_info.get('telegram_token')
         chat_id = settings_info.get('telegram_chat_id')
         
@@ -351,7 +352,7 @@ def orders():
         return redirect(url_for('orders'))
 
     res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
-    return render_template('orders_dashboard.html', orders=res.data or [], currency=currency)
+    return render_template('orders_dashboard.html', orders=res.data or [])
 
 # --- مسارات الزبائن ---
 
@@ -473,23 +474,7 @@ def webhook_instagram():
         if res.data:
             send_telegram_alert_by_token(res.data[0]['telegram_token'], res.data[0]['telegram_chat_id'], f"🔔 رسالة إنستقرام جديدة من العميل ({sender_id}):\n{msg}")
             
-            my_system_instruction = """أنتِ مساعد مبيعات محترف يعمل لصالح "ChichiDeb". مهمته هي مساعدة العملاء في إكمال طلباتهم.
-1.عندما يعبر العميل عن رغبته في الشراء، قومي بتلخيص الطلب والتأكد من تفاصيل.
-2. بمجرد تأكيد العميل، يجب أن تخرجي البيانات حصراً بتنسيق JSON، بدون أي مقدمات أو كلام إضافي، بالتنسيق التالي:
-{ "client_id": "...", "page_id": "...", "total_amount": 0, "items": [...], "customer_phone": "...", "shipping_address": "..." }"""
-
-            response = client.models.generate_content(
-                model='gemini-1.5-flash',
-                contents=msg,
-                config=types.GenerateContentConfig(
-                    system_instruction=my_system_instruction
-                )
-            )
         return "OK", 200
 
     except Exception as e:
-        print(f"DEBUG: خطأ في معالجة رسالة إنستقرام: {e}")
-        return "Internal Server Error", 500
-
-if __name__ == '__main__':
-    app.run(debug=True)
+    
