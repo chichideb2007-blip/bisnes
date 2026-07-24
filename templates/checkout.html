@@ -2,57 +2,95 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <title>إتمام الطلب - {{ product.name }}</title>
+    <style>
+        body { background-color: #f4f4f9; padding: 20px; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        .checkout-card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 600px; margin: auto; }
+        .price-display { font-size: 1.2em; font-weight: bold; color: #28a745; margin: 15px 0; padding: 10px; background: #e9ecef; border-radius: 5px; }
+    </style>
 </head>
 <body>
 
-    <h1>إتمام الطلب: {{ product.name }}</h1>
-    <!-- السعر الأساسي مخزن هنا لاستخدامه في الحساب -->
-    <input type="hidden" id="base_price" value="{{ product.price }}">
-    <p>السعر الأساسي: {{ product.price }} دج</p>
-
-    <form id="orderForm" action="/submit-order" method="POST">
-        <!-- إرسال رقم المنتج ضمن الطلب -->
-        <input type="hidden" name="product_id" value="{{ product.id }}">
+    <div class="checkout-card">
+        <h2 class="mb-4 text-center">إتمام الطلب: {{ product.name }}</h2>
         
-        <input type="text" name="customer_name" placeholder="الاسم الكامل" required>
-        <input type="tel" name="phone" placeholder="رقم الهاتف" required>
-        
-        <!-- اختيار الولاية والبلدية -->
-        <select id="wilaya" name="wilaya" onchange="updateDelivery()">
-            <option value="">اختر الولاية</option>
-            <!-- هنا ستضعين قائمة الولايات -->
-        </select>
-        <select id="commune" name="commune"></select>
+        <!-- السعر الأساسي مخزن هنا للحساب -->
+        <input type="hidden" id="base_price" value="{{ product.price }}">
+        <p>السعر الأساسي: {{ product.price }} دج</p>
 
-        <!-- خيار التوصيل -->
-        <select id="delivery_type" name="delivery_type" onchange="calculateTotal()">
-            <option value="home">توصيل للمنزل</option>
-            <option value="office">توصيل للمكتب</option>
-        </select>
+        <form action="{{ url_for('submit_order') }}" method="POST">
+            <input type="hidden" name="product_id" value="{{ product.id }}">
+            
+            <div class="mb-3">
+                <input type="text" name="first_name" class="form-control" placeholder="الاسم" required>
+            </div>
+            <div class="mb-3">
+                <input type="text" name="last_name" class="form-control" placeholder="اللقب" required>
+            </div>
+            <div class="mb-3">
+                <input type="tel" name="phone" class="form-control" placeholder="رقم الهاتف" required>
+            </div>
+            
+            <!-- اختيار الولاية -->
+            <div class="mb-3">
+                <label>الولاية:</label>
+                <select name="state" id="state" class="form-select" onchange="calculateDelivery()" required>
+                    <option value="">اختر الولاية</option>
+                    {% for w in wilayas %}
+                    <option value="{{ w.id }}">{{ w.wilaya_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
 
-        <!-- المجموع التلقائي -->
-        <div id="total_price_display">المجموع: {{ product.price }} دج</div>
-        
-        <button type="submit">تأكيد الطلب</button>
-    </form>
+            <div class="mb-3">
+                <input type="text" name="baladiya" class="form-control" placeholder="البلدية" required>
+            </div>
+            
+            <div class="mb-3">
+                <input type="text" name="address" class="form-control" placeholder="العنوان الكامل" required>
+            </div>
+
+            <!-- اختيار نوع التوصيل -->
+            <div class="mb-3">
+                <label>نوع التوصيل:</label>
+                <select name="delivery_type" id="delivery_type" class="form-select" onchange="calculateDelivery()" required>
+                    <option value="home">توصيل للمنزل</option>
+                    <option value="office">توصيل للمكتب</option>
+                </select>
+            </div>
+
+            <!-- عرض الأسعار -->
+            <div class="price-display">
+                <div id="delivery_price_display">سعر التوصيل: 0 دج</div>
+                <div id="total_price_display">المجموع الكلي: {{ product.price }} دج</div>
+            </div>
+
+            <button type="submit" class="btn btn-success w-100">تأكيد الشراء</button>
+        </form>
+    </div>
 
     <script>
-        function calculateTotal() {
+        function calculateDelivery() {
+            const stateId = document.getElementById('state').value;
+            const type = document.getElementById('delivery_type').value;
             const basePrice = parseFloat(document.getElementById('base_price').value);
-            const deliveryType = document.getElementById('delivery_type').value;
-            
-            // يمكنك هنا وضع منطق أسعار التوصيل الفعلي
-            const deliveryCost = (deliveryType === 'home') ? 500 : 300; 
-            const total = basePrice + deliveryCost;
-            
-            document.getElementById('total_price_display').innerText = "المجموع: " + total + " دج";
-        }
 
-        function updateDelivery() {
-            // كود جلب البلديات بناءً على الولاية
-            console.log("تحديث البلديات...");
-            calculateTotal();
+            if (!stateId) return;
+
+            // يقوم هذا السطر بالاتصال بـ main.py وجلب السعر من قاعدة البيانات
+            fetch(`/get_delivery_price?state_id=${stateId}&type=${type}`)
+            .then(response => response.json())
+            .then(data => {
+                const deliveryPrice = parseFloat(data.price);
+                const total = basePrice + deliveryPrice;
+
+                // تحديث السعر في الواجهة
+                document.getElementById('delivery_price_display').innerText = 'سعر التوصيل: ' + deliveryPrice + ' دج';
+                document.getElementById('total_price_display').innerText = 'المجموع الكلي: ' + total + ' دج';
+            })
+            .catch(error => console.error('Error:', error));
         }
     </script>
 </body>
