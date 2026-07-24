@@ -1,36 +1,39 @@
 <!DOCTYPE html>
-<html dir="rtl" lang="ar">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>إدارة أسعار التوصيل</title>
-    <!-- استيراد Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { background-color: #f8f9fa; }
+        .table thead { background-color: #198754; color: white; }
     </style>
 </head>
 <body>
 
 <div class="container mt-4" style="max-width: 900px;">
-    <h2 class="mb-4">إدارة أسعار توصيل الولايات</h2>
-    <a href="/dashboard" class="btn btn-secondary mb-3">الرجوع للوحة التحكم</a>
+    <h2 class="mb-4 text-center">إدارة أسعار توصيل الولايات</h2>
+    <div class="d-flex justify-content-between mb-3">
+        <a href="/dashboard" class="btn btn-secondary">⬅️ الرجوع للوحة التحكم</a>
+    </div>
     
     <div class="card shadow-sm">
         <div class="card-body">
-            <table class="table table-hover table-bordered align-middle">
-                <thead class="table-success">
-                    <tr>
-                        <th>الولاية</th>
-                        <th>سعر المكتب (دج)</th>
-                        <th>سعر المنزل (دج)</th>
-                        <th>إجراء</th>
-                    </tr>
-                </thead>
-                <tbody id="delivery-table">
-                    <!-- سيتم ملء البيانات هنا بواسطة الجافا سكريبت -->
-                </tbody>
-            </table>
+            <div class="table-responsive">
+                <table class="table table-hover table-bordered align-middle text-center">
+                    <thead>
+                        <tr>
+                            <th>الولاية</th>
+                            <th>سعر التوصيل للمكتب (دج)</th>
+                            <th>سعر التوصيل للمنزل (دج)</th>
+                            <th>إجراء</th>
+                        </tr>
+                    </thead>
+                    <tbody id="delivery-table">
+                        </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
@@ -38,32 +41,39 @@
 <script>
     // دالة جلب البيانات من السيرفر
     async function loadPrices() {
-        const res = await fetch('/get_delivery_prices');
-        const data = await res.json();
-        const tbody = document.getElementById('delivery-table');
-        
-        tbody.innerHTML = '';
-        data.forEach(row => {
-            tbody.innerHTML += `
-            <tr>
-                <td>${row.state_name}</td>
-                <td>
-                    <input type="number" id="office_${row.id}" value="${row.office_price}" class="form-control form-control-sm">
-                </td>
-                <td>
-                    <input type="number" id="home_${row.id}" value="${row.home_price}" class="form-control form-control-sm">
-                </td>
-                <td>
-                    <button class="btn btn-sm btn-success" onclick="savePrice(${row.id})">حفظ</button>
-                </td>
-            </tr>`;
-        });
+        try {
+            const res = await fetch('/get_delivery_prices');
+            const data = await res.json();
+            const tbody = document.getElementById('delivery-table');
+            
+            tbody.innerHTML = '';
+            data.forEach(row => {
+                // ملاحظة: تأكد أن اسم الحقل في قاعدة البيانات هو wilaya_name أو state_name حسب ما تستخدمه
+                const name = row.wilaya_name || row.state_name; 
+                
+                tbody.innerHTML += `
+                <tr>
+                    <td>${name}</td>
+                    <td>
+                        <input type="number" id="office-${row.id}" value="${row.office_price}" class="form-control form-control-sm">
+                    </td>
+                    <td>
+                        <input type="number" id="home-${row.id}" value="${row.home_price}" class="form-control form-control-sm">
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-success" onclick="savePrice(${row.id})">حفظ</button>
+                    </td>
+                </tr>`;
+            });
+        } catch (error) {
+            console.error("خطأ في تحميل البيانات:", error);
+        }
     }
 
     // دالة حفظ السعر عند الضغط على الزر
     async function savePrice(id) {
-        const office = document.getElementById(`office_${id}`).value;
-        const home = document.getElementById(`home_${id}`).value;
+        const office = document.getElementById(`office-${id}`).value;
+        const home = document.getElementById(`home-${id}`).value;
         
         const res = await fetch('/update_delivery_price', {
             method: 'POST',
@@ -72,7 +82,6 @@
         });
         
         if(res.ok) {
-            // إضافة تنبيه بصري بسيط
             alert('تم حفظ السعر بنجاح!');
         } else {
             alert('حدث خطأ أثناء الحفظ');
@@ -83,7 +92,6 @@
     loadPrices();
 </script>
 
-<!-- استيراد ملفات جافاسكريبت الخاصة بـ Bootstrap -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
