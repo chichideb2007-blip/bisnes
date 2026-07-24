@@ -332,6 +332,9 @@ def delete_order(id):
 def orders():
     company_code = session.get('company_code')
     
+    # جلب قائمة الولايات من الجدول (لإظهارها في القائمة المنسدلة)
+    wilayas = supabase.table("shipping_rates").select("wilaya_name").order("id").execute()
+    
     if request.method == 'POST':
         product_name = request.form.get('product_name')
         requested_qty = int(request.form.get('quantity', 0))
@@ -383,7 +386,8 @@ def orders():
         return redirect(url_for('orders'))
 
     res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
-    return render_template('orders_dashboard.html', orders=res.data or [])
+    # نرسل wilayas للقالب
+    return render_template('orders_dashboard.html', orders=res.data or [], wilayas=wilayas.data)
 
 # --- مسارات الزبائن ---
 
