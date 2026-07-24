@@ -178,7 +178,6 @@ def shipping_settings():
 @login_required
 def get_delivery_prices():
     company_code = session.get('company_code')
-    # ملاحظة: تم تعديل المفتاح إلى company_code ليتناسب مع جلسة شركتك
     data = supabase.table("delivery_prices").select("*").eq("company_code", company_code).execute()
     return jsonify(data.data)
 
@@ -186,13 +185,12 @@ def get_delivery_prices():
 @login_required
 def update_delivery_price():
     data = request.json
-    print(f"DEBUG: البيانات المستلمة هي: {data}") # هذا السطر مهم جداً
+    print(f"DEBUG: البيانات المستلمة هي: {data}")
     
     row_id = data.get('id')
     new_office = data.get('office_price')
     new_home = data.get('home_price')
     
-    # تأكد أن أسماء الأعمدة هنا تطابق تماماً أسماء الأعمدة في جدول Supabase
     supabase.table("delivery_prices").update({
         "office_price": new_office,
         "home_price": new_home
@@ -200,12 +198,36 @@ def update_delivery_price():
     
     return jsonify({"status": "success"})
 
+# --- مسار الحصول على سعر التوصيل ---
+@app.route('/get_delivery_price')
+def get_delivery_price():
+    company_code = request.args.get('company_code')
+    delivery_type = request.args.get('type')
+    
+    try:
+        # جلب أسعار التوصيل من جدول إعدادات الشركة بناءً على كود الشركة
+        response = supabase.table("company_settings").select("delivery_home_price, delivery_office_price").eq("company_code", company_code).single().execute()
+        settings = response.data
+        
+        if not settings:
+            return jsonify({"price": 0})
+        
+        # اختيار السعر بناءً على نوع التوصيل
+        if delivery_type == 'home':
+            price = settings.get('delivery_home_price', 0)
+        else:
+            price = settings.get('delivery_office_price', 0)
+            
+        return jsonify({"price": float(price)})
+    except Exception as e:
+        print(f"DEBUG: خطأ في جلب سعر التوصيل: {e}")
+        return jsonify({"price": 0})
+
 # --- المسارات الجديدة المضافة ---
 @app.route('/get_delivery_settings', methods=['GET'])
 @login_required
 def get_delivery_settings():
     company_code = session.get('company_code')
-    # جلب الأسعار الخاصة بشركتك من جدول company_settings
     data = supabase.table("company_settings").select("*").eq("company_code", company_code).single().execute()
     return jsonify(data.data)
 
@@ -214,7 +236,6 @@ def get_delivery_settings():
 def update_delivery_settings():
     data = request.json
     company_code = session.get('company_code')
-    # تحديث الأسعار في قاعدة البيانات
     supabase.table("company_settings").update({
         "delivery_office_price": data.get('office_price'),
         "delivery_home_price": data.get('home_price')
@@ -319,11 +340,9 @@ def delete_product(id):
     except Exception as e: print(f"Delete Error: {e}")
     return redirect(url_for('products'))
 
-# تم دمج دالة الحذف هنا
 @app.route('/delete_order/<int:id>', methods=['POST'])
 @login_required
 def delete_order(id):
-    # كود حذف الطلبية من قاعدة البيانات
     supabase.table("orders").delete().eq("id", id).execute()
     return redirect(url_for('orders'))
 
@@ -332,7 +351,6 @@ def delete_order(id):
 def orders():
     company_code = session.get('company_code')
     
-    # جلب جميع الولايات من جدول shipping_rates
     wilayas_res = supabase.table("shipping_rates").select("*").order("id").execute()
     
     if request.method == 'POST':
@@ -387,10 +405,7 @@ def orders():
 
     res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
     
-    # تمرير wilayas للقالب
     return render_template('orders_dashboard.html', orders=res.data or [], wilayas=wilayas_res.data)
-
-# --- مسارات الزبائن ---
 
 @app.route('/shop')
 def shop():
@@ -483,12 +498,6 @@ def stats():
                 dt = datetime.fromisoformat(o['created_at'].replace('Z', '+00:00'))
                 day_name = days_order[dt.weekday()] if dt.weekday() < 7 else "السبت"
                 daily_data[day_name] += price
-                monthly_data[months_order[dt.month - 1]] += price = float(o.get('total_price') or 0)
-            total_sales += price
-            if o.get('created_at'):
-                dt = datetime.fromisoformat(o['created_at'].replace('Z', '+00:00'))
-                day_name = days_order[dt.weekday()] if dt.weekday() < 7 else "السبت"
-                daily_data[day_name] += price
                 monthly_data[months_order[dt.month - 1]] += price
                 yearly_data[str(dt.year)] += price
         
@@ -523,4 +532,3 @@ def webhook_instagram():
 
 if __name__ == '__main__':
     app.run(debug=True)
-  
