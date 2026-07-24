@@ -8,8 +8,8 @@ import time
 import requests
 import urllib.parse
 import base64
-from google import genai  # مكتبة Gemini
-from google.genai import types # استيراد الأنواع اللازمة للـ Config
+from google import genai 
+from google.genai import types 
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "fallback_dev_key")
@@ -202,24 +202,25 @@ def update_delivery_price():
 
 @app.route('/get_shipping_rates')
 def get_shipping_rates():
-    state_id = request.args.get('state_id')
-    delivery_type = request.args.get('type')
-    company_code = request.args.get('company_code') # أضفنا استلام كود الشركة
+    # جلب الكود والنوع من المتصفح
+    company_code = request.args.get('company_code')
+    delivery_type = request.args.get('type') # home أو office
     
     try:
-        # البحث في الجدول مع تصفية الشركة والولاية
-        res = supabase.table("shipping_rates") \
+        # هنا التغيير: سنبحث في الجدول الذي تحفظ فيه أسعارك فعلياً
+        # غير 'delivery_prices' باسم الجدول الحقيقي الذي تستخدمه في لوحة التحكم
+        res = supabase.table("delivery_prices") \
             .select("home_price, office_price") \
-            .eq("id", int(state_id)) \
             .eq("company_code", company_code) \
             .single().execute()
         
         if res.data:
-            price = res.data['home_price'] if delivery_type == 'home' else res.data['office_price']
-            return jsonify({"price": float(price)})
+            # نختار السعر بناءً على النوع
+            price = res.data.get('home_price') if delivery_type == 'home' else res.data.get('office_price')
+            return jsonify({"price": float(price or 0)})
             
     except Exception as e:
-        print(f"Error fetching from shipping_rates: {e}")
+        print(f"Error fetching from settings table: {e}")
         
     return jsonify({"price": 0})
 
