@@ -13,12 +13,32 @@
 <body>
 
 <div class="container mt-4" style="max-width: 900px;">
-    <h2 class="mb-4 text-center">إدارة أسعار توصيل الولايات</h2>
+    <h2 class="mb-4 text-center">إدارة أسعار التوصيل</h2>
     <div class="d-flex justify-content-between mb-3">
         <a href="/dashboard" class="btn btn-secondary">⬅️ الرجوع للوحة التحكم</a>
     </div>
-    
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">ضبط الأسعار العامة</div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-5">
+                    <label class="form-label">سعر التوصيل للمكتب (دج)</label>
+                    <input type="number" id="office-price" class="form-control">
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label">سعر التوصيل للمنزل (دج)</label>
+                    <input type="number" id="home-price" class="form-control">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button class="btn btn-primary w-100" onclick="savePrices()">حفظ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="card shadow-sm">
+        <div class="card-header bg-success text-white">أسعار الولايات</div>
         <div class="card-body">
             <div class="table-responsive">
                 <table class="table table-hover table-bordered align-middle text-center">
@@ -30,8 +50,7 @@
                             <th>إجراء</th>
                         </tr>
                     </thead>
-                    <tbody id="delivery-table">
-                        </tbody>
+                    <tbody id="delivery-table"></tbody>
                 </table>
             </div>
         </div>
@@ -39,59 +58,57 @@
 </div>
 
 <script>
-    // دالة جلب البيانات من السيرفر
+    // 1. جلب الأسعار العامة
     async function loadPrices() {
+        try {
+            const res = await fetch('/get_delivery_settings');
+            const data = await res.json();
+            document.getElementById('office-price').value = data.delivery_office_price || 0;
+            document.getElementById('home-price').value = data.delivery_home_price || 0;
+        } catch (e) { console.error("خطأ في جلب الأسعار العامة"); }
+
+        // 2. جلب أسعار الولايات
         try {
             const res = await fetch('/get_delivery_prices');
             const data = await res.json();
-            
-            // السطر الذي طلبته للفحص
-            console.log("البيانات المستلمة من السيرفر:", data); 
-            
             const tbody = document.getElementById('delivery-table');
-            
             tbody.innerHTML = '';
             data.forEach(row => {
-                const name = row.wilaya_name || row.state_name; 
-                
                 tbody.innerHTML += `
                 <tr>
-                    <td>${name}</td>
-                    <td>
-                        <input type="number" id="office-${row.id}" value="${row.office_price}" class="form-control form-control-sm">
-                    </td>
-                    <td>
-                        <input type="number" id="home-${row.id}" value="${row.home_price}" class="form-control form-control-sm">
-                    </td>
-                    <td>
-                        <button class="btn btn-sm btn-success" onclick="savePrice(${row.id})">حفظ</button>
-                    </td>
+                    <td>${row.wilaya_name || row.state_name}</td>
+                    <td><input type="number" id="office-${row.id}" value="${row.office_price}" class="form-control form-control-sm"></td>
+                    <td><input type="number" id="home-${row.id}" value="${row.home_price}" class="form-control form-control-sm"></td>
+                    <td><button class="btn btn-sm btn-success" onclick="savePrice(${row.id})">حفظ</button></td>
                 </tr>`;
             });
-        } catch (error) {
-            console.error("خطأ في تحميل البيانات:", error);
-        }
+        } catch (e) { console.error("خطأ في جلب أسعار الولايات"); }
     }
 
-    // دالة حفظ السعر عند الضغط على الزر
+    // حفظ الأسعار العامة
+    async function savePrices() {
+        const office = document.getElementById('office-price').value;
+        const home = document.getElementById('home-price').value;
+        await fetch('/update_delivery_settings', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({office_price: office, home_price: home})
+        });
+        alert('تم تحديث الأسعار العامة!');
+    }
+
+    // حفظ سعر ولاية محددة
     async function savePrice(id) {
         const office = document.getElementById(`office-${id}`).value;
         const home = document.getElementById(`home-${id}`).value;
-        
-        const res = await fetch('/update_delivery_price', {
+        await fetch('/update_delivery_price', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({id: id, office_price: office, home_price: home})
         });
-        
-        if(res.ok) {
-            alert('تم حفظ السعر بنجاح!');
-        } else {
-            alert('حدث خطأ أثناء الحفظ');
-        }
+        alert('تم حفظ السعر!');
     }
 
-    // تشغيل الدالة عند تحميل الصفحة
     loadPrices();
 </script>
 
