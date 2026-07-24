@@ -16,7 +16,6 @@
         <div class="d-flex justify-content-between align-items-center">
             <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">⬅️ لوحة التحكم</a>
             
-            <!-- الرابط الجديد -->
             <a href="{{ url_for('shipping_settings') }}" class="btn btn-secondary">إدارة أسعار التوصيل</a>
             
             {% include 'translate.html' ignore missing %}
@@ -27,7 +26,7 @@
     <div class="container mt-4">
         <h2 class="mb-4 text-center fw-bold">📦 لوحة إدارة الطلبات</h2>
 
-        <!-- نموذج إضافة طلب يدوي (تم تحديثه) -->
+        <!-- نموذج إضافة طلب يدوي -->
         <div class="content-card">
             <h4 class="mb-3">إضافة طلب جديد يدوياً</h4>
             <form action="{{ url_for('orders') }}" method="POST" class="row g-3">
@@ -114,56 +113,58 @@
             </div>
         </div>
 
-        <!-- جدول تعديل أسعار التوصيل -->
-        <div class="card mt-4 content-card">
-            <div class="card-header bg-primary text-white">
-                <h5>تعديل أسعار التوصيل</h5>
-            </div>
-            <div class="card-body">
-                <table class="table table-bordered">
+        <!-- جدول ضبط أسعار التوصيل اليدوي -->
+        <div class="content-card mt-5">
+            <h4 class="mb-3">أسعار التوصيل (ضبط يدوي)</h4>
+            <div class="table-responsive">
+                <table class="table table-bordered text-center">
                     <thead>
                         <tr>
                             <th>الولاية</th>
-                            <th>للمنزل</th>
-                            <th>للمكتب</th>
-                            <th>حفظ</th>
+                            <th>سعر التوصيل للمنزل</th>
+                            <th>سعر التوصيل للمكتب</th>
+                            <th>الإجراء</th>
                         </tr>
                     </thead>
-                    <tbody id="wilayas-table">
-                        <!-- البيانات ستظهر هنا تلقائياً -->
+                    <tbody>
+                        {% for w in wilayas %}
+                        <tr>
+                            <td>{{ w.wilaya_name }}</td>
+                            <td><input type="number" id="home-{{ w.id }}" value="{{ w.home_price }}" class="form-control"></td>
+                            <td><input type="number" id="office-{{ w.id }}" value="{{ w.office_price }}" class="form-control"></td>
+                            <td>
+                                <button class="btn btn-success btn-sm" onclick="savePrice({{ w.id }})">حفظ التعديل</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>
         </div>
+
     </div>
 
     <script>
-        // جلب البيانات وإظهارها في الجدول
-        fetch('/get_delivery_prices')
-            .then(res => res.json())
-            .then(data => {
-                const tbody = document.getElementById('wilayas-table');
-                tbody.innerHTML = ''; 
-                data.forEach(item => {
-                    tbody.innerHTML += `
-                        <tr>
-                            <td>${item.wilaya_name}</td>
-                            <td><input type="number" id="home-${item.id}" value="${item.home_price}" class="form-control"></td>
-                            <td><input type="number" id="office-${item.id}" value="${item.office_price}" class="form-control"></td>
-                            <td><button class="btn btn-success" onclick="updatePrice(${item.id})">حفظ</button></td>
-                        </tr>`;
-                });
-            });
+        function savePrice(id) {
+            const homePrice = document.getElementById('home-' + id).value;
+            const officePrice = document.getElementById('office-' + id).value;
 
-        function updatePrice(id) {
-            const home = document.getElementById(`home-${id}`).value;
-            const office = document.getElementById(`office-${id}`).value;
-            
+            // إرسال البيانات للسيرفر لتحديثها في قاعدة البيانات
             fetch('/update_delivery_price', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({id: id, home_price: home, office_price: office})
-            }).then(() => alert('تم تحديث السعر بنجاح'));
+                body: JSON.stringify({
+                    id: id,
+                    home_price: homePrice,
+                    office_price: officePrice
+                })
+            }).then(response => {
+                if(response.ok) {
+                    alert('تم حفظ أسعار ولاية ' + id + ' بنجاح');
+                } else {
+                    alert('حدث خطأ أثناء الحفظ');
+                }
+            });
         }
     </script>
 </body>
