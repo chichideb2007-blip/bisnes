@@ -204,9 +204,15 @@ def update_delivery_price():
 def get_shipping_rates():
     state_id = request.args.get('state_id')
     delivery_type = request.args.get('type')
+    company_code = request.args.get('company_code') # أضفنا استلام كود الشركة
     
     try:
-        res = supabase.table("shipping_rates").select("home_price, office_price").eq("id", int(state_id)).single().execute()
+        # البحث في الجدول مع تصفية الشركة والولاية
+        res = supabase.table("shipping_rates") \
+            .select("home_price, office_price") \
+            .eq("id", int(state_id)) \
+            .eq("company_code", company_code) \
+            .single().execute()
         
         if res.data:
             price = res.data['home_price'] if delivery_type == 'home' else res.data['office_price']
@@ -421,27 +427,24 @@ def product_details(product_id):
 @app.route('/submit-order', methods=['POST'])
 def submit_order():
     data = request.form
-    customer_name = data.get('customer_name')
-    customer_last_name = data.get('customer_last_name')
-    phone = data.get('phone')
     product_id = data.get('product_id')
     wilaya_id = data.get('wilaya') 
     delivery_type = data.get('delivery_type') 
+    quantity = int(data.get('quantity', 1)) # جلب الكمية
     
-    product_res = supabase.table("inventory").select("price, name, company_id_text").eq("id", product_id).single().execute()
-    product = product_res.data
+    product = supabase.table("inventory").select("*").eq("id", product_id).single().execute().data
+    shipping = supabase.table("shipping_rates").select("home_price, office_price").eq("id", int(wilaya_id)).single().execute().data
     
-    shipping_res = supabase.table("delivery_prices").select("home_price, office_price").eq("id", int(wilaya_id)).single().execute()
-    shipping_data = shipping_res.data
+    delivery_price = float(shipping['home_price']) if delivery_type == 'home' else float(shipping['office_price'])
     
-    delivery_price = float(shipping_data['home_price']) if delivery_type == 'home' else float(shipping_data['office_price'])
-    base_price = float(product['price'])
-    total_price = base_price + delivery_price
+    # الحساب الصحيح: (سعر المنتج * الكمية) + سعر التوصيل
+    total_price = (float(product['price']) * quantity) + delivery_price
     
     order_data = {
-        "customer_name": f"{customer_name} {customer_last_name}",
-        "customer_phone": phone,
+        "customer_name": f"{data.get('customer_name')} {data.get('customer_last_name')}",
+        "customer_phone": data.get('phone'),
         "product_name": product['name'],
+        "quantity": quantity, # حفظ الكمية
         "total_price": total_price,
         "delivery_price": delivery_price,
         "status": "قيد الانتظار",
@@ -449,16 +452,10 @@ def submit_order():
     }
     supabase.table("orders").insert(order_data).execute()
     
-    supabase.rpc('decrement_stock', {'p_id': int(product_id), 'qty': 1}).execute()
+    # تحديث المخزون (نقص الكمية المطلوبة)
+    supabase.rpc('decrement_stock', {'p_id': int(product_id), 'qty': quantity}).execute()
     
-    settings_res = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", product['company_id_text']).execute()
-    if settings_res.data:
-        token = settings_res.data[0]['telegram_token']
-        chat_id = settings_res.data[0]['telegram_chat_id']
-        message = f"طلب جديد! 📦\nالمنتج: {product['name']}\nالزبون: {customer_name}\nالهاتف: {phone}\nالمجموع: {total_price} دج"
-        send_telegram_alert_by_token(token, chat_id, message)
-    
-    return "تم استلام طلبك بنجاح! سنتصل بك قريباً."
+    return "تم استلام طلبك بنجاح!"
 
 @app.route('/order/<int:product_id>')
 def order_page(product_id):
@@ -495,8 +492,8 @@ def stats():
 
         res_expenses = supabase.table("expenses").select("amount, created_at").eq("company_code", company_code).execute()
         expenses = res_expenses.data or []
-        total_expenses =sum(float(e.get('amount')
-daily_data, monthly_data, yearly_data = defaultdict(float), defaultdict(float), defaultdict(float)
+        total_expenses = sum(float(e.get('amount') or 0) for e in expenses)
+        daily_data, monthly_data, yearly_data = defaultdict(float), defaultdict(float), defaultdict(float)
         days_order = ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"]
         months_order =["جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان", "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
         
