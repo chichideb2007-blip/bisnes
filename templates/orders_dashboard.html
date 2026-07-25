@@ -93,11 +93,22 @@
                             <td>{{ order.product_name }}<br><small class="text-muted">الكمية: {{ order.quantity }}</small></td>
                             <td>{{ order.state }}<br><small class="text-muted">{{ order.delivery_type }} ({{ order.delivery_price }} {{ currency }})</small></td>
                             <td>{{ order.total_price }} {{ currency }}</td>
+                            
+                            <!-- عمود الحالة المحدث -->
                             <td>
-                                <span class="badge {% if order.status == 'تم التوصيل' %}bg-success{% else %}bg-warning text-dark{% endif %}">
-                                    {{ order.status }}
-                                </span>
+                                {% if order.status == 'تم التحضير' %}
+                                    <span class="badge bg-success">✅ تم التحضير</span>
+                                {% else %}
+                                    <span class="badge bg-danger">❌ لم يتم التحضير</span>
+                                {% endif %}
+                                
+                                <form action="{{ url_for('update_status', order_id=order.id) }}" method="POST" class="mt-1">
+                                    <button name="status" value="تم التحضير" class="btn btn-sm btn-outline-success">✅</button>
+                                    <button name="status" value="لم يتم التحضير" class="btn btn-sm btn-outline-danger">❌</button>
+                                </form>
                             </td>
+                            <!-- نهاية عمود الحالة -->
+
                             <td>
                                 <form action="{{ url_for('delete_order', id=order.id) }}" method="POST" class="d-inline">
                                     <button type="submit" class="btn btn-sm btn-danger">حذف</button>
@@ -149,7 +160,6 @@
             const homePrice = document.getElementById('home-' + id).value;
             const officePrice = document.getElementById('office-' + id).value;
 
-            // إرسال البيانات للسيرفر لتحديثها في قاعدة البيانات
             fetch('/update_delivery_price', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
