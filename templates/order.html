@@ -9,7 +9,7 @@
         body { background-color: #f8f9fa; font-family: 'Segoe UI', sans-serif; padding: 20px; }
         .checkout-card { background: white; border-radius: 15px; padding: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 600px; margin: auto; }
         .form-label { font-weight: bold; color: #333; }
-        .price-box { background: #e9ecef; padding: 15px; border-radius: 10px; margin: 20px 0; text-align: center; }
+        .price-box { background: #e9ecef; padding: 15px; border-radius: 10px; margin: 20px 0; }
         .btn-confirm { background-color: #198754; color: white; padding: 12px; font-weight: bold; border: none; border-radius: 8px; flex-grow: 1; }
         .btn-back { background-color: #6c757d; color: white; padding: 12px; font-weight: bold; border: none; border-radius: 8px; }
     </style>
@@ -20,13 +20,13 @@
     <div class="checkout-card">
         <h3 class="text-center mb-4">معلومات الطلب</h3>
         
-        <form action="/submit-order" method="POST">
-            <!-- المدخلات المخفية -->
-            <input type="hidden" name="product_id" value="{{ product.id }}">
-            <input type="hidden" id="base_price" value="{{ product.price }}">
-            <input type="hidden" id="company_code" value="{{ product.company_id_text }}">
+        <div id="cart-items" class="mb-3">
+            <h6 class="text-muted">المنتجات المختارة:</h6>
+        </div>
 
-            <!-- الاسم واللقب -->
+        <form action="/submit-order" method="POST" id="orderForm">
+            <input type="hidden" name="cart_data" id="cart_data">
+
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">الاسم</label>
@@ -38,25 +38,21 @@
                 </div>
             </div>
 
-            <!-- الهاتف والكمية -->
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">رقم الهاتف</label>
-                    <input type="tel" name="phone" class="form-control" required placeholder="0XXXXXXXXX">
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">الكمية</label>
-                    <input type="number" name="quantity" id="quantity" class="form-control" value="1" min="1" onchange="calculateOrder()" required>
-                </div>
+            <div class="mb-3">
+                <label class="form-label">رقم الهاتف</label>
+                <input type="tel" name="phone" class="form-control" required placeholder="0XXXXXXXXX">
             </div>
 
-            <!-- الولاية والبلدية -->
             <div class="mb-3">
                 <label class="form-label">الولاية</label>
                 <select id="wilaya" name="wilaya" class="form-select" onchange="calculateOrder()" required>
                     <option value="">-- اختر الولاية --</option>
                     {% for wilaya in wilayas %}
-                        <option value="{{ wilaya.id }}">{{ wilaya.wilaya_name }}</option>
+                        <option value="{{ wilaya.id }}" 
+                                data-home="{{ wilaya.home_price }}" 
+                                data-office="{{ wilaya.office_price }}">
+                            {{ wilaya.wilaya_name }}
+                        </option>
                     {% endfor %}
                 </select>
             </div>
@@ -71,7 +67,6 @@
                 <input type="text" name="address" class="form-control" placeholder="أدخل العنوان بالتفصيل" required>
             </div>
 
-            <!-- التوصيل -->
             <div class="mb-3">
                 <label class="form-label">طريقة التوصيل</label>
                 <select id="delivery_type" name="delivery_type" class="form-select" onchange="calculateOrder()" required>
@@ -80,13 +75,11 @@
                 </select>
             </div>
 
-            <!-- عرض الأسعار -->
             <div class="price-box">
-                <h4>سعر التوصيل: <span id="shipping_display">0</span> دج</h4>
-                <h4 class="text-primary mt-2">المجموع النهائي: <span id="total_display">{{ product.price }}</span> دج</h4>
+                <h5>سعر التوصيل: <span id="shipping_display">0</span> دج</h5>
+                <h4 class="text-primary mt-2">المجموع الكلي: <span id="total_display">0</span> دج</h4>
             </div>
 
-            <!-- الأزرار -->
             <div class="d-flex gap-2">
                 <button type="submit" class="btn-confirm">تأكيد الطلب</button>
                 <a href="/shop" class="btn-back">رجوع</a>
@@ -96,36 +89,46 @@
 </div>
 
 <script>
-    // جلب قائمة الولايات
-    const wilayas = {{ wilayas | tojson }};
+    // 1. قراءة السلة من المتصفح
+    let cart = JSON.parse(localStorage.getItem('cart') || '[]');
+    let cartContainer = document.getElementById('cart-items');
+    let basePrice = 0;
 
+    // عرض المنتجات في جدول بسيط
+    cart.forEach(item => {
+        basePrice += parseFloat(item.price);
+        cartContainer.innerHTML += `
+            <div class="d-flex justify-content-between border-bottom p-2">
+                <span>${item.name}</span>
+                <span class="fw-bold">${item.price} دج</span>
+            </div>
+        `;
+    });
+
+    // 2. تحديث المجموع عند اختيار الولاية
     function calculateOrder() {
         const wilayaSelect = document.getElementById('wilaya');
         const deliveryType = document.getElementById('delivery_type').value;
-        const qty = parseInt(document.getElementById('quantity').value) || 1;
-        const basePrice = parseFloat(document.getElementById('base_price').value) || 0;
+        const selectedOption = wilayaSelect.options[wilayaSelect.selectedIndex];
         
-        const shippingDisplay = document.getElementById('shipping_display');
-        const totalDisplay = document.getElementById('total_display');
-
-        const selectedWilaya = wilayas.find(w => w.id == wilayaSelect.value);
-        
-        if (selectedWilaya) {
-            const shippingPrice = (deliveryType === 'home') ? parseFloat(selectedWilaya.home_price) : parseFloat(selectedWilaya.office_price);
-            
-            shippingDisplay.innerText = shippingPrice; 
-            const total = (basePrice * qty) + shippingPrice;
-            totalDisplay.innerText = total;
-        } else {
-            shippingDisplay.innerText = "0";
-            totalDisplay.innerText = basePrice * qty;
+        let shippingPrice = 0;
+        if (selectedOption.value !== "") {
+            shippingPrice = (deliveryType === 'home') ? parseFloat(selectedOption.dataset.home) : parseFloat(selectedOption.dataset.office);
         }
+        
+        document.getElementById('shipping_display').innerText = shippingPrice;
+        document.getElementById('total_display').innerText = (basePrice + shippingPrice) + ' دج';
     }
 
-    // تحديث الصفحة كل 30 ثانية
-    setInterval(function(){
-        location.reload();
-    }, 30000);
+    // 3. عند الضغط على تأكيد الطلب، نضع بيانات السلة في الحقل المخفي
+    document.getElementById('orderForm').onsubmit = function() {
+        document.getElementById('cart_data').value = JSON.stringify(cart);
+        // اختياري: مسح السلة بعد الطلب
+        // localStorage.removeItem('cart');
+    };
+    
+    // تشغيل الحساب لأول مرة
+    calculateOrder();
 </script>
 
 </body>
