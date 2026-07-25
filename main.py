@@ -497,8 +497,8 @@ def submit_order():
         "delivery_type": delivery_type
     }
     
-    # تنفيذ الإدراج
-    supabase.table("orders").insert(order_data)execute()
+   # تنفيذ الإدراج
+    supabase.table("orders").insert(order_data).execute()
     
     # جلب الـ ID الخاص بالطلب الجديد
     last_order = supabase.table("orders").select("id").eq("customer_phone", data.get('phone')).eq("company_code", product['company_id_text']).order("id", desc=True).limit(1).execute().data
