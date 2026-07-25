@@ -102,15 +102,16 @@ def login():
     if request.method == 'POST':
         company_code = request.form.get('company_code')
         
-        print(f"DEBUG: الكود الذي تم إدخاله هو: {company_code}")
+        # البحث عن الكود في جدول settings
         res = supabase.table("settings").select("company_code").eq("company_code", company_code).execute()
-        print(f"DEBUG: بيانات قاعدة البيانات المسترجعة: {res.data}")
         
         if res.data:
+            # إذا وجدنا الكود، نقوم بحفظه في الجلسة (Session)
             session['company_code'] = company_code
             return redirect(url_for('dashboard'))
         else:
-            return "كود الشركة غير صحيح، يرجى التأكد منه أو إنشاء حساب جديد.", 401
+            return "كود الشركة غير صحيح، يرجى التأكد منه.", 401
+            
     return render_template('login.html')
 
 @app.route('/signup', methods=['GET', 'POST'])
@@ -488,7 +489,8 @@ def submit_order():
         msg += f"📞 رقم الهاتف: {data.get('phone')}\n"
         msg += f"📦 المنتج: {product['name']}\n"
         msg += f"🔢 الكمية: {quantity}\n"
-      if new_quantity == 0:
+        
+        if new_quantity == 0:
             msg += "\n\n❌ تنبيه: المخزون نفذ تماماً لهذا المنتج!"
         elif new_quantity < 5:
             msg += f"\n\n⚠️ تنبيه: المخزون منخفض (المتبقي: {new_quantity})"
