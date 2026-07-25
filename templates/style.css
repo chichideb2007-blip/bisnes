@@ -19,7 +19,7 @@
 /* --- إعدادات الجسم العامة --- */
 body {
     font-family: 'Tajawal', sans-serif;
-    background-color: var(--bg-admin); /* الخلفية الأساسية */
+    background-color: var(--bg-admin);
     color: var(--text-main);
     margin: 0;
     padding: 0;
@@ -121,7 +121,7 @@ tr:hover {
     background-color: #f8fafc;
 }
 
-/* --- تنسيق المتجر (Shop Specific) --- */
+/* --- تنسيق المتجر (مُحدث بالقياسات الجديدة) --- */
 .shop-header {
     background-color: white;
     padding: 20px;
@@ -131,7 +131,7 @@ tr:hover {
 
 .product-container {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 20px;
     padding: 20px;
     max-width: 1200px;
@@ -140,26 +140,31 @@ tr:hover {
 
 .product-card {
     background: white;
-    border-radius: 12px;
+    border-radius: 15px; /* حواف دائرية أكبر */
     padding: 15px;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     transition: transform 0.3s ease;
     text-align: center;
+    border: 1px solid #ddd; /* إطار خفيف */
 }
 
 .product-card:hover {
     transform: translateY(-5px);
 }
 
+/* الصور المحدثة */
 .product-card img {
-    max-width: 100%;
-    height: 200px;
-    object-fit: cover;
-    border-radius: 8px;
+    width: 150px;      
+    height: 150px;     
+    object-fit: cover; 
+    border-radius: 10px;
+    margin: 10px auto; 
+    display: block;
 }
 
 .product-card h3 {
-    margin: 15px 0 10px;
+    margin: 10px 0;
+    font-size: 1.1rem;
     color: var(--primary-shop);
 }
 
@@ -167,6 +172,7 @@ tr:hover {
     font-weight: bold;
     color: var(--accent-shop);
     font-size: 1.2rem;
+    margin: 10px 0;
 }
 
 .buy-btn {
@@ -176,8 +182,8 @@ tr:hover {
     padding: 10px;
     border-radius: 8px;
     text-decoration: none;
-    margin-top: 15px;
     font-weight: bold;
+    margin-top: 10px;
 }
 
 .buy-btn:hover {
