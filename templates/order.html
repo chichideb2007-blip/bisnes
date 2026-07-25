@@ -25,6 +25,7 @@
         </div>
 
         <form action="/submit-order" method="POST" id="orderForm">
+            <!-- هذا هو الحقل المخفي الذي يقوم بتخزين بيانات السلة -->
             <input type="hidden" name="cart_data" id="cart_data">
 
             <div class="row">
@@ -120,10 +121,11 @@
         document.getElementById('total_display').innerText = (basePrice + shippingPrice) + ' دج';
     }
 
-    // 3. عند الضغط على تأكيد الطلب، نضع بيانات السلة في الحقل المخفي
+    // 3. (هنا تم دمج الإضافة التي سألت عنها)
+    // قبل إرسال النموذج، نضع بيانات السلة في الحقل المخفي
     document.getElementById('orderForm').onsubmit = function() {
         document.getElementById('cart_data').value = JSON.stringify(cart);
-        // اختياري: مسح السلة بعد الطلب
+        // اختياري: إذا أردت مسح السلة بعد الطلب
         // localStorage.removeItem('cart');
     };
     
