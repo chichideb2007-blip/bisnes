@@ -152,7 +152,7 @@ tr:hover {
     transform: translateY(-5px);
 }
 
-/* الصورة المحدثة (مربع صغير إجباري) */
+/* --- تنسيق الصور المحدث بـ !important --- */
 .product-card img {
     width: 80px !important;    
     height: 80px !important;   
