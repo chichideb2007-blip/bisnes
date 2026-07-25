@@ -5,20 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>متجرنا</title>
     
-    <!-- Bootstrap للتنسيقات الجاهزة -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     
-    <!-- ملف الـ CSS الخاص بك المدمج -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     
     <style>
-        /* إضافة بسيطة لضمان توافق التنسيق */
         body { background-color: #f4f4f9; padding-bottom: 50px; }
     </style>
 </head>
 <body>
 
-    <!-- قسم اختيار المتجر -->
     <div class="container mb-4 mt-4">
         {% if not current_company %}
         <div class="card p-3 shadow-sm text-center">
@@ -29,7 +25,6 @@
             </form>
         </div>
         {% else %}
-        <!-- الترويسة (Header) -->
         <div class="shop-header">
             <h1>متجر: {{ current_company }}</h1>
             <div class="text-center mt-2">
@@ -39,19 +34,20 @@
         {% endif %}
     </div>
     
-    <!-- قسم عرض المنتجات -->
     <div class="product-container">
         {% for product in products %}
         <div class="product-card">
-            <!-- الصورة -->
-            {% if product.image_url or product['product-images'] %}
-                <img src="{{ product.image_url or product['product-images'] }}" alt="{{ product.name }}">
-            {% endif %}
-            
-            <h3>{{ product.name }}</h3>
-            <p class="price">{{ product.price }} {{ currency or 'DA' }}</p>
+            <div class="d-flex align-items-center">
+                {% if product.image_url or product['product-images'] %}
+                    <img src="{{ product.image_url or product['product-images'] }}" alt="{{ product.name }}">
+                {% endif %}
+                
+                <div class="text-start me-3">
+                    <h3 style="font-size: 1rem;">{{ product.name }}</h3>
+                    <p class="price" style="margin:0;">{{ product.price }} {{ currency or 'DA' }}</p>
+                </div>
+            </div>
 
-            <!-- زر الشراء مع التحقق من الكمية -->
             {% if product.quantity > 0 %}
                 <a href="{{ url_for('order_page', product_id=product.id) }}" class="buy-btn">اطلب الآن</a>
             {% else %}
