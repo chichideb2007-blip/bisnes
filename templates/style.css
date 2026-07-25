@@ -1,24 +1,32 @@
-/* استيراد خطوط احترافية من Google Fonts */
+/* --- استيراد الخطوط --- */
 @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
 
+/* --- المتغيرات المدمجة --- */
 :root {
-    --primary-color: #0f172a;    /* أزرق غامق جداً (فخم) */
-    --accent-color: #3b82f6;     /* أزرق ساطع للأزرار */
-    --bg-color: #f1f5f9;         /* رمادي فاتح جداً */
-    --card-bg: #ffffff;          /* أبيض للبطاقات */
-    --text-main: #1e293b;        /* لون النص الأساسي */
+    /* متغيرات الإدارة (Admin) */
+    --primary-admin: #0f172a;    
+    --accent-admin: #3b82f6;     
+    --bg-admin: #f1f5f9;         
+    --card-bg: #ffffff;          
+    --text-main: #1e293b;        
+
+    /* متغيرات المتجر (Shop) */
+    --primary-shop: #2c3e50; 
+    --accent-shop: #27ae60;   
+    --bg-shop: #f4f7f6;       
 }
 
+/* --- إعدادات الجسم العامة --- */
 body {
     font-family: 'Tajawal', sans-serif;
-    background-color: var(--bg-color);
+    background-color: var(--bg-admin);
     color: var(--text-main);
     margin: 0;
     padding: 0;
     direction: rtl; 
 }
 
-/* تنسيق الحاويات والبطاقات */
+/* --- تنسيق الحاويات والبطاقات --- */
 .container {
     max-width: 1000px;
     margin: 20px auto;
@@ -34,9 +42,9 @@ body {
     border: 1px solid #e2e8f0;
 }
 
-/* تنسيق الأزرار الاحترافي */
+/* --- تنسيق الأزرار --- */
 .btn {
-    background-color: var(--accent-color);
+    background-color: var(--accent-admin);
     color: #ffffff;
     padding: 12px 24px;
     border-radius: 8px;
@@ -52,9 +60,18 @@ body {
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
-/* تنسيق شريط التنقل */
+.btn-delete { 
+    background-color: red; 
+    color: white; 
+    border: none; 
+    padding: 5px 10px; 
+    border-radius: 3px; 
+    cursor: pointer; 
+}
+
+/* --- تنسيق شريط التنقل --- */
 .navbar {
-    background-color: var(--primary-color);
+    background-color: var(--primary-admin);
     padding: 15px;
     color: white;
     text-align: center;
@@ -67,7 +84,7 @@ body {
     font-weight: 600;
 }
 
-/* تنسيق حقول الإدخال */
+/* --- تنسيق حقول الإدخال --- */
 input {
     width: 100%;
     padding: 12px;
@@ -77,18 +94,18 @@ input {
     box-sizing: border-box;
 }
 
-/* تنسيق الجداول */
+/* --- تنسيق الجداول --- */
 table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 20px;
     background: white;
     border-radius: 8px;
-    overflow: hidden; /* لجعل الحواف دائرية */
+    overflow: hidden; 
 }
 
 th {
-    background-color: var(--primary-color);
+    background-color: var(--primary-admin);
     color: white;
     padding: 14px;
     text-align: center;
@@ -100,46 +117,73 @@ td {
     text-align: center;
 }
 
-/* تحسين شكل الصفوف عند المرور */
 tr:hover {
     background-color: #f8fafc;
 }
 
-.btn-delete { 
-    background-color: red; 
-    color: white; 
-    border: none; 
-    padding: 5px 10px; 
-    border-radius: 3px; 
-    cursor: pointer; 
+/* --- تنسيق المتجر (مُحدث بالقياسات الجديدة) --- */
+.shop-header {
+    background-color: white;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
+.product-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+    padding: 20px;
+    max-width: 1200px;
+    margin: auto;
+}
 
-    object-fit: cover;
-    border-radius: 8px;
+.product-card {
+    background: white;
+    border-radius: 15px; /* حواف دائرية أكبر */
+    padding: 15px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease;
+    text-align: center;
+    border: 1px solid #ddd; /* إطار خفيف */
+}
+
+.product-card:hover {
+    transform: translateY(-5px);
+}
+
+/* الصور المحدثة */
+.product-card img {
+    width: 150px;      
+    height: 150px;     
+    object-fit: cover; 
+    border-radius: 10px;
+    margin: 10px auto; 
+    display: block;
 }
 
 .product-card h3 {
-    margin: 15px 0 10px;
-    color: var(--primary-color);
+    margin: 10px 0;
+    font-size: 1.1rem;
+    color: var(--primary-shop);
 }
 
 .price {
     font-weight: bold;
-    color: var(--accent-color);
+    color: var(--accent-shop);
     font-size: 1.2rem;
+    margin: 10px 0;
 }
 
-/* زر الشراء */
 .buy-btn {
     display: block;
-    background-color: var(--accent-color);
+    background-color: var(--accent-shop);
     color: white;
     padding: 10px;
     border-radius: 8px;
     text-decoration: none;
-    margin-top: 15px;
     font-weight: bold;
+    margin-top: 10px;
 }
 
 .buy-btn:hover {
