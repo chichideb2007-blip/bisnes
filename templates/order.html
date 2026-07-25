@@ -84,4 +84,9 @@
             totalDisplay.innerText = basePrice * qty;
         }
     }
+
+    // تحديث الصفحة كل 30 ثانية لتظهر تغييرات تيلجرام
+    setInterval(function(){
+        location.reload();
+    }, 30000);
 </script>
