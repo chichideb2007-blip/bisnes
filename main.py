@@ -432,6 +432,7 @@ def submit_order():
     wilaya_id = data.get('wilaya') 
     delivery_type = data.get('delivery_type') 
     quantity = int(data.get('quantity', 1))
+    baladia = data.get('baladia', 'غير محدد') # جلب البلدية من الفورم
     
     # 1. جلب بيانات المنتج والتحقق من الكمية
     product = supabase.table("inventory").select("*").eq("id", product_id).single().execute().data
@@ -454,6 +455,7 @@ def submit_order():
         "status": "قيد الانتظار",
         "company_code": product['company_id_text'],
         "state": wilaya_id, 
+        "baladia": baladia, # حفظ البلدية في قاعدة البيانات (تأكد أن العمود موجود في جدولك)
         "delivery_type": delivery_type
     }
     supabase.table("orders").insert(order_data).execute()
@@ -466,7 +468,15 @@ def submit_order():
     settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", product['company_id_text']).single().execute().data
     
     if settings:
-        msg = f"🛒 طلبية جديدة!\nالعميل: {order_data['customer_name']}\nالمنتج: {product['name']}\nالكمية: {quantity}\nالمجموع: {total_price} DA"
+        msg = f"🛒 طلبية جديدة!\n"
+        msg += f"👤 العميل: {order_data['customer_name']}\n"
+        msg += f"📞 رقم الهاتف: {data.get('phone')}\n"
+        msg += f"📦 المنتج: {product['name']}\n"
+        msg += f"🔢 الكمية: {quantity}\n"
+        msg += f"📍 الولاية: {wilaya_id}\n"
+        msg += f"🏙️ البلدية: {baladia}\n"
+        msg += f"🚚 نوع التوصيل: {delivery_type}\n"
+        msg += f"💰 السعر الإجمالي: {total_price} DA"
         
         # إذا نفذ المخزون
         if new_quantity == 0:
