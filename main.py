@@ -54,16 +54,21 @@ def send_telegram_alert_by_token(token, chat_id, message):
         print(f"DEBUG: خطأ في الاتصال بتليجرام: {e}")
         return False
 
-# --- إضافة جديدة: دالة إرسال الطلب مع أزرار ---
+# --- الدالة المحدثة لإرسال الطلب مع أزرار ---
 def send_order_alert(token, chat_id, message, order_id):
     url = f"https://api.telegram.org/bot{token}/sendMessage"
+    # هذه الأزرار التي ستظهر تحت رسالة التيلجرام
     keyboard = {
         "inline_keyboard": [[
             {"text": "✅ تم التحضير", "callback_data": f"status_done_{order_id}"},
             {"text": "❌ لم يتم التحضير", "callback_data": f"status_pending_{order_id}"}
         ]]
     }
-    params = {"chat_id": chat_id, "text": message, "reply_markup": str(keyboard).replace("'", '"')}
+    params = {
+        "chat_id": chat_id, 
+        "text": message, 
+        "reply_markup": keyboard # نرسل الأزرار هنا
+    }
     requests.post(url, json=params)
 
 # دالة مساعدة لعمل `submit_order`
@@ -186,7 +191,6 @@ def settings():
 def shipping_settings():
     return render_template('shipping_settings.html')
 
-# --- مسارات API لأسعار التوصيل ---
 @app.route('/get_delivery_prices', methods=['GET'])
 @login_required
 def get_delivery_prices():
@@ -583,8 +587,6 @@ def webhook_instagram():
     except Exception as e:
       return "Error", 500
 
-# --- الإضافات المطلوبة (webhook_telegram و update_status) ---
-
 @app.route('/update_status/<int:order_id>', methods=['POST'])
 @login_required
 def update_status(order_id):
@@ -606,11 +608,18 @@ def webhook_telegram():
     data = request.json
     if 'callback_query' in data:
         callback = data['callback_query']
-        query_data = callback['data']
+        query_data = callback['data'] # مثلاً status_done_123
         order_id = query_data.split('_')[2]
         new_status = "تم التحضير" if "done" in query_data else "لم يتم التحضير"
         
+        # تحديث قاعدة البيانات
         supabase.table("orders").update({"status": new_status}).eq("id", order_id).execute()
+        
+        # إرسال تأكيد داخل تيلجرام
+        bot_token = os.environ.get("TELEGRAM_TOKEN") # تأكد من ضبطه
+        if bot_token:
+            requests.get(f"https://api.telegram.org/bot{bot_token}/answerCallbackQuery?callback_query_id={callback['id']}&text=تم التحديث بنجاح!")
+        
         return jsonify({"ok": True})
     return "OK"
 
