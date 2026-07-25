@@ -29,7 +29,7 @@
 
         <!-- أيقونة السلة -->
         <div class="position-relative">
-            <button class="btn btn-outline-primary">🛒</button>
+            <button class="btn btn-outline-primary" onclick="window.location.href='/checkout'">🛒</button>
             <span id="cart-count" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">0</span>
         </div>
     </div>
@@ -73,9 +73,12 @@
                     
                     <!-- منطق زر الشراء -->
                     {% if product.quantity > 0 %}
-                        <a href="/checkout/{{ product.id }}" class="btn btn-primary w-100 mt-2">شراء الآن</a>
+                        <!-- زر الشراء المباشر -->
+                        <a href="/checkout/{{ product.id }}" class="btn btn-sm btn-outline-primary w-100">شراء الآن</a>
+                        <!-- زر إضافة للسلة -->
+                        <button onclick="addToCart('{{ product.id }}', '{{ product.name }}', {{ product.price }})" class="btn btn-primary btn-sm w-100 mt-2">إضافة للسلة</button>
                     {% else %}
-                        <button disabled class="btn btn-secondary w-100 mt-2">غير متوفر</button>
+                        <button disabled class="btn btn-secondary btn-sm w-100 mt-2">غير متوفر</button>
                     {% endif %}
                 </div>
             </div>
@@ -89,7 +92,21 @@
 </div>
 
 <script>
-    // خاصية البحث المباشر
+    // 1. خاصية السلة (Cart Logic)
+    let cart = JSON.parse(localStorage.getItem('cart') || '[]');
+    document.getElementById('cart-count').innerText = cart.length;
+
+    function addToCart(id, name, price) {
+        let cart = JSON.parse(localStorage.getItem('cart') || '[]');
+        cart.push({id: id, name: name, price: price});
+        localStorage.setItem('cart', JSON.stringify(cart));
+        
+        // تحديث الرقم في الأيقونة
+        document.getElementById('cart-count').innerText = cart.length;
+        alert('تمت إضافة ' + name + ' إلى السلة!');
+    }
+
+    // 2. خاصية البحث المباشر
     document.getElementById('searchInput').addEventListener('keyup', function() {
         let filter = this.value.toLowerCase();
         let products = document.querySelectorAll('.product-card-container');
