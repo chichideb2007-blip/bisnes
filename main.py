@@ -583,11 +583,24 @@ def webhook_instagram():
     except Exception as e:
       return "Error", 500
 
+# --- الإضافات المطلوبة (webhook_telegram و update_status) ---
+
 @app.route('/update_status/<int:order_id>', methods=['POST'])
 @login_required
 def update_status(order_id):
     new_status = request.form.get('status')
+    
+    # 1. تحديث الحالة في قاعدة البيانات
     supabase.table("orders").update({"status": new_status}).eq("id", order_id).execute()
+    
+    # 2. جلب إعدادات الشركة لإرسال التنبيه
+    order = supabase.table("orders").select("company_code").eq("id", order_id).single().execute().data
+    settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", order['company_code']).single().execute().data
+    
+    if settings:
+        msg = f"🔄 تحديث حالة الطلبية #{order_id}\nالحالة الجديدة: {new_status}"
+        send_telegram_alert_by_token(settings['telegram_token'], settings['telegram_chat_id'], msg)
+        
     return redirect(url_for('orders'))
 
 @app.route('/webhook_telegram', methods=['POST'])
@@ -596,13 +609,18 @@ def webhook_telegram():
     if 'callback_query' in data:
         callback = data['callback_query']
         query_data = callback['data'] # مثلاً status_done_123
-        order_id = query_data.split('_')[2]
+        
+        # استخراج الحالة والـ ID
+        parts = query_data.split('_')
+        order_id = parts[2]
         new_status = "تم التحضير" if "done" in query_data else "لم يتم التحضير"
         
         # تحديث الحالة في Supabase
-        supabase.table("orders").update({"status": new_status}).eq("id", order_id).execute()
+        try:
+            supabase.table("orders").update({"status": new_status}).eq("id", order_id).execute()
+        except Exception as e:
+            print(f"Error updating status: {e}")
         
-        # تأكيد للتليجرام
         return jsonify({"ok": True})
     return "OK"
 
