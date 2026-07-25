@@ -93,10 +93,18 @@
                             <td>{{ order.total_price }} {{ currency }}</td>
                             
                             <td>
-                                <div class="mb-1">{{ order.status }}</div>
-                                <form action="{{ url_for('update_status', order_id=order.id) }}" method="POST" class="d-flex justify-content-center gap-1">
-                                    <button name="status" value="تم التحضير" class="btn btn-sm btn-outline-success">✅</button>
-                                    <button name="status" value="لم يتم التحضير" class="btn btn-sm btn-outline-danger">❌</button>
+                                <div class="mb-2">
+                                    <span class="badge {% if order.status == 'تم التحضير' %}bg-success{% elif order.status == 'لم يتم التحضير' %}bg-danger{% else %}bg-warning{% endif %}">
+                                        {{ order.status }}
+                                    </span>
+                                </div>
+                                <form action="{{ url_for('update_status', order_id=order.id) }}" method="POST" style="display:inline;">
+                                    <input type="hidden" name="status" value="تم التحضير">
+                                    <button type="submit" class="btn btn-sm btn-outline-success">✅</button>
+                                </form>
+                                <form action="{{ url_for('update_status', order_id=order.id) }}" method="POST" style="display:inline;">
+                                    <input type="hidden" name="status" value="لم يتم التحضير">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">❌</button>
                                 </form>
                             </td>
 
