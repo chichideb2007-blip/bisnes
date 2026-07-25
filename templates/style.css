@@ -121,7 +121,7 @@ tr:hover {
     background-color: #f8fafc;
 }
 
-/* --- تنسيق المتجر (مُحدث بالقياسات الجديدة) --- */
+/* --- تنسيق المتجر --- */
 .shop-header {
     background-color: white;
     padding: 20px;
@@ -131,7 +131,7 @@ tr:hover {
 
 .product-container {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
     gap: 20px;
     padding: 20px;
     max-width: 1200px;
@@ -140,25 +140,26 @@ tr:hover {
 
 .product-card {
     background: white;
-    border-radius: 15px; /* حواف دائرية أكبر */
+    border-radius: 15px;
     padding: 15px;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     transition: transform 0.3s ease;
     text-align: center;
-    border: 1px solid #ddd; /* إطار خفيف */
+    border: 1px solid #ddd;
 }
 
 .product-card:hover {
     transform: translateY(-5px);
 }
 
-/* الصور المحدثة */
+/* تحديث: الصورة الآن مربعة وصغيرة (80px) */
 .product-card img {
-    width: 150px;      
-    height: 150px;     
+    width: 80px;       
+    height: 80px;      
     object-fit: cover; 
-    border-radius: 10px;
-    margin: 10px auto; 
+    border-radius: 8px;
+    flex-shrink: 0;
+    margin: 10px auto;
     display: block;
 }
 
