@@ -54,6 +54,18 @@ def send_telegram_alert_by_token(token, chat_id, message):
         print(f"DEBUG: خطأ في الاتصال بتليجرام: {e}")
         return False
 
+# --- إضافة جديدة: دالة إرسال الطلب مع أزرار ---
+def send_order_alert(token, chat_id, message, order_id):
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    keyboard = {
+        "inline_keyboard": [[
+            {"text": "✅ تم التحضير", "callback_data": f"status_done_{order_id}"},
+            {"text": "❌ لم يتم التحضير", "callback_data": f"status_pending_{order_id}"}
+        ]]
+    }
+    params = {"chat_id": chat_id, "text": message, "reply_markup": str(keyboard).replace("'", '"')}
+    requests.post(url, json=params)
+
 # دالة مساعدة لعمل `submit_order`
 def get_delivery_price(wilaya, delivery_type):
     return 500  # سعر افتراضي
@@ -207,15 +219,12 @@ def get_shipping_rates():
     delivery_type = request.args.get('type') # home أو office
     
     try:
-        # هنا التغيير: سنبحث في الجدول الذي تحفظ فيه أسعارك فعلياً
-        # غير 'delivery_prices' باسم الجدول الحقيقي الذي تستخدمه في لوحة التحكم
         res = supabase.table("delivery_prices") \
             .select("home_price, office_price") \
             .eq("company_code", company_code) \
             .single().execute()
         
         if res.data:
-            # نختار السعر بناءً على النوع
             price = res.data.get('home_price') if delivery_type == 'home' else res.data.get('office_price')
             return jsonify({"price": float(price or 0)})
             
@@ -458,7 +467,13 @@ def submit_order():
         "baladia": baladia, # حفظ البلدية في قاعدة البيانات (تأكد أن العمود موجود في جدولك)
         "delivery_type": delivery_type
     }
+    
+    # تنفيذ الإدراج
     supabase.table("orders").insert(order_data).execute()
+    
+    # جلب الـ ID الخاص بالطلب الجديد (لأجل الأزرار)
+    last_order = supabase.table("orders").select("id").eq("customer_phone", data.get('phone')).eq("company_code", product['company_id_text']).order("id", desc=True).limit(1).execute().data
+    order_id = last_order[0]['id'] if last_order else 0
     
     # 4. تحديث المخزون (نقص الكمية)
     new_quantity = product['quantity'] - quantity
@@ -473,24 +488,20 @@ def submit_order():
         msg += f"📞 رقم الهاتف: {data.get('phone')}\n"
         msg += f"📦 المنتج: {product['name']}\n"
         msg += f"🔢 الكمية: {quantity}\n"
-        msg += f"📍 الولاية: {wilaya_id}\n"
-        msg += f"🏙️ البلدية: {baladia}\n"
-        msg += f"🚚 نوع التوصيل: {delivery_type}\n"
-        msg += f"💰 السعر الإجمالي: {total_price} DA"
-        
-        # إذا نفذ المخزون
-        if new_quantity == 0:
+      
+
+if new_quantity == 0:
             msg += "\n\n❌ تنبيه: المخزون نفذ تماماً لهذا المنتج!"
         elif new_quantity < 5:
             msg += f"\n\n⚠️ تنبيه: المخزون منخفض (المتبقي: {new_quantity})"
             
-        send_telegram_alert_by_token(settings['telegram_token'], settings['telegram_chat_id'], msg)
+        send_order_alert(settings['telegram_token'], settings['telegram_chat_id'], msg, order_id)
     
     return "تم استلام طلبك بنجاح!"
 
 @app.route('/order/<int:product_id>')
 def order_page(product_id):
-    # جلب تفاصيل المنتج
+    # جلب تفاصيل المنتج #
     response = supabase.table("inventory").select("*").eq("id", product_id).single().execute()
     product = response.data
     
@@ -566,6 +577,31 @@ def webhook_instagram():
 
     except Exception as e:
       return "Error", 500
+
+# --- المسارات الجديدة التي طلبتها في الأسفل ---
+
+@app.route('/update_status/<int:order_id>', methods=['POST'])
+@login_required
+def update_status(order_id):
+    new_status = request.form.get('status')
+    supabase.table("orders").update({"status": new_status}).eq("id", order_id).execute()
+    return redirect(url_for('orders'))
+
+@app.route('/webhook_telegram', methods=['POST'])
+def webhook_telegram():
+    data = request.json
+    if 'callback_query' in data:
+        callback = data['callback_query']
+        query_data = callback['data'] # مثلاً status_done_123
+        order_id = query_data.split('_')[2]
+        new_status = "تم التحضير" if "done" in query_data else "لم يتم التحضير"
+        
+        # تحديث الحالة في Supabase
+        supabase.table("orders").update({"status": new_status}).eq("id", order_id).execute()
+        
+        # تأكيد للتليجرام
+        return jsonify({"ok": True})
+    return "OK"
 
 if __name__ == '__main__':
     app.run(debug=True)
