@@ -7,7 +7,7 @@
     <title>متجرنا</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f9; padding: 20px; }
-        h1 { text-align: center; color: #333; margin-bottom: 30px; }
+        h1 { text-align: center; color: #333; margin-bottom: 20px; }
         
         /* تنسيق البطاقة الجديد */
         .card { 
@@ -35,13 +35,30 @@
 
     <h1>مرحباً بك في متجرنا</h1>
     
+    <!-- قسم اختيار المتجر -->
+    <div class="container mb-4">
+        {% if not current_company %}
+        <div class="card p-3 shadow-sm text-center">
+            <h5>أدخل اسم المتجر الذي تود التسوق منه:</h5>
+            <form action="/shop" method="POST" class="d-flex gap-2">
+                <input type="text" name="company_name" class="form-control" placeholder="اسم المتجر..." required>
+                <button type="submit" class="btn btn-primary">دخول للمتجر</button>
+            </form>
+        </div>
+        {% else %}
+        <div class="text-center mt-2">
+            <p>أنت تتصفح منتجات: <strong>{{ current_company }}</strong></p>
+            <a href="/clear_session" class="btn btn-sm btn-outline-secondary">تغيير المتجر</a>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- قسم عرض المنتجات -->
     <div class="container">
         <div class="row">
             {% for product in products %}
-            <!-- col-6 تجعل المنتجات تظهر منتجين في الصف -->
             <div class="col-6 mb-3">
                 <div class="card h-100 shadow-sm">
-                    <!-- عرض الصورة (المنطق الأصلي) -->
                     {% if product.image_url or product['product-images'] %}
                         <img src="{{ product.image_url or product['product-images'] }}" class="card-img-top" alt="{{ product.name }}">
                     {% endif %}
@@ -50,7 +67,6 @@
                         <h6 class="card-title">{{ product.name }}</h6>
                         <p class="price">{{ product.price }} {{ currency or 'DA' }}</p>
 
-                        <!-- منطق المخزون (المنطق الأصلي) -->
                         {% if product.quantity > 0 %}
                             <a href="{{ url_for('order_page', product_id=product.id) }}" class="btn btn-sm btn-primary w-100 mt-2">شراء</a>
                         {% else %}
@@ -60,7 +76,9 @@
                 </div>
             </div>
             {% else %}
-                <p class="text-center">لا توجد منتجات متاحة حالياً.</p>
+                {% if current_company %}
+                    <p class="text-center">لا توجد منتجات متاحة في هذا المتجر حالياً.</p>
+                {% endif %}
             {% endfor %}
         </div>
     </div>
