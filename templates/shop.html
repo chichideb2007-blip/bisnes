@@ -9,25 +9,26 @@
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f9; padding: 20px; }
         h1 { text-align: center; color: #333; margin-bottom: 30px; }
         
-        .product-card { 
-            background: white; 
-            border: 1px solid #ddd; 
-            padding: 15px; 
+        /* تنسيق البطاقة الجديد */
+        .card { 
             border-radius: 12px; 
-            text-align: center; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            height: 100%;
+            overflow: hidden; 
+            height: 100%; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
         }
         
-        .product-card img { 
-            width: 100%; 
-            height: 200px; 
+        /* تنسيق الصورة الصغير */
+        .card-img-top { 
+            height: 120px; 
             object-fit: cover; 
-            border-radius: 8px; 
-            margin-bottom: 15px; 
+            transition: transform 0.2s;
+        }
+
+        .card:hover .card-img-top { 
+            transform: scale(1.05); 
         }
         
-        .price { color: #28a745; font-weight: bold; font-size: 1.2em; margin: 10px 0; }
+        .price { color: #28a745; font-weight: bold; margin: 5px 0; }
     </style>
 </head>
 <body>
@@ -37,22 +38,25 @@
     <div class="container">
         <div class="row">
             {% for product in products %}
-            <div class="col-md-4 mb-4">
-                <div class="product-card">
-                    <!-- عرض الصورة -->
+            <!-- col-6 تجعل المنتجات تظهر منتجين في الصف -->
+            <div class="col-6 mb-3">
+                <div class="card h-100 shadow-sm">
+                    <!-- عرض الصورة (المنطق الأصلي) -->
                     {% if product.image_url or product['product-images'] %}
-                        <img src="{{ product.image_url or product['product-images'] }}" alt="{{ product.name }}">
+                        <img src="{{ product.image_url or product['product-images'] }}" class="card-img-top" alt="{{ product.name }}">
                     {% endif %}
                     
-                    <h3>{{ product.name }}</h3>
-                    <p class="price">السعر: {{ product.price }} {{ currency or 'DA' }}</p>
+                    <div class="card-body p-2 text-center">
+                        <h6 class="card-title">{{ product.name }}</h6>
+                        <p class="price">{{ product.price }} {{ currency or 'DA' }}</p>
 
-                    <!-- منطق المخزون -->
-                    {% if product.quantity > 0 %}
-                        <a href="{{ url_for('order_page', product_id=product.id) }}" class="btn btn-primary w-100">شراء الآن</a>
-                    {% else %}
-                        <button class="btn btn-danger w-100" disabled>غير متوفر</button>
-                    {% endif %}
+                        <!-- منطق المخزون (المنطق الأصلي) -->
+                        {% if product.quantity > 0 %}
+                            <a href="{{ url_for('order_page', product_id=product.id) }}" class="btn btn-sm btn-primary w-100 mt-2">شراء</a>
+                        {% else %}
+                            <button class="btn btn-sm btn-danger w-100 mt-2" disabled>غير متوفر</button>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
             {% else %}
