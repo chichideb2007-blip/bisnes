@@ -589,11 +589,9 @@ def webhook_instagram():
 @login_required
 def update_status(order_id):
     new_status = request.form.get('status')
-    
-    # 1. تحديث الحالة في قاعدة البيانات
     supabase.table("orders").update({"status": new_status}).eq("id", order_id).execute()
     
-    # 2. جلب إعدادات الشركة لإرسال التنبيه
+    # جلب معلومات التنبيه
     order = supabase.table("orders").select("company_code").eq("id", order_id).single().execute().data
     settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", order['company_code']).single().execute().data
     
@@ -608,19 +606,11 @@ def webhook_telegram():
     data = request.json
     if 'callback_query' in data:
         callback = data['callback_query']
-        query_data = callback['data'] # مثلاً status_done_123
-        
-        # استخراج الحالة والـ ID
-        parts = query_data.split('_')
-        order_id = parts[2]
+        query_data = callback['data']
+        order_id = query_data.split('_')[2]
         new_status = "تم التحضير" if "done" in query_data else "لم يتم التحضير"
         
-        # تحديث الحالة في Supabase
-        try:
-            supabase.table("orders").update({"status": new_status}).eq("id", order_id).execute()
-        except Exception as e:
-            print(f"Error updating status: {e}")
-        
+        supabase.table("orders").update({"status": new_status}).eq("id", order_id).execute()
         return jsonify({"ok": True})
     return "OK"
 
