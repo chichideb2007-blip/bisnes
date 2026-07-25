@@ -488,8 +488,6 @@ def submit_order():
         msg += f"📞 رقم الهاتف: {data.get('phone')}\n"
         msg += f"📦 المنتج: {product['name']}\n"
         msg += f"🔢 الكمية: {quantity}\n"
-      
-
 if new_quantity == 0:
             msg += "\n\n❌ تنبيه: المخزون نفذ تماماً لهذا المنتج!"
         elif new_quantity < 5:
