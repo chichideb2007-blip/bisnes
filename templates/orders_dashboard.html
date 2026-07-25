@@ -1,166 +1,42 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <title>إدارة الطلبات</title>
-    <style>
-        body { background-color: #f8f9fa; }
-        .content-card { background: white; border-radius: 15px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 30px; }
-        .table thead { background-color: #198754; color: white; }
-    </style>
-</head>
-<body>
-    <div class="container mt-3">
-        <div class="d-flex justify-content-between align-items-center">
-            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">⬅️ لوحة التحكم</a>
-            <a href="{{ url_for('shipping_settings') }}" class="btn btn-secondary">إدارة أسعار التوصيل</a>
-            {% include 'translate.html' ignore missing %}
-            <a href="{{ url_for('logout') }}" class="btn btn-danger">🚪 خروج</a>
-        </div>
-    </div>
-
-    <div class="container mt-4">
-        <h2 class="mb-4 text-center fw-bold">📦 لوحة إدارة الطلبات</h2>
-
-        <div class="content-card">
-            <h4 class="mb-3">إضافة طلب جديد يدوياً</h4>
-            <form action="{{ url_for('orders') }}" method="POST" class="row g-3">
-                <div class="col-md-3">
-                    <input type="text" name="customer_name" class="form-control" placeholder="اسم العميل" required>
-                </div>
-                <div class="col-md-3">
-                    <input type="text" name="customer_phone" class="form-control" placeholder="رقم الهاتف" required>
-                </div>
-                <div class="col-md-3">
-                    <input type="text" name="product_name" class="form-control" placeholder="اسم المنتج" required>
-                </div>
-                <div class="col-md-3">
-                    <input type="number" name="quantity" class="form-control" placeholder="الكمية" required>
-                </div>
-                <div class="col-md-3">
-                    <input type="number" step="0.01" name="price" class="form-control" placeholder="سعر المنتج الأساسي" required>
-                </div>
+<!-- الجزء الخاص بالجدول داخل content-card -->
+<div class="table-responsive">
+    <table class="table table-hover align-middle text-center">
+        <thead>
+            <tr>
+                <th>رقم الطلب</th>
+                <th>العميل / الهاتف</th>
+                <th>المنتج / الكمية</th>
+                <th>معلومات التوصيل</th>
+                <th>الإجمالي</th>
+                <th>الحالة</th>
+                <th>الإجراءات</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for order in orders %}
+            <tr>
+                <td>#{{ order.id }}</td>
+                <td>{{ order.customer_name }}<br><small class="text-muted">{{ order.customer_phone }}</small></td>
+                <td>{{ order.product_name }}<br><small class="text-muted">الكمية: {{ order.quantity }}</small></td>
+                <td>{{ order.state }}<br><small class="text-muted">{{ order.delivery_type }} ({{ order.delivery_price }} {{ currency }})</small></td>
+                <td>{{ order.total_price }} {{ currency }}</td>
                 
-                <div class="col-md-3">
-                    <select name="state" class="form-select" required>
-                        <option value="">اختر الولاية</option>
-                        {% for wilaya in wilayas %}
-                            <option value="{{ wilaya.wilaya_name }}">{{ wilaya.wilaya_name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                
-                <div class="col-md-3">
-                    <select name="delivery_type" class="form-select" required>
-                        <option value="home">توصيل للمنزل</option>
-                        <option value="office">توصيل للمكتب</option>
-                    </select>
-                </div>
-                
-                <div class="col-md-3">
-                    <input type="number" step="0.01" name="delivery_price" class="form-control" placeholder="أدخلي سعر التوصيل يدوياً" required>
-                </div>
-                
-                <div class="col-md-12">
-                    <button type="submit" class="btn btn-success w-100">حفظ الطلب</button>
-                </div>
-            </form>
-        </div>
+                <!-- تم إضافة الأزرار بجانب الحالة دون حذف نص الحالة -->
+                <td>
+                    {{ order.status }}
+                    <form action="{{ url_for('update_status', order_id=order.id) }}" method="POST" class="mt-1">
+                        <button name="status" value="تم التحضير" class="btn btn-sm btn-outline-success">✅</button>
+                        <button name="status" value="لم يتم التحضير" class="btn btn-sm btn-outline-danger">❌</button>
+                    </form>
+                </td>
 
-        <div class="content-card">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle text-center">
-                    <thead>
-                        <tr>
-                            <th>رقم الطلب</th>
-                            <th>العميل / الهاتف</th>
-                            <th>المنتج / الكمية</th>
-                            <th>معلومات التوصيل</th>
-                            <th>الإجمالي</th>
-                            <th>الحالة</th>
-                            <th>الإجراءات</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for order in orders %}
-                        <tr>
-                            <td>#{{ order.id }}</td>
-                            <td>{{ order.customer_name }}<br><small class="text-muted">{{ order.customer_phone }}</small></td>
-                            <td>{{ order.product_name }}<br><small class="text-muted">الكمية: {{ order.quantity }}</small></td>
-                            <td>{{ order.state }}<br><small class="text-muted">{{ order.delivery_type }} ({{ order.delivery_price }} {{ currency }})</small></td>
-                            <td>{{ order.total_price }} {{ currency }}</td>
-                            
-                            <!-- عمود الحالة المدمج -->
-                            <td>
-                                <div class="mb-1">
-                                    {% if order.status == 'تم التحضير' %}
-                                        <span class="badge bg-success">✅ تم التحضير</span>
-                                    {% else %}
-                                        <span class="badge bg-danger">❌ لم يتم التحضير</span>
-                                    {% endif %}
-                                </div>
-                                <small class="text-muted d-block mb-2">{{ order.status }}</small>
-                                
-                                <form action="{{ url_for('update_status', order_id=order.id) }}" method="POST" class="d-flex justify-content-center gap-1">
-                                    <button name="status" value="تم التحضير" class="btn btn-sm btn-outline-success">✅</button>
-                                    <button name="status" value="لم يتم التحضير" class="btn btn-sm btn-outline-danger">❌</button>
-                                </form>
-                            </td>
-
-                            <td>
-                                <form action="{{ url_for('delete_order', id=order.id) }}" method="POST" class="d-inline">
-                                    <button type="submit" class="btn btn-sm btn-danger">حذف</button>
-                                </form>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <div class="content-card mt-5">
-            <h4 class="mb-3">أسعار التوصيل (ضبط يدوي)</h4>
-            <div class="table-responsive">
-                <table class="table table-bordered align-middle text-center">
-                    <thead>
-                        <tr>
-                            <th>الولاية</th>
-                            <th>سعر التوصيل للمنزل</th>
-                            <th>سعر التوصيل للمكتب</th>
-                            <th>الإجراء</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for w in wilayas %}
-                        <tr>
-                            <td class="fw-bold">{{ w.wilaya_name }}</td>
-                            <td><input type="number" id="home-{{ w.id }}" value="{{ w.home_price }}" class="form-control text-center"></td>
-                            <td><input type="number" id="office-{{ w.id }}" value="{{ w.office_price }}" class="form-control text-center"></td>
-                            <td><button class="btn btn-success px-4" onclick="savePrice({{ w.id }})">حفظ</button></td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        function savePrice(id) {
-            const homePrice = document.getElementById('home-' + id).value;
-            const officePrice = document.getElementById('office-' + id).value;
-            fetch('/update_delivery_price', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({id: id, home_price: homePrice, office_price: officePrice})
-            }).then(response => {
-                if(response.ok) { alert('تم حفظ أسعار ولاية ' + id + ' بنجاح'); }
-                else { alert('حدث خطأ أثناء الحفظ'); }
-            });
-        }
-    </script>
-</body>
-</html>
+                <td>
+                    <form action="{{ url_for('delete_order', id=order.id) }}" method="POST" class="d-inline">
+                        <button type="submit" class="btn btn-sm btn-danger">حذف</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
