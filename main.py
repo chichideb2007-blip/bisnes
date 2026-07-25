@@ -435,9 +435,8 @@ def shop():
     
     products = []
     if company_name:
-        # جلب المنتجات التي تطابق اسم الشركة
-        # تأكدي أن جدول inventory يحتوي على عمود 'company_name'
-        response = supabase.table("inventory").select("*").eq("company_name", company_name).execute()
+        # جلب المنتجات التي تطابق اسم الشركة باستخدام العمود الصحيح
+        response = supabase.table("inventory").select("*").eq("company_id_text", company_name).execute()
         products = response.data
     
     # عند إدخال اسم الشركة
@@ -496,10 +495,10 @@ def submit_order():
         "baladia": baladia, # حفظ البلدية في قاعدة البيانات
         "delivery_type": delivery_type
     }
-    
-   # تنفيذ الإدراج
+    # تنفيذ الإدراج
     supabase.table("orders").insert(order_data).execute()
     
+        
     # جلب الـ ID الخاص بالطلب الجديد
     last_order = supabase.table("orders").select("id").eq("customer_phone", data.get('phone')).eq("company_code", product['company_id_text']).order("id", desc=True).limit(1).execute().data
     order_id = last_order[0]['id'] if last_order else 0
