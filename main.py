@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, make_response
 from supabase import create_client
 from collections import defaultdict
 from datetime import datetime
@@ -427,11 +427,35 @@ def orders():
     
     return render_template('orders_dashboard.html', orders=res.data or [], wilayas=wilayas_res.data)
 
-@app.route('/shop')
+# --- المسار الجديد shop (المدمج) ---
+@app.route('/shop', methods=['GET', 'POST'])
 def shop():
-    response = supabase.table("inventory").select("*").execute()
-    products = response.data
-    return render_template('shop.html', products=products)
+    # محاولة الحصول على اسم الشركة من الكوكيز
+    company_name = request.cookies.get('user_company_name')
+    
+    products = []
+    if company_name:
+        # جلب المنتجات التي تطابق اسم الشركة
+        # تأكدي أن جدول inventory يحتوي على عمود 'company_name'
+        response = supabase.table("inventory").select("*").eq("company_name", company_name).execute()
+        products = response.data
+    
+    # عند إدخال اسم الشركة
+    if request.method == 'POST':
+        selected_name = request.form.get('company_name')
+        # إنشاء استجابة لحفظ اسم الشركة في الكوكيز
+        resp = make_response(redirect(url_for('shop')))
+        resp.set_cookie('user_company_name', selected_name, max_age=60*60*24*30) # تحفظ لمدة 30 يوم
+        return resp
+        
+    return render_template('shop.html', products=products, current_company=company_name)
+
+# --- المسار الجديد clear_session ---
+@app.route('/clear_session')
+def clear_session():
+    resp = make_response(redirect(url_for('shop')))
+    resp.set_cookie('user_company_name', '', expires=0) # حذف الكوكيز
+    return resp
 
 @app.route('/product/<int:product_id>')
 def product_details(product_id):
@@ -474,7 +498,7 @@ def submit_order():
     }
     
     # تنفيذ الإدراج
-    supabase.table("orders").insert(order_data).execute()
+    supabase.table("orders").insert(order_data)execute()
     
     # جلب الـ ID الخاص بالطلب الجديد
     last_order = supabase.table("orders").select("id").eq("customer_phone", data.get('phone')).eq("company_code", product['company_id_text']).order("id", desc=True).limit(1).execute().data
