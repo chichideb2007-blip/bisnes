@@ -431,30 +431,50 @@ def submit_order():
     product_id = data.get('product_id')
     wilaya_id = data.get('wilaya') 
     delivery_type = data.get('delivery_type') 
-    quantity = int(data.get('quantity', 1)) # جلب الكمية
+    quantity = int(data.get('quantity', 1))
     
+    # 1. جلب بيانات المنتج والتحقق من الكمية
     product = supabase.table("inventory").select("*").eq("id", product_id).single().execute().data
+    if not product or product['quantity'] < quantity:
+        return "عذراً، الكمية المطلوبة غير متوفرة في المخزون حالياً!", 400
+
+    # 2. حساب الأسعار
     shipping = supabase.table("shipping_rates").select("home_price, office_price").eq("id", int(wilaya_id)).single().execute().data
-    
     delivery_price = float(shipping['home_price']) if delivery_type == 'home' else float(shipping['office_price'])
-    
-    # الحساب الصحيح: (سعر المنتج * الكمية) + سعر التوصيل
     total_price = (float(product['price']) * quantity) + delivery_price
     
+    # 3. تسجيل الطلبية في جدول orders
     order_data = {
         "customer_name": f"{data.get('customer_name')} {data.get('customer_last_name')}",
         "customer_phone": data.get('phone'),
         "product_name": product['name'],
-        "quantity": quantity, # حفظ الكمية
+        "quantity": quantity,
         "total_price": total_price,
         "delivery_price": delivery_price,
         "status": "قيد الانتظار",
-        "company_code": product['company_id_text']
+        "company_code": product['company_id_text'],
+        "state": wilaya_id, 
+        "delivery_type": delivery_type
     }
     supabase.table("orders").insert(order_data).execute()
     
-    # تحديث المخزون (نقص الكمية المطلوبة)
-    supabase.rpc('decrement_stock', {'p_id': int(product_id), 'qty': quantity}).execute()
+    # 4. تحديث المخزون (نقص الكمية)
+    new_quantity = product['quantity'] - quantity
+    supabase.table("inventory").update({"quantity": new_quantity}).eq("id", product_id).execute()
+    
+    # 5. تنبيه المدير عبر تليجرام
+    settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", product['company_id_text']).single().execute().data
+    
+    if settings:
+        msg = f"🛒 طلبية جديدة!\nالعميل: {order_data['customer_name']}\nالمنتج: {product['name']}\nالكمية: {quantity}\nالمجموع: {total_price} DA"
+        
+        # إذا نفذ المخزون
+        if new_quantity == 0:
+            msg += "\n\n❌ تنبيه: المخزون نفذ تماماً لهذا المنتج!"
+        elif new_quantity < 5:
+            msg += f"\n\n⚠️ تنبيه: المخزون منخفض (المتبقي: {new_quantity})"
+            
+        send_telegram_alert_by_token(settings['telegram_token'], settings['telegram_chat_id'], msg)
     
     return "تم استلام طلبك بنجاح!"
 
