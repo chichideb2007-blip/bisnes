@@ -3,15 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>إتمام الطلب - {{ product.name }}</title>
+    <title>إتمام الطلب</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background-color: #f4f7f6; font-family: 'Segoe UI', Tahoma, sans-serif; }
-        .checkout-card { background: white; border-radius: 15px; padding: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        body { background-color: #f4f7f6; font-family: 'Tajawal', sans-serif; }
+        .checkout-card { background: white; border-radius: 15px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .form-label { font-weight: bold; color: #333; }
-        .price-display { font-size: 1.1em; font-weight: bold; color: #28a745; margin: 15px 0; padding: 15px; background: #e9ecef; border-radius: 10px; }
-        .btn-confirm { background-color: #007bff; color: white; padding: 12px; font-weight: bold; border: none; }
-        .btn-confirm:hover { background-color: #0056b3; }
+        .btn-confirm { background-color: #007bff; color: white; padding: 12px; font-weight: bold; }
     </style>
 </head>
 <body class="p-3">
@@ -19,89 +17,67 @@
 <div class="container mt-4">
     <div class="row justify-content-center">
         <div class="col-md-6 checkout-card">
-            <h4 class="text-center mb-4">إتمام الطلب: {{ product.name }}</h4>
-            
-            <form action="{{ url_for('submit_order') }}" method="POST">
+            <h4 class="text-center mb-4">معلومات التوصيل</h4>
+            <form action="/submit_order" method="POST">
                 <input type="hidden" name="product_id" value="{{ product.id }}">
-                <input type="hidden" id="base_price" value="{{ product.price }}">
+                <input type="hidden" name="base_price" value="{{ product.price }}">
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">الاسم</label>
-                        <input type="text" name="first_name" class="form-control" required placeholder="الاسم">
+                        <label class="form-label">الاسم الكامل</label>
+                        <input type="text" name="customer_name" class="form-control" required placeholder="أدخل اسمك">
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">اللقب</label>
-                        <input type="text" name="last_name" class="form-control" required placeholder="اللقب">
+                        <label class="form-label">رقم الهاتف</label>
+                        <input type="tel" name="phone" class="form-control" required placeholder="0XXXXXXXXX">
                     </div>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">رقم الهاتف</label>
-                    <input type="tel" name="phone" class="form-control" required placeholder="0XXXXXXXXX">
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label">الولاية</label>
-                    <select name="state" id="state" class="form-select" onchange="calculateDelivery()" required>
+                    <select name="wilaya" class="form-select" onchange="updateDelivery()" id="wilaya" required>
                         <option value="">-- اختر الولاية --</option>
-                        {% for w in wilayas %}
-                        <option value="{{ w.id }}">{{ w.wilaya_name }}</option>
+                        {% for rate in rates %}
+                        <option value="{{ rate.id }}" data-home="{{ rate.home_price }}" data-office="{{ rate.office_price }}">
+                            {{ rate.wilaya_name }}
+                        </option>
                         {% endfor %}
                     </select>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label">البلدية</label>
-                    <input type="text" name="baladiya" class="form-control" required placeholder="البلدية">
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">العنوان الكامل</label>
-                    <input type="text" name="address" class="form-control" required placeholder="العنوان بالتفصيل">
-                </div>
-
-                <div class="mb-3">
                     <label class="form-label">نوع التوصيل</label>
-                    <select name="delivery_type" id="delivery_type" class="form-select" onchange="calculateDelivery()" required>
+                    <select name="delivery_type" class="form-select" onchange="calculateTotal()" id="delivery_type" required>
                         <option value="home">توصيل للمنزل</option>
                         <option value="office">توصيل للمكتب</option>
                     </select>
                 </div>
 
-                <!-- عرض الأسعار -->
-                <div class="price-display text-center">
-                    <div id="delivery_price_display">سعر التوصيل: 0 دج</div>
-                    <div id="total_price_display" class="mt-2">المجموع الكلي: {{ product.price }} دج</div>
+                <div class="p-3 mb-3 bg-light rounded text-center">
+                    <h5>الإجمالي: <span id="total_display" class="text-primary">{{ product.price }}</span> دج</h5>
                 </div>
 
-                <button type="submit" class="btn btn-confirm w-100">تأكيد الشراء</button>
+                <button type="submit" class="btn btn-confirm w-100">تأكيد الطلب</button>
             </form>
         </div>
     </div>
 </div>
 
 <script>
-    function calculateDelivery() {
-        const stateId = document.getElementById('state').value;
-        const type = document.getElementById('delivery_type').value;
-        const basePrice = parseFloat(document.getElementById('base_price').value);
-
-        if (!stateId) return;
-
-        // الاتصال بـ main.py لجلب سعر التوصيل
-        fetch(`/get_delivery_price?state_id=${stateId}&type=${type}`)
-        .then(response => response.json())
-        .then(data => {
-            const deliveryPrice = parseFloat(data.price);
-            const total = basePrice + deliveryPrice;
-
-            // تحديث الواجهة
-            document.getElementById('delivery_price_display').innerText = 'سعر التوصيل: ' + deliveryPrice + ' دج';
-            document.getElementById('total_price_display').innerText = 'المجموع الكلي: ' + total + ' دج';
-        })
-        .catch(error => console.error('Error:', error));
+    function calculateTotal() {
+        const basePrice = parseFloat(document.querySelector('input[name="base_price"]').value) || 0;
+        const wilayaSelect = document.getElementById('wilaya');
+        const deliveryType = document.getElementById('delivery_type').value;
+        const selectedOption = wilayaSelect.options[wilayaSelect.selectedIndex];
+        
+        let shippingPrice = 0;
+        if(selectedOption.value !== "") {
+            shippingPrice = parseFloat(selectedOption.getAttribute('data-' + deliveryType)) || 0;
+        }
+        
+        document.getElementById('total_display').innerText = (basePrice + shippingPrice);
     }
+    function updateDelivery() { calculateTotal(); }
 </script>
 
 </body>
