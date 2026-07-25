@@ -71,7 +71,25 @@ def send_order_alert(token, chat_id, message, order_id):
     }
     requests.post(url, json=params)
 
-# دالة مساعدة لعمل `submit_order`
+# --- الدالة الجديدة لجلب المنتجات بالاسم ---
+def get_products_by_shop_name(shop_name):
+    try:
+        # 1. أولاً: نجلب الـ company_code من جدول settings بناءً على اسم المتجر
+        settings = supabase.table("settings").select("company_code").eq("company_name", shop_name).single().execute()
+        
+        if not settings.data:
+            return [] # المتجر غير موجود
+        
+        company_code = settings.data['company_code']
+        
+        # 2. ثانياً: نجلب المنتجات من جدول inventory بناءً على الكود
+        products = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
+        
+        return products.data
+    except Exception as e:
+        print(f"حدث خطأ: {e}")
+        return []
+
 def get_delivery_price(wilaya, delivery_type):
     return 500  # سعر افتراضي
 
@@ -427,7 +445,7 @@ def orders():
     
     return render_template('orders_dashboard.html', orders=res.data or [], wilayas=wilayas_res.data)
 
-# --- المسار الجديد shop (المدمج) ---
+# --- المسار المحدث للـ shop ---
 @app.route('/shop', methods=['GET', 'POST'])
 def shop():
     # محاولة الحصول على اسم الشركة من الكوكيز
@@ -435,9 +453,8 @@ def shop():
     
     products = []
     if company_name:
-        # جلب المنتجات التي تطابق اسم الشركة باستخدام العمود الصحيح
-        response = supabase.table("inventory").select("*").eq("company_id_text", company_name).execute()
-        products = response.data
+        # جلب المنتجات باستخدام الدالة المساعدة
+        products = get_products_by_shop_name(company_name)
     
     # عند إدخال اسم الشركة
     if request.method == 'POST':
@@ -448,6 +465,13 @@ def shop():
         return resp
         
     return render_template('shop.html', products=products, current_company=company_name)
+
+# --- المسار الجديد للبحث عن متجر محدد ---
+@app.route('/shop/<shop_name>')
+def shop_page(shop_name):
+    # نستدعي الدالة ونمرر لها اسم المتجر
+    products = get_products_by_shop_name(shop_name)
+    return render_template('shop.html', products=products, current_company=shop_name)
 
 # --- المسار الجديد clear_session ---
 @app.route('/clear_session')
@@ -476,6 +500,7 @@ def submit_order():
     if not product or product['quantity'] < quantity:
         return "عذراً، الكمية المطلوبة غير متوفرة في المخزون حالياً!", 400
 
+    
     # 2. حساب الأسعار
     shipping = supabase.table("shipping_rates").select("home_price, office_price").eq("id", int(wilaya_id)).single().execute().data
     delivery_price = float(shipping['home_price']) if delivery_type == 'home' else float(shipping['office_price'])
@@ -497,7 +522,7 @@ def submit_order():
     }
     # تنفيذ الإدراج
     supabase.table("orders").insert(order_data).execute()
-    
+
         
     # جلب الـ ID الخاص بالطلب الجديد
     last_order = supabase.table("orders").select("id").eq("customer_phone", data.get('phone')).eq("company_code", product['company_id_text']).order("id", desc=True).limit(1).execute().data
