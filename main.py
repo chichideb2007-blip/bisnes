@@ -465,14 +465,14 @@ def submit_order():
         "status": "قيد الانتظار",
         "company_code": product['company_id_text'],
         "state": wilaya_id, 
-        "baladia": baladia, # حفظ البلدية في قاعدة البيانات (تأكد أن العمود موجود في جدولك)
+        "baladia": baladia, # حفظ البلدية في قاعدة البيانات
         "delivery_type": delivery_type
     }
     
     # تنفيذ الإدراج
     supabase.table("orders").insert(order_data).execute()
     
-    # جلب الـ ID الخاص بالطلب الجديد (لأجل الأزرار)
+    # جلب الـ ID الخاص بالطلب الجديد
     last_order = supabase.table("orders").select("id").eq("customer_phone", data.get('phone')).eq("company_code", product['company_id_text']).order("id", desc=True).limit(1).execute().data
     order_id = last_order[0]['id'] if last_order else 0
     
@@ -484,11 +484,16 @@ def submit_order():
     settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", product['company_id_text']).single().execute().data
     
     if settings:
-        msg = f"🛒 طلبية جديدة!\n"
-        msg += f"👤 العميل: {order_data['customer_name']}\n"
-        msg += f"📞 رقم الهاتف: {data.get('phone')}\n"
+        msg = f"🛒 طلبية جديدة!\n\n"
+        msg += f"👤 الاسم: {data.get('customer_name')}\n"
+        msg += f"👤 اللقب: {data.get('customer_last_name')}\n"
+        msg += f"📞 الهاتف: {data.get('phone')}\n"
+        msg += f"📍 الولاية: {wilaya_id}\n"
+        msg += f"🏠 البلدية: {baladia}\n"
+        msg += f"🚚 نوع التوصيل: {'للمنزل' if delivery_type == 'home' else 'للمكتب'}\n"
         msg += f"📦 المنتج: {product['name']}\n"
         msg += f"🔢 الكمية: {quantity}\n"
+        msg += f"💰 السعر الإجمالي: {total_price} {session.get('currency', 'DA')}\n"
         
         if new_quantity == 0:
             msg += "\n\n❌ تنبيه: المخزون نفذ تماماً لهذا المنتج!"
@@ -577,8 +582,6 @@ def webhook_instagram():
 
     except Exception as e:
       return "Error", 500
-
-# --- المسارات الجديدة التي طلبتها في الأسفل ---
 
 @app.route('/update_status/<int:order_id>', methods=['POST'])
 @login_required
