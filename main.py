@@ -480,6 +480,13 @@ def clear_session():
     resp.set_cookie('user_company_name', '', expires=0) # حذف الكوكيز
     return resp
 
+@app.route('/cart')
+def cart():
+    # هنا نقوم بجلب المنتجات الموجودة في السلة من الـ Session
+    # إذا لم يكن لديك نظام سلة بعد، سنمرر قائمة فارغة حالياً
+    cart_items = session.get('cart', []) 
+    return render_template('cart.html', cart_items=cart_items)
+
 @app.route('/product/<int:product_id>')
 def product_details(product_id):
     response = supabase.table("inventory").select("*").eq("id", product_id).single().execute()
@@ -495,6 +502,7 @@ def submit_order():
     quantity = int(data.get('quantity', 1))
     baladia = data.get('baladia', 'غير محدد') # جلب البلدية من الفورم
     
+
     # 1. جلب بيانات المنتج والتحقق من الكمية
     product = supabase.table("inventory").select("*").eq("id", product_id).single().execute().data
     if not product or product['quantity'] < quantity:
@@ -527,149 +535,4 @@ def submit_order():
     # جلب الـ ID الخاص بالطلب الجديد
     last_order = supabase.table("orders").select("id").eq("customer_phone", data.get('phone')).eq("company_code", product['company_id_text']).order("id", desc=True).limit(1).execute().data
     order_id = last_order[0]['id'] if last_order else 0
-    
-    # 4. تحديث المخزون (نقص الكمية)
-    new_quantity = product['quantity'] - quantity
-    supabase.table("inventory").update({"quantity": new_quantity}).eq("id", product_id).execute()
-    
-    # 5. تنبيه المدير عبر تليجرام
-    settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", product['company_id_text']).single().execute().data
-    
-    if settings:
-        msg = f"🛒 طلبية جديدة!\n\n"
-        msg += f"👤 الاسم: {data.get('customer_name')}\n"
-        msg += f"👤 اللقب: {data.get('customer_last_name')}\n"
-        msg += f"📞 الهاتف: {data.get('phone')}\n"
-        msg += f"📍 الولاية: {wilaya_id}\n"
-        msg += f"🏠 البلدية: {baladia}\n"
-        msg += f"🚚 نوع التوصيل: {'للمنزل' if delivery_type == 'home' else 'للمكتب'}\n"
-        msg += f"📦 المنتج: {product['name']}\n"
-        msg += f"🔢 الكمية: {quantity}\n"
-        msg += f"💰 السعر الإجمالي: {total_price} {session.get('currency', 'DA')}\n"
-        
-        if new_quantity == 0:
-            msg += "\n\n❌ تنبيه: المخزون نفذ تماماً لهذا المنتج!"
-        elif new_quantity < 5:
-            msg += f"\n\n⚠️ تنبيه: المخزون منخفض (المتبقي: {new_quantity})"
-            
-        send_order_alert(settings['telegram_token'], settings['telegram_chat_id'], msg, order_id)
-    
     return "تم استلام طلبك بنجاح!"
-
-@app.route('/order/<int:product_id>')
-def order_page(product_id):
-    # جلب تفاصيل المنتج #
-    response = supabase.table("inventory").select("*").eq("id", product_id).single().execute()
-    product = response.data
-    
-    # جلب قائمة الولايات من جدول shipping_rates
-    wilayas_res = supabase.table("shipping_rates").select("*").execute()
-    wilayas = wilayas_res.data
-    
-    if not product:
-        return "هذا المنتج غير موجود", 404
-        
-    return render_template('order.html', product=product, wilayas=wilayas)
-
-@app.route('/checkout/<int:product_id>')
-def checkout(product_id):
-    return redirect(url_for('order_page', product_id=product_id))
-
-@app.route('/stats')
-@login_required
-def stats():
-    company_code = session.get('company_code')
-    total_sales = 0
-    total_expenses = 0
-    total_orders = 0
-    daily, monthly, yearly = {}, {}, {}
-
-    try:
-        res_orders = supabase.table("orders").select("total_price, created_at").eq("company_code", company_code).execute()
-        orders = res_orders.data or []
-        total_orders = len(orders)
-
-        res_expenses = supabase.table("expenses").select("amount, created_at").eq("company_code", company_code).execute()
-        expenses = res_expenses.data or []
-        total_expenses = sum(float(e.get('amount') or 0) for e in expenses)
-        daily_data, monthly_data, yearly_data = defaultdict(float), defaultdict(float), defaultdict(float)
-        days_order = ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"]
-        months_order =["جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان", "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
-        
-        for o in orders:
-            price = float(o.get('total_price') or 0)
-            total_sales += price
-            if o.get('created_at'):
-                dt = datetime.fromisoformat(o['created_at'].replace('Z', '+00:00'))
-                day_name = days_order[dt.weekday()] if dt.weekday() < 7 else "السبت"
-                daily_data[day_name] += price
-                monthly_data[months_order[dt.month - 1]] += price
-                yearly_data[str(dt.year)] += price
-        
-        daily, monthly, yearly = dict(daily_data), dict(monthly_data), dict(yearly_data)
-
-    except Exception as e:
-        print(f"DEBUG: خطأ في صفحة الإحصائيات: {e}")
-        
-    return render_template('stats.html', total_sales=total_sales, total_expenses=total_expenses, total_orders=total_orders, daily=daily, monthly=monthly, yearly=yearly)
-
-@app.route('/webhook_instagram', methods=['GET', 'POST'])
-def webhook_instagram():
-    if request.method == 'GET': 
-        return request.args.get('hub.challenge')
-    
-    data = request.json
-    try:
-        page_id = data['entry'][0]['id']
-        messaging = data['entry'][0]['messaging'][0]
-        msg = messaging['message']['text']
-        sender_id = messaging['sender']['id']
-        
-        res = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("instagram_page_id", page_id).execute()
-        
-        if res.data:
-            send_telegram_alert_by_token(res.data[0]['telegram_token'], res.data[0]['telegram_chat_id'], f"🔔 رسالة إنستقرام جديدة من العميل ({sender_id}):\n{msg}")
-            
-        return "OK", 200
-
-    except Exception as e:
-      return "Error", 500
-
-@app.route('/update_status/<int:order_id>', methods=['POST'])
-@login_required
-def update_status(order_id):
-    new_status = request.form.get('status')
-    supabase.table("orders").update({"status": new_status}).eq("id", order_id).execute()
-    
-    # جلب معلومات التنبيه
-    order = supabase.table("orders").select("company_code").eq("id", order_id).single().execute().data
-    settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", order['company_code']).single().execute().data
-    
-    if settings:
-        msg = f"🔄 تحديث حالة الطلبية #{order_id}\nالحالة الجديدة: {new_status}"
-        send_telegram_alert_by_token(settings['telegram_token'], settings['telegram_chat_id'], msg)
-        
-    return redirect(url_for('orders'))
-
-@app.route('/webhook_telegram', methods=['POST'])
-def webhook_telegram():
-    data = request.json
-    if 'callback_query' in data:
-        callback = data['callback_query']
-        query_data = callback['data'] # مثلاً status_done_123
-        order_id = query_data.split('_')[2]
-        new_status = "تم التحضير" if "done" in query_data else "لم يتم التحضير"
-        
-        # تحديث قاعدة البيانات
-        supabase.table("orders").update({"status": new_status}).eq("id", order_id).execute()
-        
-        # إرسال تأكيد داخل تيلجرام
-        bot_token = os.environ.get("TELEGRAM_TOKEN") # تأكد من ضبطه
-        if bot_token:
-            requests.get(f"https://api.telegram.org/bot{bot_token}/answerCallbackQuery?callback_query_id={callback['id']}&text=تم التحديث بنجاح!")
-        
-        return jsonify({"ok": True})
-    return "OK"
-
-if __name__ == '__main__':
-    app.run(debug=True)
