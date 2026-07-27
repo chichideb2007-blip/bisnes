@@ -487,12 +487,23 @@ def cart():
     cart_items = session.get('cart', []) 
     return render_template('cart.html', cart_items=cart_items)
 
+# --- المسار الجديد checkout ---
+@app.route('/checkout')
+def checkout():
+    # جلب الولايات من قاعدة البيانات لملء قائمة الاختيار في صفحة إتمام الطلب
+    try:
+        rates = supabase.table("shipping_rates").select("*").execute().data
+    except Exception as e:
+        print(f"Error fetching shipping rates: {e}")
+        rates = [] # في حال حدوث خطأ، نمرر قائمة فارغة
+        
+    return render_template('checkout.html', rates=rates)
+
 @app.route('/product/<int:product_id>')
 def product_details(product_id):
     response = supabase.table("inventory").select("*").eq("id", product_id).single().execute()
     product = response.data
     return render_template('product_view.html', product=product)
-
 @app.route('/submit-order', methods=['POST'])
 def submit_order():
     data = request.form
@@ -502,7 +513,6 @@ def submit_order():
     quantity = int(data.get('quantity', 1))
     baladia = data.get('baladia', 'غير محدد') # جلب البلدية من الفورم
     
-
     # 1. جلب بيانات المنتج والتحقق من الكمية
     product = supabase.table("inventory").select("*").eq("id", product_id).single().execute().data
     if not product or product['quantity'] < quantity:
@@ -536,3 +546,6 @@ def submit_order():
     last_order = supabase.table("orders").select("id").eq("customer_phone", data.get('phone')).eq("company_code", product['company_id_text']).order("id", desc=True).limit(1).execute().data
     order_id = last_order[0]['id'] if last_order else 0
     return "تم استلام طلبك بنجاح!"
+
+if __name__ == '__main__':
+    app.run(debug=True)
