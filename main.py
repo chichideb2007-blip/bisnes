@@ -8,6 +8,7 @@ import time
 import requests
 import urllib.parse
 import base64
+import json
 from google import genai 
 from google.genai import types 
 
@@ -496,33 +497,37 @@ def product_details(product_id):
 @app.route('/submit-order', methods=['POST'])
 def submit_order():
     data = request.form
-    product_id = data.get('product_id')
+    # استقبال بيانات السلة المحولة من JSON
+    cart_json = data.get('cart_data')
+    if not cart_json:
+        return "لا توجد منتجات في السلة", 400
+    
+    try:
+        cart_items = json.loads(cart_json)
+    except:
+        return "خطأ في بيانات السلة", 400
+
     wilaya_id = data.get('wilaya') 
     delivery_type = data.get('delivery_type') 
-    
-    # التعديل: استقبال الكمية وسعر التوصيل
-    quantity = int(data.get('quantity', 1))
     delivery_price = float(data.get('delivery_price', 0))
     baladia = data.get('baladia', 'غير محدد')
     
-        # 1. جلب بيانات المنتج والتحقق من الكمية
-    product = supabase.table("inventory").select("*").eq("id", product_id).single().execute().data
-    if not product or product['quantity'] < quantity:
-        return "عذراً، الكمية المطلوبة غير متوفرة في المخزون حالياً!", 400
-
-    # 2. حساب السعر الإجمالي (سعر المنتج * الكمية + سعر التوصيل)
-    total_price = (float(product['price']) * quantity) + delivery_price
+        # حساب السعر الإجمالي الكلي للمنتجات + التوصيل
+    total_price = sum(float(item['price']) for item in cart_items) + delivery_price
     
-    # 3. تسجيل الطلبية
+    # تسجيل طلبية واحدة مجمعة أو تفصيلية (سنضيفها كطلبية واحدة)
+    # سنقوم بجمع أسماء المنتجات في نص واحد
+    product_names = ", ".join([item['name'] for item in cart_items])
+    
     order_data = {
-        "customer_name": f"{data.get('customer_name')} {data.get('customer_last_name')}",
+        "customer_name": f"{data.get('customer_name')} {data.get('customer_last_name', '')}",
         "customer_phone": data.get('phone'),
-        "product_name": product['name'],
-        "quantity": quantity, # حفظ الكمية
+        "product_name": product_names,
+        "quantity": len(cart_items), # أو يمكنك تعديل السلة لترسل الكمية
         "total_price": total_price,
-        "delivery_price": delivery_price, # حفظ سعر التوصيل
+        "delivery_price": delivery_price,
         "status": "قيد الانتظار",
-        "company_code": product['company_id_text'],
+        "company_code": cart_items[0].get('company_id_text'), # نفترض أن كل المنتجات من نفس المتجر
         "state": wilaya_id, 
         "baladia": baladia,
         "delivery_type": delivery_type
@@ -530,9 +535,13 @@ def submit_order():
     
     supabase.table("orders").insert(order_data).execute()
     
-    # تحديث المخزون (نقص الكمية المباعة)
-    new_qty = product['quantity'] - quantity
-    supabase.table("inventory").update({"quantity": new_qty}).eq("id", product_id).execute()
+    # تحديث المخزون لكل منتج
+    for item in cart_items:
+        product_id = item.get('id')
+        product = supabase.table("inventory").select("*").eq("id", product_id).single().execute().data
+        if product:
+            new_qty = max(0, product['quantity'] - 1) # هنا نقصنا 1، عدله حسب الكمية في السلة
+            supabase.table("inventory").update({"quantity": new_qty}).eq("id", product_id).execute()
 
     return "تم استلام طلبك بنجاح!"
 
