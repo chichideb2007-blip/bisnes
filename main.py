@@ -493,55 +493,79 @@ def product_details(product_id):
     product = response.data
     return render_template('product_view.html', product=product)
 
-# --- المسار المحدث للـ submit-order ---
+
+# --- المسار المدمج لـ submit-order مع كامل التنبيهات ---
 @app.route('/submit-order', methods=['POST'])
 def submit_order():
     data = request.form
-    # استقبال بيانات السلة المحولة من JSON
     cart_json = data.get('cart_data')
     if not cart_json:
         return "لا توجد منتجات في السلة", 400
     
     try:
         cart_items = json.loads(cart_json)
+        company_code = cart_items[0].get('company_id_text')
     except:
         return "خطأ في بيانات السلة", 400
 
-    wilaya_id = data.get('wilaya') 
+    wilaya = data.get('wilaya') 
+    baladia = data.get('baladia', 'غير محدد')
     delivery_type = data.get('delivery_type') 
     delivery_price = float(data.get('delivery_price', 0))
-    baladia = data.get('baladia', 'غير محدد')
+    customer_name = data.get('customer_name')
+    customer_phone = data.get('phone')
     
-        # حساب السعر الإجمالي الكلي للمنتجات + التوصيل
+    # حساب السعر الإجمالي
     total_price = sum(float(item['price']) for item in cart_items) + delivery_price
-    
-    # تسجيل طلبية واحدة مجمعة أو تفصيلية (سنضيفها كطلبية واحدة)
-    # سنقوم بجمع أسماء المنتجات في نص واحد
     product_names = ", ".join([item['name'] for item in cart_items])
     
+    # تسجيل الطلب
     order_data = {
-        "customer_name": f"{data.get('customer_name')} {data.get('customer_last_name', '')}",
-        "customer_phone": data.get('phone'),
+        "customer_name": customer_name,
+        "customer_phone": customer_phone,
         "product_name": product_names,
-        "quantity": len(cart_items), # أو يمكنك تعديل السلة لترسل الكمية
+        "quantity": len(cart_items),
         "total_price": total_price,
         "delivery_price": delivery_price,
         "status": "قيد الانتظار",
-        "company_code": cart_items[0].get('company_id_text'), # نفترض أن كل المنتجات من نفس المتجر
-        "state": wilaya_id, 
+        "company_code": company_code,
+        "state": wilaya, 
         "baladia": baladia,
         "delivery_type": delivery_type
     }
     
     supabase.table("orders").insert(order_data).execute()
     
-    # تحديث المخزون لكل منتج
+    # --- إرسال التنبيه لتليجرام ---
+    res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
+    if res_settings.data:
+        s = res_settings.data[0]
+        token, chat_id = s.get('telegram_token'), s.get('telegram_chat_id')
+        
+        if token and chat_id:
+            msg = (f"🛒 طلبية جديدة!\n"
+                   f"👤 الزبون: {customer_name}\n"
+                   f"📞 الهاتف: {customer_phone}\n"
+                   f"📦 المنتجات: {product_names}\n"
+                   f"💰 السعر الإجمالي: {total_price} دج\n"
+                   f"📍 الولاية: {wilaya} - البلدية: {baladia}\n"
+                   f"🚚 التوصيل: {'للمنزل' if delivery_type == 'home' else 'للمكتب'}\n"
+                   f"💵 سعر التوصيل: {delivery_price} دج")
+            send_telegram_alert_by_token(token, chat_id, msg)
+
+    # تحديث المخزون والتنبيه عند النفاذ
     for item in cart_items:
-        product_id = item.get('id')
-        product = supabase.table("inventory").select("*").eq("id", product_id).single().execute().data
+        p_id = item.get('id')
+        product = supabase.table("inventory").select("*").eq("id", p_id).single().execute().data
         if product:
-            new_qty = max(0, product['quantity'] - 1) # هنا نقصنا 1، عدله حسب الكمية في السلة
-            supabase.table("inventory").update({"quantity": new_qty}).eq("id", product_id).execute()
+            new_qty = max(0, product['quantity'] - 1)
+            supabase.table("inventory").update({"quantity": new_qty}).eq("id", p_id).execute()
+            
+            # تنبيه نفاذ المخزون
+            if new_qty == 0:
+                send_telegram_alert_by_token(token, chat_id, f"❌ تنبيه: المنتج '{product['name']}' نفذ تماماً من المخزون!")
+            elif new_qty <= 3:
+                send_telegram_alert_by_token(token, chat_id, f"⚠️ تنبيه: المنتج '{product['name']}' أوشك على النفاذ (المتبقي: {new_qty})")
 
     return "تم استلام طلبك بنجاح!"
 
