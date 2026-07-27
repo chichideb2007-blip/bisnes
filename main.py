@@ -171,10 +171,36 @@ def logout():
 def dashboard():
     return render_template('dashboard.html')
 
+# --- دالة stats المحدثة لحل مشكلة JSON Serializable ---
 @app.route('/stats')
 @login_required
 def stats():
-    return render_template('stats.html')
+    company_code = session.get('company_code')
+    
+    # 1. جلب البيانات من Supabase
+    try:
+        res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
+        orders = res.data or []
+    except Exception as e:
+        print(f"Error fetching stats: {e}")
+        orders = []
+
+    # 2. تنظيف البيانات (تحويل الكائنات المعقدة إلى نصوص وأرقام بسيطة)
+    cleaned_orders = []
+    for order in orders:
+        cleaned_order = {
+            "id": order.get("id"),
+            "customer_name": order.get("customer_name"),
+            "total_price": float(order.get("total_price") or 0),
+            "status": order.get("status"),
+            # تحويل أي تاريخ إلى نص string لضمان توافقه مع JSON
+            "created_at": str(order.get("created_at", "")), 
+            "product_name": order.get("product_name")
+        }
+        cleaned_orders.append(cleaned_order)
+
+    # 3. تمرير البيانات المنظفة إلى القالب
+    return render_template('stats.html', orders=cleaned_orders)
 
 @app.route('/settings', methods=['GET', 'POST'])
 @login_required
@@ -390,6 +416,15 @@ def delete_order(id):
     supabase.table("orders").delete().eq("id", id).execute()
     return redirect(url_for('orders'))
 
+# --- الدالة المضافة لتحديث الحالة ---
+@app.route('/update_status/<int:order_id>', methods=['POST'])
+@login_required
+def update_status(order_id):
+    new_status = request.form.get('status')
+    if new_status:
+        supabase.table("orders").update({"status": new_status}).eq("id", order_id).execute()
+    return redirect(url_for('orders'))
+
 @app.route('/orders', methods=['GET', 'POST'])
 @login_required
 def orders():
@@ -498,8 +533,6 @@ def product_details(product_id):
     product = response.data
     return render_template('product_view.html', product=product)
 
-
-#
 # --- المسار المدمج لـ submit-order مع كامل التنبيهات ---
 @app.route('/submit-order', methods=['POST'])
 def submit_order():
