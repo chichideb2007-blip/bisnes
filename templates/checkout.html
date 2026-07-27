@@ -25,6 +25,9 @@
                 
                 <!-- حقل مخفي لبيانات السلة -->
                 <input type="hidden" name="cart_data" id="cart_data">
+                
+                <!-- الحقل الجديد لسعر التوصيل -->
+                <input type="hidden" name="delivery_price" id="delivery_price_input" value="0">
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
@@ -76,7 +79,7 @@
         calculateTotal(); // حساب السعر عند التحميل
     };
 
-    // 2. دالة حساب الإجمالي
+    // 2. دالة حساب الإجمالي وتحديث الحقول
     function calculateTotal() {
         // حساب سعر السلة من الـ localStorage
         let cart = JSON.parse(localStorage.getItem('cart') || '[]');
@@ -92,7 +95,11 @@
             shippingPrice = parseFloat(selectedOption.getAttribute('data-' + deliveryType)) || 0;
         }
         
+        // تحديث العرض في الصفحة
         document.getElementById('total_display').innerText = (basePrice + shippingPrice);
+        
+        // تحديث الحقل المخفي الذي سيرسل إلى بايثون
+        document.getElementById('delivery_price_input').value = shippingPrice;
     }
 
     function updateDelivery() { 
