@@ -171,6 +171,11 @@ def logout():
 def dashboard():
     return render_template('dashboard.html')
 
+@app.route('/stats')
+@login_required
+def stats():
+    return render_template('stats.html')
+
 @app.route('/settings', methods=['GET', 'POST'])
 @login_required
 def settings():
@@ -494,6 +499,7 @@ def product_details(product_id):
     return render_template('product_view.html', product=product)
 
 
+#
 # --- المسار المدمج لـ submit-order مع كامل التنبيهات ---
 @app.route('/submit-order', methods=['POST'])
 def submit_order():
