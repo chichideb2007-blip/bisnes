@@ -9,7 +9,8 @@
         body { background-color: #f4f7f6; font-family: 'Tajawal', sans-serif; }
         .checkout-card { background: white; border-radius: 15px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .form-label { font-weight: bold; color: #333; }
-        .btn-confirm { background-color: #007bff; color: white; padding: 12px; font-weight: bold; }
+        .btn-confirm { background-color: #28a745; color: white; padding: 12px; font-weight: bold; border: none; }
+        .btn-confirm:hover { background-color: #218838; }
     </style>
 </head>
 <body class="p-3">
@@ -18,9 +19,12 @@
     <div class="row justify-content-center">
         <div class="col-md-6 checkout-card">
             <h4 class="text-center mb-4">معلومات التوصيل</h4>
-            <form action="/submit_order" method="POST">
-                <input type="hidden" name="product_id" value="{{ product.id }}">
-                <input type="hidden" name="base_price" value="{{ product.price }}">
+            
+            <!-- الفورم يرسل البيانات إلى /submit-order -->
+            <form action="/submit-order" method="POST">
+                
+                <!-- حقل مخفي لبيانات السلة -->
+                <input type="hidden" name="cart_data" id="cart_data">
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
@@ -35,7 +39,7 @@
 
                 <div class="mb-3">
                     <label class="form-label">الولاية</label>
-                    <select name="wilaya" class="form-select" onchange="updateDelivery()" id="wilaya" required>
+                    <select name="wilaya" class="form-select" id="wilaya" onchange="updateDelivery()" required>
                         <option value="">-- اختر الولاية --</option>
                         {% for rate in rates %}
                         <option value="{{ rate.id }}" data-home="{{ rate.home_price }}" data-office="{{ rate.office_price }}">
@@ -47,14 +51,15 @@
 
                 <div class="mb-3">
                     <label class="form-label">نوع التوصيل</label>
-                    <select name="delivery_type" class="form-select" onchange="calculateTotal()" id="delivery_type" required>
+                    <select name="delivery_type" class="form-select" id="delivery_type" onchange="calculateTotal()" required>
                         <option value="home">توصيل للمنزل</option>
                         <option value="office">توصيل للمكتب</option>
                     </select>
                 </div>
 
+                <!-- تم دمج منطق الإجمالي هنا -->
                 <div class="p-3 mb-3 bg-light rounded text-center">
-                    <h5>الإجمالي: <span id="total_display" class="text-primary">{{ product.price }}</span> دج</h5>
+                    <h5>المجموع الكلي: <span id="total_display" class="text-primary">0</span> دج</h5>
                 </div>
 
                 <button type="submit" class="btn btn-confirm w-100">تأكيد الطلب</button>
@@ -64,8 +69,20 @@
 </div>
 
 <script>
+    // 1. جلب بيانات السلة عند تحميل الصفحة
+    window.onload = function() {
+        let cart = localStorage.getItem('cart');
+        document.getElementById('cart_data').value = cart;
+        calculateTotal(); // حساب السعر عند التحميل
+    };
+
+    // 2. دالة حساب الإجمالي
     function calculateTotal() {
-        const basePrice = parseFloat(document.querySelector('input[name="base_price"]').value) || 0;
+        // حساب سعر السلة من الـ localStorage
+        let cart = JSON.parse(localStorage.getItem('cart') || '[]');
+        let basePrice = cart.reduce((total, item) => total + parseFloat(item.price), 0);
+        
+        // حساب سعر التوصيل
         const wilayaSelect = document.getElementById('wilaya');
         const deliveryType = document.getElementById('delivery_type').value;
         const selectedOption = wilayaSelect.options[wilayaSelect.selectedIndex];
@@ -77,7 +94,10 @@
         
         document.getElementById('total_display').innerText = (basePrice + shippingPrice);
     }
-    function updateDelivery() { calculateTotal(); }
+
+    function updateDelivery() { 
+        calculateTotal(); 
+    }
 </script>
 
 </body>
