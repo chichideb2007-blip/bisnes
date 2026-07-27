@@ -445,57 +445,44 @@ def orders():
     
     return render_template('orders_dashboard.html', orders=res.data or [], wilayas=wilayas_res.data)
 
-# --- المسار المحدث للـ shop ---
 @app.route('/shop', methods=['GET', 'POST'])
 def shop():
-    # محاولة الحصول على اسم الشركة من الكوكيز
     company_name = request.cookies.get('user_company_name')
-    
     products = []
     if company_name:
-        # جلب المنتجات باستخدام الدالة المساعدة
         products = get_products_by_shop_name(company_name)
     
-    # عند إدخال اسم الشركة
     if request.method == 'POST':
         selected_name = request.form.get('company_name')
-        # إنشاء استجابة لحفظ اسم الشركة في الكوكيز
         resp = make_response(redirect(url_for('shop')))
-        resp.set_cookie('user_company_name', selected_name, max_age=60*60*24*30) # تحفظ لمدة 30 يوم
+        resp.set_cookie('user_company_name', selected_name, max_age=60*60*24*30)
         return resp
         
     return render_template('shop.html', products=products, current_company=company_name)
 
-# --- المسار الجديد للبحث عن متجر محدد ---
 @app.route('/shop/<shop_name>')
 def shop_page(shop_name):
-    # نستدعي الدالة ونمرر لها اسم المتجر
     products = get_products_by_shop_name(shop_name)
     return render_template('shop.html', products=products, current_company=shop_name)
 
-# --- المسار الجديد clear_session ---
 @app.route('/clear_session')
 def clear_session():
     resp = make_response(redirect(url_for('shop')))
-    resp.set_cookie('user_company_name', '', expires=0) # حذف الكوكيز
+    resp.set_cookie('user_company_name', '', expires=0)
     return resp
 
 @app.route('/cart')
 def cart():
-    # هنا نقوم بجلب المنتجات الموجودة في السلة من الـ Session
-    # إذا لم يكن لديك نظام سلة بعد، سنمرر قائمة فارغة حالياً
     cart_items = session.get('cart', []) 
     return render_template('cart.html', cart_items=cart_items)
 
-# --- المسار الجديد checkout ---
 @app.route('/checkout')
 def checkout():
-    # جلب الولايات من قاعدة البيانات لملء قائمة الاختيار في صفحة إتمام الطلب
     try:
         rates = supabase.table("shipping_rates").select("*").execute().data
     except Exception as e:
         print(f"Error fetching shipping rates: {e}")
-        rates = [] # في حال حدوث خطأ، نمرر قائمة فارغة
+        rates = []
         
     return render_template('checkout.html', rates=rates)
 
@@ -504,47 +491,49 @@ def product_details(product_id):
     response = supabase.table("inventory").select("*").eq("id", product_id).single().execute()
     product = response.data
     return render_template('product_view.html', product=product)
+
+# --- المسار المحدث للـ submit-order ---
 @app.route('/submit-order', methods=['POST'])
 def submit_order():
     data = request.form
     product_id = data.get('product_id')
     wilaya_id = data.get('wilaya') 
     delivery_type = data.get('delivery_type') 
-    quantity = int(data.get('quantity', 1))
-    baladia = data.get('baladia', 'غير محدد') # جلب البلدية من الفورم
     
-    # 1. جلب بيانات المنتج والتحقق من الكمية
+    # التعديل: استقبال الكمية وسعر التوصيل
+    quantity = int(data.get('quantity', 1))
+    delivery_price = float(data.get('delivery_price', 0))
+    baladia = data.get('baladia', 'غير محدد')
+    
+        # 1. جلب بيانات المنتج والتحقق من الكمية
     product = supabase.table("inventory").select("*").eq("id", product_id).single().execute().data
     if not product or product['quantity'] < quantity:
         return "عذراً، الكمية المطلوبة غير متوفرة في المخزون حالياً!", 400
 
-    
-    # 2. حساب الأسعار
-    shipping = supabase.table("shipping_rates").select("home_price, office_price").eq("id", int(wilaya_id)).single().execute().data
-    delivery_price = float(shipping['home_price']) if delivery_type == 'home' else float(shipping['office_price'])
+    # 2. حساب السعر الإجمالي (سعر المنتج * الكمية + سعر التوصيل)
     total_price = (float(product['price']) * quantity) + delivery_price
     
-    # 3. تسجيل الطلبية في جدول orders
+    # 3. تسجيل الطلبية
     order_data = {
         "customer_name": f"{data.get('customer_name')} {data.get('customer_last_name')}",
         "customer_phone": data.get('phone'),
         "product_name": product['name'],
-        "quantity": quantity,
+        "quantity": quantity, # حفظ الكمية
         "total_price": total_price,
-        "delivery_price": delivery_price,
+        "delivery_price": delivery_price, # حفظ سعر التوصيل
         "status": "قيد الانتظار",
         "company_code": product['company_id_text'],
         "state": wilaya_id, 
-        "baladia": baladia, # حفظ البلدية في قاعدة البيانات
+        "baladia": baladia,
         "delivery_type": delivery_type
     }
-    # تنفيذ الإدراج
+    
     supabase.table("orders").insert(order_data).execute()
+    
+    # تحديث المخزون (نقص الكمية المباعة)
+    new_qty = product['quantity'] - quantity
+    supabase.table("inventory").update({"quantity": new_qty}).eq("id", product_id).execute()
 
-        
-    # جلب الـ ID الخاص بالطلب الجديد
-    last_order = supabase.table("orders").select("id").eq("customer_phone", data.get('phone')).eq("company_code", product['company_id_text']).order("id", desc=True).limit(1).execute().data
-    order_id = last_order[0]['id'] if last_order else 0
     return "تم استلام طلبك بنجاح!"
 
 if __name__ == '__main__':
