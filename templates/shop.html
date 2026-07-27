@@ -77,12 +77,10 @@
                     
                     <!-- منطق زر الشراء -->
                     {% if product.quantity > 0 %}
-                        <!-- زر الشراء المباشر -->
-                        <a href="/checkout/{{ product.id }}" class="btn btn-sm btn-outline-primary w-100">شراء الآن</a>
-                        <!-- زر إضافة للسلة -->
-                        <button onclick="addToCart('{{ product.id }}', '{{ product.name }}', {{ product.price }})" class="btn btn-primary btn-sm w-100 mt-2">إضافة للسلة</button>
+                        <!-- زر إضافة للسلة فقط -->
+                        <button onclick="addToCart('{{ product.id }}', '{{ product.name }}', {{ product.price }})" class="btn btn-primary btn-sm w-100">إضافة للسلة</button>
                     {% else %}
-                        <button disabled class="btn btn-secondary btn-sm w-100 mt-2">غير متوفر</button>
+                        <button disabled class="btn btn-secondary btn-sm w-100">غير متوفر</button>
                     {% endif %}
                 </div>
             </div>
