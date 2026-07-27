@@ -118,9 +118,9 @@
             });
         }
 
-        const dailyData = {{ daily | tojson | safe }};
-        const monthlyData = {{ monthly | tojson | safe }};
-        const yearlyData = {{ yearly | tojson | safe }};
+        const dailyData = {{ daily | default([]) | tojson | safe }};
+        const monthlyData = {{ monthly | default([]) | tojson | safe }};
+        const yearlyData = {{ yearly | default([]) | tojson | safe }};
 
         createChart('dailyChart', 'المبيعات اليومية', dailyData, ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"], '#0d6efd');
         createChart('monthlyChart', 'المبيعات الشهرية', monthlyData, ["جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان", "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"], '#198754');
