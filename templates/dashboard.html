@@ -33,7 +33,10 @@
             
             <div class="d-flex justify-content-center gap-2 flex-wrap">
                 <a href="{{ url_for('orders') }}" class="btn btn-primary nav-btn">📦 الطلبات</a>
+                
+                <!-- هذا الرابط الآن سيعمل بشكل صحيح بعد إضافة دالة stats في main.py -->
                 <a href="{{ url_for('stats') }}" class="btn btn-success nav-btn">📊 الإحصائيات</a>
+                
                 <a href="{{ url_for('products') }}" class="btn btn-info text-white nav-btn">🛒 المخزون</a>
                 <a href="{{ url_for('settings') }}" class="btn btn-warning text-white nav-btn">⚙️ الإعدادات</a>
             </div>
