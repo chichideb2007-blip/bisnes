@@ -200,7 +200,8 @@ def stats():
         cleaned_orders.append(cleaned_order)
 
     # 3. تمرير البيانات المنظفة إلى القالب
-    return render_template('stats.html', orders=cleaned_orders)
+    daily = [] # يمكنك ملء هذا المتغير لاحقاً ببيانات الرسم البياني
+    return render_template('stats.html', orders=cleaned_orders, daily=daily)
 
 @app.route('/settings', methods=['GET', 'POST'])
 @login_required
@@ -506,7 +507,7 @@ def shop_page(shop_name):
     products = get_products_by_shop_name(shop_name)
     return render_template('shop.html', products=products, current_company=shop_name)
 
-@app.route('/clear_session')
+app.route('/clear_session')
 def clear_session():
     resp = make_response(redirect(url_for('shop')))
     resp.set_cookie('user_company_name', '', expires=0)
