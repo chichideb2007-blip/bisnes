@@ -491,13 +491,12 @@ def orders():
             
         return redirect(url_for('orders'))
 
-   res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
+    res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
     
     return render_template('orders_dashboard.html', orders=res.data or [], wilayas=wilayas_res.data)
 
 @app.route('/shop', methods=['GET', 'POST'])
 def shop():
-    # تم تصحيح اسم الكوكيز هنا
     company_name = request.cookies.get('user_company_name')
     products = []
     if company_name:
@@ -513,7 +512,6 @@ def shop():
 
 @app.route('/shop/<shop_name>')
 def shop_page(shop_name):
-    # تم تصحيح المسافات (Indentation) هنا
     products = get_products_by_shop_name(shop_name)
     return render_template('shop.html', products=products, current_company=shop_name)
 
