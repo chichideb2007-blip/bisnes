@@ -177,31 +177,29 @@ def dashboard():
 def stats():
     company_code = session.get('company_code')
     
-    # 1. جلب البيانات من Supabase
     try:
+        # جلب البيانات
         res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
         orders = res.data or []
     except Exception as e:
         print(f"Error fetching stats: {e}")
         orders = []
 
-    # 2. تنظيف البيانات (تحويل الكائنات المعقدة إلى نصوص وأرقام بسيطة)
+    # تنظيف البيانات بدقة
     cleaned_orders = []
     for order in orders:
+        # نقوم بإنشاء قاموس جديد يحتوي فقط على القيم التي نتأكد من أنها نص أو رقم
         cleaned_order = {
             "id": order.get("id"),
-            "customer_name": order.get("customer_name"),
+            "customer_name": str(order.get("customer_name") or ""),
             "total_price": float(order.get("total_price") or 0),
-            "status": order.get("status"),
-            # تحويل أي تاريخ إلى نص string لضمان توافقه مع JSON
-            "created_at": str(order.get("created_at", "")), 
-            "product_name": order.get("product_name")
+            "status": str(order.get("status") or ""),
+            "created_at": str(order.get("created_at") or ""),
+            "product_name": str(order.get("product_name") or "")
         }
         cleaned_orders.append(cleaned_order)
 
-    # 3. تمرير البيانات المنظفة إلى القالب
-    daily = [] # يمكنك ملء هذا المتغير لاحقاً ببيانات الرسم البياني
-    return render_template('stats.html', orders=cleaned_orders, daily=daily)
+    return render_template('stats.html', orders=cleaned_orders, daily=[])
 
 @app.route('/settings', methods=['GET', 'POST'])
 @login_required
