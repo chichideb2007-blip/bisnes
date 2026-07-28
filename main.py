@@ -340,12 +340,9 @@ def products():
             print(f"DEBUG ERROR: {e}")
             return f"خطأ في قاعدة البيانات: {str(e)}", 500
 
-    # --- تم الدمج: كود التشخيص ---
-    # طباعة كل البيانات الموجودة في جدول المخزون في الـ Logs
-    all_data = supabase.table("inventory").select("*").execute().data
-    print("DEBUG: ALL PRODUCTS IN DB:", all_data)
+    # تم إزالة سطر الطباعة المسبب للمشكلة
     
-    # جلب كل البيانات بدون فلتر (للتجربة)
+    # جلب كل البيانات بدون فلتر
     res = supabase.table("inventory").select("*").execute()
     
     return render_template('products.html', products=res.data or [])
@@ -508,7 +505,7 @@ def shop():
         resp.set_cookie('user_company_name', selected_name, max_age=60*60*24*30)
         return resp
         
-return render_template('shop.html', products=products, current_company=company_name)
+    return render_template('shop.html', products=products, current_company=company_name)
 
 @app.route('/shop/<shop_name>')
 def shop_page(shop_name):
