@@ -340,7 +340,14 @@ def products():
             print(f"DEBUG ERROR: {e}")
             return f"خطأ في قاعدة البيانات: {str(e)}", 500
 
-    res = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
+    # --- تم الدمج: كود التشخيص ---
+    # طباعة كل البيانات الموجودة في جدول المخزون في الـ Logs
+    all_data = supabase.table("inventory").select("*").execute().data
+    print("DEBUG: ALL PRODUCTS IN DB:", all_data)
+    
+    # جلب كل البيانات بدون فلتر (للتجربة)
+    res = supabase.table("inventory").select("*").execute()
+    
     return render_template('products.html', products=res.data or [])
 
 @app.route('/inventory_management', methods=['GET', 'POST'])
@@ -501,7 +508,7 @@ def shop():
         resp.set_cookie('user_company_name', selected_name, max_age=60*60*24*30)
         return resp
         
-    return render_template('shop.html', products=products, current_company=company_name)
+  return render_template('shop.html', products=products, current_company=company_name)
 
 @app.route('/shop/<shop_name>')
 def shop_page(shop_name):
