@@ -72,26 +72,34 @@ def send_order_alert(token, chat_id, message, order_id):
     }
     requests.post(url, json=params)
 
-# --- الدالة المحدثة لجلب المنتجات بالاسم مع فك التشفير ---
+# --- الدالة المحدثة لجلب المنتجات بالاسم مع فك التشفير و Debugging ---
 def get_products_by_shop_name(shop_name):
     try:
-        # فك تشفير اسم المتجر في حال وجود مسافات في الرابط
         shop_name_decoded = urllib.parse.unquote(shop_name)
+        print(f"DEBUG: محاولة البحث عن متجر باسم: {shop_name_decoded}")
         
-        # 1. أولاً: نجلب الـ company_code من جدول settings بناءً على اسم المتجر
-        settings = supabase.table("settings").select("company_code").eq("company_name", shop_name_decoded).single().execute()
+        # نستخدم ilike للبحث غير الحساس لحالة الأحرف
+        settings = supabase.table("settings").select("company_code").ilike("company_name", shop_name_decoded).execute()
         
         if not settings.data:
-            return [] # المتجر غير موجود
+            print("DEBUG: لم يتم العثور على متجر بهذا الاسم في جدول settings")
+            return []
         
-        company_code = settings.data['company_code']
+        company_code = settings.data[0]['company_code']
+        print(f"DEBUG: تم العثور على المتجر! الكود الخاص به هو: {company_code}")
         
-        # 2. ثانياً: نجلب المنتجات من جدول inventory بناءً على الكود
+        # جلب المنتجات باستخدام الكود
         products = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
         
-        return products.data if products.data else []
+        if not products.data:
+            print(f"DEBUG: المتجر موجود، لكن لا توجد منتجات مرتبطة بالكود: {company_code}")
+            return []
+            
+        print(f"DEBUG: تم جلب {len(products.data)} منتج بنجاح")
+        return products.data
+        
     except Exception as e:
-        print(f"حدث خطأ: {e}")
+        print(f"DEBUG ERROR: حدث خطأ أثناء جلب المنتجات: {e}")
         return []
 
 def get_delivery_price(wilaya, delivery_type):
