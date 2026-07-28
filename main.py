@@ -508,7 +508,7 @@ def shop():
         resp.set_cookie('user_company_name', selected_name, max_age=60*60*24*30)
         return resp
         
-  return render_template('shop.html', products=products, current_company=company_name)
+    return render_template('shop.html', products=products, current_company=company_name)
 
 @app.route('/shop/<shop_name>')
 def shop_page(shop_name):
