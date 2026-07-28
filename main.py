@@ -72,11 +72,14 @@ def send_order_alert(token, chat_id, message, order_id):
     }
     requests.post(url, json=params)
 
-# --- الدالة الجديدة لجلب المنتجات بالاسم ---
+# --- الدالة المحدثة لجلب المنتجات بالاسم مع فك التشفير ---
 def get_products_by_shop_name(shop_name):
     try:
+        # فك تشفير اسم المتجر في حال وجود مسافات في الرابط
+        shop_name_decoded = urllib.parse.unquote(shop_name)
+        
         # 1. أولاً: نجلب الـ company_code من جدول settings بناءً على اسم المتجر
-        settings = supabase.table("settings").select("company_code").eq("company_name", shop_name).single().execute()
+        settings = supabase.table("settings").select("company_code").eq("company_name", shop_name_decoded).single().execute()
         
         if not settings.data:
             return [] # المتجر غير موجود
@@ -86,7 +89,7 @@ def get_products_by_shop_name(shop_name):
         # 2. ثانياً: نجلب المنتجات من جدول inventory بناءً على الكود
         products = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
         
-        return products.data
+        return products.data if products.data else []
     except Exception as e:
         print(f"حدث خطأ: {e}")
         return []
@@ -491,8 +494,6 @@ def shop():
     products = []
     if company_name:
         products = get_products_by_shop_name(company_name)
-        # --- سطر التصحيح المضاف هنا ---
-        print(f"DEBUG: تم جلب {len(products)} منتج للمتجر {company_name}")
     
     if request.method == 'POST':
         selected_name = request.form.get('company_name')
@@ -507,7 +508,7 @@ def shop_page(shop_name):
     products = get_products_by_shop_name(shop_name)
     return render_template('shop.html', products=products, current_company=shop_name)
 
-@app.route('/clear_session') # تم إضافة الـ @ هنا
+@app.route('/clear_session')
 def clear_session():
     resp = make_response(redirect(url_for('shop')))
     resp.set_cookie('user_company_name', '', expires=0)
