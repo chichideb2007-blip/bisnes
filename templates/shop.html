@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>متجرنا</title>
+    <title>متجرنا - {{ current_company }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- إضافة مكتبة الأيقونات -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f9; }
@@ -15,8 +14,8 @@
         /* تنسيق البطاقة */
         .product-card { transition: transform 0.2s; border-radius: 15px; overflow: hidden; height: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .product-card:hover { transform: scale(1.02); }
-        .card-img-top { height: 150px; object-fit: cover; }
-        .price { color: #28a745; font-weight: bold; margin: 5px 0; }
+        .card-img-top { height: 180px; object-fit: cover; }
+        .price { color: #28a745; font-weight: bold; margin: 5px 0; font-size: 1.2rem; }
     </style>
 </head>
 <body>
@@ -40,7 +39,7 @@
 </nav>
 
 <div class="container">
-    <h1 class="text-center mb-4">مرحباً بكم في متجر {{ company_name }}</h1>
+    <h1 class="text-center mb-4">أنت تتصفح منتجات: {{ current_company }}</h1>
 
     <!-- قسم اختيار المتجر -->
     <div class="container mb-4">
@@ -54,7 +53,6 @@
         </div>
         {% else %}
         <div class="text-center mt-2">
-            <p>أنت تتصفح منتجات: <strong>{{ current_company }}</strong></p>
             <a href="/clear_session" class="btn btn-sm btn-outline-secondary">تغيير المتجر</a>
         </div>
         {% endif %}
@@ -62,39 +60,39 @@
     
     <!-- قسم عرض المنتجات -->
     <div class="row" id="products-grid">
-        {% for product in products %}
-        <div class="col-6 col-md-4 mb-4 product-card-container">
-            <div class="card product-card h-100">
-                <!-- عرض الصورة -->
-                {% if product.image_url or product['product-images'] %}
-                    <img src="{{ product.image_url or product['product-images'] }}" class="card-img-top" alt="{{ product.name }}">
-                {% endif %}
-                
-                <div class="card-body p-2 text-center">
-                    <h6 class="card-title fw-bold">{{ product.name }}</h6>
-                    <p class="price">{{ product.price }} {{ currency or 'دج' }}</p>
-                    <p class="text-muted small">الكمية: {{ product.quantity }}</p>
-                    
-                    <!-- منطق زر الشراء -->
-                    {% if product.quantity > 0 %}
-                        <!-- زر إضافة للسلة فقط -->
-                        <button onclick="addToCart('{{ product.id }}', '{{ product.name }}', {{ product.price }})" class="btn btn-primary btn-sm w-100">إضافة للسلة</button>
-                    {% else %}
-                        <button disabled class="btn btn-secondary btn-sm w-100">غير متوفر</button>
+        {% if products %}
+            {% for product in products %}
+            <div class="col-6 col-md-4 mb-4 product-card-container">
+                <div class="card product-card h-100">
+                    <!-- عرض الصورة (تم دمج المنطقين) -->
+                    {% if product['product-images'] %}
+                        <img src="{{ product['product-images'] }}" class="card-img-top" alt="{{ product.name }}">
                     {% endif %}
+                    
+                    <div class="card-body p-2 text-center">
+                        <h6 class="card-title fw-bold">{{ product.name }}</h6>
+                        <p class="price">{{ product.price }} {{ currency or 'دج' }}</p>
+                        
+                        <!-- زر إضافة للسلة -->
+                        {% if product.quantity > 0 %}
+                            <button onclick="addToCart('{{ product.id }}', '{{ product.name }}', {{ product.price }})" class="btn btn-primary btn-sm w-100">إضافة للسلة</button>
+                        {% else %}
+                            <button disabled class="btn btn-secondary btn-sm w-100">غير متوفر</button>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
-        </div>
+            {% endfor %}
         {% else %}
             {% if current_company %}
-                <p class="text-center">لا توجد منتجات متاحة في هذا المتجر حالياً.</p>
+                <p class="text-center">لا توجد منتجات متاحة حالياً في هذا المتجر.</p>
             {% endif %}
-        {% endfor %}
+        {% endif %}
     </div>
 </div>
 
 <script>
-    // 1. خاصية السلة (Cart Logic)
+    // خاصية السلة (Cart Logic)
     let cart = JSON.parse(localStorage.getItem('cart') || '[]');
     document.getElementById('cart-count').innerText = cart.length;
 
@@ -102,13 +100,11 @@
         let cart = JSON.parse(localStorage.getItem('cart') || '[]');
         cart.push({id: id, name: name, price: price});
         localStorage.setItem('cart', JSON.stringify(cart));
-        
-        // تحديث الرقم في الأيقونة
         document.getElementById('cart-count').innerText = cart.length;
         alert('تمت إضافة ' + name + ' إلى السلة!');
     }
 
-    // 2. خاصية البحث المباشر
+    // خاصية البحث المباشر
     document.getElementById('searchInput').addEventListener('keyup', function() {
         let filter = this.value.toLowerCase();
         let products = document.querySelectorAll('.product-card-container');
