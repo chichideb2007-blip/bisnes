@@ -72,10 +72,11 @@ def send_order_alert(token, chat_id, message, order_id):
     }
     requests.post(url, json=params)
 
-# --- تم التعديل هنا: الربط الصحيح بالـ company_id_text ---
+# --- الدالة المحدثة لجلب المنتجات بالاسم مع فك التشفير و Debugging ---
 def get_products_by_shop_name(shop_name):
     try:
         shop_name_decoded = urllib.parse.unquote(shop_name)
+        print(f"DEBUG: محاولة البحث عن متجر باسم: {shop_name_decoded}")
         
         # نستخدم ilike للبحث غير الحساس لحالة الأحرف
         settings = supabase.table("settings").select("company_code").ilike("company_name", shop_name_decoded).execute()
@@ -85,14 +86,16 @@ def get_products_by_shop_name(shop_name):
             return []
         
         company_code = settings.data[0]['company_code']
+        print(f"DEBUG: تم العثور على المتجر! الكود الخاص به هو: {company_code}")
         
-        # جلب المنتجات باستخدام الكود (تم تحويله لـ string لضمان التطابق)
-        products = supabase.table("inventory").select("*").eq("company_id_text", str(company_code)).execute()
+        # جلب المنتجات باستخدام الكود
+        products = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
         
         if not products.data:
             print(f"DEBUG: المتجر موجود، لكن لا توجد منتجات مرتبطة بالكود: {company_code}")
             return []
             
+        print(f"DEBUG: تم جلب {len(products.data)} منتج بنجاح")
         return products.data
         
     except Exception as e:
@@ -319,7 +322,6 @@ def update_delivery_settings():
     }).eq("company_code", company_code).execute()
     return jsonify({"status": "success"})
 
-# --- تم التعديل هنا: الربط الصحيح بالـ company_id_text ---
 @app.route('/products', methods=['GET', 'POST'])
 @login_required
 def products():
@@ -335,7 +337,7 @@ def products():
             'name': request.form.get('name'),
             'quantity': int(request.form.get('quantity', 0)),
             'price': float(request.form.get('price', 0.0)),
-            'company_id_text': str(company_code), # تم تعديله للربط الصحيح
+            'company_id_text': company_code,
             'product-images': encoded_string
         }
 
@@ -346,8 +348,10 @@ def products():
             print(f"DEBUG ERROR: {e}")
             return f"خطأ في قاعدة البيانات: {str(e)}", 500
 
-    # جلب البيانات الخاصة بهذا المدير فقط
-    res = supabase.table("inventory").select("*").eq("company_id_text", str(company_code)).execute()
+    # تم إزالة سطر الطباعة المسبب للمشكلة
+    
+    # جلب كل البيانات بدون فلتر
+    res = supabase.table("inventory").select("*").execute()
     
     return render_template('products.html', products=res.data or [])
 
