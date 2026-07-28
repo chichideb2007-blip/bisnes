@@ -493,6 +493,8 @@ def shop():
     products = []
     if company_name:
         products = get_products_by_shop_name(company_name)
+        # --- سطر التصحيح المضاف هنا ---
+        print(f"DEBUG: تم جلب {len(products)} منتج للمتجر {company_name}")
     
     if request.method == 'POST':
         selected_name = request.form.get('company_name')
@@ -507,7 +509,7 @@ def shop_page(shop_name):
     products = get_products_by_shop_name(shop_name)
     return render_template('shop.html', products=products, current_company=shop_name)
 
-app.route('/clear_session')
+@app.route('/clear_session') # تم إضافة الـ @ هنا
 def clear_session():
     resp = make_response(redirect(url_for('shop')))
     resp.set_cookie('user_company_name', '', expires=0)
