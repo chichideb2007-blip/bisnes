@@ -471,8 +471,8 @@ def orders():
         settings_info = res_settings.data[0] if res_settings.data else {}
         token = settings_info.get('telegram_token')
         chat_id = settings_info.get('telegram_chat_id')
-    
-    if token and chat_id:
+        
+        if token and chat_id:
             msg = f"🛒 طلبية جديدة!\nالعميل: {customer_name}\nالمنتج: {product_name}\nالكمية: {requested_qty}\nالولاية: {state}\nالتوصيل: {delivery_type} ({delivery_price})"
             send_telegram_alert_by_token(token, chat_id, msg)
             
@@ -507,8 +507,8 @@ def shop():
         resp = make_response(redirect(url_for('shop')))
         resp.set_cookie('user_company_name', selected_name, max_age=60*60*24*30)
         return resp
-    
-    return render_template('shop.html', products=products)
+        
+return render_template('shop.html', products=products, current_company=company_name)
 
 @app.route('/shop/<shop_name>')
 def shop_page(shop_name):
