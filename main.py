@@ -471,42 +471,6 @@ def orders():
         settings_info = res_settings.data[0] if res_settings.data else {}
         token = settings_info.get('telegram_token')
         chat_id = settings_info.get('telegram_chat_id')
-        
-        if token and chat_id:
-            msg = f"🛒 طلبية جديدة!\nالعميل: {customer_name}\nالمنتج: {product_name}\nالكمية: {requested_qty}\nالولاية: {state}\nالتوصيل: {delivery_type} ({delivery_price})"
-            send_telegram_alert_by_token(token, chat_id, msg)
-            
-            products_res = supabase.table("inventory").select("id, quantity").eq("name", product_name).eq("company_id_text", company_code).execute()
-            
-            if products_res.data:
-                product = products_res.data[0]
-                current_qty = product['quantity']
-                new_qty = max(0, current_qty - requested_qty)
-                supabase.table("inventory").update({"quantity": new_qty}).eq("id", product['id']).execute()
-                
-                if new_qty == 0:
-                    send_telegram_alert_by_token(token, chat_id, f"❌ تنبيه هام!\nالمنتج '{product_name}' قد نفذ تماماً من المخزون.")
-                elif new_qty <= 5:
-                    send_telegram_alert_by_token(token, chat_id, f"⚠️ تنبيه مخزون!\nالمنتج '{product_name}' أوشك على النفاذ، المتبقي حالياً: {new_qty}")
-            
-        return redirect(url_for('orders'))
-
-    res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
-    
-    return render_template('orders_dashboard.html', orders=res.data or [], wilayas=wilayas_res.data)
-
-@app.route('/shop', methods=['GET', 'POST'])
-def shop():
-    company_name = request.cookies.get('user_company_name')
-    products = []
-    if company_name:
-        products = get_products_by_shop_name(company_name)
-    
-    if request.method == 'POST':
-        selected_name = request.form.get('company_name')
-        resp = make_response(redirect(url_for('shop')))
-        resp.set_cookie('user_company_name', selected_name, max_age=60*60*24*30)
-        return resp
     
     if token and chat_id:
             msg = f"🛒 طلبية جديدة!\nالعميل: {customer_name}\nالمنتج: {product_name}\nالكمية: {requested_qty}\nالولاية: {state}\nالتوصيل: {delivery_type} ({delivery_price})"
