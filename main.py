@@ -88,8 +88,14 @@ def get_products_by_shop_name(shop_name):
         company_code = settings.data[0]['company_code']
         print(f"DEBUG: تم العثور على المتجر! الكود الخاص به هو: {company_code}")
         
+        # --- إضافة سطر التجسس ---
+        print(f"DEBUG: الكود الذي أبحث به في المنتجات هو: '{company_code}' (نوعه: {type(company_code)})")
+        
         # جلب المنتجات باستخدام الكود
         products = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
+        
+        # --- إضافة سطر التجسس ---
+        print(f"DEBUG: عدد المنتجات التي وجدتها هي: {len(products.data)}")
         
         if not products.data:
             print(f"DEBUG: المتجر موجود، لكن لا توجد منتجات مرتبطة بالكود: {company_code}")
@@ -348,8 +354,6 @@ def products():
             print(f"DEBUG ERROR: {e}")
             return f"خطأ في قاعدة البيانات: {str(e)}", 500
 
-    # تم إزالة سطر الطباعة المسبب للمشكلة
-    
     # جلب كل البيانات بدون فلتر
     res = supabase.table("inventory").select("*").execute()
     
