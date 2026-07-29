@@ -3,122 +3,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>متجرنا - {{ current_company }}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f9; }
-        .navbar { box-shadow: 0 2px 5px rgba(0,0,0,0.1); background: white; margin-bottom: 20px; }
-        .search-box { width: 100%; max-width: 300px; }
-        
-        /* تنسيق البطاقة */
-        .product-card { transition: transform 0.2s; border-radius: 15px; overflow: hidden; height: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .product-card:hover { transform: scale(1.02); }
-        .card-img-top { height: 180px; object-fit: cover; }
-        .price { color: #28a745; font-weight: bold; margin: 5px 0; font-size: 1.2rem; }
-    </style>
+    <title>{{ current_company if current_company else 'المتجر' }}</title>
+    <!-- Tailwind CSS للتنسيق السريع والحديث -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
-<body>
+<body class="bg-gray-50 text-gray-800 font-sans">
 
-<!-- شريط التنقل العلوي -->
-<nav class="navbar navbar-expand-lg navbar-light sticky-top">
-    <div class="container">
-        <a class="navbar-brand fw-bold" href="#">متجرنا</a>
-        
-        <!-- شريط البحث -->
-        <input type="text" id="searchInput" class="form-control search-box" placeholder="ابحث عن منتج...">
+    <!-- الهيدر / رأس الصفحة -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-4">
+            <h1 class="text-2xl font-bold text-indigo-600">
+                {{ current_company if current_company else 'متجرنا' }}
+            </h1>
+            
+            <!-- شريط البحث -->
+            <div class="flex-grow max-w-sm">
+                <input type="text" id="searchInput" class="w-full px-4 py-2 rounded-full border border-gray-300 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="ابحث عن منتج...">
+            </div>
 
-        <!-- أيقونة السلة -->
-        <div class="position-relative">
-            <a href="{{ url_for('cart') }}" class="btn btn-outline-primary">
-                <i class="fas fa-shopping-cart"></i> السلة
-            </a>
-            <span id="cart-count" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">0</span>
+            {% if current_company %}
+                <a href="/clear_session" class="text-sm text-gray-500 hover:text-indigo-600 underline">تغيير المتجر</a>
+            {% endif %}
         </div>
-    </div>
-</nav>
+    </header>
 
-<div class="container">
-    <h1 class="text-center mb-4">أنت تتصفح منتجات: {{ current_company }}</h1>
+    <!-- محتوى الصفحة -->
+    <main class="max-w-6xl mx-auto px-4 py-8">
 
-    <!-- قسم اختيار المتجر -->
-    <div class="container mb-4">
+        <!-- قسم اختيار المتجر (إذا لم يكن هناك متجر مختار) -->
         {% if not current_company %}
-        <div class="card p-3 shadow-sm text-center">
-            <h5>أدخل اسم المتجر الذي تود التسوق منه:</h5>
-            <form action="/shop" method="POST" class="d-flex gap-2 justify-content-center">
-                <input type="text" name="company_name" class="form-control" style="max-width: 250px;" placeholder="اسم المتجر..." required>
-                <button type="submit" class="btn btn-primary">دخول</button>
+        <div class="bg-white p-8 rounded-2xl shadow-sm text-center mb-8">
+            <h2 class="text-xl font-bold mb-4">أدخل اسم المتجر الذي تود التسوق منه:</h2>
+            <form action="/shop" method="POST" class="flex flex-col sm:flex-row gap-2 justify-center">
+                <input type="text" name="company_name" class="px-4 py-2 rounded-xl border border-gray-300 w-full sm:max-w-xs" placeholder="اسم المتجر..." required>
+                <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-indigo-700">دخول</button>
             </form>
         </div>
-        {% else %}
-        <div class="text-center mt-2">
-            <a href="/clear_session" class="btn btn-sm btn-outline-secondary">تغيير المتجر</a>
-        </div>
         {% endif %}
-    </div>
-    
-    <!-- قسم عرض المنتجات -->
-    <div class="row" id="products-grid">
-        {% if products %}
-            {% for product in products %}
-            <div class="col-6 col-md-4 mb-4 product-card-container">
-                <div class="card product-card h-100">
-                    <!-- عرض الصورة (تم دمج المنطقين) -->
-                    {% if product['product-images'] %}
-                        <img src="{{ product['product-images'] }}" class="card-img-top" alt="{{ product.name }}">
-                    {% endif %}
-                    
-                    <div class="card-body p-2 text-center">
-                        <h6 class="card-title fw-bold">{{ product.name }}</h6>
-                        <p class="price">{{ product.price }} {{ currency or 'دج' }}</p>
-                        
-                        <!-- زر إضافة للسلة -->
-                        {% if product.quantity > 0 %}
-                            <button onclick="addToCart('{{ product.id }}', '{{ product.name }}', {{ product.price }})" class="btn btn-primary btn-sm w-100">إضافة للسلة</button>
-                        {% else %}
-                            <button disabled class="btn btn-secondary btn-sm w-100">غير متوفر</button>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        {% else %}
-            {% if current_company %}
-                <p class="text-center">لا توجد منتجات متاحة حالياً في هذا المتجر.</p>
-            {% endif %}
-        {% endif %}
-    </div>
-</div>
-
-<script>
-    // خاصية السلة (Cart Logic)
-    let cart = JSON.parse(localStorage.getItem('cart') || '[]');
-    document.getElementById('cart-count').innerText = cart.length;
-
-    function addToCart(id, name, price) {
-        let cart = JSON.parse(localStorage.getItem('cart') || '[]');
-        cart.push({id: id, name: name, price: price});
-        localStorage.setItem('cart', JSON.stringify(cart));
-        document.getElementById('cart-count').innerText = cart.length;
-        alert('تمت إضافة ' + name + ' إلى السلة!');
-    }
-
-    // خاصية البحث المباشر
-    document.getElementById('searchInput').addEventListener('keyup', function() {
-        let filter = this.value.toLowerCase();
-        let products = document.querySelectorAll('.product-card-container');
         
-        products.forEach(item => {
-            let title = item.querySelector('.card-title').innerText.toLowerCase();
-            if (title.includes(filter)) {
-                item.style.display = "";
-            } else {
-                item.style.display = "none";
-            }
-        });
-    });
-</script>
+        <!-- قائمة المنتجات -->
+        {% if not products and current_company %}
+            <div class="text-center py-16 bg-white rounded-lg shadow-sm">
+                <i class="fas fa-box-open text-5xl text-gray-300 mb-4"></i>
+                <h2 class="text-xl font-semibold text-gray-600">لا توجد منتجات متاحة حالياً</h2>
+            </div>
+        {% elif products %}
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" id="products-grid">
+                {% for product in products %}
+                    <div class="product-card-container bg-white rounded-2xl shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden flex flex-col justify-between">
+                        
+                        <!-- صورة المنتج -->
+                        <div class="relative h-48 bg-gray-100 overflow-hidden">
+                            {% if product['product-images'] %}
+                                <img src="{{ product['product-images'] }}" alt="{{ product.name }}" class="w-full h-full object-cover">
+                            {% else %}
+                                <div class="w-full h-full flex items-center justify-center text-gray-400">
+                                    <i class="fas fa-image text-4xl"></i>
+                                </div>
+                            {% endif %}
+                            
+                            {% if product.quantity > 0 %}
+                                <span class="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full">متوفر</span>
+                            {% else %}
+                                <span class="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">نفذت</span>
+                            {% endif %}
+                        </div>
 
+                        <!-- تفاصيل المنتج -->
+                        <div class="p-4 flex-grow flex flex-col justify-between">
+                            <div>
+                                <h3 class="card-title text-lg font-bold text-gray-800 mb-1 line-clamp-1">{{ product.name }}</h3>
+                                <p class="text-indigo-600 font-extrabold text-xl mb-4">
+                                    {{ product.price }} <span class="text-sm font-normal">{{ currency or 'د.ج' }}</span>
+                                </p>
+                            </div>
+
+                            {% if product.quantity > 0 %}
+                                <a href="/product/{{ product.id }}" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-center font-bold py-2.5 px-4 rounded-xl transition duration-200 flex items-center justify-center gap-2 shadow-md">
+                                    <i class="fas fa-shopping-bag"></i> شراء الآن
+                                </a>
+                            {% else %}
+                                <button disabled class="w-full bg-gray-300 text-gray-500 text-center font-bold py-2.5 px-4 rounded-xl cursor-not-allowed">غير متوفر</button>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </main>
+
+    <script>
+        // خاصية البحث المباشر
+        document.getElementById('searchInput').addEventListener('keyup', function() {
+            let filter = this.value.toLowerCase();
+            let products = document.querySelectorAll('.product-card-container');
+            
+            products.forEach(item => {
+                let title = item.querySelector('.card-title').innerText.toLowerCase();
+                if (title.includes(filter)) {
+                    item.style.display = "";
+                } else {
+                    item.style.display = "none";
+                }
+            });
+        });
+    </script>
 </body>
 </html>
