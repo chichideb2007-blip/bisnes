@@ -354,8 +354,8 @@ def products():
             print(f"DEBUG ERROR: {e}")
             return f"خطأ في قاعدة البيانات: {str(e)}", 500
 
-    # جلب كل البيانات بدون فلتر
-    res = supabase.table("inventory").select("*").execute()
+    # التعديل: جلب منتجات الشركة الحالية فقط بدلاً من جلب الكل
+    res = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
     
     return render_template('products.html', products=res.data or [])
 
