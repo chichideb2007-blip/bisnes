@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>متجرنا</title>
+    <title>متجر {{ current_company }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { background-color: #f8f9fa; font-family: 'Segoe UI', sans-serif; }
         .navbar { box-shadow: 0 2px 5px rgba(0,0,0,0.1); background: white; }
-        .product-card { transition: transform 0.2s; border-radius: 15px; overflow: hidden; height: 100%; }
-        .product-card:hover { transform: scale(1.02); }
+        .product-card { transition: transform 0.2s; border-radius: 15px; overflow: hidden; height: 100%; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .product-card:hover { transform: translateY(-5px); }
         .search-box { width: 100%; max-width: 300px; }
         .btn-out { background-color: #6c757d; color: white; border: none; width: 100%; padding: 8px; border-radius: 5px; }
     </style>
@@ -19,44 +19,39 @@
 <!-- شريط التنقل العلوي -->
 <nav class="navbar navbar-expand-lg navbar-light sticky-top mb-4">
     <div class="container">
-        <a class="navbar-brand fw-bold" href="#">متجرنا</a>
+        <a class="navbar-brand fw-bold" href="#">متجر {{ current_company }}</a>
         
         <!-- شريط البحث -->
         <input type="text" id="searchInput" class="form-control search-box" placeholder="ابحث عن منتج...">
 
         <!-- أيقونة السلة -->
         <div class="position-relative">
-            <button class="btn btn-outline-primary">🛒</button>
-            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">0</span>
+            <a href="/cart" class="btn btn-outline-primary">🛒</a>
+            <span id="cart-count" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">0</span>
         </div>
     </div>
 </nav>
 
 <div class="container">
-    <h4 class="text-center mb-4">مرحباً بكم في متجر {{ company_name }}</h4>
+    <h4 class="text-center mb-4">أهلاً بكم في متجرنا</h4>
     
     <div class="row" id="products-grid">
         {% for product in products %}
-        <div class="col-6 col-md-4 mb-4 product-card-container">
+        <div class="col-6 col-md-4 col-lg-3 mb-4 product-card-container">
             <div class="card product-card">
-                <!-- الصورة -->
-                <img src="{{ product['product-images'] }}" class="card-img-top" alt="{{ product.name }}" style="height: 150px; object-fit: cover;">
+                <!-- الصورة (تأكد أن البيانات تأتي كـ Base64 أو URL) -->
+                <img src="{{ product['product-images'] }}" class="card-img-top" alt="{{ product.name }}" style="height: 180px; object-fit: cover;">
                 
                 <div class="card-body text-center">
-                    <!-- الاسم -->
                     <h6 class="card-title fw-bold">{{ product.name }}</h6>
-                    
-                    <!-- السعر -->
-                    <p class="text-success fw-bold m-0">{{ product.price }} دج</p>
-                    
-                    <!-- الكمية -->
-                    <p class="text-muted small">الكمية المتبقية: {{ product.quantity }}</p>
+                    <p class="text-success fw-bold m-0">{{ product.price }} {{ currency }}</p>
+                    <p class="text-muted small">المتبقي: {{ product.quantity }}</p>
 
-                    <!-- منطق زر الشراء -->
                     {% if product.quantity > 0 %}
+                        <!-- ربط الشراء بالسلة أو صفحة الدفع -->
                         <a href="/checkout/{{ product.id }}" class="btn btn-primary w-100">شراء الآن</a>
                     {% else %}
-                        <button disabled class="btn-out">غير متوفر حالياً</button>
+                        <button disabled class="btn-out">غير متوفر</button>
                     {% endif %}
                 </div>
             </div>
