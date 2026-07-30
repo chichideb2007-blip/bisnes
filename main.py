@@ -505,6 +505,7 @@ def shop():
         selected_name = request.form.get('company_name')
         resp = make_response(redirect(url_for('shop')))
         resp.set_cookie('user_company_name', selected_name, max_age=60*60*24*30)
+        resp.set_cookie('user_company_name', selected_name, max_age=60*60*24*30)
         return resp
         
     return render_template('shop.html', products=products, current_company=company_name)
