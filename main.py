@@ -178,6 +178,17 @@ def logout():
 def dashboard():
     return render_template('dashboard.html')
 
+# --- مسار فحص المنتجات اليتيمة (المضاف حديثاً) ---
+@app.route('/check_orphaned_products')
+@login_required
+def check_orphaned_products():
+    try:
+        # استدعاء الوظيفة التي أنشأناها في SQL
+        res = supabase.rpc("get_orphaned_products").execute()
+        return jsonify({"orphaned_products": res.data})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 # --- دالة stats المحدثة لحل مشكلة JSON Serializable ---
 @app.route('/stats')
 @login_required
