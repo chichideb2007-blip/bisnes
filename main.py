@@ -75,37 +75,27 @@ def send_order_alert(token, chat_id, message, order_id):
 # --- الدالة المحدثة لجلب المنتجات بالاسم مع فك التشفير و Debugging ---
 def get_products_by_shop_name(shop_name):
     try:
-        shop_name_decoded = urllib.parse.unquote(shop_name)
-        print(f"DEBUG: محاولة البحث عن متجر باسم: {shop_name_decoded}")
+        shop_name_decoded = urllib.parse.unquote(shop_name).strip()
+        print(f"DEBUG: ابحث عن متجر باسم: {shop_name_decoded}")
         
-        # نستخدم ilike للبحث غير الحساس لحالة الأحرف
+        # 1. جلب الكود من جدول الإعدادات
         settings = supabase.table("settings").select("company_code").ilike("company_name", shop_name_decoded).execute()
         
         if not settings.data:
-            print("DEBUG: لم يتم العثور على متجر بهذا الاسم في جدول settings")
+            print("DEBUG: لم أجد متجراً بهذا الاسم")
             return []
         
         company_code = settings.data[0]['company_code']
-        print(f"DEBUG: تم العثور على المتجر! الكود الخاص به هو: {company_code}")
+        print(f"DEBUG: وجدت الكود: {company_code}")
         
-        # --- إضافة سطر التجسس ---
-        print(f"DEBUG: الكود الذي أبحث به في المنتجات هو: '{company_code}' (نوعه: {type(company_code)})")
-        
-        # جلب المنتجات باستخدام الكود
+        # 2. جلب المنتجات باستخدام الكود
+        # تأكد أن اسم العمود في جدول inventory هو فعلاً 'company_id_text'
         products = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
         
-        # --- إضافة سطر التجسس ---
-        print(f"DEBUG: عدد المنتجات التي وجدتها هي: {len(products.data)}")
-        
-        if not products.data:
-            print(f"DEBUG: المتجر موجود، لكن لا توجد منتجات مرتبطة بالكود: {company_code}")
-            return []
-            
-        print(f"DEBUG: تم جلب {len(products.data)} منتج بنجاح")
+        print(f"DEBUG: المنتجات التي وجدتها لـ {company_code} هي: {len(products.data)}")
         return products.data
-        
     except Exception as e:
-        print(f"DEBUG ERROR: حدث خطأ أثناء جلب المنتجات: {e}")
+        print(f"DEBUG ERROR: {e}")
         return []
 
 def get_delivery_price(wilaya, delivery_type):
