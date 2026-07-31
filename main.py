@@ -628,5 +628,70 @@ def submit_order():
 
     return "تم استلام طلبك بنجاح!"
 
+# --- دالة الشراء الجديدة المضافة ---
+@app.route('/buy', methods=['POST'])
+def buy():
+    # 1. الحصول على البيانات من الفورم
+    product_id = request.form.get('product_id')
+    customer_name = request.form.get('customer_name')
+    customer_phone = request.form.get('phone')
+    wilaya = request.form.get('wilaya')
+    delivery_type = request.form.get('delivery_type')
+    delivery_price = float(request.form.get('delivery_price', 0))
+
+    if not product_id:
+        return "خطأ: معرف المنتج مفقود", 400
+
+    # 2. جلب معلومات المنتج
+    product_res = supabase.table("inventory").select("*").eq("id", product_id).single().execute()
+    product = product_res.data
+    
+    if not product:
+        return "المنتج غير موجود!", 404
+
+    company_code = product['company_id_text']
+    total_price = float(product['price']) + delivery_price
+
+    # 3. تسجيل الطلب في جدول orders
+    order_data = {
+        "customer_name": customer_name,
+        "customer_phone": customer_phone,
+        "product_name": product['name'],
+        "quantity": 1,
+        "total_price": total_price,
+        "delivery_price": delivery_price,
+        "status": "قيد الانتظار",
+        "company_code": company_code,
+        "state": wilaya,
+        "delivery_type": delivery_type
+    }
+    supabase.table("orders").insert(order_data).execute()
+
+    # 4. إرسال تنبيه للتليجرام
+    res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
+    if res_settings.data:
+        s = res_settings.data[0]
+        token, chat_id = s.get('telegram_token'), s.get('telegram_chat_id')
+        
+        if token and chat_id:
+            msg = (f"⚡ طلب شراء سريع!\n"
+                   f"👤 الزبون: {customer_name}\n"
+                   f"📞 الهاتف: {customer_phone}\n"
+                   f"📦 المنتج: {product['name']}\n"
+                   f"💰 السعر الإجمالي: {total_price} دج\n"
+                   f"📍 الولاية: {wilaya}\n"
+                   f"🚚 التوصيل: {'للمنزل' if delivery_type == 'home' else 'للمكتب'}")
+            send_telegram_alert_by_token(token, chat_id, msg)
+
+    # 5. تحديث المخزون (نقصان الكمية)
+    new_qty = max(0, product['quantity'] - 1)
+    supabase.table("inventory").update({"quantity": new_qty}).eq("id", product_id).execute()
+
+    # تنبيه في حال نفذ المخزون
+    if new_qty == 0 and token and chat_id:
+        send_telegram_alert_by_token(token, chat_id, f"❌ تنبيه: المنتج '{product['name']}' نفذ تماماً!")
+
+    return "تمت عملية الشراء بنجاح!"
+
 if __name__ == '__main__':
     app.run(debug=True)
