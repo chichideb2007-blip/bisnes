@@ -507,18 +507,21 @@ def orders():
 
 @app.route('/shop', methods=['GET', 'POST'])
 def shop():
+    # 1. نجلب اسم الشركة من الكوكيز
     company_name = request.cookies.get('user_company_name')
     products = []
+    
+    # 2. إذا كان هناك اسم شركة، نجلب منتجاتها من قاعدة البيانات (جدول inventory)
     if company_name:
-        products = get_products_by_shop_name(company_name)
+        products = get_products_by_shop_name(company_name) # هذه الدالة تجلب من inventory
     
     if request.method == 'POST':
         selected_name = request.form.get('company_name')
         resp = make_response(redirect(url_for('shop')))
         resp.set_cookie('user_company_name', selected_name, max_age=60*60*24*30)
-        resp.set_cookie('user_company_name', selected_name, max_age=60*60*24*30)
         return resp
         
+    # 3. نرسل قائمة المنتجات إلى صفحة shop.html
     return render_template('shop.html', products=products, current_company=company_name)
 
 @app.route('/shop/<shop_name>')
