@@ -31,7 +31,7 @@
     <!-- محتوى الصفحة -->
     <main class="max-w-6xl mx-auto px-4 py-8">
 
-        <!-- قسم اختيار المتجر -->
+        <!-- قسم اختيار المتجر (إذا لم يكن هناك متجر مختار) -->
         {% if not current_company %}
         <div class="bg-white p-8 rounded-2xl shadow-sm text-center mb-8">
             <h2 class="text-xl font-bold mb-4">أدخل اسم المتجر الذي تود التسوق منه:</h2>
@@ -51,57 +51,42 @@
         {% elif products %}
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" id="products-grid">
                 {% for product in products %}
-                    <div class="product-card-container bg-white rounded-2xl shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden flex flex-col">
+                    <div class="product-card-container bg-white rounded-2xl shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden flex flex-col justify-between">
                         
-                        <!-- نموذج الشراء المباشر -->
-                        <form action="/buy" method="POST" class="flex flex-col h-full">
-                            <!-- صورة المنتج -->
-                            <div class="relative h-48 bg-gray-100 overflow-hidden">
-                                {% if product['product-images'] %}
-                                    <img src="{{ product['product-images'] }}" alt="{{ product.name }}" class="w-full h-full object-cover">
-                                {% else %}
-                                    <div class="w-full h-full flex items-center justify-center text-gray-400">
-                                        <i class="fas fa-image text-4xl"></i>
-                                    </div>
-                                {% endif %}
-                                
-                                {% if product.quantity > 0 %}
-                                    <span class="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full">متوفر</span>
-                                {% else %}
-                                    <span class="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">نفذت</span>
-                                {% endif %}
-                            </div>
-
-                            <!-- تفاصيل المنتج والمدخلات -->
-                            <div class="p-4 flex-grow flex flex-col justify-between">
-                                <div>
-                                    <h3 class="card-title text-lg font-bold text-gray-800 mb-1 line-clamp-1">{{ product.name }}</h3>
-                                    <p class="text-indigo-600 font-extrabold text-xl mb-2">
-                                        {{ product.price }} <span class="text-sm font-normal">{{ currency or 'د.ج' }}</span>
-                                    </p>
-                                    <p class="text-xs text-gray-400 mb-4">المتوفر: {{ product.quantity }}</p>
+                        <!-- صورة المنتج -->
+                        <div class="relative h-48 bg-gray-100 overflow-hidden">
+                            {% if product['product-images'] %}
+                                <img src="{{ product['product-images'] }}" alt="{{ product.name }}" class="w-full h-full object-cover">
+                            {% else %}
+                                <div class="w-full h-full flex items-center justify-center text-gray-400">
+                                    <i class="fas fa-image text-4xl"></i>
                                 </div>
+                            {% endif %}
+                            
+                            {% if product.quantity > 0 %}
+                                <span class="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full">متوفر</span>
+                            {% else %}
+                                <span class="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">نفذت</span>
+                            {% endif %}
+                        </div>
 
-                                {% if product.quantity > 0 %}
-                                    <!-- حقول الإدخال -->
-                                    <input type="hidden" name="product_id" value="{{ product['id'] }}">
-                                    <input type="text" name="customer_name" placeholder="اسمك الكريم" required class="w-full text-sm p-2 mb-2 border rounded-lg focus:ring-1 focus:ring-indigo-500">
-                                    <input type="tel" name="phone" placeholder="رقم الهاتف" required class="w-full text-sm p-2 mb-2 border rounded-lg focus:ring-1 focus:ring-indigo-500">
-                                    <input type="text" name="wilaya" placeholder="الولاية" required class="w-full text-sm p-2 mb-2 border rounded-lg focus:ring-1 focus:ring-indigo-500">
-                                    
-                                    <select name="delivery_type" class="w-full text-sm p-2 mb-4 border rounded-lg">
-                                        <option value="home">توصيل للمنزل</option>
-                                        <option value="office">توصيل للمكتب</option>
-                                    </select>
-
-                                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-center font-bold py-2.5 px-4 rounded-xl transition duration-200 shadow-md">
-                                        <i class="fas fa-shopping-bag"></i> اشتري الآن
-                                    </button>
-                                {% else %}
-                                    <button disabled class="w-full bg-gray-300 text-gray-500 text-center font-bold py-2.5 px-4 rounded-xl cursor-not-allowed">غير متوفر</button>
-                                {% endif %}
+                        <!-- تفاصيل المنتج -->
+                        <div class="p-4 flex-grow flex flex-col justify-between">
+                            <div>
+                                <h3 class="card-title text-lg font-bold text-gray-800 mb-1 line-clamp-1">{{ product.name }}</h3>
+                                <p class="text-indigo-600 font-extrabold text-xl mb-4">
+                                    {{ product.price }} <span class="text-sm font-normal">{{ currency or 'د.ج' }}</span>
+                                </p>
                             </div>
-                        </form>
+
+                            {% if product.quantity > 0 %}
+                                <a href="/product/{{ product.id }}" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-center font-bold py-2.5 px-4 rounded-xl transition duration-200 flex items-center justify-center gap-2 shadow-md">
+                                    <i class="fas fa-shopping-bag"></i> شراء الآن
+                                </a>
+                            {% else %}
+                                <button disabled class="w-full bg-gray-300 text-gray-500 text-center font-bold py-2.5 px-4 rounded-xl cursor-not-allowed">غير متوفر</button>
+                            {% endif %}
+                        </div>
                     </div>
                 {% endfor %}
             </div>
