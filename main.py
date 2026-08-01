@@ -35,6 +35,15 @@ def inject_currency():
 
 # --- الدوال المساعدة ---
 
+# الدوال المطلوبة لصفحة الـ checkout
+def get_product_from_db(product_id):
+    res = supabase.table("inventory").select("*").eq("id", product_id).single().execute()
+    return res.data if res.data else None
+
+def get_wilayas_from_db():
+    res = supabase.table("shipping_rates").select("*").order("id").execute()
+    return res.data if res.data else []
+
 def send_telegram_alert_by_token(token, chat_id, message):
     if not token or not chat_id:
         print("DEBUG: فشل إرسال التنبيه - التوكن أو Chat ID فارغ")
@@ -89,7 +98,6 @@ def get_products_by_shop_name(shop_name):
         print(f"DEBUG: وجدت الكود: {company_code}")
         
         # 2. جلب المنتجات باستخدام الكود
-        # تأكد أن اسم العمود في جدول inventory هو فعلاً 'company_id_text'
         products = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
         
         print(f"DEBUG: المنتجات التي وجدتها لـ {company_code} هي: {len(products.data)}")
@@ -127,6 +135,12 @@ def login_required(f):
 @app.route('/')
 def home():
     return redirect(url_for('login'))
+
+@app.route('/checkout/<int:product_id>')
+def checkout(product_id):
+    product = get_product_from_db(product_id) # دالة جلب المنتج
+    wilayas = get_wilayas_from_db() # دالة جلب الولايات وأسعارها
+    return render_template('checkout.html', product=product, wilayas=wilayas)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -178,35 +192,31 @@ def logout():
 def dashboard():
     return render_template('dashboard.html')
 
-# --- مسار فحص المنتجات اليتيمة (المضاف حديثاً) ---
+# --- مسار فحص المنتجات اليتيمة ---
 @app.route('/check_orphaned_products')
 @login_required
 def check_orphaned_products():
     try:
-        # استدعاء الوظيفة التي أنشأناها في SQL
         res = supabase.rpc("get_orphaned_products").execute()
         return jsonify({"orphaned_products": res.data})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# --- دالة stats المحدثة لحل مشكلة JSON Serializable ---
+# --- دالة stats المحدثة ---
 @app.route('/stats')
 @login_required
 def stats():
     company_code = session.get('company_code')
     
     try:
-        # جلب البيانات
         res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
         orders = res.data or []
     except Exception as e:
         print(f"Error fetching stats: {e}")
         orders = []
 
-    # تنظيف البيانات بدقة
     cleaned_orders = []
     for order in orders:
-        # نقوم بإنشاء قاموس جديد يحتوي فقط على القيم التي نتأكد من أنها نص أو رقم
         cleaned_order = {
             "id": order.get("id"),
             "customer_name": str(order.get("customer_name") or ""),
@@ -286,9 +296,8 @@ def update_delivery_price():
 
 @app.route('/get_shipping_rates')
 def get_shipping_rates():
-    # جلب الكود والنوع من المتصفح
     company_code = request.args.get('company_code')
-    delivery_type = request.args.get('type') # home أو office
+    delivery_type = request.args.get('type') 
     
     try:
         res = supabase.table("delivery_prices") \
@@ -355,7 +364,6 @@ def products():
             print(f"DEBUG ERROR: {e}")
             return f"خطأ في قاعدة البيانات: {str(e)}", 500
 
-    # التعديل: جلب منتجات الشركة الحالية فقط بدلاً من جلب الكل
     res = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
     
     return render_template('products.html', products=res.data or [])
@@ -435,7 +443,6 @@ def delete_order(id):
     supabase.table("orders").delete().eq("id", id).execute()
     return redirect(url_for('orders'))
 
-# --- الدالة المضافة لتحديث الحالة ---
 @app.route('/update_status/<int:order_id>', methods=['POST'])
 @login_required
 def update_status(order_id):
@@ -502,139 +509,8 @@ def orders():
         return redirect(url_for('orders'))
 
     res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
-    
-    return render_template('orders_dashboard.html', orders=res.data or [], wilayas=wilayas_res.data)
-
-@app.route('/shop', methods=['GET', 'POST'])
+  app.route('/shop', methods=['GET', 'POST'])
 def shop():
-    # 1. نجلب اسم الشركة من الكوكيز
-    company_name = request.cookies.get('user_company_name')
-    products = []
-    
-    # 2. إذا كان هناك اسم شركة، نجلب منتجاتها من قاعدة البيانات (جدول inventory)
-    if company_name:
-        products = get_products_by_shop_name(company_name) # هذه الدالة تجلب من inventory
-    
-    if request.method == 'POST':
-        selected_name = request.form.get('company_name')
-        resp = make_response(redirect(url_for('shop')))
-        resp.set_cookie('user_company_name', selected_name, max_age=60*60*24*30)
-        return resp
-        
-    # 3. نرسل قائمة المنتجات إلى صفحة shop.html
-    return render_template('shop.html', products=products, current_company=company_name)
-
-@app.route('/shop/<shop_name>')
-def shop_page(shop_name):
-    products = get_products_by_shop_name(shop_name)
-    return render_template('shop.html', products=products, current_company=shop_name)
-
-@app.route('/clear_session')
-def clear_session():
-    resp = make_response(redirect(url_for('shop')))
-    resp.set_cookie('user_company_name', '', expires=0)
-    return resp
-
-@app.route('/cart')
-def cart():
-    cart_items = session.get('cart', []) 
-    return render_template('cart.html', cart_items=cart_items)
-
-@app.route('/checkout')
-def checkout():
-    try:
-        rates = supabase.table("shipping_rates").select("*").execute().data
-    except Exception as e:
-        print(f"Error fetching shipping rates: {e}")
-        rates = []
-        
-    return render_template('checkout.html', rates=rates)
-
-@app.route('/product/<int:product_id>')
-def product_details(product_id):
-    response = supabase.table("inventory").select("*").eq("id", product_id).single().execute()
-    product = response.data
-    return render_template('product_view.html', product=product)
-
-# --- المسار المدمج لـ submit-order مع كامل التنبيهات ---
-@app.route('/submit-order', methods=['POST'])
-def submit_order():
-    data = request.form
-    cart_json = data.get('cart_data')
-    if not cart_json:
-        return "لا توجد منتجات في السلة", 400
-    
-    try:
-        cart_items = json.loads(cart_json)
-        company_code = cart_items[0].get('company_id_text')
-    except:
-        return "خطأ في بيانات السلة", 400
-
-    wilaya = data.get('wilaya') 
-    baladia = data.get('baladia', 'غير محدد')
-    delivery_type = data.get('delivery_type') 
-    delivery_price = float(data.get('delivery_price', 0))
-    customer_name = data.get('customer_name')
-    customer_phone = data.get('phone')
-    
-    # حساب السعر الإجمالي
-    total_price = sum(float(item['price']) for item in cart_items) + delivery_price
-    product_names = ", ".join([item['name'] for item in cart_items])
-    
-    # تسجيل الطلب
-    order_data = {
-        "customer_name": customer_name,
-        "customer_phone": customer_phone,
-        "product_name": product_names,
-        "quantity": len(cart_items),
-        "total_price": total_price,
-        "delivery_price": delivery_price,
-        "status": "قيد الانتظار",
-        "company_code": company_code,
-        "state": wilaya, 
-        "baladia": baladia,
-        "delivery_type": delivery_type
-    }
-    
-    supabase.table("orders").insert(order_data).execute()
-    
-    # --- إرسال التنبيه لتليجرام ---
-    res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
-    if res_settings.data:
-        s = res_settings.data[0]
-        token, chat_id = s.get('telegram_token'), s.get('telegram_chat_id')
-        
-        if token and chat_id:
-            msg = (f"🛒 طلبية جديدة!\n"
-                   f"👤 الزبون: {customer_name}\n"
-                   f"📞 الهاتف: {customer_phone}\n"
-                   f"📦 المنتجات: {product_names}\n"
-                   f"💰 السعر الإجمالي: {total_price} دج\n"
-                   f"📍 الولاية: {wilaya} - البلدية: {baladia}\n"
-                   f"🚚 التوصيل: {'للمنزل' if delivery_type == 'home' else 'للمكتب'}\n"
-                   f"💵 سعر التوصيل: {delivery_price} دج")
-            send_telegram_alert_by_token(token, chat_id, msg)
-
-    # تحديث المخزون والتنبيه عند النفاذ
-    for item in cart_items:
-        p_id = item.get('id')
-        product = supabase.table("inventory").select("*").eq("id", p_id).single().execute().data
-        if product:
-            new_qty = max(0, product['quantity'] - 1)
-            supabase.table("inventory").update({"quantity": new_qty}).eq("id", p_id).execute()
-            
-            # تنبيه نفاذ المخزون
-            if new_qty == 0:
-                send_telegram_alert_by_token(token, chat_id, f"❌ تنبيه: المنتج '{product['name']}' نفذ تماماً من المخزون!")
-            elif new_qty <= 3:
-                send_telegram_alert_by_token(token, chat_id, f"⚠️ تنبيه: المنتج '{product['name']}' أوشك على النفاذ (المتبقي: {new_qty})")
-
-    return "تم استلام طلبك بنجاح!"
-
-# --- دالة الشراء الجديدة المضافة ---
-@app.route('/buy', methods=['POST'])
-def buy():
-    # 1. الحصول على البيانات من الفورم
     product_id = request.form.get('product_id')
     customer_name = request.form.get('customer_name')
     customer_phone = request.form.get('phone')
@@ -645,7 +521,6 @@ def buy():
     if not product_id:
         return "خطأ: معرف المنتج مفقود", 400
 
-    # 2. جلب معلومات المنتج
     product_res = supabase.table("inventory").select("*").eq("id", product_id).single().execute()
     product = product_res.data
     
@@ -655,7 +530,6 @@ def buy():
     company_code = product['company_id_text']
     total_price = float(product['price']) + delivery_price
 
-    # 3. تسجيل الطلب في جدول orders
     order_data = {
         "customer_name": customer_name,
         "customer_phone": customer_phone,
@@ -670,7 +544,6 @@ def buy():
     }
     supabase.table("orders").insert(order_data).execute()
 
-    # 4. إرسال تنبيه للتليجرام
     res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
     if res_settings.data:
         s = res_settings.data[0]
@@ -686,11 +559,9 @@ def buy():
                    f"🚚 التوصيل: {'للمنزل' if delivery_type == 'home' else 'للمكتب'}")
             send_telegram_alert_by_token(token, chat_id, msg)
 
-    # 5. تحديث المخزون (نقصان الكمية)
     new_qty = max(0, product['quantity'] - 1)
     supabase.table("inventory").update({"quantity": new_qty}).eq("id", product_id).execute()
 
-    # تنبيه في حال نفذ المخزون
     if new_qty == 0 and token and chat_id:
         send_telegram_alert_by_token(token, chat_id, f"❌ تنبيه: المنتج '{product['name']}' نفذ تماماً!")
 
