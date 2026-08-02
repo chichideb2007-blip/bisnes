@@ -511,16 +511,19 @@ def orders():
                 elif new_qty <= 5:
                     send_telegram_alert_by_token(token, chat_id, f"⚠️ تنبيه مخزون!\nالمنتج '{product_name}' أوشك على النفاذ، المتبقي حالياً: {new_qty}")
             
-        return redirect(url_for('orders'))
-
-    res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
+        res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
     return render_template('orders_dashboard.html', orders=res.data or [], wilayas=wilayas_res.data)
 
-# --- دالة المتجر المحدثة ---
+# --- دالة المتجر المدمجة والمحدثة ---
 @app.route('/shop', methods=['GET', 'POST'])
 def shop():
-    # 1. إذا كان الزبون يضغط على زر الشراء (POST)
-    if request.method == 'POST':
+    # 1. إذا كان الزبون يختار المتجر (أول مرة يدخل أو غير المتجر)
+    if request.method == 'POST' and 'company_name' in request.form:
+        session['current_shop_name'] = request.form.get('company_name')
+        return redirect(url_for('shop'))
+
+    # 2. إذا كان الزبون يضغط على زر الشراء (شراء منتج)
+    elif request.method == 'POST' and 'product_id' in request.form:
         product_id = request.form.get('product_id')
         customer_name = request.form.get('customer_name')
         customer_phone = request.form.get('phone')
@@ -568,9 +571,20 @@ def shop():
 
         return "تمت عملية الشراء بنجاح!"
 
-    # 2. إذا كان الزبون يفتح الصفحة (GET)
-    # هنا يمكنك عرض صفحة المنتجات الخاصة بك (مثلاً shop.html)
-    return render_template('shop.html')
+    # 3. إذا كان الزبون يفتح الصفحة (GET)
+    shop_name = session.get('current_shop_name')
+    products = []
+    
+    if shop_name:
+        products = get_products_by_shop_name(shop_name)
+    
+    return render_template('shop.html', products=products, current_company=shop_name)
+
+# مسار إضافي ضروري لكي يتمكن الزبون من تغيير المتجر إذا أخطأ
+@app.route('/clear_session')
+def clear_session():
+    session.pop('current_shop_name', None)
+    return redirect(url_for('shop'))
 
 if __name__ == '__main__':
     app.run(debug=True)
