@@ -509,7 +509,9 @@ def orders():
         return redirect(url_for('orders'))
 
     res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
-  app.route('/shop', methods=['GET', 'POST'])
+  return render_template('orders_dashboard.html', orders=res.data or [], wilayas=wilayas_res.data)
+
+@app.route('/shop', methods=['GET', 'POST'])
 def shop():
     product_id = request.form.get('product_id')
     customer_name = request.form.get('customer_name')
