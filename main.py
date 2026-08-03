@@ -520,7 +520,6 @@ def orders():
         
         base_price = float(request.form.get('price', 0.0))
         total_price = base_price + delivery_price
-        
         data = {
             "customer_name": customer_name,
             "customer_phone": request.form.get('customer_phone'), 
