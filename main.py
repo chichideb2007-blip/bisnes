@@ -143,9 +143,14 @@ def home():
 
 @app.route('/checkout/<int:product_id>')
 def checkout(product_id):
-    product = get_product_from_db(product_id) # دالة جلب المنتج
-    wilayas = get_wilayas_from_db() # دالة جلب الولايات وأسعارها
-    return render_template('checkout.html', product=product, wilayas=wilayas)
+    # جلب الولايات من جدول shipping_rates في Supabase
+    response = supabase.table("shipping_rates").select("*").execute()
+    rates = response.data 
+    
+    product = get_product_from_db(product_id)
+    
+    # تمرير المتغيرات لصفحة checkout.html
+    return render_template('checkout.html', product=product, rates=rates)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -511,7 +516,10 @@ def orders():
                 elif new_qty <= 5:
                     send_telegram_alert_by_token(token, chat_id, f"⚠️ تنبيه مخزون!\nالمنتج '{product_name}' أوشك على النفاذ، المتبقي حالياً: {new_qty}")
             
-        res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
+        
+        return redirect(url_for('orders'))
+
+    res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
     return render_template('orders_dashboard.html', orders=res.data or [], wilayas=wilayas_res.data)
 
 # --- دالة المتجر المدمجة والمحدثة ---
@@ -528,6 +536,7 @@ def shop():
         customer_name = request.form.get('customer_name')
         customer_phone = request.form.get('phone')
         wilaya = request.form.get('wilaya')
+        baladiya = request.form.get('baladiya')
         delivery_type = request.form.get('delivery_type')
         delivery_price = float(request.form.get('delivery_price', 0))
 
@@ -553,6 +562,7 @@ def shop():
             "status": "قيد الانتظار",
             "company_code": company_code,
             "state": wilaya,
+            "baladiya": baladiya,
             "delivery_type": delivery_type
         }
         supabase.table("orders").insert(order_data).execute()
@@ -563,7 +573,7 @@ def shop():
             s = res_settings.data[0]
             token, chat_id = s.get('telegram_token'), s.get('telegram_chat_id')
             if token and chat_id:
-                msg = (f"⚡ طلب شراء سريع!\n👤 الزبون: {customer_name}\n📞 الهاتف: {customer_phone}\n📦 المنتج: {product['name']}\n💰 السعر الإجمالي: {total_price} دج\n📍 الولاية: {wilaya}\n🚚 التوصيل: {'للمنزل' if delivery_type == 'home' else 'للمكتب'}")
+                msg = (f"⚡ طلب شراء سريع!\n👤 الزبون: {customer_name}\n📞 الهاتف: {customer_phone}\n📦 المنتج: {product['name']}\n💰 السعر الإجمالي: {total_price} دج\n📍 الولاية: {wilaya}\n🏘️ البلدية: {baladiya}\n🚚 التوصيل: {'للمنزل' if delivery_type == 'home' else 'للمكتب'}")
                 send_telegram_alert_by_token(token, chat_id, msg)
 
         new_qty = max(0, product['quantity'] - 1)
