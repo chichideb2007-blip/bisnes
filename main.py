@@ -152,6 +152,47 @@ def checkout(product_id):
     # تمرير المتغيرات لصفحة checkout.html
     return render_template('checkout.html', product=product, rates=rates)
 
+# --- المسار المدمج لإتمام الطلب من السلة ---
+@app.route('/submit-order', methods=['POST'])
+def submit_order():
+    customer_name = request.form.get('customer_name')
+    phone = request.form.get('phone')
+    wilaya = request.form.get('wilaya') 
+    baladiya = request.form.get('baladiya')
+    delivery_type = request.form.get('delivery_type')
+    delivery_price = float(request.form.get('delivery_price', 0))
+    cart_data = json.loads(request.form.get('cart_data', '[]')) 
+    
+    base_price = sum(float(item['price']) for item in cart_data)
+    total_price = base_price + delivery_price
+
+    company_code = cart_data[0]['company_id_text'] if cart_data else "" 
+
+    order_data = {
+        "customer_name": customer_name,
+        "customer_phone": phone,
+        "product_name": ", ".join([item['name'] for item in cart_data]), 
+        "quantity": len(cart_data),
+        "total_price": total_price,
+        "company_code": company_code,
+        "status": "قيد الانتظار",
+        "state": wilaya,
+        "baladiya": baladiya,
+        "delivery_type": delivery_type,
+        "delivery_price": delivery_price
+    }
+    supabase.table("orders").insert(order_data).execute()
+
+    res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
+    if res_settings.data:
+        s = res_settings.data[0]
+        token, chat_id = s.get('telegram_token'), s.get('telegram_chat_id')
+        if token and chat_id:
+            msg = (f"🛒 طلبية جديدة!\n👤 الاسم: {customer_name}\n📞 الهاتف: {phone}\n📍 الولاية: {wilaya}\n🏘️ البلدية: {baladiya}\n💰 المجموع: {total_price} دج")
+            send_telegram_alert_by_token(token, chat_id, msg)
+
+    return "تم تأكيد طلبك بنجاح! شكراً لثقتكم."
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
