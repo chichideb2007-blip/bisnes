@@ -152,7 +152,7 @@ def checkout(product_id):
     # تمرير المتغيرات لصفحة checkout.html
     return render_template('checkout.html', product=product, rates=rates)
 
-# --- المسار المدمج لإتمام الطلب من السلة ---
+# --- المسار المدمج والمصحح لإتمام الطلب من السلة ---
 @app.route('/submit-order', methods=['POST'])
 def submit_order():
     customer_name = request.form.get('customer_name')
@@ -161,17 +161,33 @@ def submit_order():
     baladiya = request.form.get('baladiya')
     delivery_type = request.form.get('delivery_type')
     delivery_price = float(request.form.get('delivery_price', 0))
-    cart_data = json.loads(request.form.get('cart_data', '[]')) 
     
-    base_price = sum(float(item['price']) for item in cart_data)
+    cart_raw = request.form.get('cart_data', '[]')
+    try:
+        cart_data = json.loads(cart_raw)
+    except:
+        cart_data = []
+    
+    base_price = sum(float(item.get('price', 0)) for item in cart_data)
     total_price = base_price + delivery_price
 
-    company_code = cart_data[0]['company_id_text'] if cart_data else "" 
+    # استخراج كود الشركة بذكاء لتجنب خطأ KeyError
+    company_code = ""
+    if cart_data:
+        first_item = cart_data[0]
+        company_code = first_item.get('company_id_text') or first_item.get('company_code') or ""
+    
+    # احتياطياً إذا لم يأتِ الكود من السلة، نبحث عنه عبر اسم المتجر في الجلسة
+    if not company_code and 'current_shop_name' in session:
+        shop_name = session.get('current_shop_name')
+        settings_res = supabase.table("settings").select("company_code").ilike("company_name", shop_name).execute()
+        if settings_res.data:
+            company_code = settings_res.data[0]['company_code']
 
     order_data = {
         "customer_name": customer_name,
         "customer_phone": phone,
-        "product_name": ", ".join([item['name'] for item in cart_data]), 
+        "product_name": ", ".join([str(item.get('name', 'منتج')) for item in cart_data]), 
         "quantity": len(cart_data),
         "total_price": total_price,
         "company_code": company_code,
@@ -181,15 +197,21 @@ def submit_order():
         "delivery_type": delivery_type,
         "delivery_price": delivery_price
     }
-    supabase.table("orders").insert(order_data).execute()
+    
+    try:
+        supabase.table("orders").insert(order_data).execute()
+    except Exception as e:
+        print(f"Error inserting order: {e}")
 
-    res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
-    if res_settings.data:
-        s = res_settings.data[0]
-        token, chat_id = s.get('telegram_token'), s.get('telegram_chat_id')
-        if token and chat_id:
-            msg = (f"🛒 طلبية جديدة!\n👤 الاسم: {customer_name}\n📞 الهاتف: {phone}\n📍 الولاية: {wilaya}\n🏘️ البلدية: {baladiya}\n💰 المجموع: {total_price} دج")
-            send_telegram_alert_by_token(token, chat_id, msg)
+    # إرسال التنبيه عبر تليجرام
+    if company_code:
+        res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
+        if res_settings.data:
+            s = res_settings.data[0]
+            token, chat_id = s.get('telegram_token'), s.get('telegram_chat_id')
+            if token and chat_id:
+                msg = (f"🛒 طلبية جديدة!\n👤 الاسم: {customer_name}\n📞 الهاتف: {phone}\n📍 الولاية: {wilaya}\n🏘️ البلدية: {baladiya}\n💰 المجموع: {total_price} دج")
+                send_telegram_alert_by_token(token, chat_id, msg)
 
     return "تم تأكيد طلبك بنجاح! شكراً لثقتكم."
 
@@ -501,6 +523,7 @@ def update_status(order_id):
     if new_status:
         supabase.table("orders").update({"status": new_status}).eq("id", order_id).execute()
     return redirect(url_for('orders'))
+
 
 @app.route('/orders', methods=['GET', 'POST'])
 @login_required
