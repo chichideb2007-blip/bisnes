@@ -152,9 +152,10 @@ def checkout(product_id):
     # تمرير المتغيرات لصفحة checkout.html
     return render_template('checkout.html', product=product, rates=rates)
 
-# --- المسار المدمج لإتمام الطلب من السلة ---
+# --- المسار الجديد المدمج ---
 @app.route('/submit-order', methods=['POST'])
 def submit_order():
+    # 1. جلب البيانات من الـ Form
     customer_name = request.form.get('customer_name')
     phone = request.form.get('phone')
     wilaya = request.form.get('wilaya') 
@@ -163,11 +164,14 @@ def submit_order():
     delivery_price = float(request.form.get('delivery_price', 0))
     cart_data = json.loads(request.form.get('cart_data', '[]')) 
     
+    # حساب السعر الكلي من السلة + التوصيل
     base_price = sum(float(item['price']) for item in cart_data)
     total_price = base_price + delivery_price
 
-    company_code = cart_data[0]['company_id_text'] if cart_data else "" 
+    # 2. تحديد كود الشركة
+    company_code = cart_data[0]['company_id_text'] 
 
+    # 3. حفظ الطلب في جدول orders
     order_data = {
         "customer_name": customer_name,
         "customer_phone": phone,
@@ -183,6 +187,7 @@ def submit_order():
     }
     supabase.table("orders").insert(order_data).execute()
 
+    # 4. إرسال تنبيه تليجرام
     res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
     if res_settings.data:
         s = res_settings.data[0]
@@ -191,6 +196,7 @@ def submit_order():
             msg = (f"🛒 طلبية جديدة!\n👤 الاسم: {customer_name}\n📞 الهاتف: {phone}\n📍 الولاية: {wilaya}\n🏘️ البلدية: {baladiya}\n💰 المجموع: {total_price} دج")
             send_telegram_alert_by_token(token, chat_id, msg)
 
+    # 5. رسالة نجاح للزبون
     return "تم تأكيد طلبك بنجاح! شكراً لثقتكم."
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -202,7 +208,6 @@ def login():
         res = supabase.table("settings").select("company_code").eq("company_code", company_code).execute()
         
         if res.data:
-            # إذا وجدنا الكود، نقوم بحفظه في الجلسة (Session)
             session['company_code'] = company_code
             return redirect(url_for('dashboard'))
         else:
@@ -243,7 +248,7 @@ def logout():
 def dashboard():
     return render_template('dashboard.html')
 
-# --- مسار فحص المنتجات اليتيمة ---
+# --- باقي المسارات كما هي تماماً ---
 @app.route('/check_orphaned_products')
 @login_required
 def check_orphaned_products():
@@ -253,12 +258,10 @@ def check_orphaned_products():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# --- دالة stats المحدثة ---
 @app.route('/stats')
 @login_required
 def stats():
     company_code = session.get('company_code')
-    
     try:
         res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
         orders = res.data or []
