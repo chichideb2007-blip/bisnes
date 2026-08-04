@@ -193,14 +193,16 @@ def submit_order():
     # 2. خصم الكميات من المخزون لكل منتج في السلة
     for item in cart_data:
         product_id = item.get('id')
+        quantity_ordered = int(item.get('quantity', 1))
         if product_id:
             try:
                 # جلب المخزون الحالي للمنتج
                 prod_res = supabase.table("inventory").select("quantity, name").eq("id", product_id).single().execute()
                 if prod_res.data:
                     current_qty = prod_res.data.get('quantity', 0)
-                    new_qty = max(0, current_qty - 1)  # خصم قطعة واحدة لكل منتج في السلة
-                    # تحديث المخزون في قاعدة البيانات
+                    new_qty = max(0, current_qty - quantity_ordered)  # خصم الكمية المطلوبة
+                    
+                    # تحديث المخزون في قاعدة البيانات (بدل db.execute استخدمنا Supabase update)
                     supabase.table("inventory").update({"quantity": new_qty}).eq("id", product_id).execute()
             except Exception as ex:
                 print(f"Error updating inventory for product {product_id}: {ex}")
@@ -501,7 +503,7 @@ def edit_product(id):
         
     return render_template('edit_product.html', product=product)
 
-@app.route('/delete_product/<int:id>', methods=['POST'])
+app.route('/delete_product/<int:id>', methods=['POST'])
 @login_required
 def delete_product(id):
     try: supabase.table("inventory").delete().eq("id", id).execute()
@@ -569,6 +571,8 @@ def orders():
                 product = products_res.data[0]
                 current_qty = product['quantity']
                 new_qty = max(0, current_qty - requested_qty)
+                
+                # تحديث المخزون بطريقة Supabase
                 supabase.table("inventory").update({"quantity": new_qty}).eq("id", product['id']).execute()
                 
                 if new_qty == 0:
@@ -662,9 +666,15 @@ def shop():
                     send_telegram_alert_by_token(token, chat_id, msg)
 
         # 3. خصم الكمية مباشرة من جدول المخزون (Inventory)
-        current_qty = product.get('quantity', 0)
-        new_qty = max(0, current_qty - 1)
-        supabase.table("inventory").update({"quantity": new_qty}).eq("id", product_id).execute()
+        try:
+            current_qty = product.get('quantity', 0)
+            quantity_ordered = 1
+            new_qty = max(0, current_qty - quantity_ordered)
+            
+            # تحديث وخصم الكمية في جدول inventory (متوافق تماماً مع Supabase)
+            supabase.table("inventory").update({"quantity": new_qty}).eq("id", product_id).execute()
+        except Exception as e:
+            print(f"Error updating inventory in shop: {e}")
 
         return "تمت عملية الشراء بنجاح وسيتم الاتصال بك قريباً!"
 
