@@ -185,17 +185,34 @@ def submit_order():
     }
     
     try:
+        # 1. حفظ الطلب في قاعدة البيانات
         supabase.table("orders").insert(order_data).execute()
     except Exception as e:
         print(f"Error inserting order: {e}")
 
+    # 2. خصم الكميات من المخزون لكل منتج في السلة
+    for item in cart_data:
+        product_id = item.get('id')
+        if product_id:
+            try:
+                # جلب المخزون الحالي للمنتج
+                prod_res = supabase.table("inventory").select("quantity, name").eq("id", product_id).single().execute()
+                if prod_res.data:
+                    current_qty = prod_res.data.get('quantity', 0)
+                    new_qty = max(0, current_qty - 1)  # خصم قطعة واحدة لكل منتج في السلة
+                    # تحديث المخزون في قاعدة البيانات
+                    supabase.table("inventory").update({"quantity": new_qty}).eq("id", product_id).execute()
+            except Exception as ex:
+                print(f"Error updating inventory for product {product_id}: {ex}")
+
+    # 3. إرسال تنبيه تيليجرام
     if company_code:
         res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
         if res_settings.data:
             s = res_settings.data[0]
             token, chat_id = s.get('telegram_token'), s.get('telegram_chat_id')
             if token and chat_id:
-                msg = (f"🛒 طلبية جديدة!\n👤 الاسم: {customer_name}\n📞 الهاتف: {phone}\n📍 الولاية: {wilaya}\n🏘️ البلدية: {baladiya}\n🚚 التوصيل: {delivery_type} ({delivery_price} دج)\n💰 المجموع الكلي: {total_price} دج")
+                msg = (f"🛒 طلبية جديدة من المتجر!\n👤 الاسم: {customer_name}\n📞 الهاتف: {phone}\n📍 الولاية: {wilaya}\n🏘️ البلدية: {baladiya}\n🚚 التوصيل: {delivery_type} ({delivery_price} دج)\n💰 المجموع الكلي: {total_price} دج")
                 send_telegram_alert_by_token(token, chat_id, msg)
 
     return f"""
