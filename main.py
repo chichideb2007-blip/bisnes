@@ -152,7 +152,7 @@ def checkout(product_id):
     # تمرير المتغيرات لصفحة checkout.html
     return render_template('checkout.html', product=product, rates=rates)
 
-# --- المسار المدمج والمصحح لإتمام الطلب من السلة مع زر الرجوع ---
+# --- المسار المدمج والمصحح لإتمام الطلب من السلة مع حفظ كامل التفاصيل وزر الرجوع ---
 @app.route('/submit-order', methods=['POST'])
 def submit_order():
     customer_name = request.form.get('customer_name')
@@ -184,6 +184,7 @@ def submit_order():
         if settings_res.data:
             company_code = settings_res.data[0]['company_code']
 
+    # تجهيز بيانات الطلب لتخزينها بكل التفاصيل في جدول orders
     order_data = {
         "customer_name": customer_name,
         "customer_phone": phone,
@@ -192,13 +193,14 @@ def submit_order():
         "total_price": total_price,
         "company_code": company_code,
         "status": "قيد الانتظار",
-        "state": wilaya,
-        "baladiya": baladiya,
-        "delivery_type": delivery_type,
-        "delivery_price": delivery_price
+        "state": wilaya,            # الولاية
+        "baladiya": baladiya,        # البلدية
+        "delivery_type": delivery_type, # نوع التوصيل (للمنزل / للمكتب)
+        "delivery_price": delivery_price # سعر التوصيل
     }
     
     try:
+        # حفظ الطلب في قاعدة البيانات ليظهر مباشرة في لوحة تحكم الشركة
         supabase.table("orders").insert(order_data).execute()
     except Exception as e:
         print(f"Error inserting order: {e}")
@@ -210,7 +212,7 @@ def submit_order():
             s = res_settings.data[0]
             token, chat_id = s.get('telegram_token'), s.get('telegram_chat_id')
             if token and chat_id:
-                msg = (f"🛒 طلبية جديدة!\n👤 الاسم: {customer_name}\n📞 الهاتف: {phone}\n📍 الولاية: {wilaya}\n🏘️ البلدية: {baladiya}\n💰 المجموع: {total_price} دج")
+                msg = (f"🛒 طلبية جديدة!\n👤 الاسم: {customer_name}\n📞 الهاتف: {phone}\n📍 الولاية: {wilaya}\n🏘️ البلدية: {baladiya}\n🚚 التوصيل: {delivery_type} ({delivery_price} دج)\n💰 المجموع الكلي: {total_price} دج")
                 send_telegram_alert_by_token(token, chat_id, msg)
 
     # تصميم صفحة النجاح مع زر الرجوع تحت جملة الشكر
