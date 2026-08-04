@@ -35,7 +35,6 @@ def inject_currency():
 
 # --- الدوال المساعدة ---
 
-# الدوال المطلوبة لصفحة الـ checkout
 def get_product_from_db(product_id):
     res = supabase.table("inventory").select("*").eq("id", product_id).single().execute()
     return res.data if res.data else None
@@ -64,10 +63,8 @@ def send_telegram_alert_by_token(token, chat_id, message):
         print(f"DEBUG: خطأ في الاتصال بتليجرام: {e}")
         return False
 
-# --- الدالة المحدثة لإرسال الطلب مع أزرار ---
 def send_order_alert(token, chat_id, message, order_id):
     url = f"https://api.telegram.org/bot{token}/sendMessage"
-    # هذه الأزرار التي ستظهر تحت رسالة التيلجرام
     keyboard = {
         "inline_keyboard": [[
             {"text": "✅ تم التحضير", "callback_data": f"status_done_{order_id}"},
@@ -77,17 +74,15 @@ def send_order_alert(token, chat_id, message, order_id):
     params = {
         "chat_id": chat_id, 
         "text": message, 
-        "reply_markup": keyboard # نرسل الأزرار هنا
+        "reply_markup": keyboard
     }
     requests.post(url, json=params)
 
-# --- الدالة المحدثة لجلب المنتجات بالاسم مع فك التشفير و Debugging ---
 def get_products_by_shop_name(shop_name):
     try:
         shop_name_decoded = urllib.parse.unquote(shop_name).strip()
         print(f"DEBUG: ابحث عن متجر باسم: {shop_name_decoded}")
         
-        # 1. جلب الكود من جدول الإعدادات
         settings = supabase.table("settings").select("company_code").ilike("company_name", shop_name_decoded).execute()
         
         if not settings.data:
@@ -97,7 +92,6 @@ def get_products_by_shop_name(shop_name):
         company_code = settings.data[0]['company_code']
         print(f"DEBUG: وجدت الكود: {company_code}")
         
-        # 2. جلب المنتجات باستخدام الكود
         products = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
         
         print(f"DEBUG: المنتجات التي وجدتها لـ {company_code} هي: {len(products.data)}")
@@ -107,7 +101,7 @@ def get_products_by_shop_name(shop_name):
         return []
 
 def get_delivery_price(wilaya, delivery_type):
-    return 500  # سعر افتراضي
+    return 500
 
 def refresh_instagram_token():
     res = supabase.table("settings").select("company_code, instagram_token").execute()
@@ -132,7 +126,6 @@ def login_required(f):
 
 # --- المسارات ---
 
-# --- دالة Favicon لتجنب أخطاء السجلات ---
 @app.route('/favicon.ico')
 def favicon():
     return '', 204
@@ -143,16 +136,11 @@ def home():
 
 @app.route('/checkout/<int:product_id>')
 def checkout(product_id):
-    # جلب الولايات من جدول shipping_rates في Supabase
     response = supabase.table("shipping_rates").select("*").execute()
     rates = response.data 
-    
     product = get_product_from_db(product_id)
-    
-    # تمرير المتغيرات لصفحة checkout.html
     return render_template('checkout.html', product=product, rates=rates)
 
-# --- المسار المدمج والمصحح لإتمام الطلب من السلة مع حفظ كامل التفاصيل وزر الرجوع ---
 @app.route('/submit-order', methods=['POST'])
 def submit_order():
     customer_name = request.form.get('customer_name')
@@ -171,20 +159,17 @@ def submit_order():
     base_price = sum(float(item.get('price', 0)) for item in cart_data)
     total_price = base_price + delivery_price
 
-    # استخراج كود الشركة بذكاء لتجنب خطأ KeyError
     company_code = ""
     if cart_data:
         first_item = cart_data[0]
         company_code = first_item.get('company_id_text') or first_item.get('company_code') or ""
     
-    # احتياطياً إذا لم يأتِ الكود من السلة، نبحث عنه عبر اسم المتجر في الجلسة
     if not company_code and 'current_shop_name' in session:
         shop_name = session.get('current_shop_name')
         settings_res = supabase.table("settings").select("company_code").ilike("company_name", shop_name).execute()
         if settings_res.data:
             company_code = settings_res.data[0]['company_code']
 
-    # تجهيز بيانات الطلب لتخزينها بكل التفاصيل في جدول orders
     order_data = {
         "customer_name": customer_name,
         "customer_phone": phone,
@@ -193,19 +178,17 @@ def submit_order():
         "total_price": total_price,
         "company_code": company_code,
         "status": "قيد الانتظار",
-        "state": wilaya,            # الولاية
-        "baladiya": baladiya,        # البلدية
-        "delivery_type": delivery_type, # نوع التوصيل (للمنزل / للمكتب)
-        "delivery_price": delivery_price # سعر التوصيل
+        "state": wilaya,
+        "baladiya": baladiya,
+        "delivery_type": delivery_type,
+        "delivery_price": delivery_price
     }
     
     try:
-        # حفظ الطلب في قاعدة البيانات ليظهر مباشرة في لوحة تحكم الشركة
         supabase.table("orders").insert(order_data).execute()
     except Exception as e:
         print(f"Error inserting order: {e}")
 
-    # إرسال التنبيه عبر تليجرام
     if company_code:
         res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
         if res_settings.data:
@@ -215,7 +198,6 @@ def submit_order():
                 msg = (f"🛒 طلبية جديدة!\n👤 الاسم: {customer_name}\n📞 الهاتف: {phone}\n📍 الولاية: {wilaya}\n🏘️ البلدية: {baladiya}\n🚚 التوصيل: {delivery_type} ({delivery_price} دج)\n💰 المجموع الكلي: {total_price} دج")
                 send_telegram_alert_by_token(token, chat_id, msg)
 
-    # تصميم صفحة النجاح مع زر الرجوع تحت جملة الشكر
     return f"""
     <!DOCTYPE html>
     <html lang="ar" dir="rtl">
@@ -245,17 +227,12 @@ def submit_order():
 def login():
     if request.method == 'POST':
         company_code = request.form.get('company_code')
-        
-        # البحث عن الكود في جدول settings
         res = supabase.table("settings").select("company_code").eq("company_code", company_code).execute()
-        
         if res.data:
-            # إذا وجدنا الكود، نقوم بحفظه في الجلسة (Session)
             session['company_code'] = company_code
             return redirect(url_for('dashboard'))
         else:
             return "كود الشركة غير صحيح، يرجى التأكد منه.", 401
-            
     return render_template('login.html')
 
 @app.route('/signup', methods=['GET', 'POST'])
@@ -263,22 +240,14 @@ def signup():
     if request.method == 'POST':
         company_code = request.form.get('company_code')
         company_name = request.form.get('company_name')
-        
         res = supabase.table("settings").select("company_code").eq("company_code", company_code).execute()
         if res.data:
             return "هذا الكود مستخدم بالفعل، يرجى اختيار كود آخر!", 400
-            
         try:
-            response = supabase.table("settings").insert({
-                "company_code": company_code, 
-                "company_name": company_name
-            }).execute()
-            print("DEBUG: تم إضافة الشركة بنجاح:", response.data) 
+            supabase.table("settings").insert({"company_code": company_code, "company_name": company_name}).execute()
             return "تم إنشاء الحساب بنجاح!"
         except Exception as e:
-            print(f"DEBUG ERROR: حدث خطأ أثناء الإضافة: {e}")
             return f"حدث خطأ: {e}", 500
-            
     return render_template('signup.html')
 
 @app.route('/logout')
@@ -291,7 +260,6 @@ def logout():
 def dashboard():
     return render_template('dashboard.html')
 
-# --- مسار فحص المنتجات اليتيمة ---
 @app.route('/check_orphaned_products')
 @login_required
 def check_orphaned_products():
@@ -301,17 +269,14 @@ def check_orphaned_products():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# --- دالة stats المحدثة ---
 @app.route('/stats')
 @login_required
 def stats():
     company_code = session.get('company_code')
-    
     try:
         res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
         orders = res.data or []
     except Exception as e:
-        print(f"Error fetching stats: {e}")
         orders = []
 
     cleaned_orders = []
@@ -383,14 +348,12 @@ def update_delivery_price():
     new_home = data.get('home_price')
     
     try:
-        response = supabase.table("shipping_rates").update({
+        supabase.table("shipping_rates").update({
             "office_price": new_office,
             "home_price": new_home
         }).eq("id", row_id).execute()
-        
         return jsonify({"status": "success"})
     except Exception as e:
-        print(f"Error: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route('/get_shipping_rates')
@@ -403,14 +366,11 @@ def get_shipping_rates():
             .select("home_price, office_price") \
             .eq("company_code", company_code) \
             .single().execute()
-        
         if res.data:
             price = res.data.get('home_price') if delivery_type == 'home' else res.data.get('office_price')
             return jsonify({"price": float(price or 0)})
-            
     except Exception as e:
-        print(f"Error fetching from settings table: {e}")
-        
+        pass
     return jsonify({"price": 0})
 
 @app.route('/get_all_shipping_rates', methods=['GET'])
@@ -455,16 +415,13 @@ def products():
             'company_id_text': company_code,
             'product-images': encoded_string
         }
-
         try:
             supabase.table('inventory').insert(data).execute()
             return redirect(url_for('products'))
         except Exception as e:
-            print(f"DEBUG ERROR: {e}")
             return f"خطأ في قاعدة البيانات: {str(e)}", 500
 
     res = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
-    
     return render_template('products.html', products=res.data or [])
 
 @app.route('/inventory_management', methods=['GET', 'POST'])
@@ -495,10 +452,10 @@ def inventory_management():
             print(f"DEBUG: خطأ في تحديث المخزون: {e}")
             
     try:
+        # السطر الأساسي المطلوب لجلب المخزون وتحديثه مباشرة في لوحة التحكم
         res = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
         inventory_data = res.data or []
     except Exception as e:
-        print(f"DEBUG: خطأ في جلب المخزون: {e}")
         inventory_data = []
         
     return render_template('inventory_management.html', inventory=inventory_data)
@@ -507,7 +464,6 @@ def inventory_management():
 @login_required
 def edit_product(id):
     company_code = session.get('company_code')
-    
     res = supabase.table("inventory").select("*").eq("id", id).eq("company_id_text", company_code).execute()
     product = res.data[0] if res.data else None
     
@@ -554,7 +510,6 @@ def update_status(order_id):
 @login_required
 def orders():
     company_code = session.get('company_code')
-    
     wilayas_res = supabase.table("shipping_rates").select("*").order("id").execute()
     
     if request.method == 'POST':
@@ -605,13 +560,11 @@ def orders():
                 elif new_qty <= 5:
                     send_telegram_alert_by_token(token, chat_id, f"⚠️ تنبيه مخزون!\nالمنتج '{product_name}' أوشك على النفاذ، المتبقي حالياً: {new_qty}")
             
-        
         return redirect(url_for('orders'))
 
     res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
     return render_template('orders_dashboard.html', orders=res.data or [], wilayas=wilayas_res.data)
 
-# --- دالة المتجر المدمجة والمحدثة بالكامل ---
 @app.route('/shop', methods=['GET', 'POST'])
 def shop():
     if request.method == 'POST' and 'company_name' in request.form:
@@ -630,17 +583,14 @@ def shop():
         if not product_id:
             return "خطأ: معرف المنتج مفقود", 400
 
-        # جلب بيانات المنتج
         product_res = supabase.table("inventory").select("*").eq("id", product_id).single().execute()
         product = product_res.data
         
         if not product:
             return "المنتج غير موجود!", 404
 
-        # استخراج كود الشركة من المنتج نفسه (وهو الأضمن)
         company_code = product.get('company_id_text')
 
-        # احتياطياً إذا لم يكن موجوداً في المنتج، نبحث عنه عبر اسم المتجر في الجلسة
         if not company_code and 'current_shop_name' in session:
             shop_name = session.get('current_shop_name')
             settings_res = supabase.table("settings").select("company_code").ilike("company_name", shop_name).execute()
@@ -649,7 +599,6 @@ def shop():
 
         total_price = float(product['price']) + delivery_price
 
-        # تجهيز بيانات الطلب مع التأكد من إدراج company_code الأساسي
         order_data = {
             "customer_name": customer_name,
             "customer_phone": customer_phone,
@@ -658,16 +607,14 @@ def shop():
             "total_price": total_price,
             "delivery_price": delivery_price,
             "status": "قيد الانتظار",
-            "company_code": company_code,  # <--- هذا هو الأساس ليظهر في لوحة تحكم الشركة
+            "company_code": company_code,
             "state": wilaya,
             "baladiya": baladiya,
             "delivery_type": delivery_type
         }
         
-        # حفظ الطلب في جدول orders
         supabase.table("orders").insert(order_data).execute()
 
-        # إرسال تنبيه تليجرام إذا وجد توكن الخاص بالشركة
         if company_code:
             res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
             if res_settings.data:
@@ -677,7 +624,6 @@ def shop():
                     msg = (f"⚡ طلب شراء جديد من المتجر!\n👤 الزبون: {customer_name}\n📞 الهاتف: {customer_phone}\n📦 المنتج: {product['name']}\n💰 الإجمالي: {total_price} دج\n📍 الولاية: {wilaya}\n🏘️ البلدية: {baladiya}\n🚚 التوصيل: {delivery_type}")
                     send_telegram_alert_by_token(token, chat_id, msg)
 
-        # خصم الكمية من المخزون
         new_qty = max(0, product['quantity'] - 1)
         supabase.table("inventory").update({"quantity": new_qty}).eq("id", product_id).execute()
 
@@ -690,7 +636,6 @@ def shop():
     
     return render_template('shop.html', products=products, current_company=shop_name)
 
-# مسار إضافي ضروري لكي يتمكن الزبون من تغيير المتجر إذا أخطأ
 @app.route('/clear_session')
 def clear_session():
     session.pop('current_shop_name', None)
