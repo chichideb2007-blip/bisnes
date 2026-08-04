@@ -611,15 +611,13 @@ def orders():
     res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
     return render_template('orders_dashboard.html', orders=res.data or [], wilayas=wilayas_res.data)
 
-# --- دالة المتجر المدمجة والمحدثة ---
+# --- دالة المتجر المدمجة والمحدثة بالكامل ---
 @app.route('/shop', methods=['GET', 'POST'])
 def shop():
-    # 1. إذا كان الزبون يختار المتجر (أول مرة يدخل أو غير المتجر)
     if request.method == 'POST' and 'company_name' in request.form:
         session['current_shop_name'] = request.form.get('company_name')
         return redirect(url_for('shop'))
 
-    # 2. إذا كان الزبون يضغط على زر الشراء (شراء منتج)
     elif request.method == 'POST' and 'product_id' in request.form:
         product_id = request.form.get('product_id')
         customer_name = request.form.get('customer_name')
@@ -632,15 +630,26 @@ def shop():
         if not product_id:
             return "خطأ: معرف المنتج مفقود", 400
 
+        # جلب بيانات المنتج
         product_res = supabase.table("inventory").select("*").eq("id", product_id).single().execute()
         product = product_res.data
         
         if not product:
             return "المنتج غير موجود!", 404
 
-        company_code = product['company_id_text']
+        # استخراج كود الشركة من المنتج نفسه (وهو الأضمن)
+        company_code = product.get('company_id_text')
+
+        # احتياطياً إذا لم يكن موجوداً في المنتج، نبحث عنه عبر اسم المتجر في الجلسة
+        if not company_code and 'current_shop_name' in session:
+            shop_name = session.get('current_shop_name')
+            settings_res = supabase.table("settings").select("company_code").ilike("company_name", shop_name).execute()
+            if settings_res.data:
+                company_code = settings_res.data[0]['company_code']
+
         total_price = float(product['price']) + delivery_price
 
+        # تجهيز بيانات الطلب مع التأكد من إدراج company_code الأساسي
         order_data = {
             "customer_name": customer_name,
             "customer_phone": customer_phone,
@@ -649,31 +658,33 @@ def shop():
             "total_price": total_price,
             "delivery_price": delivery_price,
             "status": "قيد الانتظار",
-            "company_code": company_code,
+            "company_code": company_code,  # <--- هذا هو الأساس ليظهر في لوحة تحكم الشركة
             "state": wilaya,
             "baladiya": baladiya,
             "delivery_type": delivery_type
         }
+        
+        # حفظ الطلب في جدول orders
         supabase.table("orders").insert(order_data).execute()
 
-        # إرسال التنبيه
-        res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
-        if res_settings.data:
-            s = res_settings.data[0]
-            token, chat_id = s.get('telegram_token'), s.get('telegram_chat_id')
-            if token and chat_id:
-                msg = (f"⚡ طلب شراء سريع!\n👤 الزبون: {customer_name}\n📞 الهاتف: {customer_phone}\n📦 المنتج: {product['name']}\n💰 السعر الإجمالي: {total_price} دج\n📍 الولاية: {wilaya}\n🏘️ البلدية: {baladiya}\n🚚 التوصيل: {'للمنزل' if delivery_type == 'home' else 'للمكتب'}")
-                send_telegram_alert_by_token(token, chat_id, msg)
+        # إرسال تنبيه تليجرام إذا وجد توكن الخاص بالشركة
+        if company_code:
+            res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
+            if res_settings.data:
+                s = res_settings.data[0]
+                token, chat_id = s.get('telegram_token'), s.get('telegram_chat_id')
+                if token and chat_id:
+                    msg = (f"⚡ طلب شراء جديد من المتجر!\n👤 الزبون: {customer_name}\n📞 الهاتف: {customer_phone}\n📦 المنتج: {product['name']}\n💰 الإجمالي: {total_price} دج\n📍 الولاية: {wilaya}\n🏘️ البلدية: {baladiya}\n🚚 التوصيل: {delivery_type}")
+                    send_telegram_alert_by_token(token, chat_id, msg)
 
+        # خصم الكمية من المخزون
         new_qty = max(0, product['quantity'] - 1)
         supabase.table("inventory").update({"quantity": new_qty}).eq("id", product_id).execute()
 
-        return "تمت عملية الشراء بنجاح!"
+        return "تمت عملية الشراء بنجاح وسيتم الاتصال بك قريباً!"
 
-    # 3. إذا كان الزبون يفتح الصفحة (GET)
     shop_name = session.get('current_shop_name')
     products = []
-    
     if shop_name:
         products = get_products_by_shop_name(shop_name)
     
