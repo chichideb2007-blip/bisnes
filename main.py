@@ -72,7 +72,7 @@ def send_order_alert(token, chat_id, message, order_id):
         "inline_keyboard": [[
             {"text": "✅ تم التحضير", "callback_data": f"status_done_{order_id}"},
             {"text": "❌ لم يتم التحضير", "callback_data": f"status_pending_{order_id}"}
-        ]]
+        ]}
     }
     params = {
         "chat_id": chat_id, 
@@ -152,7 +152,7 @@ def checkout(product_id):
     # تمرير المتغيرات لصفحة checkout.html
     return render_template('checkout.html', product=product, rates=rates)
 
-# --- المسار المدمج والمصحح لإتمام الطلب من السلة مع حفظ كامل التفاصيل وزر الرجوع ---
+# --- المسار المدمج والمصحح لإتمام الطلب من السلة مع خصم المخزون وحفظ التفاصيل ---
 @app.route('/submit-order', methods=['POST'])
 def submit_order():
     customer_name = request.form.get('customer_name')
@@ -171,20 +171,19 @@ def submit_order():
     base_price = sum(float(item.get('price', 0)) for item in cart_data)
     total_price = base_price + delivery_price
 
-    # استخراج كود الشركة بذكاء لتجنب خطأ KeyError
+    # استخراج كود الشركة بذكاء
     company_code = ""
     if cart_data:
         first_item = cart_data[0]
         company_code = first_item.get('company_id_text') or first_item.get('company_code') or ""
     
-    # احتياطياً إذا لم يأتِ الكود من السلة، نبحث عنه عبر اسم المتجر في الجلسة
     if not company_code and 'current_shop_name' in session:
         shop_name = session.get('current_shop_name')
         settings_res = supabase.table("settings").select("company_code").ilike("company_name", shop_name).execute()
         if settings_res.data:
             company_code = settings_res.data[0]['company_code']
 
-    # تجهيز بيانات الطلب لتخزينها بكل التفاصيل في جدول orders
+    # تجهيز بيانات الطلب
     order_data = {
         "customer_name": customer_name,
         "customer_phone": phone,
@@ -193,17 +192,31 @@ def submit_order():
         "total_price": total_price,
         "company_code": company_code,
         "status": "قيد الانتظار",
-        "state": wilaya,            # الولاية
-        "baladiya": baladiya,        # البلدية
-        "delivery_type": delivery_type, # نوع التوصيل (للمنزل / للمكتب)
-        "delivery_price": delivery_price # سعر التوصيل
+        "state": wilaya,
+        "baladiya": baladiya,
+        "delivery_type": delivery_type,
+        "delivery_price": delivery_price
     }
     
     try:
-        # حفظ الطلب في قاعدة البيانات ليظهر مباشرة في لوحة تحكم الشركة
+        # 1. حفظ الطلب في قاعدة البيانات
         supabase.table("orders").insert(order_data).execute()
+
+        # 2. خصم الكمية لكل منتج في السلة من جدول المخزون (inventory)
+        for item in cart_data:
+            product_id = item.get('id')
+            if product_id:
+                # جلب الكمية الحالية للمنتج
+                prod_res = supabase.table("inventory").select("quantity, name").eq("id", product_id).single().execute()
+                if prod_res.data:
+                    current_qty = prod_res.data.get('quantity', 0)
+                    new_qty = max(0, current_qty - 1)  # خصم قطعة واحدة لكل ظهور في السلة
+                    
+                    # تحديث المخزون في قاعدة البيانات
+                    supabase.table("inventory").update({"quantity": new_qty}).eq("id", product_id).execute()
+
     except Exception as e:
-        print(f"Error inserting order: {e}")
+        print(f"Error inserting order or updating inventory: {e}")
 
     # إرسال التنبيه عبر تليجرام
     if company_code:
@@ -215,7 +228,7 @@ def submit_order():
                 msg = (f"🛒 طلبية جديدة!\n👤 الاسم: {customer_name}\n📞 الهاتف: {phone}\n📍 الولاية: {wilaya}\n🏘️ البلدية: {baladiya}\n🚚 التوصيل: {delivery_type} ({delivery_price} دج)\n💰 المجموع الكلي: {total_price} دج")
                 send_telegram_alert_by_token(token, chat_id, msg)
 
-    # تصميم صفحة النجاح مع زر الرجوع تحت جملة الشكر
+    # تصميم صفحة النجاح
     return f"""
     <!DOCTYPE html>
     <html lang="ar" dir="rtl">
@@ -246,11 +259,9 @@ def login():
     if request.method == 'POST':
         company_code = request.form.get('company_code')
         
-        # البحث عن الكود في جدول settings
         res = supabase.table("settings").select("company_code").eq("company_code", company_code).execute()
         
         if res.data:
-            # إذا وجدنا الكود، نقوم بحفظه في الجلسة (Session)
             session['company_code'] = company_code
             return redirect(url_for('dashboard'))
         else:
@@ -273,10 +284,8 @@ def signup():
                 "company_code": company_code, 
                 "company_name": company_name
             }).execute()
-            print("DEBUG: تم إضافة الشركة بنجاح:", response.data) 
             return "تم إنشاء الحساب بنجاح!"
         except Exception as e:
-            print(f"DEBUG ERROR: حدث خطأ أثناء الإضافة: {e}")
             return f"حدث خطأ: {e}", 500
             
     return render_template('signup.html')
@@ -291,7 +300,6 @@ def logout():
 def dashboard():
     return render_template('dashboard.html')
 
-# --- مسار فحص المنتجات اليتيمة ---
 @app.route('/check_orphaned_products')
 @login_required
 def check_orphaned_products():
@@ -301,7 +309,6 @@ def check_orphaned_products():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# --- دالة stats المحدثة ---
 @app.route('/stats')
 @login_required
 def stats():
@@ -311,7 +318,6 @@ def stats():
         res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
         orders = res.data or []
     except Exception as e:
-        print(f"Error fetching stats: {e}")
         orders = []
 
     cleaned_orders = []
@@ -383,14 +389,13 @@ def update_delivery_price():
     new_home = data.get('home_price')
     
     try:
-        response = supabase.table("shipping_rates").update({
+        supabase.table("shipping_rates").update({
             "office_price": new_office,
             "home_price": new_home
         }).eq("id", row_id).execute()
         
         return jsonify({"status": "success"})
     except Exception as e:
-        print(f"Error: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route('/get_shipping_rates')
@@ -409,7 +414,7 @@ def get_shipping_rates():
             return jsonify({"price": float(price or 0)})
             
     except Exception as e:
-        print(f"Error fetching from settings table: {e}")
+        pass
         
     return jsonify({"price": 0})
 
@@ -460,11 +465,9 @@ def products():
             supabase.table('inventory').insert(data).execute()
             return redirect(url_for('products'))
         except Exception as e:
-            print(f"DEBUG ERROR: {e}")
             return f"خطأ في قاعدة البيانات: {str(e)}", 500
 
     res = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
-    
     return render_template('products.html', products=res.data or [])
 
 @app.route('/inventory_management', methods=['GET', 'POST'])
@@ -492,13 +495,12 @@ def inventory_management():
         try:
             supabase.table('inventory').update(update_data).eq("id", product_id).eq("company_id_text", company_code).execute()
         except Exception as e:
-            print(f"DEBUG: خطأ في تحديث المخزون: {e}")
+            pass
             
     try:
         res = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
         inventory_data = res.data or []
     except Exception as e:
-        print(f"DEBUG: خطأ في جلب المخزون: {e}")
         inventory_data = []
         
     return render_template('inventory_management.html', inventory=inventory_data)
@@ -515,7 +517,7 @@ def edit_product(id):
         return "المنتج غير موجود", 404
 
     if request.method == 'POST':
-        new_name = request.form.get('name')
+    new_name = request.form.get('name')
         new_quantity = request.form.get('quantity')
         new_price = request.form.get('price')
         
@@ -532,8 +534,10 @@ def edit_product(id):
 @app.route('/delete_product/<int:id>', methods=['POST'])
 @login_required
 def delete_product(id):
-    try: supabase.table("inventory").delete().eq("id", id).execute()
-    except Exception as e: print(f"Delete Error: {e}")
+    try: 
+        supabase.table("inventory").delete().eq("id", id).execute()
+    except Exception as e: 
+        pass
     return redirect(url_for('products'))
 
 @app.route('/delete_order/<int:id>', methods=['POST'])
@@ -605,83 +609,16 @@ def orders():
                 elif new_qty <= 5:
                     send_telegram_alert_by_token(token, chat_id, f"⚠️ تنبيه مخزون!\nالمنتج '{product_name}' أوشك على النفاذ، المتبقي حالياً: {new_qty}")
             
-        
         return redirect(url_for('orders'))
 
     res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
     return render_template('orders_dashboard.html', orders=res.data or [], wilayas=wilayas_res.data)
 
-# --- دالة المتجر المدمجة والمحدثة بالكامل ---
 @app.route('/shop', methods=['GET', 'POST'])
 def shop():
     if request.method == 'POST' and 'company_name' in request.form:
         session['current_shop_name'] = request.form.get('company_name')
         return redirect(url_for('shop'))
-
-    elif request.method == 'POST' and 'product_id' in request.form:
-        product_id = request.form.get('product_id')
-        customer_name = request.form.get('customer_name')
-        customer_phone = request.form.get('phone')
-        wilaya = request.form.get('wilaya')
-        baladiya = request.form.get('baladiya')
-        delivery_type = request.form.get('delivery_type')
-        delivery_price = float(request.form.get('delivery_price', 0))
-
-        if not product_id:
-            return "خطأ: معرف المنتج مفقود", 400
-
-        # جلب بيانات المنتج
-        product_res = supabase.table("inventory").select("*").eq("id", product_id).single().execute()
-        product = product_res.data
-        
-        if not product:
-            return "المنتج غير موجود!", 404
-
-        # استخراج كود الشركة من المنتج نفسه (وهو الأضمن)
-        company_code = product.get('company_id_text')
-
-        # احتياطياً إذا لم يكن موجوداً في المنتج، نبحث عنه عبر اسم المتجر في الجلسة
-        if not company_code and 'current_shop_name' in session:
-            shop_name = session.get('current_shop_name')
-            settings_res = supabase.table("settings").select("company_code").ilike("company_name", shop_name).execute()
-            if settings_res.data:
-                company_code = settings_res.data[0]['company_code']
-
-        total_price = float(product['price']) + delivery_price
-
-        # تجهيز بيانات الطلب مع التأكد من إدراج company_code الأساسي
-        order_data = {
-            "customer_name": customer_name,
-            "customer_phone": customer_phone,
-            "product_name": product['name'],
-            "quantity": 1,
-            "total_price": total_price,
-            "delivery_price": delivery_price,
-            "status": "قيد الانتظار",
-            "company_code": company_code,  # <--- هذا هو الأساس ليظهر في لوحة تحكم الشركة
-            "state": wilaya,
-            "baladiya": baladiya,
-            "delivery_type": delivery_type
-        }
-        
-        # حفظ الطلب في جدول orders
-        supabase.table("orders").insert(order_data).execute()
-
-        # إرسال تنبيه تليجرام إذا وجد توكن الخاص بالشركة
-        if company_code:
-            res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
-            if res_settings.data:
-                s = res_settings.data[0]
-                token, chat_id = s.get('telegram_token'), s.get('telegram_chat_id')
-                if token and chat_id:
-                    msg = (f"⚡ طلب شراء جديد من المتجر!\n👤 الزبون: {customer_name}\n📞 الهاتف: {customer_phone}\n📦 المنتج: {product['name']}\n💰 الإجمالي: {total_price} دج\n📍 الولاية: {wilaya}\n🏘️ البلدية: {baladiya}\n🚚 التوصيل: {delivery_type}")
-                    send_telegram_alert_by_token(token, chat_id, msg)
-
-        # خصم الكمية من المخزون
-        new_qty = max(0, product['quantity'] - 1)
-        supabase.table("inventory").update({"quantity": new_qty}).eq("id", product_id).execute()
-
-        return "تمت عملية الشراء بنجاح وسيتم الاتصال بك قريباً!"
 
     shop_name = session.get('current_shop_name')
     products = []
@@ -690,7 +627,6 @@ def shop():
     
     return render_template('shop.html', products=products, current_company=shop_name)
 
-# مسار إضافي ضروري لكي يتمكن الزبون من تغيير المتجر إذا أخطأ
 @app.route('/clear_session')
 def clear_session():
     session.pop('current_shop_name', None)
