@@ -517,7 +517,7 @@ def edit_product(id):
         return "المنتج غير موجود", 404
 
     if request.method == 'POST':
-    new_name = request.form.get('name')
+        new_name = request.form.get('name')
         new_quantity = request.form.get('quantity')
         new_price = request.form.get('price')
         
