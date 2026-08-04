@@ -39,8 +39,8 @@
                     <p class="text-muted small">المتبقي: {{ product.quantity }}</p>
 
                     {% if product.quantity > 0 %}
-                        <!-- النموذج الذي يجمع بيانات الشراء -->
-                        <form action="/buy" method="POST" class="mt-2 text-start">
+                        <!-- النموذج الذي يجمع بيانات الشراء موجه إلى /shop -->
+                        <form action="/shop" method="POST" class="mt-2 text-start">
                             <input type="hidden" name="product_id" value="{{ product.id }}">
                             
                             <input type="text" name="customer_name" class="form-control form-control-sm mb-1" placeholder="الاسم الكريم" required>
