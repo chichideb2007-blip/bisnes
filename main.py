@@ -585,7 +585,7 @@ def orders():
     res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
     return render_template('orders_dashboard.html', orders=res.data or [], wilayas=wilayas_res.data)
 
-# --- دالة المتجر المدمجة والمحدثة ---
+# --- دالة المتجر المدمجة والمحدثة مع زر الرجوع ---
 @app.route('/shop', methods=['GET', 'POST'])
 def shop():
     # 1. إذا كان الزبون يختار المتجر (أول مرة يدخل أو غير المتجر)
@@ -642,7 +642,31 @@ def shop():
         new_qty = max(0, product['quantity'] - 1)
         supabase.table("inventory").update({"quantity": new_qty}).eq("id", product_id).execute()
 
-        return "تمت عملية الشراء بنجاح!"
+        # تصميم صفحة النجاح مع زر العودة للمتجر
+        return f"""
+        <!DOCTYPE html>
+        <html lang="ar" dir="rtl">
+        <head>
+            <meta charset="UTF-8">
+            <title>تم الطلب بنجاح</title>
+            <style>
+                body {{ font-family: Tahoma, sans-serif; background-color: #f4f7f6; text-align: center; padding-top: 50px; }}
+                .card {{ background: white; max-width: 400px; margin: auto; padding: 30px; border-radius: 10px; box-shadow: 0px 4px 10px rgba(0,0,0,0.1); }}
+                h2 {{ color: #28a745; }}
+                p {{ color: #555; }}
+                .btn {{ display: inline-block; margin-top: 20px; background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; }}
+                .btn:hover {{ background: #0056b3; }}
+            </style>
+        </head>
+        <body>
+            <div class="card">
+                <h2>🎉 تم إرسال طلبك بنجاح!</h2>
+                <p>شكراً لثقتك بنا، سيتم الاتصال بك قريباً لتأكيد الطلب.</p>
+                <a href="/shop" class="btn">🔙 العودة إلى المنتجات</a>
+            </div>
+        </body>
+        </html>
+        """
 
     # 3. إذا كان الزبون يفتح الصفحة (GET)
     shop_name = session.get('current_shop_name')
