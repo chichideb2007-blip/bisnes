@@ -150,12 +150,23 @@ def submit_order():
     delivery_type = request.form.get('delivery_type')
     delivery_price = float(request.form.get('delivery_price', 0))
     
-    cart_raw = request.form.get('cart_data', '[]')
-    try:
-        cart_data = json.loads(cart_raw)
-    except:
-        cart_data = []
+    # التحقق مما إذا كانت السلة تحتوي على منتجات أو تم إرسال منتج مفرد
+    cart_raw = request.form.get('cart_data', '')
+    cart_data = []
     
+    if cart_raw and cart_raw != '[]':
+        try:
+            cart_data = json.loads(cart_raw)
+        except:
+            cart_data = []
+            
+    # إذا لم تكن هناك سلة، نتحقق من وجود منتج مفرد مرسل بالطريقة التقليدية
+    product_id = request.form.get('product_id')
+    if not cart_data and product_id:
+        single_product = get_product_from_db(product_id)
+        if single_product:
+            cart_data = [single_product]
+
     base_price = sum(float(item.get('price', 0)) for item in cart_data)
     total_price = base_price + delivery_price
 
@@ -171,16 +182,25 @@ def submit_order():
         if settings_res.data:
             company_code = settings_res.data[0]['company_code']
 
+    # تحويل معرف الولاية إلى اسمها الحقيقي إن أمكن ليكون واضحاً في الطلبات
+    wilaya_name = wilaya
+    try:
+        w_res = supabase.table("shipping_rates").select("wilaya_name").eq("id", wilaya).single().execute()
+        if w_res.data and w_res.data.get('wilaya_name'):
+            wilaya_name = w_res.data.get('wilaya_name')
+    except:
+        pass
+
     # 1. حفظ الطلب في جدول orders
     order_data = {
         "customer_name": customer_name,
         "customer_phone": phone,
         "product_name": ", ".join([str(item.get('name', 'منتج')) for item in cart_data]), 
-        "quantity": len(cart_data),
+        "quantity": len(cart_data) if len(cart_data) > 0 else 1,
         "total_price": total_price,
         "company_code": company_code,
         "status": "قيد الانتظار",
-        "state": wilaya,
+        "state": wilaya_name,
         "baladiya": baladiya,
         "delivery_type": delivery_type,
         "delivery_price": delivery_price
@@ -191,13 +211,12 @@ def submit_order():
     except Exception as e:
         print(f"Error inserting order: {e}")
 
-    # 2. خصم الكميات تلقائياً من جدول المخزون (inventory) الخاص بالمدير/الشركة
+    # 2. خصم الكميات تلقائياً من جدول المخزون (inventory) الخاص بالشركة
     for item in cart_data:
-        product_id = item.get('id')
-        if product_id:
+        p_id = item.get('id')
+        if p_id:
             try:
-                # جلب الكمية الحالية للمنتج من جدول inventory
-                query = supabase.table("inventory").select("quantity, name").eq("id", product_id)
+                query = supabase.table("inventory").select("quantity, name").eq("id", p_id)
                 if company_code:
                     query = query.eq("company_id_text", company_code)
                 
@@ -205,15 +224,14 @@ def submit_order():
                 
                 if prod_res.data:
                     current_qty = prod_res.data.get('quantity', 0)
-                    new_qty = max(0, current_qty - 1)  # خصم قطعة واحدة لكل منتج في السلة
+                    new_qty = max(0, current_qty - 1)  # خصم قطعة واحدة لكل منتج
                     
-                    # تحديث المخزون الجديد في قاعدة بيانات Supabase (ليراه المدير فوراً في لوحة التحكم)
-                    update_query = supabase.table("inventory").update({"quantity": new_qty}).eq("id", product_id)
+                    update_query = supabase.table("inventory").update({"quantity": new_qty}).eq("id", p_id)
                     if company_code:
                         update_query = update_query.eq("company_id_text", company_code)
                     update_query.execute()
             except Exception as ex:
-                print(f"Error updating inventory for product {product_id}: {ex}")
+                print(f"Error updating inventory for product {p_id}: {ex}")
 
     # 3. إرسال تنبيه تيليجرام لمدير الشركة
     if company_code:
@@ -221,8 +239,9 @@ def submit_order():
         if res_settings.data:
             s = res_settings.data[0]
             token, chat_id = s.get('telegram_token'), s.get('telegram_chat_id')
+            product_names_str = ", ".join([str(item.get('name', 'منتج')) for item in cart_data])
             if token and chat_id:
-                msg = (f"🛒 طلبية جديدة من المتجر!\n👤 الاسم: {customer_name}\n📞 الهاتف: {phone}\n📍 الولاية: {wilaya}\n🏘️ البلدية: {baladiya}\n🚚 التوصيل: {delivery_type} ({delivery_price} دج)\n💰 المجموع الكلي: {total_price} دج")
+                msg = (f"🛒 طلبية جديدة من المتجر!\n👤 الاسم: {customer_name}\n📞 الهاتف: {phone}\n📦 المنتجات: {product_names_str}\n📍 الولاية: {wilaya_name}\n🏘️ البلدية: {baladiya}\n🚚 التوصيل: {delivery_type} ({delivery_price} دج)\n💰 المجموع الكلي: {total_price} دج")
                 send_telegram_alert_by_token(token, chat_id, msg)
 
     return f"""
@@ -450,6 +469,7 @@ def products():
 
     res = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
     return render_template('products.html', products=res.data or [])
+
 
 @app.route('/inventory_management', methods=['GET', 'POST'])
 @login_required
@@ -687,5 +707,5 @@ def clear_session():
     session.pop('current_shop_name', None)
     return redirect(url_for('shop'))
 
-if __name__ == '__main__':
+if __name__ =='__main__':
     app.run(debug=True)
