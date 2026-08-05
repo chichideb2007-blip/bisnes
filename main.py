@@ -213,20 +213,17 @@ def submit_order():
         p_id = item.get('id')
         if p_id:
             try:
-                query = supabase.table("inventory").select("quantity, name").eq("id", p_id)
-                if company_code:
-                    query = query.eq("company_id_text", company_code)
+                # جلب المنتج بواسطة الـ id مباشرة دون تعقيد الشرط لتجنب أخطاء single()
+                prod_res = supabase.table("inventory").select("quantity, name").eq("id", p_id).execute()
                 
-                prod_res = query.single().execute()
-                
-                if prod_res.data:
-                    current_qty = prod_res.data.get('quantity', 0)
+                if prod_res.data and len(prod_res.data) > 0:
+                    product_row = prod_res.data[0]
+                    current_qty = product_row.get('quantity', 0)
                     new_qty = max(0, current_qty - 1)
                     
-                    update_query = supabase.table("inventory").update({"quantity": new_qty}).eq("id", p_id)
-                    if company_code:
-                        update_query = update_query.eq("company_id_text", company_code)
-                    update_query.execute()
+                    # تحديث الكمية مباشرة عبر الـ id
+                    supabase.table("inventory").update({"quantity": new_qty}).eq("id", p_id).execute()
+                    print(f"DEBUG: تم تحديث مخزون المنتج {p_id} بنجاح إلى {new_qty}")
             except Exception as ex:
                 print(f"Error updating inventory for product {p_id}: {ex}")
 
