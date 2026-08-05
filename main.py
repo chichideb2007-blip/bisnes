@@ -307,10 +307,21 @@ def check_orphaned_products():
 def stats():
     company_code = session.get('company_code')
     try:
+        # جلب جميع الطلبيات الخاصة بالشركة الحالية
         res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
         orders = res.data or []
     except Exception as e:
         orders = []
+
+    # حساب الإحصائيات بشكل ديناميكي
+    total_orders_count = len(orders)
+    total_revenue = sum(float(order.get("total_price") or 0) for order in orders)
+    
+    # حساب عدد الطلبيات حسب الحالة
+    status_counts = defaultdict(int)
+    for order in orders:
+        status = order.get("status", "غير محدد")
+        status_counts[status] += 1
 
     cleaned_orders = []
     for order in orders:
@@ -324,7 +335,13 @@ def stats():
         }
         cleaned_orders.append(cleaned_order)
 
-    return render_template('stats.html', orders=cleaned_orders, daily=[])
+    return render_template(
+        'stats.html', 
+        orders=cleaned_orders, 
+        total_orders_count=total_orders_count, 
+        total_revenue=total_revenue,
+        status_counts=dict(status_counts)
+    )
 
 @app.route('/settings', methods=['GET', 'POST'])
 @login_required
@@ -457,7 +474,7 @@ def products():
     res = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
     return render_template('products.html', products=res.data or [])
 
-@app.route('/inventory_management', methods=['GET', 'POST'])
+app.route('/inventory_management', methods=['GET', 'POST'])
 @login_required
 def inventory_management():
     company_code = session.get('company_code')
