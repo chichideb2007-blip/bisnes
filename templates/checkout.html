@@ -40,6 +40,12 @@
                     </div>
                 </div>
 
+                <!-- خانة اختيار الكمية المدمجة -->
+                <div class="mb-3">
+                    <label for="quantity" class="form-label">الكمية:</label>
+                    <input type="number" id="quantity" name="quantity" value="1" min="1" max="100" class="form-control" oninput="calculateTotal()" required>
+                </div>
+
                 <div class="mb-3">
                     <label class="form-label">الولاية</label>
                     <select name="wilaya" class="form-select" id="wilaya" onchange="updateDelivery()" required>
@@ -85,10 +91,13 @@
         calculateTotal(); // حساب السعر عند التحميل
     };
 
-    // 2. دالة حساب الإجمالي وتحديث الحقول
+    // 2. دالة حساب الإجمالي وتحديث الحقول بناءً على السعر والكمية والتوصيل
     function calculateTotal() {
         let cart = JSON.parse(localStorage.getItem('cart') || '[]');
         let basePrice = cart.reduce((total, item) => total + parseFloat(item.price), 0);
+        
+        // قراءة قيمة الكمية المدخلة (إذا لم تكن صالحة تكون 1)
+        let quantity = parseInt(document.getElementById('quantity').value) || 1;
         
         const wilayaSelect = document.getElementById('wilaya');
         const deliveryType = document.getElementById('delivery_type').value;
@@ -99,7 +108,10 @@
             shippingPrice = parseFloat(selectedOption.getAttribute('data-' + deliveryType)) || 0;
         }
         
-        document.getElementById('total_display').innerText = (basePrice + shippingPrice);
+        // حساب المجموع: (سعر المنتجات الأساسي × الكمية) + سعر التوصيل
+        let finalTotal = (basePrice * quantity) + shippingPrice;
+        
+        document.getElementById('total_display').innerText = finalTotal;
         document.getElementById('delivery_price_input').value = shippingPrice;
     }
 
