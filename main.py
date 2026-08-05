@@ -307,21 +307,19 @@ def check_orphaned_products():
 def stats():
     company_code = session.get('company_code')
     try:
-        # جلب جميع الطلبيات الخاصة بالشركة الحالية
         res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
         orders = res.data or []
     except Exception as e:
         orders = []
 
-    # حساب الإحصائيات بشكل ديناميكي
-    total_orders_count = len(orders)
+    # حساب إجمالي المبيعات (المجموع الكلي لأسعار الطلبيات)
     total_revenue = sum(float(order.get("total_price") or 0) for order in orders)
     
-    # حساب عدد الطلبيات حسب الحالة
-    status_counts = defaultdict(int)
-    for order in orders:
-        status = order.get("status", "غير محدد")
-        status_counts[status] += 1
+    # عدد الطلبات الكلي
+    total_orders_count = len(orders)
+    
+    # إجمالي المصروفات (إذا لم يكن لديك جدول مصروفات، نجعلها 0 أو نقوم بحسابها)
+    total_expenses = 0.0 
 
     cleaned_orders = []
     for order in orders:
@@ -340,7 +338,8 @@ def stats():
         orders=cleaned_orders, 
         total_orders_count=total_orders_count, 
         total_revenue=total_revenue,
-        status_counts=dict(status_counts)
+        total_expenses=total_expenses,
+        daily=[0]*7 # بيانات افتراضية لأيام الأسبوع لكي لا يظهر خطأ في الرسم البياني
     )
 
 @app.route('/settings', methods=['GET', 'POST'])
