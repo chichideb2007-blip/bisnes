@@ -208,6 +208,7 @@ def submit_order():
     except Exception as e:
         print(f"Error inserting order: {e}")
 
+    # --- حلقة لتحديث وخصم الكمية لكل منتج في السلة من جدول inventory ---
     for item in cart_data:
         p_id = item.get('id')
         if p_id:
@@ -634,7 +635,6 @@ def shop():
         if not product_id:
             return "خطأ: معرف المنتج مفقود", 400
 
-        # جلب المنتج من جدول المخزون للتأكد من وجوده والكمية الحالية
         product_res = supabase.table("inventory").select("*").eq("id", product_id).single().execute()
         product = product_res.data
         
@@ -659,7 +659,6 @@ def shop():
         except:
             pass
 
-        # 1. إدراج الطلب في جدول الطلبات مع حفظ product_id بصيغة رقمية صحيحة
         order_data = {
             "customer_name": customer_name,
             "customer_phone": customer_phone,
@@ -677,7 +676,6 @@ def shop():
         
         supabase.table("orders").insert(order_data).execute()
 
-        # 2. إرسال تنبيه تيليجرام إذا توفرت المعلومات
         if company_code:
             res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
             if res_settings.data:
@@ -687,7 +685,6 @@ def shop():
                     msg = (f"⚡ طلب شراء جديد من المتجر!\n👤 الزبون: {customer_name}\n📞 الهاتف: {customer_phone}\n📦 المنتج: {product['name']}\n💰 الإجمالي: {total_price} دج\n📍 الولاية: {wilaya_name}\n🏘️ البلدية: {baladiya}\n🚚 التوصيل: {delivery_type}")
                     send_telegram_alert_by_token(token, chat_id, msg)
 
-        # 3. خصم الكمية تلقائياً وبشكل مباشر من جدول المخزون (inventory) بناءً على معرف المنتج (id)
         current_qty = int(product.get('quantity', 0))
         new_qty = max(0, current_qty - 1)
         
