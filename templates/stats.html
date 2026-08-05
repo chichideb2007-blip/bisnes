@@ -22,7 +22,7 @@
         <div class="d-flex justify-content-between align-items-center">
             <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">⬅️ لوحة التحكم</a>
             
-            <!-- تم دمج زر الترجمة الموحد هنا -->
+            <!-- زر الترجمة الموحد -->
             {% include 'translate.html' %}
             
             <a href="{{ url_for('logout') }}" class="btn btn-danger">🚪 خروج</a>
@@ -32,6 +32,7 @@
     <div class="container mt-5">
         <h2 class="mb-4 text-center fw-bold">📊 لوحة الإحصائيات والتقارير</h2>
         
+        <!-- البطاقات الإحصائية العلوية -->
         <div class="row g-4 mb-5">
             <div class="col-md-4">
                 <div class="card shadow-sm border-0 text-white bg-primary">
@@ -59,10 +60,7 @@
             </div>
         </div>
 
-        <div class="text-center mb-4">
-            <h3 class="fw-bold">إجمالي المبيعات: {{ total_revenue }} {{ currency }}</h3>
-        </div>
-
+        <!-- الرسوم البيانية -->
         <div class="row">
             <div class="col-12">
                 <div class="chart-box">
@@ -84,11 +82,13 @@
             </div>
         </div>
 
+        <!-- زر العودة في الأسفل -->
         <div class="mt-4 text-center mb-5">
             <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary px-4">العودة للوحة التحكم</a>
         </div>
     </div>
 
+    <!-- سكربت الرسوم البيانية -->
     <script>
         function createChart(canvasId, labelName, chartData, orderArray = null, color = '#0d6efd') {
             const ctx = document.getElementById(canvasId).getContext('2d');
@@ -118,9 +118,9 @@
             });
         }
 
-        const dailyData = {{ daily | default([]) | tojson | safe }};
-        const monthlyData = {{ monthly | default([]) | tojson | safe }};
-        const yearlyData = {{ yearly | default([]) | tojson | safe }};
+        const dailyData = {{ daily | default({}) | tojson | safe }};
+        const monthlyData = {{ monthly | default({}) | tojson | safe }};
+        const yearlyData = {{ yearly | default({}) | tojson | safe }};
 
         createChart('dailyChart', 'المبيعات اليومية', dailyData, ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"], '#0d6efd');
         createChart('monthlyChart', 'المبيعات الشهرية', monthlyData, ["جانفي", "فيفري", "مارس", "أفريل", "ماي", "جوان", "جويلية", "أوت", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"], '#198754');
