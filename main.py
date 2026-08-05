@@ -727,7 +727,7 @@ def shop():
         
         try:
             supabase.table("inventory").update({"quantity": new_qty}).eq("id", int(product_id)).execute()
-            print(f"DEBUG SHOP: تم خصم {requested_qty} قطع بنجاح للمنتج {product_id}. الكمية السابقة: {current_qty}, الجديدة: {new_qty}")
+            print(f"DEBUG SHOP: تم خصم {requested_qty} قطع بنجاح للمنتج {product_id}.")
         except Exception as e:
             print(f"DEBUG SHOP ERROR: فشل خصم المخزون -> {e}")
 
