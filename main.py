@@ -219,6 +219,7 @@ def submit_order():
     except Exception as e:
         print(f"Error inserting order: {e}")
 
+    # التعديل الوحيد المضاف هنا لخصم المخزون عند الطلب من زر الشراء للمتجر عبر صفحة الدفع
     for item in cart_data:
         p_id = item.get('id')
         if p_id:
@@ -672,96 +673,6 @@ def shop():
     if request.method == 'POST' and 'company_name' in request.form:
         session['current_shop_name'] = request.form.get('company_name')
         return redirect(url_for('shop'))
-
-    elif request.method == 'POST' and 'product_id' in request.form:
-        product_id = request.form.get('product_id')
-        customer_name = request.form.get('customer_name')
-        customer_phone = request.form.get('phone')
-        wilaya = request.form.get('wilaya')
-        baladiya = request.form.get('baladiya')
-        delivery_type = request.form.get('delivery_type')
-        
-        try:
-            requested_qty = int(request.form.get('quantity', 1))
-        except:
-            requested_qty = 1
-
-        delivery_price = 0
-        try:
-            shipping_res = supabase.table("shipping_rates").select("*").eq("id", wilaya).single().execute()
-            if shipping_res.data:
-                delivery_price = float(shipping_res.data.get('home_price') if delivery_type == 'home' else shipping_res.data.get('office_price') or 0)
-        except:
-            delivery_price = 0
-
-        if not product_id:
-            return "خطأ: معرف المنتج مفقود", 400
-
-        product_res = supabase.table("inventory").select("*").eq("id", product_id).single().execute()
-        product = product_res.data
-        
-        if not product:
-            return "المنتج غير موجود!", 404
-
-        company_code = product.get('company_id_text') or product.get('company_code')
-
-        if not company_code and 'current_shop_name' in session:
-            shop_name = session.get('current_shop_name')
-            settings_res = supabase.table("settings").select("company_code").ilike("company_name", shop_name).execute()
-            if settings_res.data:
-                company_code = settings_res.data[0]['company_code']
-
-        unit_price = float(product['price'])
-        total_price = (unit_price * requested_qty) + delivery_price
-
-        wilaya_name = wilaya
-        try:
-            w_res = supabase.table("shipping_rates").select("wilaya_name").eq("id", wilaya).single().execute()
-            if w_res.data:
-                wilaya_name = w_res.data.get('wilaya_name')
-        except:
-            pass
-
-        current_qty = int(product.get('quantity', 0))
-        new_qty = max(0, current_qty - requested_qty)
-        
-        try:
-            supabase.table("inventory").update({"quantity": new_qty}).eq("id", int(product_id)).execute()
-            print(f"DEBUG SHOP: تم خصم {requested_qty} قطع بنجاح للمنتج {product_id}.")
-        except Exception as e:
-            print(f"DEBUG SHOP ERROR: فشل خصم المخزون -> {e}")
-
-        order_data = {
-            "customer_name": customer_name,
-            "customer_phone": customer_phone,
-            "product_name": product['name'],
-            "quantity": requested_qty,
-            "total_price": total_price,
-            "delivery_price": delivery_price,
-            "status": "قيد الانتظار",
-            "company_code": company_code,
-            "state": wilaya_name,
-            "baladiya": baladiya,
-            "delivery_type": delivery_type,
-            "product_id": int(product_id)
-        }
-        
-        res_insert = supabase.table("orders").insert(order_data).execute()
-        inserted_order_id = res_insert.data[0].get('id') if res_insert.data else None
-
-        if company_code:
-            res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
-            if res_settings.data:
-                s = res_settings.data[0]
-                token, chat_id = s.get('telegram_token'), s.get('telegram_chat_id')
-                if token and chat_id:
-                    msg = (f"⚡ طلب شراء جديد من المتجر!\n👤 الزبون: {customer_name}\n📞 الهاتف: {customer_phone}\n📦 المنتج: {product['name']}\n🔢 الكمية: {requested_qty}\n💰 الإجمالي: {total_price} دج\n📍 الولاية: {wilaya_name}\n🏘️ البلدية: {baladiya}\n🚚 التوصيل: {delivery_type}\n📦 المتبقي في المخزون: {new_qty}")
-                    if inserted_order_id:
-                        send_order_alert(token, chat_id, msg, inserted_order_id)
-                    else:
-                        send_telegram_alert_by_token(token, chat_id, msg)
-
-        return "تمت عملية الشراء بنجاح وسيتم الاتصال بك قريباً!"
 
     shop_name = session.get('current_shop_name')
     products = []
