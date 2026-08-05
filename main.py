@@ -159,6 +159,7 @@ def submit_order():
     base_price = sum(float(item.get('price', 0)) for item in cart_data)
     total_price = base_price + delivery_price
 
+    # جلب كود الشركة المرتبط بالمنتجات أو الجلسة الحالية
     company_code = ""
     if cart_data:
         first_item = cart_data[0]
@@ -170,6 +171,7 @@ def submit_order():
         if settings_res.data:
             company_code = settings_res.data[0]['company_code']
 
+    # 1. حفظ الطلب في جدول orders
     order_data = {
         "customer_name": customer_name,
         "customer_phone": phone,
@@ -185,27 +187,35 @@ def submit_order():
     }
     
     try:
-        # 1. حفظ الطلب في قاعدة البيانات
         supabase.table("orders").insert(order_data).execute()
     except Exception as e:
         print(f"Error inserting order: {e}")
 
-    # 2. خصم الكميات من المخزون لكل منتج في السلة
+    # 2. خصم الكميات تلقائياً من جدول المخزون (inventory) الخاص بالمدير/الشركة
     for item in cart_data:
         product_id = item.get('id')
         if product_id:
             try:
-                # جلب المخزون الحالي للمنتج
-                prod_res = supabase.table("inventory").select("quantity, name").eq("id", product_id).single().execute()
+                # جلب الكمية الحالية للمنتج من جدول inventory
+                query = supabase.table("inventory").select("quantity, name").eq("id", product_id)
+                if company_code:
+                    query = query.eq("company_id_text", company_code)
+                
+                prod_res = query.single().execute()
+                
                 if prod_res.data:
                     current_qty = prod_res.data.get('quantity', 0)
                     new_qty = max(0, current_qty - 1)  # خصم قطعة واحدة لكل منتج في السلة
-                    # تحديث المخزون في قاعدة البيانات
-                    supabase.table("inventory").update({"quantity": new_qty}).eq("id", product_id).execute()
+                    
+                    # تحديث المخزون الجديد في قاعدة بيانات Supabase (ليراه المدير فوراً في لوحة التحكم)
+                    update_query = supabase.table("inventory").update({"quantity": new_qty}).eq("id", product_id)
+                    if company_code:
+                        update_query = update_query.eq("company_id_text", company_code)
+                    update_query.execute()
             except Exception as ex:
                 print(f"Error updating inventory for product {product_id}: {ex}")
 
-    # 3. إرسال تنبيه تيليجرام
+    # 3. إرسال تنبيه تيليجرام لمدير الشركة
     if company_code:
         res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
         if res_settings.data:
@@ -595,7 +605,6 @@ def shop():
         baladiya = request.form.get('baladiya')
         delivery_type = request.form.get('delivery_type')
         
-        # جلب سعر التوصيل بناء على الولاية ونوع التوصيل
         delivery_price = 0
         try:
             shipping_res = supabase.table("shipping_rates").select("*").eq("id", wilaya).single().execute()
@@ -607,7 +616,6 @@ def shop():
         if not product_id:
             return "خطأ: معرف المنتج مفقود", 400
 
-        # جلب بيانات المنتج
         product_res = supabase.table("inventory").select("*").eq("id", product_id).single().execute()
         product = product_res.data
         
@@ -624,7 +632,6 @@ def shop():
 
         total_price = float(product['price']) + delivery_price
 
-        # جلب اسم الولاية بدلاً من الـ ID لتظهر بشكل صحيح في الطلبات
         wilaya_name = wilaya
         try:
             w_res = supabase.table("shipping_rates").select("wilaya_name").eq("id", wilaya).single().execute()
@@ -633,7 +640,6 @@ def shop():
         except:
             pass
 
-        # تجهيز بيانات الطلب
         order_data = {
             "customer_name": customer_name,
             "customer_phone": customer_phone,
@@ -648,10 +654,8 @@ def shop():
             "delivery_type": delivery_type
         }
         
-        # 1. حفظ الطلب في جدول orders
         supabase.table("orders").insert(order_data).execute()
 
-        # 2. إرسال تنبيه تليجرام إذا وجد توكن الخاص بالشركة
         if company_code:
             res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
             if res_settings.data:
@@ -661,10 +665,13 @@ def shop():
                     msg = (f"⚡ طلب شراء جديد من المتجر!\n👤 الزبون: {customer_name}\n📞 الهاتف: {customer_phone}\n📦 المنتج: {product['name']}\n💰 الإجمالي: {total_price} دج\n📍 الولاية: {wilaya_name}\n🏘️ البلدية: {baladiya}\n🚚 التوصيل: {delivery_type}")
                     send_telegram_alert_by_token(token, chat_id, msg)
 
-        # 3. خصم الكمية مباشرة من جدول المخزون (Inventory)
         current_qty = product.get('quantity', 0)
         new_qty = max(0, current_qty - 1)
-        supabase.table("inventory").update({"quantity": new_qty}).eq("id", product_id).execute()
+        
+        update_query = supabase.table("inventory").update({"quantity": new_qty}).eq("id", product_id)
+        if company_code:
+            update_query = update_query.eq("company_id_text", company_code)
+        update_query.execute()
 
         return "تمت عملية الشراء بنجاح وسيتم الاتصال بك قريباً!"
 
