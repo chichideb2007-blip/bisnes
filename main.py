@@ -615,6 +615,12 @@ def shop():
         baladiya = request.form.get('baladiya')
         delivery_type = request.form.get('delivery_type')
         
+        # استقبال الكمية المطلوبة من النموذج (وإذا لم تكن موجودة تصبح 1 افتراضياً)
+        try:
+            requested_qty = int(request.form.get('quantity', 1))
+        except:
+            requested_qty = 1
+
         delivery_price = 0
         try:
             shipping_res = supabase.table("shipping_rates").select("*").eq("id", wilaya).single().execute()
@@ -626,7 +632,7 @@ def shop():
         if not product_id:
             return "خطأ: معرف المنتج مفقود", 400
 
-        # 1. جلب المنتج التأكدي من جدول المخزون
+        # جلب تفاصيل المنتج من المخزون
         product_res = supabase.table("inventory").select("*").eq("id", product_id).single().execute()
         product = product_res.data
         
@@ -641,7 +647,9 @@ def shop():
             if settings_res.data:
                 company_code = settings_res.data[0]['company_code']
 
-        total_price = float(product['price']) + delivery_price
+        # حساب السعر الإجمالي (سعر المنتج × الكمية + سعر التوصيل)
+        unit_price = float(product['price'])
+        total_price = (unit_price * requested_qty) + delivery_price
 
         wilaya_name = wilaya
         try:
@@ -651,22 +659,22 @@ def shop():
         except:
             pass
 
-        # 2. خصم الكمية مباشرة وبشكل مؤكد من جدول inventory باستخدام الـ id
+        # خصم الكمية المطلوبة من المخزون
         current_qty = int(product.get('quantity', 0))
-        new_qty = max(0, current_qty - 1)
+        new_qty = max(0, current_qty - requested_qty)
         
         try:
-            update_res = supabase.table("inventory").update({"quantity": new_qty}).eq("id", int(product_id)).execute()
-            print(f"DEBUG SHOP: تم خصم المخزون بنجاح للمنتج {product_id}. الكمية السابقة: {current_qty}, الجديدة: {new_qty}")
+            supabase.table("inventory").update({"quantity": new_qty}).eq("id", int(product_id)).execute()
+            print(f"DEBUG SHOP: تم خصم {requested_qty} قطع بنجاح للمنتج {product_id}. الكمية السابقة: {current_qty}, الجديدة: {new_qty}")
         except Exception as e:
             print(f"DEBUG SHOP ERROR: فشل خصم المخزون -> {e}")
 
-        # 3. إدراج الطلب في جدول الطلبات مع ربطه بـ product_id
+        # إدراج الطلب في جدول الطلبات بالكمية الجديدة
         order_data = {
             "customer_name": customer_name,
             "customer_phone": customer_phone,
             "product_name": product['name'],
-            "quantity": 1,
+            "quantity": requested_qty,
             "total_price": total_price,
             "delivery_price": delivery_price,
             "status": "قيد الانتظار",
@@ -679,14 +687,14 @@ def shop():
         
         supabase.table("orders").insert(order_data).execute()
 
-        # 4. إرسال تنبيه تليجرام
+        # إرسال تنبيه تليجرام
         if company_code:
             res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
             if res_settings.data:
                 s = res_settings.data[0]
                 token, chat_id = s.get('telegram_token'), s.get('telegram_chat_id')
                 if token and chat_id:
-                    msg = (f"⚡ طلب شراء جديد من المتجر!\n👤 الزبون: {customer_name}\n📞 الهاتف: {customer_phone}\n📦 المنتج: {product['name']}\n💰 الإجمالي: {total_price} دج\n📍 الولاية: {wilaya_name}\n🏘️ البلدية: {baladiya}\n🚚 التوصيل: {delivery_type}\n📦 المتبقي في المخزون: {new_qty}")
+                    msg = (f"⚡ طلب شراء جديد من المتجر!\n👤 الزبون: {customer_name}\n📞 الهاتف: {customer_phone}\n📦 المنتج: {product['name']}\n🔢 الكمية: {requested_qty}\n💰 الإجمالي: {total_price} دج\n📍 الولاية: {wilaya_name}\n🏘️ البلدية: {baladiya}\n🚚 التوصيل: {delivery_type}\n📦 المتبقي في المخزون: {new_qty}")
                     send_telegram_alert_by_token(token, chat_id, msg)
 
         return "تمت عملية الشراء بنجاح وسيتم الاتصال بك قريباً!"
