@@ -25,13 +25,12 @@ def inject_currency():
     company_code = session.get('company_code')
     if company_code:
         try:
-            # نجلب العملة مرة واحدة للمتجر
             res = supabase.table('settings').select("currency").eq("company_code", company_code).single().execute()
             if res.data:
                 return dict(currency=res.data.get('currency', ''))
         except:
             pass
-    return dict(currency='DA') # العملة الافتراضية إذا لم توجد
+    return dict(currency='DA')
 
 # --- الدوال المساعدة ---
 
@@ -150,7 +149,6 @@ def submit_order():
     delivery_type = request.form.get('delivery_type')
     delivery_price = float(request.form.get('delivery_price', 0))
     
-    # التحقق مما إذا كانت السلة تحتوي على منتجات أو تم إرسال منتج مفرد
     cart_raw = request.form.get('cart_data', '')
     cart_data = []
     
@@ -160,7 +158,6 @@ def submit_order():
         except:
             cart_data = []
             
-    # إذا لم تكن هناك سلة، نتحقق من وجود منتج مفرد مرسل بالطريقة التقليدية
     product_id = request.form.get('product_id')
     if not cart_data and product_id:
         single_product = get_product_from_db(product_id)
@@ -170,7 +167,6 @@ def submit_order():
     base_price = sum(float(item.get('price', 0)) for item in cart_data)
     total_price = base_price + delivery_price
 
-    # جلب كود الشركة المرتبط بالمنتجات أو الجلسة الحالية
     company_code = ""
     if cart_data:
         first_item = cart_data[0]
@@ -182,7 +178,6 @@ def submit_order():
         if settings_res.data:
             company_code = settings_res.data[0]['company_code']
 
-    # تحويل معرف الولاية إلى اسمها الحقيقي إن أمكن ليكون واضحاً في الطلبات
     wilaya_name = wilaya
     try:
         w_res = supabase.table("shipping_rates").select("wilaya_name").eq("id", wilaya).single().execute()
@@ -191,10 +186,8 @@ def submit_order():
     except:
         pass
 
-    # استخراج معرف المنتج الأول لتخزينه في عمود product_id الجديد
     main_product_id = cart_data[0].get('id') if cart_data else (int(product_id) if product_id else None)
 
-    # 1. حفظ الطلب في جدول orders مع حفظ product_id
     order_data = {
         "customer_name": customer_name,
         "customer_phone": phone,
@@ -215,7 +208,6 @@ def submit_order():
     except Exception as e:
         print(f"Error inserting order: {e}")
 
-    # 2. خصم الكميات تلقائياً من جدول المخزون (inventory) الخاص بالشركة
     for item in cart_data:
         p_id = item.get('id')
         if p_id:
@@ -228,7 +220,7 @@ def submit_order():
                 
                 if prod_res.data:
                     current_qty = prod_res.data.get('quantity', 0)
-                    new_qty = max(0, current_qty - 1)  # خصم قطعة واحدة لكل منتج
+                    new_qty = max(0, current_qty - 1)
                     
                     update_query = supabase.table("inventory").update({"quantity": new_qty}).eq("id", p_id)
                     if company_code:
@@ -237,7 +229,6 @@ def submit_order():
             except Exception as ex:
                 print(f"Error updating inventory for product {p_id}: {ex}")
 
-    # 3. إرسال تنبيه تيليجرام لمدير الشركة
     if company_code:
         res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
         if res_settings.data:
@@ -474,7 +465,6 @@ def products():
     res = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
     return render_template('products.html', products=res.data or [])
 
-
 @app.route('/inventory_management', methods=['GET', 'POST'])
 @login_required
 def inventory_management():
@@ -574,7 +564,6 @@ def orders():
         base_price = float(request.form.get('price', 0.0))
         total_price = base_price + delivery_price
         
-        # جلب معرف المنتج لربطه في جدول الطلبات
         p_res = supabase.table("inventory").select("id").eq("name", product_name).eq("company_id_text", company_code).execute()
         prod_id = p_res.data[0]['id'] if p_res.data else None
 
@@ -645,6 +634,7 @@ def shop():
         if not product_id:
             return "خطأ: معرف المنتج مفقود", 400
 
+        # جلب المنتج من جدول المخزون للتأكد من وجوده والكمية الحالية
         product_res = supabase.table("inventory").select("*").eq("id", product_id).single().execute()
         product = product_res.data
         
@@ -669,6 +659,7 @@ def shop():
         except:
             pass
 
+        # 1. إدراج الطلب في جدول الطلبات مع حفظ product_id بصيغة رقمية صحيحة
         order_data = {
             "customer_name": customer_name,
             "customer_phone": customer_phone,
@@ -686,6 +677,7 @@ def shop():
         
         supabase.table("orders").insert(order_data).execute()
 
+        # 2. إرسال تنبيه تيليجرام إذا توفرت المعلومات
         if company_code:
             res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
             if res_settings.data:
@@ -695,13 +687,15 @@ def shop():
                     msg = (f"⚡ طلب شراء جديد من المتجر!\n👤 الزبون: {customer_name}\n📞 الهاتف: {customer_phone}\n📦 المنتج: {product['name']}\n💰 الإجمالي: {total_price} دج\n📍 الولاية: {wilaya_name}\n🏘️ البلدية: {baladiya}\n🚚 التوصيل: {delivery_type}")
                     send_telegram_alert_by_token(token, chat_id, msg)
 
-        current_qty = product.get('quantity', 0)
+        # 3. خصم الكمية تلقائياً وبشكل مباشر من جدول المخزون (inventory) بناءً على معرف المنتج (id)
+        current_qty = int(product.get('quantity', 0))
         new_qty = max(0, current_qty - 1)
         
-        update_query = supabase.table("inventory").update({"quantity": new_qty}).eq("id", product_id)
-        if company_code:
-            update_query = update_query.eq("company_id_text", company_code)
-        update_query.execute()
+        try:
+            supabase.table("inventory").update({"quantity": new_qty}).eq("id", int(product_id)).execute()
+            print(f"DEBUG: تم خصم الكمية بنجاح. الكمية القديمة: {current_qty}, الجديدة: {new_qty}")
+        except Exception as e:
+            print(f"DEBUG ERROR: خطأ أثناء خصم المخزون -> {e}")
 
         return "تمت عملية الشراء بنجاح وسيتم الاتصال بك قريباً!"
 
