@@ -62,20 +62,28 @@ def send_telegram_alert_by_token(token, chat_id, message):
         print(f"DEBUG: خطأ في الاتصال بتليجرام: {e}")
         return False
 
+# دالة إرسال الطلبية مع الأزرار التفاعلية (تم التحضير / لم يتم التحضير)
 def send_order_alert(token, chat_id, message, order_id):
-    url = f"https://api.telegram.org/bot{token}/sendMessage"
-    keyboard = {
-        "inline_keyboard": [[
-            {"text": "✅ تم التحضير", "callback_data": f"status_done_{order_id}"},
-            {"text": "❌ لم يتم التحضير", "callback_data": f"status_pending_{order_id}"}
-        ]]
-    }
-    params = {
-        "chat_id": chat_id, 
-        "text": message, 
-        "reply_markup": keyboard
-    }
-    requests.post(url, json=params)
+    if not token or not chat_id:
+        return False
+    try:
+        url = f"https://api.telegram.org/bot{token}/sendMessage"
+        keyboard = {
+            "inline_keyboard": [[
+                {"text": "✅ تم التحضير", "callback_data": f"status_done_{order_id}"},
+                {"text": "❌ لم يتم التحضير", "callback_data": f"status_pending_{order_id}"}
+            ]]
+        }
+        payload = {
+            "chat_id": chat_id, 
+            "text": message, 
+            "reply_markup": keyboard
+        }
+        response = requests.post(url, json=payload)
+        return response.status_code == 200
+    except Exception as e:
+        print(f"Error sending order alert with buttons: {e}")
+        return False
 
 def get_products_by_shop_name(shop_name):
     try:
@@ -203,8 +211,11 @@ def submit_order():
         "product_id": main_product_id
     }
     
+    inserted_order_id = None
     try:
-        supabase.table("orders").insert(order_data).execute()
+        res_insert = supabase.table("orders").insert(order_data).execute()
+        if res_insert.data and len(res_insert.data) > 0:
+            inserted_order_id = res_insert.data[0].get('id')
     except Exception as e:
         print(f"Error inserting order: {e}")
 
@@ -221,7 +232,7 @@ def submit_order():
             except Exception as ex:
                 print(f"Error updating inventory for product {p_id}: {ex}")
 
-    if company_code:
+    if company_code and inserted_order_id:
         res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
         if res_settings.data:
             s = res_settings.data[0]
@@ -229,7 +240,7 @@ def submit_order():
             product_names_str = ", ".join([str(item.get('name', 'منتج')) for item in cart_data])
             if token and chat_id:
                 msg = (f"🛒 طلبية جديدة من المتجر!\n👤 الاسم: {customer_name}\n📞 الهاتف: {phone}\n📦 المنتجات: {product_names_str}\n📍 الولاية: {wilaya_name}\n🏘️ البلدية: {baladiya}\n🚚 التوصيل: {delivery_type} ({delivery_price} دج)\n💰 المجموع الكلي: {total_price} دج")
-                send_telegram_alert_by_token(token, chat_id, msg)
+                send_order_alert(token, chat_id, msg, inserted_order_id)
 
     return f"""
     <!DOCTYPE html>
@@ -316,11 +327,9 @@ def stats():
     total_orders_count = len(orders)
     total_expenses = 0.0 
 
-    # 1. تهيئة أيام الأسبوع (الرسم البياني اليومي)
     days_map = {"السبت": 0, "الأحد": 0, "الاثنين": 0, "الثلاثاء": 0, "الأربعاء": 0, "الخميس": 0, "الجمعة": 0}
     day_names_map = {5: "السبت", 6: "الأحد", 0: "الاثنين", 1: "الثلاثاء", 2: "الأربعاء", 3: "الخميس", 4: "الجمعة"}
 
-    # 2. تهيئة الأشهر (من جانفي إلى ديسمبر)
     monthly_map = {
         "جانفي": 0, "فيفري": 0, "مارس": 0, "أفريل": 0, "ماي": 0, "جوان": 0,
         "جويلية": 0, "أوت": 0, "سبتمبر": 0, "أكتوبر": 0, "نوفمبر": 0, "ديسمبر": 0
@@ -330,7 +339,6 @@ def stats():
         7: "جويلية", 8: "أوت", 9: "سبتمبر", 10: "أكتوبر", 11: "نوفمبر", 12: "ديسمبر"
     }
 
-    # 3. تهيئة السنوات (تلقائياً تبدأ من 2026 وتتجدد حسب السنة الحالية)
     current_year = datetime.now().year
     yearly_map = {}
     for y in range(2026, max(current_year + 1, 2027)):
@@ -343,17 +351,14 @@ def stats():
             try:
                 dt = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
                 
-                # تجميع حسب أيام الأسبوع
                 day_name = day_names_map.get(dt.weekday())
                 if day_name in days_map:
                     days_map[day_name] += total_price
 
-                # تجميع حسب الأشهر
                 month_name = month_names_map.get(dt.month)
                 if month_name in monthly_map:
                     monthly_map[month_name] += total_price
 
-                # تجميع حسب السنوات (يتحدث تلقائياً)
                 year_str = str(dt.year)
                 if year_str not in yearly_map:
                     yearly_map[year_str] = 0
@@ -380,9 +385,9 @@ def stats():
         total_orders_count=total_orders_count, 
         total_revenue=total_revenue,
         total_expenses=total_expenses,
-        daily=days_map,       # مبيعات الأسبوع
-        monthly=monthly_map,  # مبيعات الشهور
-        yearly=yearly_map     # مبيعات السنوات المتغيرة تلقائياً
+        daily=days_map,
+        monthly=monthly_map,
+        yearly=yearly_map
     )
 
 @app.route('/settings', methods=['GET', 'POST'])
@@ -488,7 +493,6 @@ def update_delivery_settings():
         "delivery_home_price": data.get('home_price')
     }).eq("company_code", company_code).execute()
     return jsonify({"status": "success"})
-
 
 @app.route('/products', methods=['GET', 'POST'])
 @login_required
@@ -637,14 +641,21 @@ def orders():
             "delivery_price": delivery_price,
             "product_id": prod_id
         }
-        supabase.table("orders").insert(order_data).execute()
+        
+        res_insert = supabase.table("orders").insert(order_data).execute()
+        inserted_order_id = res_insert.data[0].get('id') if res_insert.data else None
         
         res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
         if res_settings.data:
             s = res_settings.data[0]
-            if s.get('telegram_token') and s.get('telegram_chat_id'):
+            token = s.get('telegram_token')
+            chat_id = s.get('telegram_chat_id')
+            if token and chat_id:
                 msg = f"🛒 طلبية جديدة من لوحة التحكم!\nالعميل: {customer_name}\nالمنتج: {product_name}\nالكمية: {requested_qty}\nالولاية: {state}"
-                send_telegram_alert_by_token(s.get('telegram_token'), s.get('telegram_chat_id'), msg)
+                if inserted_order_id:
+                    send_order_alert(token, chat_id, msg, inserted_order_id)
+                else:
+                    send_telegram_alert_by_token(token, chat_id, msg)
         
         return redirect(url_for('orders'))
 
@@ -732,7 +743,8 @@ def shop():
             "product_id": int(product_id)
         }
         
-        supabase.table("orders").insert(order_data).execute()
+        res_insert = supabase.table("orders").insert(order_data).execute()
+        inserted_order_id = res_insert.data[0].get('id') if res_insert.data else None
 
         if company_code:
             res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
@@ -741,7 +753,10 @@ def shop():
                 token, chat_id = s.get('telegram_token'), s.get('telegram_chat_id')
                 if token and chat_id:
                     msg = (f"⚡ طلب شراء جديد من المتجر!\n👤 الزبون: {customer_name}\n📞 الهاتف: {customer_phone}\n📦 المنتج: {product['name']}\n🔢 الكمية: {requested_qty}\n💰 الإجمالي: {total_price} دج\n📍 الولاية: {wilaya_name}\n🏘️ البلدية: {baladiya}\n🚚 التوصيل: {delivery_type}\n📦 المتبقي في المخزون: {new_qty}")
-                    send_telegram_alert_by_token(token, chat_id, msg)
+                    if inserted_order_id:
+                        send_order_alert(token, chat_id, msg, inserted_order_id)
+                    else:
+                        send_telegram_alert_by_token(token, chat_id, msg)
 
         return "تمت عملية الشراء بنجاح وسيتم الاتصال بك قريباً!"
 
