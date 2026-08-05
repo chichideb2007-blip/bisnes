@@ -626,13 +626,14 @@ def shop():
         if not product_id:
             return "خطأ: معرف المنتج مفقود", 400
 
+        # 1. جلب المنتج التأكدي من جدول المخزون
         product_res = supabase.table("inventory").select("*").eq("id", product_id).single().execute()
         product = product_res.data
         
         if not product:
             return "المنتج غير موجود!", 404
 
-        company_code = product.get('company_id_text')
+        company_code = product.get('company_id_text') or product.get('company_code')
 
         if not company_code and 'current_shop_name' in session:
             shop_name = session.get('current_shop_name')
@@ -650,6 +651,17 @@ def shop():
         except:
             pass
 
+        # 2. خصم الكمية مباشرة وبشكل مؤكد من جدول inventory باستخدام الـ id
+        current_qty = int(product.get('quantity', 0))
+        new_qty = max(0, current_qty - 1)
+        
+        try:
+            update_res = supabase.table("inventory").update({"quantity": new_qty}).eq("id", int(product_id)).execute()
+            print(f"DEBUG SHOP: تم خصم المخزون بنجاح للمنتج {product_id}. الكمية السابقة: {current_qty}, الجديدة: {new_qty}")
+        except Exception as e:
+            print(f"DEBUG SHOP ERROR: فشل خصم المخزون -> {e}")
+
+        # 3. إدراج الطلب في جدول الطلبات مع ربطه بـ product_id
         order_data = {
             "customer_name": customer_name,
             "customer_phone": customer_phone,
@@ -667,22 +679,15 @@ def shop():
         
         supabase.table("orders").insert(order_data).execute()
 
+        # 4. إرسال تنبيه تليجرام
         if company_code:
             res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
             if res_settings.data:
                 s = res_settings.data[0]
                 token, chat_id = s.get('telegram_token'), s.get('telegram_chat_id')
                 if token and chat_id:
-                    msg = (f"⚡ طلب شراء جديد من المتجر!\n👤 الزبون: {customer_name}\n📞 الهاتف: {customer_phone}\n📦 المنتج: {product['name']}\n💰 الإجمالي: {total_price} دج\n📍 الولاية: {wilaya_name}\n🏘️ البلدية: {baladiya}\n🚚 التوصيل: {delivery_type}")
+                    msg = (f"⚡ طلب شراء جديد من المتجر!\n👤 الزبون: {customer_name}\n📞 الهاتف: {customer_phone}\n📦 المنتج: {product['name']}\n💰 الإجمالي: {total_price} دج\n📍 الولاية: {wilaya_name}\n🏘️ البلدية: {baladiya}\n🚚 التوصيل: {delivery_type}\n📦 المتبقي في المخزون: {new_qty}")
                     send_telegram_alert_by_token(token, chat_id, msg)
-
-        current_qty = int(product.get('quantity', 0))
-        new_qty = max(0, current_qty - 1)
-        
-        try:
-            supabase.table("inventory").update({"quantity": new_qty}).eq("id", int(product_id)).execute()
-        except Exception as e:
-            print(f"DEBUG ERROR: خطأ أثناء خصم المخزون -> {e}")
 
         return "تمت عملية الشراء بنجاح وسيتم الاتصال بك قريباً!"
 
