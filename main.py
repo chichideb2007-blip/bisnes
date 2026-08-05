@@ -312,14 +312,37 @@ def stats():
     except Exception as e:
         orders = []
 
-    # حساب إجمالي المبيعات (المجموع الكلي لأسعار الطلبيات)
     total_revenue = sum(float(order.get("total_price") or 0) for order in orders)
-    
-    # عدد الطلبات الكلي
     total_orders_count = len(orders)
-    
-    # إجمالي المصروفات (إذا لم يكن لديك جدول مصروفات، نجعلها 0 أو نقوم بحسابها)
     total_expenses = 0.0 
+
+    # تهيئة أيام الأسبوع بقيم صفرية
+    days_map = {"السبت": 0, "الأحد": 0, "الاثنين": 0, "الثلاثاء": 0, "الأربعاء": 0, "الخميس": 0, "الجمعة": 0}
+    
+    # أسماء الأيام بالإنجليزية مقارنة برقم اليوم في بايثون (weekday) أو حسب تاريخ الطلبية
+    for order in orders:
+        created_at = order.get("created_at")
+        total_price = float(order.get("total_price") or 0)
+        if created_at:
+            try:
+                # تحويل التاريخ إلى كائن datetime
+                dt = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                # استخراج اسم اليوم بالعربية بناءً على رقم الأسبوع
+                day_index = dt.weekday() # 0: Mon, 1: Tue, 2: Wed, 3: Thu, 4: Fri, 5: Sat, 6: Sun
+                day_names_map = {
+                    5: "السبت",
+                    6: "الأحد",
+                    0: "الاثنين",
+                    1: "الثلاثاء",
+                    2: "الأربعاء",
+                    3: "الخميس",
+                    4: "الجمعة"
+                }
+                day_name = day_names_map.get(day_index)
+                if day_name in days_map:
+                    days_map[day_name] += total_price
+            except Exception as ex:
+                print(f"Date parse error: {ex}")
 
     cleaned_orders = []
     for order in orders:
@@ -339,7 +362,9 @@ def stats():
         total_orders_count=total_orders_count, 
         total_revenue=total_revenue,
         total_expenses=total_expenses,
-        daily=[0]*7 # بيانات افتراضية لأيام الأسبوع لكي لا يظهر خطأ في الرسم البياني
+        daily=days_map, # إرسال البيانات المجمعة الحقيقية حسب أيام الأسبوع
+        monthly={},     
+        yearly={}
     )
 
 @app.route('/settings', methods=['GET', 'POST'])
@@ -473,7 +498,7 @@ def products():
     res = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
     return render_template('products.html', products=res.data or [])
 
-app.route('/inventory_management', methods=['GET', 'POST'])
+@app.route('/inventory_management', methods=['GET', 'POST'])
 @login_required
 def inventory_management():
     company_code = session.get('company_code')
@@ -554,7 +579,6 @@ def update_status(order_id):
         supabase.table("orders").update({"status": new_status}).eq("id", order_id).execute()
     return redirect(url_for('orders'))
 
-# --- مسار الطلبات في لوحة التحكم مع الخصم التلقائي ---
 @app.route('/orders', methods=['GET', 'POST'])
 @login_required
 def orders():
@@ -571,7 +595,6 @@ def orders():
         base_price = float(request.form.get('price', 0.0))
         total_price = base_price + delivery_price
 
-        # 1. البحث عن المنتج في المخزون الخاص بالشركة الحالية وخصم الكمية تلقائياً
         product_res = supabase.table("inventory").select("id, quantity").eq("name", product_name).eq("company_id_text", company_code).execute()
         
         prod_id = None
@@ -579,14 +602,9 @@ def orders():
             product = product_res.data[0]
             prod_id = product['id']
             current_qty = product['quantity']
-            
-            # حساب الكمية الجديدة بعد الخصم
             new_qty = max(0, current_qty - requested_qty)
-            
-            # تحديث المخزون أوتوماتيكياً في قاعدة البيانات
             supabase.table("inventory").update({"quantity": new_qty}).eq("id", prod_id).execute()
 
-        # 2. تسجيل الطلب الجديد في جدول الطلبات
         order_data = {
             "customer_name": customer_name,
             "customer_phone": customer_phone,
@@ -602,7 +620,6 @@ def orders():
         }
         supabase.table("orders").insert(order_data).execute()
         
-        # إرسال إشعار تليجرام إذا توفرت الإعدادات
         res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
         if res_settings.data:
             s = res_settings.data[0]
@@ -631,7 +648,6 @@ def shop():
         baladiya = request.form.get('baladiya')
         delivery_type = request.form.get('delivery_type')
         
-        # استقبال الكمية المطلوبة من النموذج (وإذا لم تكن موجودة تصبح 1 افتراضياً)
         try:
             requested_qty = int(request.form.get('quantity', 1))
         except:
@@ -648,7 +664,6 @@ def shop():
         if not product_id:
             return "خطأ: معرف المنتج مفقود", 400
 
-        # جلب تفاصيل المنتج من المخزون
         product_res = supabase.table("inventory").select("*").eq("id", product_id).single().execute()
         product = product_res.data
         
@@ -663,7 +678,6 @@ def shop():
             if settings_res.data:
                 company_code = settings_res.data[0]['company_code']
 
-        # حساب السعر الإجمالي (سعر المنتج × الكمية + سعر التوصيل)
         unit_price = float(product['price'])
         total_price = (unit_price * requested_qty) + delivery_price
 
@@ -675,7 +689,6 @@ def shop():
         except:
             pass
 
-        # خصم الكمية المطلوبة من المخزون
         current_qty = int(product.get('quantity', 0))
         new_qty = max(0, current_qty - requested_qty)
         
@@ -685,7 +698,6 @@ def shop():
         except Exception as e:
             print(f"DEBUG SHOP ERROR: فشل خصم المخزون -> {e}")
 
-        # إدراج الطلب في جدول الطلبات بالكمية الجديدة
         order_data = {
             "customer_name": customer_name,
             "customer_phone": customer_phone,
@@ -703,7 +715,6 @@ def shop():
         
         supabase.table("orders").insert(order_data).execute()
 
-        # إرسال تنبيه تليجرام
         if company_code:
             res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
             if res_settings.data:
