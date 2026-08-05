@@ -316,31 +316,49 @@ def stats():
     total_orders_count = len(orders)
     total_expenses = 0.0 
 
-    # تهيئة أيام الأسبوع بقيم صفرية
+    # 1. تهيئة أيام الأسبوع (الرسم البياني اليومي)
     days_map = {"السبت": 0, "الأحد": 0, "الاثنين": 0, "الثلاثاء": 0, "الأربعاء": 0, "الخميس": 0, "الجمعة": 0}
-    
-    # أسماء الأيام بالإنجليزية مقارنة برقم اليوم في بايثون (weekday) أو حسب تاريخ الطلبية
+    day_names_map = {5: "السبت", 6: "الأحد", 0: "الاثنين", 1: "الثلاثاء", 2: "الأربعاء", 3: "الخميس", 4: "الجمعة"}
+
+    # 2. تهيئة الأشهر (من جانفي إلى ديسمبر)
+    monthly_map = {
+        "جانفي": 0, "فيفري": 0, "مارس": 0, "أفريل": 0, "ماي": 0, "جوان": 0,
+        "جويلية": 0, "أوت": 0, "سبتمبر": 0, "أكتوبر": 0, "نوفمبر": 0, "ديسمبر": 0
+    }
+    month_names_map = {
+        1: "جانفي", 2: "فيفري", 3: "مارس", 4: "أفريل", 5: "ماي", 6: "جوان",
+        7: "جويلية", 8: "أوت", 9: "سبتمبر", 10: "أكتوبر", 11: "نوفمبر", 12: "ديسمبر"
+    }
+
+    # 3. تهيئة السنوات (تلقائياً تبدأ من 2026 وتتجدد حسب السنة الحالية)
+    current_year = datetime.now().year
+    yearly_map = {}
+    for y in range(2026, max(current_year + 1, 2027)):
+        yearly_map[str(y)] = 0
+
     for order in orders:
         created_at = order.get("created_at")
         total_price = float(order.get("total_price") or 0)
         if created_at:
             try:
-                # تحويل التاريخ إلى كائن datetime
                 dt = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
-                # استخراج اسم اليوم بالعربية بناءً على رقم الأسبوع
-                day_index = dt.weekday() # 0: Mon, 1: Tue, 2: Wed, 3: Thu, 4: Fri, 5: Sat, 6: Sun
-                day_names_map = {
-                    5: "السبت",
-                    6: "الأحد",
-                    0: "الاثنين",
-                    1: "الثلاثاء",
-                    2: "الأربعاء",
-                    3: "الخميس",
-                    4: "الجمعة"
-                }
-                day_name = day_names_map.get(day_index)
+                
+                # تجميع حسب أيام الأسبوع
+                day_name = day_names_map.get(dt.weekday())
                 if day_name in days_map:
                     days_map[day_name] += total_price
+
+                # تجميع حسب الأشهر
+                month_name = month_names_map.get(dt.month)
+                if month_name in monthly_map:
+                    monthly_map[month_name] += total_price
+
+                # تجميع حسب السنوات (يتحدث تلقائياً)
+                year_str = str(dt.year)
+                if year_str not in yearly_map:
+                    yearly_map[year_str] = 0
+                yearly_map[year_str] += total_price
+
             except Exception as ex:
                 print(f"Date parse error: {ex}")
 
@@ -362,9 +380,9 @@ def stats():
         total_orders_count=total_orders_count, 
         total_revenue=total_revenue,
         total_expenses=total_expenses,
-        daily=days_map, # إرسال البيانات المجمعة الحقيقية حسب أيام الأسبوع
-        monthly={},     
-        yearly={}
+        daily=days_map,       # مبيعات الأسبوع
+        monthly=monthly_map,  # مبيعات الشهور
+        yearly=yearly_map     # مبيعات السنوات المتغيرة تلقائياً
     )
 
 @app.route('/settings', methods=['GET', 'POST'])
@@ -470,6 +488,7 @@ def update_delivery_settings():
         "delivery_home_price": data.get('home_price')
     }).eq("company_code", company_code).execute()
     return jsonify({"status": "success"})
+
 
 @app.route('/products', methods=['GET', 'POST'])
 @login_required
