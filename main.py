@@ -496,12 +496,6 @@ def get_all_shipping_rates():
     res = supabase.table("shipping_rates").select("*").order("id").execute()
     return jsonify(res.data)
 
-@app.route('/get_all_shipping_rates', methods=['GET'])
-@login_required
-def get_all_shipping_rates():
-    res = supabase.table("shipping_rates").select("*").order("id").execute()
-    return jsonify(res.data)
-
 @app.route('/get_delivery_settings', methods=['GET'])
 @login_required
 def get_delivery_settings():
