@@ -232,7 +232,7 @@ def submit_order():
             except Exception as ex:
                 print(f"Error updating inventory for product {p_id}: {ex}")
 
-    if company_code and inserted_order_id:
+    if company_code:
         res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
         if res_settings.data:
             s = res_settings.data[0]
@@ -240,7 +240,10 @@ def submit_order():
             product_names_str = ", ".join([str(item.get('name', 'منتج')) for item in cart_data])
             if token and chat_id:
                 msg = (f"🛒 طلبية جديدة من المتجر!\n👤 الاسم: {customer_name}\n📞 الهاتف: {phone}\n📦 المنتجات: {product_names_str}\n📍 الولاية: {wilaya_name}\n🏘️ البلدية: {baladiya}\n🚚 التوصيل: {delivery_type} ({delivery_price} دج)\n💰 المجموع الكلي: {total_price} دج")
-                send_order_alert(token, chat_id, msg, inserted_order_id)
+                if inserted_order_id:
+                    send_order_alert(token, chat_id, msg, inserted_order_id)
+                else:
+                    send_telegram_alert_by_token(token, chat_id, msg)
 
     return f"""
     <!DOCTYPE html>
