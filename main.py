@@ -191,7 +191,10 @@ def submit_order():
     except:
         pass
 
-    # 1. حفظ الطلب في جدول orders
+    # استخراج معرف المنتج الأول لتخزينه في عمود product_id الجديد
+    main_product_id = cart_data[0].get('id') if cart_data else (int(product_id) if product_id else None)
+
+    # 1. حفظ الطلب في جدول orders مع حفظ product_id
     order_data = {
         "customer_name": customer_name,
         "customer_phone": phone,
@@ -203,7 +206,8 @@ def submit_order():
         "state": wilaya_name,
         "baladiya": baladiya,
         "delivery_type": delivery_type,
-        "delivery_price": delivery_price
+        "delivery_price": delivery_price,
+        "product_id": main_product_id
     }
     
     try:
@@ -570,6 +574,10 @@ def orders():
         base_price = float(request.form.get('price', 0.0))
         total_price = base_price + delivery_price
         
+        # جلب معرف المنتج لربطه في جدول الطلبات
+        p_res = supabase.table("inventory").select("id").eq("name", product_name).eq("company_id_text", company_code).execute()
+        prod_id = p_res.data[0]['id'] if p_res.data else None
+
         data = {
             "customer_name": customer_name,
             "customer_phone": request.form.get('customer_phone'), 
@@ -580,7 +588,8 @@ def orders():
             "status": "قيد الانتظار",
             "state": state,
             "delivery_type": delivery_type,
-            "delivery_price": delivery_price
+            "delivery_price": delivery_price,
+            "product_id": prod_id
         }
         supabase.table("orders").insert(data).execute()
         
@@ -671,7 +680,8 @@ def shop():
             "company_code": company_code,
             "state": wilaya_name,
             "baladiya": baladiya,
-            "delivery_type": delivery_type
+            "delivery_type": delivery_type,
+            "product_id": int(product_id)
         }
         
         supabase.table("orders").insert(order_data).execute()
