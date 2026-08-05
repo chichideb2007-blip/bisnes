@@ -219,19 +219,35 @@ def submit_order():
     except Exception as e:
         print(f"Error inserting order: {e}")
 
-    # التعديل الوحيد المضاف هنا لخصم المخزون عند الطلب من زر الشراء للمتجر عبر صفحة الدفع
-    for item in cart_data:
-        p_id = item.get('id')
-        if p_id:
-            try:
-                prod_res = supabase.table("inventory").select("quantity, name").eq("id", p_id).execute()
-                if prod_res.data and len(prod_res.data) > 0:
-                    product_row = prod_res.data[0]
-                    current_qty = product_row.get('quantity', 0)
-                    new_qty = max(0, current_qty - 1)
-                    supabase.table("inventory").update({"quantity": new_qty}).eq("id", p_id).execute()
-            except Exception as ex:
-                print(f"Error updating inventory for product {p_id}: {ex}")
+    # 🚀 حل سريع وشامل لخصم المخزون لأي طلبية قادمة من المتجر (Shop / Checkout)
+    items_to_deduct = []
+    
+    # 1. إذا كانت الطلبية تحتوي على سلة مشتريات
+    if cart_data:
+        for item in cart_data:
+            # نبحث عن الـ id بأكثر من مفتاح محتمل قد يرسله الجافاسكريبت
+            item_id = item.get('id') or item.get('product_id')
+            if item_id:
+                items_to_deduct.append(int(item_id))
+                
+    # 2. إذا لم تكن هناك سلة، ولكن يوجد منتج مفرد (عبر صفحة الـ Checkout المباشر)
+    elif product_id:
+        items_to_deduct.append(int(product_id))
+
+    # 3. تنفيذ عملية الخصم لكل معرف منتج تم استخراجه
+    for p_id in items_to_deduct:
+        try:
+            # جلب الكمية الحالية من جدول inventory
+            prod_res = supabase.table("inventory").select("quantity").eq("id", p_id).execute()
+            if prod_res.data and len(prod_res.data) > 0:
+                current_qty = int(prod_res.data[0].get('quantity', 0))
+                new_qty = max(0, current_qty - 1)  # خصم قطعة واحدة (أو عدلها حسب الكمية المطلوبة إذا أردت)
+                
+                # تحديث المخزون في قاعدة البيانات
+                supabase.table("inventory").update({"quantity": new_qty}).eq("id", p_id).execute()
+                print(f"DEBUG: تم خصم المخزون بنجاح للمنتج ID: {p_id}، المخزون الجديد: {new_qty}")
+        except Exception as ex:
+            print(f"DEBUG: خطأ في خصم مخزون المنتج {p_id}: {ex}")
 
     if company_code:
         res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
@@ -473,6 +489,12 @@ def get_shipping_rates():
     except Exception as e:
         pass
     return jsonify({"price": 0})
+
+@app.route('/get_all_shipping_rates', methods=['GET'])
+@login_required
+def get_all_shipping_rates():
+    res = supabase.table("shipping_rates").select("*").order("id").execute()
+    return jsonify(res.data)
 
 @app.route('/get_all_shipping_rates', methods=['GET'])
 @login_required
