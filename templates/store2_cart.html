@@ -2,20 +2,31 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>سلة المشتريات</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سلة المشتريات - المتجر الثاني</title>
     <script src="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body class="bg-gray-100 p-6">
-    <div class="max-w-2xl mx-auto bg-white p-6 rounded shadow">
-        <h2 class="text-xl font-bold mb-4">سلة المشتريات</h2>
-        <div id="cart-items" class="divide-y mb-4"></div>
-        <div class="flex justify-between font-bold text-lg mb-6">
-            <span>المجموع:</span>
-            <span id="total-price">0 دج</span>
+    <div class="max-w-2xl mx-auto bg-white p-6 rounded-xl shadow-md">
+        <h2 class="text-2xl font-bold mb-6 text-indigo-600 flex items-center gap-2">
+            <i class="fas fa-shopping-cart"></i> سلة المشتريات
+        </h2>
+        
+        <div id="cart-items" class="divide-y mb-6"></div>
+        
+        <div class="flex justify-between font-bold text-xl mb-6 bg-gray-50 p-4 rounded-lg">
+            <span>المجموع الكلي:</span>
+            <span id="total-price" class="text-indigo-600">0 دج</span>
         </div>
-        <div class="flex justify-between">
-            <a href="/store2" class="bg-gray-500 text-white px-4 py-2 rounded">متابعة التسوق</a>
-            <a href="/store2_checkout_page" class="bg-green-600 text-white px-4 py-2 rounded font-bold">إتمام الطلب</a>
+        
+        <div class="flex justify-between gap-4">
+            <a href="/store2" class="bg-gray-500 hover:bg-gray-600 text-white px-5 py-2.5 rounded-lg font-bold transition">
+                <i class="fas fa-arrow-right"></i> متابعة التسوق
+            </a>
+            <a href="/store2_checkout_page" id="checkout-btn" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-lg font-bold transition">
+                إتمام الطلب <i class="fas fa-check"></i>
+            </a>
         </div>
     </div>
 
@@ -25,15 +36,21 @@
         let totalPrice = 0;
 
         if (cart.length === 0) {
-            container.innerHTML = "<p class='text-gray-500 py-4'>السلة فارغة حالياً.</p>";
+            container.innerHTML = "<p class='text-gray-500 py-6 text-center text-lg'>سلة المشتريات فارغة حالياً.</p>";
+            document.getElementById('checkout-btn').style.pointerEvents = 'none';
+            document.getElementById('checkout-btn').classList.add('opacity-50', 'cursor-not-allowed');
         } else {
             cart.forEach((item, index) => {
                 totalPrice += parseFloat(item.price);
                 container.innerHTML += `
-                    <div class="flex justify-between py-2 items-center">
-                        <span>${item.name}</span>
-                        <span>${item.price} دج</span>
-                        <button onclick="removeItem(${index})" class="text-red-500 text-sm">حذف</button>
+                    <div class="flex justify-between py-3 items-center">
+                        <div>
+                            <h4 class="font-bold text-gray-800">${item.name}</h4>
+                            <span class="text-indigo-600 font-semibold">${item.price} دج</span>
+                        </div>
+                        <button onclick="removeItem(${index})" class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg text-sm transition">
+                            <i class="fas fa-trash"></i> حذف
+                        </button>
                     </div>
                 `;
             });
