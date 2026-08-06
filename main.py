@@ -157,6 +157,9 @@ def submit_order():
     delivery_type = request.form.get('delivery_type')
     delivery_price = float(request.form.get('delivery_price', 0))
     
+    # استقبال الكمية التي أدخلها الزبون (افتراضياً 1 إذا لم تكن موجودة)
+    quantity_ordered = int(request.form.get('quantity', 1))
+    
     cart_raw = request.form.get('cart_data', '')
     cart_data = []
     
@@ -173,7 +176,7 @@ def submit_order():
             cart_data = [single_product]
 
     base_price = sum(float(item.get('price', 0)) for item in cart_data)
-    total_price = base_price + delivery_price
+    total_price = (base_price * quantity_ordered) + delivery_price
 
     company_code = ""
     if cart_data:
@@ -206,7 +209,7 @@ def submit_order():
         "customer_name": customer_name,
         "customer_phone": phone,
         "product_name": ", ".join([str(item.get('name', 'منتج')) for item in cart_data]), 
-        "quantity": len(cart_data) if len(cart_data) > 0 else 1,
+        "quantity": quantity_ordered,
         "total_price": total_price,
         "company_code": company_code,
         "status": "قيد الانتظار",
@@ -225,7 +228,7 @@ def submit_order():
     except Exception as e:
         print(f"Error inserting order: {e}")
 
-    # خصم المخزون
+    # خصم المخزون التلقائي بناءً على الكمية المطلوبة
     items_to_deduct = []
     if cart_data:
         for item in cart_data:
@@ -240,7 +243,8 @@ def submit_order():
             prod_res = supabase.table("inventory").select("quantity").eq("id", p_id).execute()
             if prod_res.data and len(prod_res.data) > 0:
                 current_qty = int(prod_res.data[0].get('quantity', 0))
-                new_qty = max(0, current_qty - 1)
+                # طرح الكمية التي طلبها الزبون مباشرة من المخزون
+                new_qty = max(0, current_qty - quantity_ordered)
                 supabase.table("inventory").update({"quantity": new_qty}).eq("id", p_id).execute()
         except Exception as ex:
             print(f"DEBUG: خطأ في خصم مخزون المنتج {p_id}: {ex}")
@@ -252,7 +256,7 @@ def submit_order():
             token, chat_id = s.get('telegram_token'), s.get('telegram_chat_id')
             product_names_str = ", ".join([str(item.get('name', 'منتج')) for item in cart_data])
             if token and chat_id:
-                msg = (f"🛒 طلبية جديدة من المتجر الثاني!\n👤 الاسم: {customer_name}\n📞 الهاتف: {phone}\n📦 المنتجات: {product_names_str}\n📍 الولاية: {wilaya_name}\n🏘️ البلدية: {baladiya}\n🚚 التوصيل: {delivery_type} ({delivery_price} دج)\n💰 المجموع الكلي: {total_price} دج")
+                msg = (f"🛒 طلبية جديدة!\n👤 الاسم: {customer_name}\n📞 الهاتف: {phone}\n📦 المنتجات: {product_names_str}\n🔢 الكمية: {quantity_ordered}\n📍 الولاية: {wilaya_name}\n🏘️ البلدية: {baladiya}\n🚚 التوصيل: {delivery_type} ({delivery_price} دج)\n💰 المجموع الكلي: {total_price} دج")
                 if inserted_order_id:
                     send_order_alert(token, chat_id, msg, inserted_order_id)
                 else:
@@ -491,13 +495,6 @@ def get_shipping_rates():
 def get_all_shipping_rates():
     res = supabase.table("shipping_rates").select("*").order("id").execute()
     return jsonify(res.data)
-
-@app.route('/get_delivery_settings', methods=['GET'])
-@login_required
-def get_delivery_settings():
-    company_code = session.get('company_code')
-    data = supabase.table("company_settings").select("*").eq("company_code", company_code).single().execute()
-    return jsonify(data.data)
 
 @app.route('/update_delivery_settings', methods=['POST'])
 @login_required
