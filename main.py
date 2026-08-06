@@ -186,6 +186,12 @@ def submit_order():
         if settings_res.data:
             company_code = settings_res.data[0]['company_code']
 
+    if not company_code and 'current_store2_name' in session:
+        shop_name = session.get('current_store2_name')
+        settings_res = supabase.table("settings").select("company_code").ilike("company_name", shop_name).execute()
+        if settings_res.data:
+            company_code = settings_res.data[0]['company_code']
+
     wilaya_name = wilaya
     try:
         w_res = supabase.table("shipping_rates").select("wilaya_name").eq("id", wilaya).single().execute()
@@ -219,33 +225,23 @@ def submit_order():
     except Exception as e:
         print(f"Error inserting order: {e}")
 
-    # 🚀 حل سريع وشامل لخصم المخزون لأي طلبية قادمة من المتجر (Shop / Checkout)
+    # خصم المخزون
     items_to_deduct = []
-    
-    # 1. إذا كانت الطلبية تحتوي على سلة مشتريات
     if cart_data:
         for item in cart_data:
-            # نبحث عن الـ id بأكثر من مفتاح محتمل قد يرسله الجافاسكريبت
             item_id = item.get('id') or item.get('product_id')
             if item_id:
                 items_to_deduct.append(int(item_id))
-                
-    # 2. إذا لم تكن هناك سلة، ولكن يوجد منتج مفرد (عبر صفحة الـ Checkout المباشر)
     elif product_id:
         items_to_deduct.append(int(product_id))
 
-    # 3. تنفيذ عملية الخصم لكل معرف منتج تم استخراجه
     for p_id in items_to_deduct:
         try:
-            # جلب الكمية الحالية من جدول inventory
             prod_res = supabase.table("inventory").select("quantity").eq("id", p_id).execute()
             if prod_res.data and len(prod_res.data) > 0:
                 current_qty = int(prod_res.data[0].get('quantity', 0))
-                new_qty = max(0, current_qty - 1)  # خصم قطعة واحدة (أو عدلها حسب الكمية المطلوبة إذا أردت)
-                
-                # تحديث المخزون في قاعدة البيانات
+                new_qty = max(0, current_qty - 1)
                 supabase.table("inventory").update({"quantity": new_qty}).eq("id", p_id).execute()
-                print(f"DEBUG: تم خصم المخزون بنجاح للمنتج ID: {p_id}، المخزون الجديد: {new_qty}")
         except Exception as ex:
             print(f"DEBUG: خطأ في خصم مخزون المنتج {p_id}: {ex}")
 
@@ -256,7 +252,7 @@ def submit_order():
             token, chat_id = s.get('telegram_token'), s.get('telegram_chat_id')
             product_names_str = ", ".join([str(item.get('name', 'منتج')) for item in cart_data])
             if token and chat_id:
-                msg = (f"🛒 طلبية جديدة من المتجر!\n👤 الاسم: {customer_name}\n📞 الهاتف: {phone}\n📦 المنتجات: {product_names_str}\n📍 الولاية: {wilaya_name}\n🏘️ البلدية: {baladiya}\n🚚 التوصيل: {delivery_type} ({delivery_price} دج)\n💰 المجموع الكلي: {total_price} دج")
+                msg = (f"🛒 طلبية جديدة من المتجر الثاني!\n👤 الاسم: {customer_name}\n📞 الهاتف: {phone}\n📦 المنتجات: {product_names_str}\n📍 الولاية: {wilaya_name}\n🏘️ البلدية: {baladiya}\n🚚 التوصيل: {delivery_type} ({delivery_price} دج)\n💰 المجموع الكلي: {total_price} دج")
                 if inserted_order_id:
                     send_order_alert(token, chat_id, msg, inserted_order_id)
                 else:
@@ -281,7 +277,7 @@ def submit_order():
         <div class="card">
             <h2>🎉 تم تأكيد طلبك بنجاح!</h2>
             <p>شكراً لثقتكم بنا، سيتم الاتصال بكم قريباً لتأكيد الطلب.</p>
-            <a href="/shop" class="btn">🔙 العودة إلى المتجر</a>
+            <a href="/store2" class="btn">🔙 العودة إلى المتجر</a>
         </div>
     </body>
     </html>
@@ -454,6 +450,53 @@ def shipping_settings():
 def get_delivery_prices():
     company_code = session.get('company_code')
     data = supabase.table("delivery_prices").select("*").eq("company_code", company_code).execute()
+    return jsonify(data.data)
+
+@app.route('/update_delivery_price', methods=['POST'])
+@login_required
+def update_delivery_price():
+    data = request.json
+    row_id = data.get('id')
+    new_office = data.get('office_price')
+    new_home = data.get('home_price')
+    
+    try:
+        supabase.table("shipping_rates").update({
+            "office_price": new_office,
+            "home_price": new_home
+        }).eq("id", row_id).execute()
+        return jsonify({"status": "success"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/get_shipping_rates')
+def get_shipping_rates():
+    company_code = request.args.get('company_code')
+    delivery_type = request.args.get('type') 
+    
+    try:
+        res = supabase.table("delivery_prices") \
+            .select("home_price, office_price") \
+            .eq("company_code", company_code) \
+            .single().execute()
+        if res.data:
+            price = res.data.get('home_price') if delivery_type == 'home' else res.data.get('office_price')
+            return jsonify({"price": float(price or 0)})
+    except Exception as e:
+        pass
+    return jsonify({"price": 0})
+
+@app.route('/get_all_shipping_rates', methods=['GET'])
+@login_required
+def get_all_shipping_rates():
+    res = supabase.table("shipping_rates").select("*").order("id").execute()
+    return jsonify(res.data)
+
+@app.route('/get_delivery_settings', methods=['GET'])
+@login_required
+def get_delivery_settings():
+    company_code = session.get('company_code')
+    data = supabase.table("company_settings").select("*").eq("company_code", company_code).single().execute()
     return jsonify(data.data)
 
 @app.route('/update_delivery_price', methods=['POST'])
@@ -701,6 +744,43 @@ def shop():
 def clear_session():
     session.pop('current_shop_name', None)
     return redirect(url_for('shop'))
+
+# --- مسارات المتجر الثاني (store2) المدمجة ---
+
+@app.route('/store2', methods=['GET', 'POST'])
+def store2():
+    if request.method == 'POST' and 'company_name' in request.form:
+        session['current_store2_name'] = request.form.get('company_name')
+        return redirect(url_for('store2'))
+
+    shop_name = session.get('current_store2_name')
+    products = []
+    if shop_name:
+        products = get_products_by_shop_name(shop_name)
+    
+    return render_template('store2.html', products=products, current_company=shop_name)
+
+@app.route('/clear_store2_session')
+def clear_store2_session():
+    session.pop('current_store2_name', None)
+    return redirect(url_for('store2'))
+
+@app.route('/store2_cart')
+def store2_cart():
+    return render_template('store2_cart.html')
+
+@app.route('/store2_checkout_page')
+def store2_checkout_page():
+    rates = get_wilayas_from_db()
+    return render_template('store2_order.html', rates=rates)
+
+@app.route('/store2_checkout/<int:product_id>')
+def store2_checkout(product_id):
+    product = get_product_from_db(product_id)
+    if not product:
+        return "المنتج غير موجود", 404
+    rates = get_wilayas_from_db()
+    return render_template('store2_checkout.html', product=product, rates=rates)
 
 if __name__ =='__main__':
     app.run(debug=True)
