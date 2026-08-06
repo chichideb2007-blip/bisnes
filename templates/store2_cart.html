@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>سلة المشتريات</title>
+    <script src="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"></script>
+</head>
+<body class="bg-gray-100 p-6">
+    <div class="max-w-2xl mx-auto bg-white p-6 rounded shadow">
+        <h2 class="text-xl font-bold mb-4">سلة المشتريات</h2>
+        <div id="cart-items" class="divide-y mb-4"></div>
+        <div class="flex justify-between font-bold text-lg mb-6">
+            <span>المجموع:</span>
+            <span id="total-price">0 دج</span>
+        </div>
+        <div class="flex justify-between">
+            <a href="/store2" class="bg-gray-500 text-white px-4 py-2 rounded">متابعة التسوق</a>
+            <a href="/store2_checkout_page" class="bg-green-600 text-white px-4 py-2 rounded font-bold">إتمام الطلب</a>
+        </div>
+    </div>
+
+    <script>
+        let cart = JSON.parse(localStorage.getItem('store2_cart') || '[]');
+        let container = document.getElementById('cart-items');
+        let totalPrice = 0;
+
+        if (cart.length === 0) {
+            container.innerHTML = "<p class='text-gray-500 py-4'>السلة فارغة حالياً.</p>";
+        } else {
+            cart.forEach((item, index) => {
+                totalPrice += parseFloat(item.price);
+                container.innerHTML += `
+                    <div class="flex justify-between py-2 items-center">
+                        <span>${item.name}</span>
+                        <span>${item.price} دج</span>
+                        <button onclick="removeItem(${index})" class="text-red-500 text-sm">حذف</button>
+                    </div>
+                `;
+            });
+        }
+        document.getElementById('total-price').innerText = totalPrice + " دج";
+
+        function removeItem(index) {
+            cart.splice(index, 1);
+            localStorage.setItem('store2_cart', JSON.stringify(cart));
+            location.reload();
+        }
+    </script>
+</body>
+</html>
