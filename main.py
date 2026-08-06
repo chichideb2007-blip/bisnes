@@ -499,53 +499,6 @@ def get_delivery_settings():
     data = supabase.table("company_settings").select("*").eq("company_code", company_code).single().execute()
     return jsonify(data.data)
 
-@app.route('/update_delivery_price', methods=['POST'])
-@login_required
-def update_delivery_price():
-    data = request.json
-    row_id = data.get('id')
-    new_office = data.get('office_price')
-    new_home = data.get('home_price')
-    
-    try:
-        supabase.table("shipping_rates").update({
-            "office_price": new_office,
-            "home_price": new_home
-        }).eq("id", row_id).execute()
-        return jsonify({"status": "success"})
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
-
-@app.route('/get_shipping_rates')
-def get_shipping_rates():
-    company_code = request.args.get('company_code')
-    delivery_type = request.args.get('type') 
-    
-    try:
-        res = supabase.table("delivery_prices") \
-            .select("home_price, office_price") \
-            .eq("company_code", company_code) \
-            .single().execute()
-        if res.data:
-            price = res.data.get('home_price') if delivery_type == 'home' else res.data.get('office_price')
-            return jsonify({"price": float(price or 0)})
-    except Exception as e:
-        pass
-    return jsonify({"price": 0})
-
-@app.route('/get_all_shipping_rates', methods=['GET'])
-@login_required
-def get_all_shipping_rates():
-    res = supabase.table("shipping_rates").select("*").order("id").execute()
-    return jsonify(res.data)
-
-@app.route('/get_delivery_settings', methods=['GET'])
-@login_required
-def get_delivery_settings():
-    company_code = session.get('company_code')
-    data = supabase.table("company_settings").select("*").eq("company_code", company_code).single().execute()
-    return jsonify(data.data)
-
 @app.route('/update_delivery_settings', methods=['POST'])
 @login_required
 def update_delivery_settings():
