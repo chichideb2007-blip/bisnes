@@ -7,6 +7,25 @@
     <!-- Tailwind CSS للتنسيق السريع والحديث -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* إخفاء شريط جوجل العلوي وتثبيت الصفحة لمنع الاهتزاز عند الترجمة */
+        .goog-te-banner-frame.skiptranslate {
+            display: none !important;
+        }
+        body {
+            top: 0px !important;
+        }
+        /* تنسيق بسيط لعنصر اختيار اللغة ليطابق تصميم الموقع */
+        .goog-te-combo {
+            padding: 6px 12px;
+            border-radius: 9999px;
+            border: 1px solid #d1d5db;
+            outline: none;
+            background-color: white;
+            font-size: 14px;
+            color: #374151;
+        }
+    </style>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans">
 
@@ -22,9 +41,15 @@
                 <input type="text" id="searchInput" class="w-full px-4 py-2 rounded-full border border-gray-300 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="ابحث عن منتج...">
             </div>
 
-            {% if current_company %}
-                <a href="/clear_session" class="text-sm text-gray-500 hover:text-indigo-600 underline">تغيير المتجر</a>
-            {% endif %}
+            <!-- أداة الترجمة وجانب التحكم -->
+            <div class="flex items-center gap-3">
+                <!-- مكان ظهور خيارات الترجمة -->
+                <div id="google_translate_element"></div>
+
+                {% if current_company %}
+                    <a href="/clear_session" class="text-sm text-gray-500 hover:text-indigo-600 underline">تغيير المتجر</a>
+                {% endif %}
+            </div>
         </div>
     </header>
 
@@ -92,6 +117,18 @@
             </div>
         {% endif %}
     </main>
+
+    <!-- سكربت الترجمة من جوجل -->
+    <script type="text/javascript">
+    function googleTranslateElementInit() {
+      new google.translate.TranslateElement({
+        pageLanguage: 'ar', // اللغة الأصلية لموقعك (العربية)
+        includedLanguages: 'ar,en,fr,es', // اللغات المتاحة (عربية، إنجليزية، فرنسية، إسبانية)
+        layout: google.translate.TranslateElement.InlineLayout.SIMPLE
+      }, 'google_translate_element');
+    }
+    </script>
+    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
     <script>
         // خاصية البحث المباشر
