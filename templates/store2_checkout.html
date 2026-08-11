@@ -14,14 +14,8 @@
         .btn-confirm { background-color: #198754; color: white; padding: 12px; font-weight: bold; border: none; border-radius: 8px; flex-grow: 1; }
         .btn-back { background-color: #6c757d; color: white; padding: 12px; font-weight: bold; border: none; border-radius: 8px; text-decoration: none; text-align: center; }
 
-        /* إخفاء شريط جوجل العلوي وتثبيت الصفحة لمنع الاهتزاز عند الترجمة */
-        .goog-te-banner-frame.skiptranslate {
-            display: none !important;
-        }
-        body {
-            top: 0px !important;
-        }
-        /* تنسيق عنصر اختيار اللغة ليطابق تصميم الموقع */
+        .goog-te-banner-frame.skiptranslate { display: none !important; }
+        body { top: 0px !important; }
         .goog-te-combo {
             padding: 6px 12px;
             border-radius: 9999px;
@@ -35,7 +29,6 @@
 </head>
 <body>
 
-<!-- شريط علوي صغير لأداة الترجمة -->
 <div class="container mb-3" style="max-width: 600px;">
     <div class="d-flex justify-content-end">
         <div id="google_translate_element"></div>
@@ -48,21 +41,11 @@
         
         <div class="card p-3 mb-3 border-0 bg-light">
             <h5>المنتج: <span class="text-indigo">{{ product.name }}</span></h5>
-            <p class="mb-0 text-danger fw-bold">السعر: {{ product.price }} دج</p>
+            <p class="mb-0 text-danger fw-bold">السعر للقطعة: <span id="product_unit_price">{{ product.price }}</span> دج</p>
         </div>
 
         <form action="/submit-order" method="POST">
             <input type="hidden" name="product_id" value="{{ product.id }}">
-
-            <!-- خانة البلد -->
-            <div class="mb-3">
-                <label for="country" class="form-label">البلد</label>
-                <select id="country" name="country" class="form-select" onchange="toggleCountryFields()" required>
-                    <option value="" disabled selected>-- اختر الدولة --</option>
-                    <option value="algeria">الجزائر 🇩🇿</option>
-                    <option value="jordan">الأردن 🇯🇴</option>
-                </select>
-            </div>
 
             <div class="row">
                 <div class="col-md-6 mb-3">
@@ -80,10 +63,26 @@
                 <input type="tel" name="phone" class="form-control" required placeholder="0XXXXXXXXX">
             </div>
 
-            <!-- خانة ولايات الجزائر (تظهر افتراضياً أو عند اختيار الجزائر) -->
+            <!-- خانة البلد -->
+            <div class="mb-3">
+                <label for="country" class="form-label">البلد</label>
+                <select id="country" name="country" class="form-select" onchange="toggleCountryFields()" required>
+                    <option value="" disabled selected>-- اختر الدولة --</option>
+                    <option value="algeria">الجزائر 🇩🇿</option>
+                    <option value="jordan">الأردن 🇯🇴</option>
+                </select>
+            </div>
+
+            <!-- خانة الكمية -->
+            <div class="mb-3">
+                <label for="quantity" class="form-label">الكمية</label>
+                <input type="number" id="quantity" name="quantity" class="form-control" value="1" min="1" oninput="calculateTotal()" required>
+            </div>
+
+            <!-- خانة ولايات الجزائر -->
             <div class="mb-3" id="algeria_section">
                 <label class="form-label">الولاية</label>
-                <select id="wilaya" name="wilaya" class="form-select" onchange="calculateTotal()" required>
+                <select id="wilaya" name="wilaya" class="form-select" onchange="calculateTotal()">
                     <option value="">-- اختر الولاية --</option>
                     {% for wilaya in rates %}
                         <option value="{{ wilaya.id }}" 
@@ -95,117 +94,26 @@
                 </select>
             </div>
 
-            <!-- خانة محافظات ومناطق الأردن (مخفية ولا تظهر إلا عند اختيار الأردن) -->
+            <!-- خانة محافظات الأردن (محدثة بالاسم الصحيح للعمود governorate_name) -->
             <div class="mb-3 d-none" id="jordan_section">
                 <label for="jordan_region" class="form-label">المحافظة والمنطقة (الأردن)</label>
-                <select id="jordan_region" name="jordan_region" class="form-select">
-                    <option value="" disabled selected>-- اختر المحافظة والمنطقة --</option>
-                    
-                    <optgroup label="محافظة العاصمة (عمان)">
-                        <option value="amman_center">وسط البلد (العاصمة)</option>
-                        <option value="jubeiha">الجبيهة</option>
-                        <option value="tla_ali">تلاع العلي</option>
-                        <option value="khalda">خلدا</option>
-                        <option value="abdoun">عبدون</option>
-                        <option value="sweifieh">الصويفية</option>
-                        <option value="shmeisani">الشميساني</option>
-                        <option value="tabarbour">طبربور</option>
-                        <option value="abu_nsair">أبو نصير</option>
-                        <option value="jabal_amman">جبل عمان</option>
-                        <option value="jabal_hussain">جبل الحسين</option>
-                        <option value="shafa_badran">شفا بدران</option>
-                        <option value="sahab">سحاب</option>
-                        <option value="wadi_seir">وادي السير</option>
-                        <option value="marj_el_hammam">مرج الحمام</option>
-                        <option value="muqablain">المقابلين</option>
-                        <option value="quwaysimah">القويسمة</option>
-                        <option value="jawwadeh">الجيدة</option>
-                    </optgroup>
-
-                    <optgroup label="محافظة الزرقاء">
-                        <option value="zarqa_city">مدينة الزرقاء</option>
-                        <option value="zarqa_new">الزرقاء الجديدة</option>
-                        <option value="russayfa">الرصيفة</option>
-                        <option value="dhulayl">الضليل</option>
-                        <option value="azraq">الأزرق</option>
-                        <option value="hashimiyya">الهاشمية</option>
-                    </optgroup>
-
-                    <optgroup label="محافظة إربد">
-                        <option value="irbid_city">مدينة إربد</option>
-                        <option value="ramtha">الرمثا</option>
-                        <option value="sarar">صريح</option>
-                        <option value="aidoun">إيدون</option>
-                        <option value="husn">الحصن</option>
-                        <option value="kurayyimah">الكورة</option>
-                        <option value="bani_kinanah">باني كنانة</option>
-                        <option value="mazar_shamali">المزار الشمالي</option>
-                        <option value="taybeh">الطيبة</option>
-                    </optgroup>
-
-                    <optgroup label="محافظة البلقاء">
-                        <option value="salt_city">السلط (المركز)</option>
-                        <option value="baqaa">البقعة</option>
-                        <option value="ein_basha">عين الباشا</option>
-                        <option value="fuhis">الفحيص</option>
-                        <option value="mahis">ماحص</option>
-                    </optgroup>
-
-                    <optgroup label="محافظة مادبا">
-                        <option value="madaba_city">مدينة مادبا</option>
-                        <option value="dhiban">ذيبان</option>
-                    </optgroup>
-
-                    <optgroup label="محافظة جرش">
-                        <option value="jerash_city">مدينة جرش</option>
-                        <option value="souf">صوف</option>
-                        <option value="deir_al_yousef">برما</option>
-                    </optgroup>
-
-                    <optgroup label="محافظة عجلون">
-                        <option value="ajloun_city">مدينة عجلون</option>
-                        <option value="kufranjah">كفرنجة</option>
-                        <option value="anjarah">عنجرة</option>
-                    </optgroup>
-
-                    <optgroup label="محافظة المفرق">
-                        <option value="mafraq_city">مدينة المفرق</option>
-                        <option value="sabha">الصبحا</option>
-                        <option value="ruwaished">الرويشد</option>
-                    </optgroup>
-
-                    <optgroup label="محافظة الكرك">
-                        <option value="karak_city">مدينة الكرك</option>
-                        <option value="mutah">مؤة</option>
-                        <option value="mazar_janoubi">المزار الجنوبي</option>
-                        <option value="qatraneh">القطرانة</option>
-                    </optgroup>
-
-                    <optgroup label="محافظة الطفيلة">
-                        <option value="tafilah_city">مدينة الطفيلة</option>
-                        <option value="buseira">بصيرة</option>
-                        <option value="hasa">الحسا</option>
-                    </optgroup>
-
-                    <optgroup label="محافظة معان">
-                        <option value="maan_city">مدينة معان</option>
-                        <option value="wadi_musa">وادي موسى (البتراء)</option>
-                        <option value="shobak">الشوبك</option>
-                        <option value="jafr">الجفر</option>
-                    </optgroup>
-
-                    <optgroup label="محافظة العقبة">
-                        <option value="aqaba_city">مدينة العقبة (المركز)</option>
-                        <option value="quwayrah">القويرة</option>
-                        <option value="wadi_rum">وادي رم</option>
-                    </optgroup>
+                <select id="jordan_region" name="jordan_region" class="form-select" onchange="calculateTotal()" style="color: #000 !important; background-color: #fff !important;" required>
+                    <option value="" disabled selected style="color: #000;">-- اختر المحافظة والمنطقة --</option>
+                    {% for rate in jordan_rates %}
+                        <option value="{{ rate.id }}" 
+                                data-home="{{ rate.home_price }}" 
+                                data-office="{{ rate.office_price }}"
+                                style="color: #000 !important; background-color: #fff !important;">
+                            {{ rate.governorate_name }}
+                        </option>
+                    {% endfor %}
                 </select>
             </div>
 
-            <!-- حاوية خانة البلدية (تظهر للجزائر وتختفي للأردن) -->
+            <!-- حاوية خانة البلدية (تظهر للجزائر وتختفي للأردن تلقائياً) -->
             <div class="mb-3" id="baladiya_container">
                 <label class="form-label">البلدية</label>
-                <input type="text" name="baladia" id="baladiya_input" class="form-control" placeholder="أدخل اسم البلدية" required>
+                <input type="text" name="baladia" id="baladiya_input" class="form-control" placeholder="أدخل اسم البلدية">
             </div>
 
             <div class="mb-3">
@@ -224,8 +132,8 @@
             <input type="hidden" name="delivery_price" id="delivery_price_input" value="0">
 
             <div class="price-box">
-                <h5>سعر التوصيل: <span id="shipping_display">0</span> دج</h5>
-                <h4 class="text-primary mt-2">المجموع الكلي: <span id="total_display">{{ product.price }}</span> دج</h4>
+                <h5>سعر التوصيل: <span id="shipping_display">0</span></h5>
+                <h4 class="text-primary mt-2">المجموع الكلي: <span id="total_display">{{ product.price }}</span></h4>
             </div>
 
             <div class="d-flex gap-2">
@@ -236,7 +144,6 @@
     </div>
 </div>
 
-<!-- سكربت الترجمة من جوجل -->
 <script type="text/javascript">
 function googleTranslateElementInit() {
   new google.translate.TranslateElement({
@@ -251,7 +158,6 @@ function googleTranslateElementInit() {
 <script>
     let basePrice = parseFloat("{{ product.price }}");
 
-    // دالة تبديل الحقول بناءً على الدولة المتاحة والتحكم في البلدية
     function toggleCountryFields() {
         const country = document.getElementById('country').value;
         const algeriaSection = document.getElementById('algeria_section');
@@ -268,7 +174,6 @@ function googleTranslateElementInit() {
             jordanSelect.removeAttribute('required');
             jordanSelect.value = "";
 
-            // إظهار خانة البلدية وجعلها مطلوبة للجزائر
             if (baladiyaContainer) {
                 baladiyaContainer.style.display = "block";
                 if (baladiyaInput) baladiyaInput.setAttribute('required', 'required');
@@ -280,7 +185,6 @@ function googleTranslateElementInit() {
             wilayaSelect.removeAttribute('required');
             wilayaSelect.value = "";
 
-            // إخفاء خانة البلدية تماماً للأردن وإلغاء إلزاميتها وتفريغها
             if (baladiyaContainer) {
                 baladiyaContainer.style.display = "none";
                 if (baladiyaInput) {
@@ -288,11 +192,6 @@ function googleTranslateElementInit() {
                     baladiyaInput.value = "";
                 }
             }
-            
-            // تصفير سعر التوصيل مؤقتاً لزبائن الأردن
-            document.getElementById('shipping_display').innerText = "0";
-            document.getElementById('delivery_price_input').value = 0;
-            document.getElementById('total_display').innerText = basePrice;
         }
         calculateTotal();
     }
@@ -302,6 +201,7 @@ function googleTranslateElementInit() {
         const shippingDisplay = document.getElementById('shipping_display');
         const totalDisplay = document.getElementById('total_display');
         const deliveryPriceInput = document.getElementById('delivery_price_input');
+        const quantity = parseInt(document.getElementById('quantity').value) || 1;
 
         let shippingPrice = 0;
 
@@ -311,14 +211,23 @@ function googleTranslateElementInit() {
             const selectedOption = wilayaSelect.options[wilayaSelect.selectedIndex];
             
             if (selectedOption && selectedOption.value !== "") {
-                shippingPrice = (deliveryType === 'home') ? parseFloat(selectedOption.dataset.home) : parseFloat(selectedOption.dataset.office);
+                shippingPrice = (deliveryType === 'home') ? parseFloat(selectedOption.dataset.home || 0) : parseFloat(selectedOption.dataset.office || 0);
             }
         } else if (country === 'jordan') {
-            shippingPrice = 0; // يمكنك تعديل سعر التوصيل الثابت للأردن لاحقاً هنا إذا أردت
+            const jordanSelect = document.getElementById('jordan_region');
+            const deliveryType = document.getElementById('delivery_type').value;
+            const selectedJordanOption = jordanSelect.options[jordanSelect.selectedIndex];
+            
+            if (selectedJordanOption && selectedJordanOption.value !== "") {
+                shippingPrice = (deliveryType === 'home') ? parseFloat(selectedJordanOption.dataset.home || 0) : parseFloat(selectedJordanOption.dataset.office || 0);
+            }
         }
         
+        let productsTotal = basePrice * quantity;
+        let finalTotal = productsTotal + shippingPrice;
+
         shippingDisplay.innerText = shippingPrice;
-        totalDisplay.innerText = (basePrice + shippingPrice);
+        totalDisplay.innerText = finalTotal;
         deliveryPriceInput.value = shippingPrice;
     }
 </script>
