@@ -54,10 +54,10 @@
         <form action="/submit-order" method="POST">
             <input type="hidden" name="product_id" value="{{ product.id }}">
 
-            <!-- خانة البلد المضافة حديثاً -->
+            <!-- خانة البلد -->
             <div class="mb-3">
                 <label for="country" class="form-label">البلد</label>
-                <select id="country" name="country" class="form-select" required>
+                <select id="country" name="country" class="form-select" onchange="toggleCountryFields()" required>
                     <option value="" disabled selected>-- اختر الدولة --</option>
                     <option value="algeria">الجزائر 🇩🇿</option>
                     <option value="jordan">الأردن 🇯🇴</option>
@@ -80,7 +80,8 @@
                 <input type="tel" name="phone" class="form-control" required placeholder="0XXXXXXXXX">
             </div>
 
-            <div class="mb-3">
+            <!-- خانة ولايات الجزائر (تظهر افتراضياً أو عند اختيار الجزائر) -->
+            <div class="mb-3" id="algeria_section">
                 <label class="form-label">الولاية</label>
                 <select id="wilaya" name="wilaya" class="form-select" onchange="calculateTotal()" required>
                     <option value="">-- اختر الولاية --</option>
@@ -94,6 +95,113 @@
                 </select>
             </div>
 
+            <!-- خانة محافظات ومناطق الأردن (مخفية ولا تظهر إلا عند اختيار الأردن) -->
+            <div class="mb-3 d-none" id="jordan_section">
+                <label for="jordan_region" class="form-label">المحافظة والمنطقة (الأردن)</label>
+                <select id="jordan_region" name="jordan_region" class="form-select">
+                    <option value="" disabled selected>-- اختر المحافظة والمنطقة --</option>
+                    
+                    <optgroup label="محافظة العاصمة (عمان)">
+                        <option value="amman_center">وسط البلد (العاصمة)</option>
+                        <option value="jubeiha">الجبيهة</option>
+                        <option value="tla_ali">تلاع العلي</option>
+                        <option value="khalda">خلدا</option>
+                        <option value="abdoun">عبدون</option>
+                        <option value="sweifieh">الصويفية</option>
+                        <option value="shmeisani">الشميساني</option>
+                        <option value="tabarbour">طبربور</option>
+                        <option value="abu_nsair">أبو نصير</option>
+                        <option value="jabal_amman">جبل عمان</option>
+                        <option value="jabal_hussain">جبل الحسين</option>
+                        <option value="shafa_badran">شفا بدران</option>
+                        <option value="sahab">سحاب</option>
+                        <option value="wadi_seir">وادي السير</option>
+                        <option value="marj_el_hammam">مرج الحمام</option>
+                        <option value="muqablain">المقابلين</option>
+                        <option value="quwaysimah">القويسمة</option>
+                        <option value="jawwadeh">الجيدة</option>
+                    </optgroup>
+
+                    <optgroup label="محافظة الزرقاء">
+                        <option value="zarqa_city">مدينة الزرقاء</option>
+                        <option value="zarqa_new">الزرقاء الجديدة</option>
+                        <option value="russayfa">الرصيفة</option>
+                        <option value="dhulayl">الضليل</option>
+                        <option value="azraq">الأزرق</option>
+                        <option value="hashimiyya">الهاشمية</option>
+                    </optgroup>
+
+                    <optgroup label="محافظة إربد">
+                        <option value="irbid_city">مدينة إربد</option>
+                        <option value="ramtha">الرمثا</option>
+                        <option value="sarar">صريح</option>
+                        <option value="aidoun">إيدون</option>
+                        <option value="husn">الحصن</option>
+                        <option value="kurayyimah">الكورة</option>
+                        <option value="bani_kinanah">باني كنانة</option>
+                        <option value="mazar_shamali">المزار الشمالي</option>
+                        <option value="taybeh">الطيبة</option>
+                    </optgroup>
+
+                    <optgroup label="محافظة البلقاء">
+                        <option value="salt_city">السلط (المركز)</option>
+                        <option value="baqaa">البقعة</option>
+                        <option value="ein_basha">عين الباشا</option>
+                        <option value="fuhis">الفحيص</option>
+                        <option value="mahis">ماحص</option>
+                    </optgroup>
+
+                    <optgroup label="محافظة مادبا">
+                        <option value="madaba_city">مدينة مادبا</option>
+                        <option value="dhiban">ذيبان</option>
+                    </optgroup>
+
+                    <optgroup label="محافظة جرش">
+                        <option value="jerash_city">مدينة جرش</option>
+                        <option value="souf">صوف</option>
+                        <option value="deir_al_yousef">برما</option>
+                    </optgroup>
+
+                    <optgroup label="محافظة عجلون">
+                        <option value="ajloun_city">مدينة عجلون</option>
+                        <option value="kufranjah">كفرنجة</option>
+                        <option value="anjarah">عنجرة</option>
+                    </optgroup>
+
+                    <optgroup label="محافظة المفرق">
+                        <option value="mafraq_city">مدينة المفرق</option>
+                        <option value="sabha">الصبحا</option>
+                        <option value="ruwaished">الرويشد</option>
+                    </optgroup>
+
+                    <optgroup label="محافظة الكرك">
+                        <option value="karak_city">مدينة الكرك</option>
+                        <option value="mutah">مؤة</option>
+                        <option value="mazar_janoubi">المزار الجنوبي</option>
+                        <option value="qatraneh">القطرانة</option>
+                    </optgroup>
+
+                    <optgroup label="محافظة الطفيلة">
+                        <option value="tafilah_city">مدينة الطفيلة</option>
+                        <option value="buseira">بصيرة</option>
+                        <option value="hasa">الحسا</option>
+                    </optgroup>
+
+                    <optgroup label="محافظة معان">
+                        <option value="maan_city">مدينة معان</option>
+                        <option value="wadi_musa">وادي موسى (البتراء)</option>
+                        <option value="shobak">الشوبك</option>
+                        <option value="jafr">الجفر</option>
+                    </optgroup>
+
+                    <optgroup label="محافظة العقبة">
+                        <option value="aqaba_city">مدينة العقبة (المركز)</option>
+                        <option value="quwayrah">القويرة</option>
+                        <option value="wadi_rum">وادي رم</option>
+                    </optgroup>
+                </select>
+            </div>
+
             <div class="mb-3">
                 <label class="form-label">البلدية</label>
                 <input type="text" name="baladia" class="form-control" placeholder="أدخل اسم البلدية" required>
@@ -104,7 +212,7 @@
                 <input type="text" name="address" class="form-control" placeholder="الحي أو الشارع" required>
             </div>
 
-            <div class="mb-3">
+            <div class="mb-3" id="delivery_type_box">
                 <label class="form-label">طريقة التوصيل</label>
                 <select id="delivery_type" name="delivery_type" class="form-select" onchange="calculateTotal()" required>
                     <option value="home">توصيل للمنزل</option>
@@ -142,19 +250,58 @@ function googleTranslateElementInit() {
 <script>
     let basePrice = parseFloat("{{ product.price }}");
 
-    function calculateTotal() {
+    // دالة تبديل الحقول بناءً على الدولة المتاحة
+    function toggleCountryFields() {
+        const country = document.getElementById('country').value;
+        const algeriaSection = document.getElementById('algeria_section');
+        const jordanSection = document.getElementById('jordan_section');
         const wilayaSelect = document.getElementById('wilaya');
-        const deliveryType = document.getElementById('delivery_type').value;
-        const selectedOption = wilayaSelect.options[wilayaSelect.selectedIndex];
-        
+        const jordanSelect = document.getElementById('jordan_region');
+
+        if (country === 'algeria') {
+            algeriaSection.classList.remove('d-none');
+            jordanSection.classList.add('d-none');
+            wilayaSelect.setAttribute('required', 'required');
+            jordanSelect.removeAttribute('required');
+            jordanSelect.value = "";
+        } else if (country === 'jordan') {
+            algeriaSection.classList.add('d-none');
+            jordanSection.classList.remove('d-none');
+            jordanSelect.setAttribute('required', 'required');
+            wilayaSelect.removeAttribute('required');
+            wilayaSelect.value = "";
+            
+            // تصفير سعر التوصيل مؤقتاً لزبائن الأردن
+            document.getElementById('shipping_display').innerText = "0";
+            document.getElementById('delivery_price_input').value = 0;
+            document.getElementById('total_display').innerText = basePrice;
+        }
+        calculateTotal();
+    }
+
+    function calculateTotal() {
+        const country = document.getElementById('country').value;
+        const shippingDisplay = document.getElementById('shipping_display');
+        const totalDisplay = document.getElementById('total_display');
+        const deliveryPriceInput = document.getElementById('delivery_price_input');
+
         let shippingPrice = 0;
-        if (selectedOption.value !== "") {
-            shippingPrice = (deliveryType === 'home') ? parseFloat(selectedOption.dataset.home) : parseFloat(selectedOption.dataset.office);
+
+        if (country === 'algeria') {
+            const wilayaSelect = document.getElementById('wilaya');
+            const deliveryType = document.getElementById('delivery_type').value;
+            const selectedOption = wilayaSelect.options[wilayaSelect.selectedIndex];
+            
+            if (selectedOption.value !== "") {
+                shippingPrice = (deliveryType === 'home') ? parseFloat(selectedOption.dataset.home) : parseFloat(selectedOption.dataset.office);
+            }
+        } else if (country === 'jordan') {
+            shippingPrice = 0; // يمكنك تعديل سعر التوصيل الثابت للأردن لاحقاً هنا إذا أردت
         }
         
-        document.getElementById('shipping_display').innerText = shippingPrice;
-        document.getElementById('total_display').innerText = (basePrice + shippingPrice);
-        document.getElementById('delivery_price_input').value = shippingPrice;
+        shippingDisplay.innerText = shippingPrice;
+        totalDisplay.innerText = (basePrice + shippingPrice);
+        deliveryPriceInput.value = shippingPrice;
     }
 </script>
 
