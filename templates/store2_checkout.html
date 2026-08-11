@@ -54,6 +54,16 @@
         <form action="/submit-order" method="POST">
             <input type="hidden" name="product_id" value="{{ product.id }}">
 
+            <!-- خانة البلد المضافة حديثاً -->
+            <div class="mb-3">
+                <label for="country" class="form-label">البلد</label>
+                <select id="country" name="country" class="form-select" required>
+                    <option value="" disabled selected>-- اختر الدولة --</option>
+                    <option value="algeria">الجزائر 🇩🇿</option>
+                    <option value="jordan">الأردن 🇯🇴</option>
+                </select>
+            </div>
+
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">الاسم</label>
