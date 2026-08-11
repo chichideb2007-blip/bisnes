@@ -130,8 +130,9 @@
             </div>
         </div>
 
+        <!-- جدول أسعار التوصيل (الجزائر - ضبط يدوي) -->
         <div class="content-card mt-5">
-            <h4 class="mb-3">أسعار التوصيل (ضبط يدوي)</h4>
+            <h4 class="mb-3">أسعار التوصيل - الجزائر (ضبط يدوي)</h4>
             <div class="table-responsive">
                 <table class="table table-bordered align-middle text-center">
                     <thead>
@@ -155,6 +156,33 @@
                 </table>
             </div>
         </div>
+
+        <!-- جدول أسعار التوصيل (الأردن - ضبط يدوي) -->
+        <div class="content-card mt-5">
+            <h4 class="mb-3 text-center">أسعار التوصيل للأردن (ضبط يدوي)</h4>
+            <div class="table-responsive">
+                <table class="table table-bordered text-center align-middle bg-white">
+                    <thead class="table-light">
+                        <tr>
+                            <th>المحافظة / المنطقة</th>
+                            <th>سعر التوصيل للمنزل</th>
+                            <th>سعر التوصيل للمكتب</th>
+                            <th>الإجراء</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rate in jordan_rates %}
+                        <tr>
+                            <td class="fw-bold">{{ rate.governorate_name }}</td>
+                            <td><input type="number" step="0.01" id="jordan-home-{{ rate.id }}" value="{{ rate.home_price }}" class="form-control text-center"></td>
+                            <td><input type="number" step="0.01" id="jordan-office-{{ rate.id }}" value="{{ rate.office_price }}" class="form-control text-center"></td>
+                            <td><button type="button" class="btn btn-success px-4" onclick="saveJordanPrice({{ rate.id }})">حفظ</button></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -167,6 +195,19 @@
                 body: JSON.stringify({id: id, home_price: homePrice, office_price: officePrice})
             }).then(response => {
                 if(response.ok) { alert('تم حفظ أسعار ولاية ' + id + ' بنجاح'); }
+                else { alert('حدث خطأ أثناء الحفظ'); }
+            });
+        }
+
+        function saveJordanPrice(id) {
+            const homePrice = document.getElementById('jordan-home-' + id).value;
+            const officePrice = document.getElementById('jordan-office-' + id).value;
+            fetch('/admin/update-jordan-rate/' + id, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({home_price: homePrice, office_price: officePrice})
+            }).then(response => {
+                if(response.ok) { alert('تم حفظ أسعار المنطقة بنجاح'); }
                 else { alert('حدث خطأ أثناء الحفظ'); }
             });
         }
