@@ -94,13 +94,15 @@
                 </select>
             </div>
 
-            <!-- خانة محافظات الأردن المرتبطة بقاعدة البيانات -->
+            <!-- خانة محافظات الأردن (أصبحت مثل الجزائر تماماً تسحب من لوحة التحكم) -->
             <div class="mb-3 d-none" id="jordan_section">
                 <label for="jordan_region" class="form-label">المحافظة والمنطقة (الأردن)</label>
                 <select id="jordan_region" name="jordan_region" class="form-select" onchange="calculateTotal()">
                     <option value="" disabled selected>-- اختر المحافظة --</option>
                     {% for rate in jordan_rates %}
-                        <option value="{{ rate.id }}" data-price="{{ rate.home_price }}">
+                        <option value="{{ rate.id }}" 
+                                data-home="{{ rate.home_price }}" 
+                                data-office="{{ rate.office_price }}">
                             {{ rate.region_name }}
                         </option>
                     {% endfor %}
@@ -212,10 +214,11 @@ function googleTranslateElementInit() {
             }
         } else if (country === 'jordan') {
             const jordanSelect = document.getElementById('jordan_region');
+            const deliveryType = document.getElementById('delivery_type').value;
             const selectedJordanOption = jordanSelect.options[jordanSelect.selectedIndex];
             
             if (selectedJordanOption && selectedJordanOption.value !== "") {
-                shippingPrice = parseFloat(selectedJordanOption.dataset.price || 0);
+                shippingPrice = (deliveryType === 'home') ? parseFloat(selectedJordanOption.dataset.home || 0) : parseFloat(selectedJordanOption.dataset.office || 0);
             }
         }
         
