@@ -143,10 +143,15 @@ def home():
 
 @app.route('/checkout/<int:product_id>')
 def checkout(product_id):
-    response = supabase.table("shipping_rates").select("*").execute()
-    rates = response.data 
+    rates = get_wilayas_from_db()
+    
+    # جلب بيانات الأردن وتمريرها للصفحة لحل مشكلة القائمة الفارغة
+    jordan_res = supabase.table("jordan_rates").select("*").execute()
+    jordan_rates = jordan_res.data if jordan_res.data else []
+    
     product = get_product_from_db(product_id)
-    return render_template('checkout.html', product=product, rates=rates)
+    
+    return render_template('checkout.html', product=product, rates=rates, jordan_rates=jordan_rates)
 
 @app.route('/submit-order', methods=['POST'])
 def submit_order():
