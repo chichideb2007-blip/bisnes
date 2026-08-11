@@ -4,173 +4,256 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ current_company if current_company else 'متجرنا - المنتجات المتوفرة' }}</title>
-    <!-- Bootstrap 5 CSS RTL -->
+    <!-- Bootstrap 5 RTL CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/rtl.min.css">
-    <!-- Font Awesome للأيقونات -->
+    <!-- Font Awesome الأيقونات -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <!-- Google Fonts (Cairo) -->
+    <!-- Google Fonts (Cairo) خط عربي فخم -->
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
     
     <style>
+        :root {
+            --primary-color: #4f46e5;
+            --primary-hover: #4338ca;
+            --accent-color: #10b981;
+            --bg-body: #f8fafc;
+            --text-main: #1e293b;
+        }
+
         body {
             font-family: 'Cairo', sans-serif;
-            background-color: #f4f7f6;
-            color: #333;
-        }
-        /* ترويسة المتجر */
-        .store-header {
-            background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
-            color: white;
-            padding: 40px 0;
-            border-radius: 0 0 30px 30px;
-            margin-bottom: 40px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-        }
-        /* تصميم بطاقة المنتج الاحترافية */
-        .product-card-container {
-            background: #ffffff;
-            border: none;
-            border-radius: 16px;
-            overflow: hidden;
-            transition: all 0.3s ease;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-            height: 100%;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
         }
-        .product-card-container:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+
+        /* ترويسة المتجر العلوية الفخمة والحديثة */
+        .store-header {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+            padding: 40px 0 30px;
+            border-bottom-left-radius: 30px;
+            border-bottom-right-radius: 30px;
+            box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.3);
+            margin-bottom: 35px;
         }
+
+        /* بطاقة المنتج الفاخرة */
+        .product-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .product-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            border-color: #cbd5e1;
+        }
+
+        /* حاوية الصورة بشكل أنيق وثابت الأبعاد */
         .product-img-wrapper {
             position: relative;
+            width: 100%;
+            padding-top: 100%; /* نسبة عرض لارتفاع 1:1 لضمان مربع مثالي */
+            background-color: #f1f5f9;
             overflow: hidden;
-            height: 220px;
-            background-color: #f8f9fa;
         }
+
         .product-img-wrapper img {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transition: transform 0.5s ease;
+            transition: transform 0.6s ease;
         }
-        .product-card-container:hover .product-img-wrapper img {
-            transform: scale(1.08);
+
+        .product-card:hover .product-img-wrapper img {
+            transform: scale(1.07);
         }
+
+        /* تفاصيل جسم المنتج */
         .product-body {
-            padding: 20px;
+            padding: 16px;
             display: flex;
             flex-direction: column;
             flex-grow: 1;
         }
+
         .product-title {
-            font-size: 1.1rem;
+            font-size: 0.95rem;
             font-weight: 700;
-            color: #2c3e50;
-            margin-bottom: 10px;
+            color: #0f172a;
+            margin-bottom: 8px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2; /* السماح بسطرين لاسم المنتج لئلا يتقطع بشكل سيء */
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            height: 2.6rem;
+            line-height: 1.3;
         }
+
         .product-price {
-            font-size: 1.25rem;
+            font-size: 1.15rem;
             font-weight: 900;
-            color: #1cc88a;
-            margin-bottom: 20px;
+            color: var(--primary-color);
+            margin-bottom: 14px;
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
         }
+
+        .product-price .currency {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #64748b;
+        }
+
+        /* زر الشراء العصري والبارز */
         .btn-buy {
-            background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%);
+            background-color: var(--primary-color);
             color: white;
             border: none;
-            border-radius: 10px;
-            padding: 10px;
+            border-radius: 12px;
+            padding: 10px 14px;
             font-weight: 700;
             text-align: center;
             text-decoration: none;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
             margin-top: auto;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 6px;
-        }
-        .btn-buy:hover {
-            background: linear-gradient(135deg, #17a673 0%, #0f6847 100%);
-            color: white;
-            box-shadow: 0 4px 12px rgba(28, 200, 138, 0.4);
+            gap: 8px;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
         }
 
-        /* تنسيقات أداة الترجمة من جوجل وتثبيت الهيدر */
-        .goog-te-banner-frame.skiptranslate {
-            display: none !important;
+        .btn-buy:hover {
+            background-color: var(--primary-hover);
+            color: white;
+            box-shadow: 0 6px 15px rgba(79, 70, 229, 0.35);
         }
-        body {
-            top: 0px !important;
+
+        /* الشارات العلوية (متوفر / نفذت) */
+        .badge-status {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            padding: 5px 12px;
+            font-size: 11px;
+            font-weight: 700;
+            border-radius: 30px;
+            z-index: 3;
+            backdrop-filter: blur(4px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
+
+        /* تنسيق شريط البحث الفاخر */
+        .search-box-wrapper {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        .search-input {
+            border-radius: 50px;
+            padding: 12px 20px 12px 45px;
+            border: none;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            font-size: 0.95rem;
+        }
+
+        .search-input:focus {
+            box-shadow: 0 4px 25px rgba(0,0,0,0.12);
+            border-color: transparent;
+        }
+
+        /* إخفاء شريط ترجمة جوجل المزعج وتثبيت الصفحة */
+        .goog-te-banner-frame.skiptranslate { display: none !important; }
+        body { top: 0px !important; }
         .goog-te-combo {
-            padding: 6px 12px;
-            border-radius: 9999px;
-            border: 1px solid #d1d5db;
+            padding: 6px 14px;
+            border-radius: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
             outline: none;
-            background-color: white;
-            font-size: 14px;
-            color: #374151;
+            background-color: rgba(255, 255, 255, 0.9);
+            font-size: 13px;
+            color: #334155;
         }
     </style>
 </head>
 <body>
 
-    <!-- ترويسة المتجر الاحترافية -->
-    <div class="store-header text-center">
+    <!-- رأسية المتجر الاحترافية -->
+    <div class="store-header">
         <div class="container">
-            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-3">
-                <h1 class="fw-bold display-6 mb-0">
-                    <i class="fas fa-store me-2"></i> {{ current_company if current_company else 'متجرنا المميز' }}
+            <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+                <h1 class="fw-bold h4 mb-0 d-flex align-items-center gap-2">
+                    <i class="fas fa-store-alt"></i> {{ current_company if current_company else 'متجرنا المميز' }}
                 </h1>
                 
-                <!-- أداة الترجمة وعملية تغيير المتجر -->
+                <!-- عناصر التحكم والترجمة -->
                 <div class="d-flex align-items-center gap-3">
                     <div id="google_translate_element"></div>
                     {% if current_company %}
-                        <a href="/clear_session" class="text-sm text-white text-decoration-underline opacity-75 hover:opacity-100">تغيير المتجر</a>
+                        <a href="/clear_session" class="btn btn-sm btn-light rounded-pill px-3 fw-bold text-primary shadow-sm">
+                            <i class="fas fa-exchange-alt me-1"></i> تغيير المتجر
+                        </a>
                     {% endif %}
                 </div>
             </div>
             
-            <p class="lead opacity-8 mb-4">اكتشف أرقى المنتجات بأفضل الأسعار مع توصيل سريع لغاية باب البيت</p>
+            <p class="text-white-50 text-center mb-4 small">اكتشف أرقى المنتجات بأفضل الأسعار مع خدمة توصيل سريعة وموثوقة</p>
             
-            <!-- شريط البحث السريع المباشر -->
-            <div class="mx-auto" style="max-width: 500px;">
-                <input type="text" id="searchInput" class="form-control rounded-pill px-4 py-2 border-0 shadow-sm" placeholder="ابحث عن منتج...">
+            <!-- شريط البحث الحي السريع -->
+            <div class="search-box-wrapper position-relative">
+                <input type="text" id="searchInput" class="form-control search-input" placeholder="ابحث عن منتج يهمك...">
+                <span class="position-absolute top-50 start-0 translate-middle-y ms-4 text-muted pointer-event">
+                    <i class="fas fa-search"></i>
+                </span>
             </div>
         </div>
     </div>
 
-    <!-- المحتوى الرئيسي -->
-    <div class="container mb-5">
+    <!-- المحتوى الرئيسي للمتجر -->
+    <div class="container mb-5 flex-grow-1">
 
-        <!-- قسم إدخال اسم المتجر (في حال لم يتم تحديده بعد) -->
+        <!-- واجهة اختيار المتجر في حال عدم التحديد -->
         {% if not current_company %}
-        <div class="bg-white p-5 rounded-4 shadow-sm text-center mb-5 mx-auto" style="max-width: 600px;">
-            <h3 class="fw-bold mb-3 text-dark">أدخل اسم المتجر الذي تود التسوق منه:</h3>
-            <form action="/shop" method="POST" class="d-flex flex-column sm:flex-row gap-2 justify-content-center">
-                <input type="text" name="company_name" class="form-control rounded-pill px-4" placeholder="اسم المتجر..." required>
-                <button type="submit" class="btn btn-primary rounded-pill px-5 fw-bold">دخول</button>
+        <div class="bg-white p-5 rounded-4 shadow-sm text-center mb-5 mx-auto border" style="max-width: 500px;">
+            <div class="text-primary mb-3"><i class="fas fa-store fa-3x"></i></div>
+            <h5 class="fw-bold mb-3 text-dark">أدخل اسم المتجر الذي تود التسوق منه:</h5>
+            <form action="/shop" method="POST" class="d-flex gap-2 justify-content-center">
+                <input type="text" name="company_name" class="form-control rounded-pill px-4" placeholder="مثال: متجر بلال..." required>
+                <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold">دخول</button>
             </form>
         </div>
         {% endif %}
 
-        <!-- رسالة في حال عدم وجود منتجات -->
+        <!-- في حال كانت القائمة فارغة -->
         {% if not products and current_company %}
-            <div class="text-center py-5 bg-white rounded-4 shadow-sm">
+            <div class="text-center py-5 bg-white rounded-4 shadow-sm border my-5">
                 <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
-                <h4 class="text-secondary fw-semibold">لا توجد منتجات متاحة حالياً</h4>
+                <h5 class="text-secondary fw-semibold">لا توجد منتجات متاحة في هذا المتجر حالياً</h5>
             </div>
         {% elif products %}
-            <!-- شبكة عرض المنتجات -->
-            <div class="row g-4" id="products-grid">
+            <!-- شبكة عرض المنتجات الفاخرة (2 أعمدة في الهواتف، و3-4 في الحواسيب) -->
+            <div class="row g-3 g-md-4" id="products-grid">
                 {% for product in products %}
-                <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12 product-card-container-wrapper">
-                    <div class="product-card-container">
+                <div class="col-6 col-md-4 col-lg-3 product-card-container-wrapper">
+                    <div class="product-card">
                         <div class="product-img-wrapper">
-                            <!-- عرض الصور بدعم عدة صيغ (product-images أو image_url) -->
                             {% if product['product-images'] %}
                                 <img src="{{ product['product-images'] }}" alt="{{ product.name }}">
                             {% elif product.image_url %}
@@ -179,28 +262,28 @@
                                 <img src="https://via.placeholder.com/300" alt="{{ product.name }}">
                             {% endif %}
                             
-                            <!-- شارة التوفر والكمية -->
+                            <!-- الشارات الاحترافية -->
                             {% if product.quantity is defined and product.quantity > 0 %}
-                                <span class="position-absolute top-0 start-0 m-3 bg-success text-white text-xs font-bold px-2.5 py-1 rounded-pill shadow">متوفر</span>
+                                <span class="badge-status bg-success bg-opacity-75 text-white">متوفر</span>
                             {% elif product.quantity is defined and product.quantity <= 0 %}
-                                <span class="position-absolute top-0 start-0 m-3 bg-danger text-white text-xs font-bold px-2.5 py-1 rounded-pill shadow">نفذت</span>
+                                <span class="badge-status bg-danger bg-opacity-75 text-white">نفذت</span>
                             {% else %}
-                                <span class="position-absolute top-0 start-0 m-3 bg-primary text-white text-xs font-bold px-2.5 py-1 rounded-pill shadow">جديد</span>
+                                <span class="badge-status bg-primary bg-opacity-75 text-white">جديد</span>
                             {% endif %}
                         </div>
 
                         <div class="product-body">
-                            <h5 class="product-title card-title text-truncate">{{ product.name }}</h5>
-                            <p class="product-price">
-                                {{ product.price }} <span class="text-muted fs-6 fw-normal">{{ currency or 'دج' }}</span>
-                            </p>
+                            <h3 class="product-title card-title" title="{{ product.name }}">{{ product.name }}</h3>
+                            <div class="product-price">
+                                {{ product.price }} <span class="currency">{{ currency or 'دج' }}</span>
+                            </div>
 
                             {% if product.quantity is not defined or product.quantity > 0 %}
                                 <a href="/checkout/{{ product.id }}" class="btn-buy">
-                                    <i class="fas fa-shopping-cart me-1"></i> اطلب الآن
+                                    <i class="fas fa-shopping-bag"></i> شراء الآن
                                 </a>
                             {% else %}
-                                <button disabled class="btn btn-secondary w-100 rounded-pill py-2 mt-auto opacity-50 cursor-not-allowed">غير متوفر</button>
+                                <button disabled class="btn btn-secondary w-100 rounded-pill py-2 mt-auto opacity-50 cursor-not-allowed" style="font-size: 0.85rem;">غير متوفر</button>
                             {% endif %}
                         </div>
                     </div>
@@ -222,7 +305,7 @@
     </script>
     <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
-    <!-- سكربت البحث الحي المباشر -->
+    <!-- سكربت البحث الفوري المباشر -->
     <script>
         document.getElementById('searchInput')?.addEventListener('keyup', function() {
             let filter = this.value.toLowerCase();
