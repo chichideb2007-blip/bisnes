@@ -94,22 +94,16 @@
                 </select>
             </div>
 
-            <!-- خانة محافظات الأردن -->
+            <!-- خانة محافظات الأردن المرتبطة بقاعدة البيانات -->
             <div class="mb-3 d-none" id="jordan_section">
                 <label for="jordan_region" class="form-label">المحافظة والمنطقة (الأردن)</label>
                 <select id="jordan_region" name="jordan_region" class="form-select" onchange="calculateTotal()">
-                    <option value="" disabled selected>-- اختر المحافظة والمنطقة --</option>
-                    
-                    <optgroup label="محافظة العاصمة (عمان)">
-                        <option value="amman_center" data-price="3">وسط البلد (العاصمة)</option>
-                        <option value="jubeiha" data-price="3">الجبيهة</option>
-                        <option value="abdoun" data-price="3.5">عبدون</option>
-                    </optgroup>
-                    <optgroup label="باقي المحافظات">
-                        <option value="zarqa" data-price="4">الزرقاء</option>
-                        <option value="irbid" data-price="4">إربد</option>
-                        <option value="aqaba" data-price="6">العقبة</option>
-                    </optgroup>
+                    <option value="" disabled selected>-- اختر المحافظة --</option>
+                    {% for rate in jordan_rates %}
+                        <option value="{{ rate.id }}" data-price="{{ rate.home_price }}">
+                            {{ rate.region_name }}
+                        </option>
+                    {% endfor %}
                 </select>
             </div>
 
