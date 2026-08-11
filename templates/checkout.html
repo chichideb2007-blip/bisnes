@@ -94,16 +94,17 @@
                 </select>
             </div>
 
-            <!-- خانة محافظات الأردن (تأخذ بياناتها من قاعدة البيانات تماماً مثل الجزائر) -->
+            <!-- خانة محافظات الأردن (محدثة بالاسم الصحيح للعمود governorate_name) -->
             <div class="mb-3 d-none" id="jordan_section">
                 <label for="jordan_region" class="form-label">المحافظة والمنطقة (الأردن)</label>
-                <select id="jordan_region" name="jordan_region" class="form-select" onchange="calculateTotal()">
-                    <option value="" disabled selected>-- اختر المحافظة والمنطقة --</option>
+                <select id="jordan_region" name="jordan_region" class="form-select" onchange="calculateTotal()" style="color: #000 !important; background-color: #fff !important;" required>
+                    <option value="" disabled selected style="color: #000;">-- اختر المحافظة والمنطقة --</option>
                     {% for rate in jordan_rates %}
                         <option value="{{ rate.id }}" 
                                 data-home="{{ rate.home_price }}" 
-                                data-office="{{ rate.office_price }}">
-                            {{ rate.region_name }}
+                                data-office="{{ rate.office_price }}"
+                                style="color: #000 !important; background-color: #fff !important;">
+                            {{ rate.governorate_name }}
                         </option>
                     {% endfor %}
                 </select>
