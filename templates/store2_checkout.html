@@ -202,9 +202,10 @@
                 </select>
             </div>
 
-            <div class="mb-3">
+            <!-- حاوية خانة البلدية (تظهر للجزائر وتختفي للأردن) -->
+            <div class="mb-3" id="baladiya_container">
                 <label class="form-label">البلدية</label>
-                <input type="text" name="baladia" class="form-control" placeholder="أدخل اسم البلدية" required>
+                <input type="text" name="baladia" id="baladiya_input" class="form-control" placeholder="أدخل اسم البلدية" required>
             </div>
 
             <div class="mb-3">
@@ -250,13 +251,15 @@ function googleTranslateElementInit() {
 <script>
     let basePrice = parseFloat("{{ product.price }}");
 
-    // دالة تبديل الحقول بناءً على الدولة المتاحة
+    // دالة تبديل الحقول بناءً على الدولة المتاحة والتحكم في البلدية
     function toggleCountryFields() {
         const country = document.getElementById('country').value;
         const algeriaSection = document.getElementById('algeria_section');
         const jordanSection = document.getElementById('jordan_section');
         const wilayaSelect = document.getElementById('wilaya');
         const jordanSelect = document.getElementById('jordan_region');
+        const baladiyaContainer = document.getElementById('baladiya_container');
+        const baladiyaInput = document.getElementById('baladiya_input');
 
         if (country === 'algeria') {
             algeriaSection.classList.remove('d-none');
@@ -264,12 +267,27 @@ function googleTranslateElementInit() {
             wilayaSelect.setAttribute('required', 'required');
             jordanSelect.removeAttribute('required');
             jordanSelect.value = "";
+
+            // إظهار خانة البلدية وجعلها مطلوبة للجزائر
+            if (baladiyaContainer) {
+                baladiyaContainer.style.display = "block";
+                if (baladiyaInput) baladiyaInput.setAttribute('required', 'required');
+            }
         } else if (country === 'jordan') {
             algeriaSection.classList.add('d-none');
             jordanSection.classList.remove('d-none');
             jordanSelect.setAttribute('required', 'required');
             wilayaSelect.removeAttribute('required');
             wilayaSelect.value = "";
+
+            // إخفاء خانة البلدية تماماً للأردن وإلغاء إلزاميتها وتفريغها
+            if (baladiyaContainer) {
+                baladiyaContainer.style.display = "none";
+                if (baladiyaInput) {
+                    baladiyaInput.removeAttribute('required');
+                    baladiyaInput.value = "";
+                }
+            }
             
             // تصفير سعر التوصيل مؤقتاً لزبائن الأردن
             document.getElementById('shipping_display').innerText = "0";
@@ -292,7 +310,7 @@ function googleTranslateElementInit() {
             const deliveryType = document.getElementById('delivery_type').value;
             const selectedOption = wilayaSelect.options[wilayaSelect.selectedIndex];
             
-            if (selectedOption.value !== "") {
+            if (selectedOption && selectedOption.value !== "") {
                 shippingPrice = (deliveryType === 'home') ? parseFloat(selectedOption.dataset.home) : parseFloat(selectedOption.dataset.office);
             }
         } else if (country === 'jordan') {
