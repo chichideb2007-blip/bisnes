@@ -157,7 +157,6 @@ def submit_order():
     delivery_type = request.form.get('delivery_type')
     delivery_price = float(request.form.get('delivery_price', 0))
     
-    # استقبال الكمية التي أدخلها الزبون (افتراضياً 1 إذا لم تكن موجودة)
     quantity_ordered = int(request.form.get('quantity', 1))
     
     cart_raw = request.form.get('cart_data', '')
@@ -228,7 +227,6 @@ def submit_order():
     except Exception as e:
         print(f"Error inserting order: {e}")
 
-    # خصم المخزون التلقائي بناءً على الكمية المطلوبة
     items_to_deduct = []
     if cart_data:
         for item in cart_data:
@@ -243,7 +241,6 @@ def submit_order():
             prod_res = supabase.table("inventory").select("quantity").eq("id", p_id).execute()
             if prod_res.data and len(prod_res.data) > 0:
                 current_qty = int(prod_res.data[0].get('quantity', 0))
-                # طرح الكمية التي طلبها الزبون مباشرة من المخزون
                 new_qty = max(0, current_qty - quantity_ordered)
                 supabase.table("inventory").update({"quantity": new_qty}).eq("id", p_id).execute()
         except Exception as ex:
@@ -262,19 +259,19 @@ def submit_order():
                 else:
                     send_telegram_alert_by_token(token, chat_id, msg)
 
-    return f"""
+    return """
     <!DOCTYPE html>
     <html lang="ar" dir="rtl">
     <head>
         <meta charset="UTF-8">
         <title>تم الطلب بنجاح</title>
         <style>
-            body {{ font-family: Tahoma, sans-serif; background-color: #f4f7f6; text-align: center; padding-top: 50px; margin: 0; }}
-            .card {{ background: white; max-width: 400px; margin: auto; padding: 30px; border-radius: 10px; box-shadow: 0px 4px 10px rgba(0,0,0,0.1); }}
-            h2 {{ color: #28a745; }}
-            p {{ color: #555; font-size: 16px; }}
-            .btn {{ display: inline-block; margin-top: 20px; background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; }}
-            .btn:hover {{ background: #0056b3; }}
+            body { font-family: Tahoma, sans-serif; background-color: #f4f7f6; text-align: center; padding-top: 50px; margin: 0; }
+            .card { background: white; max-width: 400px; margin: auto; padding: 30px; border-radius: 10px; box-shadow: 0px 4px 10px rgba(0,0,0,0.1); }
+            h2 { color: #28a745; }
+            p { color: #555; font-size: 16px; }
+            .btn { display: inline-block; margin-top: 20px; background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; }
+            .btn:hover { background: #0056b3; }
         </style>
     </head>
     <body>
@@ -507,6 +504,39 @@ def update_delivery_settings():
     }).eq("company_code", company_code).execute()
     return jsonify({"status": "success"})
 
+# --- مسارات إدارة أسعار توصيل الأردن الجديدة ---
+@app.route('/admin/jordan-shipping')
+@login_required
+def admin_jordan_shipping():
+    res = supabase.table("jordan_rates").select("*").order("id").execute()
+    jordan_rates = res.data if res.data else []
+    return render_template('admin_jordan.html', jordan_rates=jordan_rates)
+
+@app.route('/admin/update-jordan-rate/<int:id>', methods=['POST'])
+@login_required
+def update_jordan_rate(id):
+    try:
+        if request.is_json:
+            data = request.json
+            home_price = data.get('home_price')
+            office_price = data.get('office_price')
+        else:
+            home_price = request.form.get('home_price')
+            office_price = request.form.get('office_price')
+
+        supabase.table("jordan_rates").update({
+            "home_price": float(home_price or 0),
+            "office_price": float(office_price or 0)
+        }).eq("id", id).execute()
+
+        if request.is_json:
+            return jsonify({"status": "success"})
+        return redirect(url_for('orders'))
+    except Exception as e:
+        if request.is_json:
+            return jsonify({"status": "error", "message": str(e)}), 500
+        return f"حدث خطأ: {e}", 500
+
 @app.route('/products', methods=['GET', 'POST'])
 @login_required
 def products():
@@ -674,8 +704,12 @@ def orders():
 
     orders_res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
     wilayas_res = supabase.table("shipping_rates").select("*").order("id").execute()
+    jordan_res = supabase.table("jordan_rates").select("*").order("id").execute()
     
-    return render_template('orders_dashboard.html', orders=orders_res.data or [], wilayas=wilayas_res.data)
+    return render_template('orders_dashboard.html', 
+                           orders=orders_res.data or [], 
+                           wilayas=wilayas_res.data or [],
+                           jordan_rates=jordan_res.data or [])
 
 @app.route('/shop', methods=['GET', 'POST'])
 def shop():
