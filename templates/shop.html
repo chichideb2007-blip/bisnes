@@ -3,19 +3,107 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ current_company if current_company else 'المتجر' }}</title>
-    <!-- Tailwind CSS للتنسيق السريع والحديث -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <title>{{ current_company if current_company else 'متجرنا - المنتجات المتوفرة' }}</title>
+    <!-- Bootstrap 5 CSS RTL -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/rtl.min.css">
+    <!-- Font Awesome للأيقونات -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts (Cairo) -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    
     <style>
-        /* إخفاء شريط جوجل العلوي وتثبيت الصفحة لمنع الاهتزاز عند الترجمة */
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+        }
+        /* ترويسة المتجر */
+        .store-header {
+            background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+            color: white;
+            padding: 40px 0;
+            border-radius: 0 0 30px 30px;
+            margin-bottom: 40px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        /* تصميم بطاقة المنتج الاحترافية */
+        .product-card-container {
+            background: #ffffff;
+            border: none;
+            border-radius: 16px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        .product-card-container:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+        }
+        .product-img-wrapper {
+            position: relative;
+            overflow: hidden;
+            height: 220px;
+            background-color: #f8f9fa;
+        }
+        .product-img-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+        .product-card-container:hover .product-img-wrapper img {
+            transform: scale(1.08);
+        }
+        .product-body {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+        }
+        .product-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .product-price {
+            font-size: 1.25rem;
+            font-weight: 900;
+            color: #1cc88a;
+            margin-bottom: 20px;
+        }
+        .btn-buy {
+            background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 10px;
+            font-weight: 700;
+            text-align: center;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            margin-top: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .btn-buy:hover {
+            background: linear-gradient(135deg, #17a673 0%, #0f6847 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(28, 200, 138, 0.4);
+        }
+
+        /* تنسيقات أداة الترجمة من جوجل وتثبيت الهيدر */
         .goog-te-banner-frame.skiptranslate {
             display: none !important;
         }
         body {
             top: 0px !important;
         }
-        /* تنسيق بسيط لعنصر اختيار اللغة ليطابق تصميم الموقع */
         .goog-te-combo {
             padding: 6px 12px;
             border-radius: 9999px;
@@ -27,99 +115,102 @@
         }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans">
+<body>
 
-    <!-- الهيدر / رأس الصفحة -->
-    <header class="bg-white shadow-sm sticky top-0 z-50">
-        <div class="max-w-6xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-4">
-            <h1 class="text-2xl font-bold text-indigo-600">
-                {{ current_company if current_company else 'متجرنا' }}
-            </h1>
-            
-            <!-- شريط البحث -->
-            <div class="flex-grow max-w-sm">
-                <input type="text" id="searchInput" class="w-full px-4 py-2 rounded-full border border-gray-300 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="ابحث عن منتج...">
+    <!-- ترويسة المتجر الاحترافية -->
+    <div class="store-header text-center">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-3">
+                <h1 class="fw-bold display-6 mb-0">
+                    <i class="fas fa-store me-2"></i> {{ current_company if current_company else 'متجرنا المميز' }}
+                </h1>
+                
+                <!-- أداة الترجمة وعملية تغيير المتجر -->
+                <div class="d-flex align-items-center gap-3">
+                    <div id="google_translate_element"></div>
+                    {% if current_company %}
+                        <a href="/clear_session" class="text-sm text-white text-decoration-underline opacity-75 hover:opacity-100">تغيير المتجر</a>
+                    {% endif %}
+                </div>
             </div>
-
-            <!-- أداة الترجمة وجانب التحكم -->
-            <div class="flex items-center gap-3">
-                <!-- مكان ظهور خيارات الترجمة -->
-                <div id="google_translate_element"></div>
-
-                {% if current_company %}
-                    <a href="/clear_session" class="text-sm text-gray-500 hover:text-indigo-600 underline">تغيير المتجر</a>
-                {% endif %}
+            
+            <p class="lead opacity-8 mb-4">اكتشف أرقى المنتجات بأفضل الأسعار مع توصيل سريع لغاية باب البيت</p>
+            
+            <!-- شريط البحث السريع المباشر -->
+            <div class="mx-auto" style="max-width: 500px;">
+                <input type="text" id="searchInput" class="form-control rounded-pill px-4 py-2 border-0 shadow-sm" placeholder="ابحث عن منتج...">
             </div>
         </div>
-    </header>
+    </div>
 
-    <!-- محتوى الصفحة -->
-    <main class="max-w-6xl mx-auto px-4 py-8">
+    <!-- المحتوى الرئيسي -->
+    <div class="container mb-5">
 
-        <!-- قسم اختيار المتجر (إذا لم يكن هناك متجر مختار) -->
+        <!-- قسم إدخال اسم المتجر (في حال لم يتم تحديده بعد) -->
         {% if not current_company %}
-        <div class="bg-white p-8 rounded-2xl shadow-sm text-center mb-8">
-            <h2 class="text-xl font-bold mb-4">أدخل اسم المتجر الذي تود التسوق منه:</h2>
-            <form action="/shop" method="POST" class="flex flex-col sm:flex-row gap-2 justify-center">
-                <input type="text" name="company_name" class="px-4 py-2 rounded-xl border border-gray-300 w-full sm:max-w-xs" placeholder="اسم المتجر..." required>
-                <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-indigo-700">دخول</button>
+        <div class="bg-white p-5 rounded-4 shadow-sm text-center mb-5 mx-auto" style="max-width: 600px;">
+            <h3 class="fw-bold mb-3 text-dark">أدخل اسم المتجر الذي تود التسوق منه:</h3>
+            <form action="/shop" method="POST" class="d-flex flex-column sm:flex-row gap-2 justify-content-center">
+                <input type="text" name="company_name" class="form-control rounded-pill px-4" placeholder="اسم المتجر..." required>
+                <button type="submit" class="btn btn-primary rounded-pill px-5 fw-bold">دخول</button>
             </form>
         </div>
         {% endif %}
-        
-        <!-- قائمة المنتجات -->
+
+        <!-- رسالة في حال عدم وجود منتجات -->
         {% if not products and current_company %}
-            <div class="text-center py-16 bg-white rounded-lg shadow-sm">
-                <i class="fas fa-box-open text-5xl text-gray-300 mb-4"></i>
-                <h2 class="text-xl font-semibold text-gray-600">لا توجد منتجات متاحة حالياً</h2>
+            <div class="text-center py-5 bg-white rounded-4 shadow-sm">
+                <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+                <h4 class="text-secondary fw-semibold">لا توجد منتجات متاحة حالياً</h4>
             </div>
         {% elif products %}
-            <!-- شبكة عرض المنتجات بجانب بعضها (عمودين في الهواتف، و3 إلى 4 في الشاشات الأكبر) -->
-            <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6" id="products-grid">
+            <!-- شبكة عرض المنتجات -->
+            <div class="row g-4" id="products-grid">
                 {% for product in products %}
-                    <div class="product-card-container bg-white rounded-2xl shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden flex flex-col justify-between p-3 sm:p-4">
-                        
-                        <!-- صورة المنتج مربعة الشكل وصغيرة وفي المنتصف -->
-                        <div class="relative w-28 h-28 sm:w-32 sm:h-32 mx-auto bg-gray-100 rounded-xl overflow-hidden mb-3">
+                <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12 product-card-container-wrapper">
+                    <div class="product-card-container">
+                        <div class="product-img-wrapper">
+                            <!-- عرض الصور بدعم عدة صيغ (product-images أو image_url) -->
                             {% if product['product-images'] %}
-                                <img src="{{ product['product-images'] }}" class="w-full h-full object-cover" alt="{{ product.name }}">
+                                <img src="{{ product['product-images'] }}" alt="{{ product.name }}">
+                            {% elif product.image_url %}
+                                <img src="{{ product.image_url }}" alt="{{ product.name }}">
                             {% else %}
-                                <div class="w-full h-full flex items-center justify-center text-gray-400">
-                                    <i class="fas fa-image text-3xl"></i>
-                                </div>
+                                <img src="https://via.placeholder.com/300" alt="{{ product.name }}">
                             {% endif %}
                             
-                            {% if product.quantity > 0 %}
-                                <span class="absolute top-1 right-1 bg-green-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">متوفر</span>
+                            <!-- شارة التوفر والكمية -->
+                            {% if product.quantity is defined and product.quantity > 0 %}
+                                <span class="position-absolute top-0 start-0 m-3 bg-success text-white text-xs font-bold px-2.5 py-1 rounded-pill shadow">متوفر</span>
+                            {% elif product.quantity is defined and product.quantity <= 0 %}
+                                <span class="position-absolute top-0 start-0 m-3 bg-danger text-white text-xs font-bold px-2.5 py-1 rounded-pill shadow">نفذت</span>
                             {% else %}
-                                <span class="absolute top-1 right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">نفذت</span>
+                                <span class="position-absolute top-0 start-0 m-3 bg-primary text-white text-xs font-bold px-2.5 py-1 rounded-pill shadow">جديد</span>
                             {% endif %}
                         </div>
 
-                        <!-- تفاصيل المنتج -->
-                        <div class="flex-grow flex flex-col justify-between">
-                            <div>
-                                <h3 class="card-title text-sm sm:text-base font-bold text-gray-800 mb-1 text-center line-clamp-1">{{ product.name }}</h3>
-                                <p class="text-indigo-600 font-extrabold text-base sm:text-lg mb-3 text-center">
-                                    {{ product.price }} <span class="text-xs font-normal">{{ currency or 'د.ج' }}</span>
-                                </p>
-                            </div>
+                        <div class="product-body">
+                            <h5 class="product-title card-title text-truncate">{{ product.name }}</h5>
+                            <p class="product-price">
+                                {{ product.price }} <span class="text-muted fs-6 fw-normal">{{ currency or 'دج' }}</span>
+                            </p>
 
-                            {% if product.quantity > 0 %}
-                                <a href="/checkout/{{ product.id }}" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-center font-bold py-2 px-3 rounded-xl transition duration-200 flex items-center justify-center gap-1.5 shadow-sm text-xs sm:text-sm">
-                                    <i class="fas fa-shopping-bag"></i> شراء الآن
+                            {% if product.quantity is not defined or product.quantity > 0 %}
+                                <a href="/checkout/{{ product.id }}" class="btn-buy">
+                                    <i class="fas fa-shopping-cart me-1"></i> اطلب الآن
                                 </a>
                             {% else %}
-                                <button disabled class="w-full bg-gray-200 text-gray-400 text-center font-bold py-2 px-3 rounded-xl cursor-not-allowed text-xs sm:text-sm">غير متوفر</button>
+                                <button disabled class="btn btn-secondary w-100 rounded-pill py-2 mt-auto opacity-50 cursor-not-allowed">غير متوفر</button>
                             {% endif %}
                         </div>
                     </div>
+                </div>
                 {% endfor %}
             </div>
         {% endif %}
-    </main>
+    </div>
 
-    <!-- سكربت الترجمة من جوجل -->
+    <!-- سكربت ترجمة جوجل -->
     <script type="text/javascript">
     function googleTranslateElementInit() {
       new google.translate.TranslateElement({
@@ -131,11 +222,11 @@
     </script>
     <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
+    <!-- سكربت البحث الحي المباشر -->
     <script>
-        // خاصية البحث المباشر
-        document.getElementById('searchInput').addEventListener('keyup', function() {
+        document.getElementById('searchInput')?.addEventListener('keyup', function() {
             let filter = this.value.toLowerCase();
-            let products = document.querySelectorAll('.product-card-container');
+            let products = document.querySelectorAll('.product-card-container-wrapper');
             
             products.forEach(item => {
                 let title = item.querySelector('.card-title').innerText.toLowerCase();
@@ -147,5 +238,8 @@
             });
         });
     </script>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
