@@ -3,19 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ current_company if current_company else 'المتجر' }}</title>
-    <!-- Tailwind CSS للتنسيق السريع والحديث -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>إتمام الطلب</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        /* إخفاء شريط جوجل العلوي وتثبيت الصفحة لمنع الاهتزاز عند الترجمة */
-        .goog-te-banner-frame.skiptranslate {
-            display: none !important;
-        }
-        body {
-            top: 0px !important;
-        }
-        /* تنسيق بسيط لعنصر اختيار اللغة ليطابق تصميم الموقع */
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', sans-serif; padding: 20px; }
+        .checkout-card { background: white; border-radius: 15px; padding: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 600px; margin: auto; }
+        .form-label { font-weight: bold; color: #333; }
+        .price-box { background: #e9ecef; padding: 15px; border-radius: 10px; margin: 20px 0; }
+        .btn-confirm { background-color: #198754; color: white; padding: 12px; font-weight: bold; border: none; border-radius: 8px; flex-grow: 1; }
+        .btn-back { background-color: #6c757d; color: white; padding: 12px; font-weight: bold; border: none; border-radius: 8px; text-decoration: none; text-align: center; }
+
+        .goog-te-banner-frame.skiptranslate { display: none !important; }
+        body { top: 0px !important; }
         .goog-te-combo {
             padding: 6px 12px;
             border-radius: 9999px;
@@ -27,125 +27,210 @@
         }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans">
+<body>
 
-    <!-- الهيدر / رأس الصفحة -->
-    <header class="bg-white shadow-sm sticky top-0 z-50">
-        <div class="max-w-6xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-4">
-            <h1 class="text-2xl font-bold text-indigo-600">
-                {{ current_company if current_company else 'متجرنا' }}
-            </h1>
-            
-            <!-- شريط البحث -->
-            <div class="flex-grow max-w-sm">
-                <input type="text" id="searchInput" class="w-full px-4 py-2 rounded-full border border-gray-300 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="ابحث عن منتج...">
-            </div>
+<div class="container mb-3" style="max-width: 600px;">
+    <div class="d-flex justify-content-end">
+        <div id="google_translate_element"></div>
+    </div>
+</div>
 
-            <!-- أداة الترجمة وجانب التحكم -->
-            <div class="flex items-center gap-3">
-                <!-- مكان ظهور خيارات الترجمة -->
-                <div id="google_translate_element"></div>
-
-                {% if current_company %}
-                    <a href="/clear_session" class="text-sm text-gray-500 hover:text-indigo-600 underline">تغيير المتجر</a>
-                {% endif %}
-            </div>
-        </div>
-    </header>
-
-    <!-- محتوى الصفحة -->
-    <main class="max-w-6xl mx-auto px-4 py-8">
-
-        <!-- قسم اختيار المتجر (إذا لم يكن هناك متجر مختار) -->
-        {% if not current_company %}
-        <div class="bg-white p-8 rounded-2xl shadow-sm text-center mb-8">
-            <h2 class="text-xl font-bold mb-4">أدخل اسم المتجر الذي تود التسوق منه:</h2>
-            <form action="/shop" method="POST" class="flex flex-col sm:flex-row gap-2 justify-center">
-                <input type="text" name="company_name" class="px-4 py-2 rounded-xl border border-gray-300 w-full sm:max-w-xs" placeholder="اسم المتجر..." required>
-                <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-indigo-700">دخول</button>
-            </form>
-        </div>
-        {% endif %}
+<div class="container mt-2">
+    <div class="checkout-card">
+        <h3 class="text-center mb-4">معلومات الطلب</h3>
         
-        <!-- قائمة المنتجات -->
-        {% if not products and current_company %}
-            <div class="text-center py-16 bg-white rounded-lg shadow-sm">
-                <i class="fas fa-box-open text-5xl text-gray-300 mb-4"></i>
-                <h2 class="text-xl font-semibold text-gray-600">لا توجد منتجات متاحة حالياً</h2>
+        <div class="card p-3 mb-3 border-0 bg-light">
+            <h5>المنتج: <span class="text-indigo">{{ product.name }}</span></h5>
+            <p class="mb-0 text-danger fw-bold">السعر للقطعة: <span id="product_unit_price">{{ product.price }}</span> دج</p>
+        </div>
+
+        <form action="/submit-order" method="POST">
+            <input type="hidden" name="product_id" value="{{ product.id }}">
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">الاسم</label>
+                    <input type="text" name="customer_name" class="form-control" required placeholder="الاسم">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">اللقب</label>
+                    <input type="text" name="customer_last_name" class="form-control" required placeholder="اللقب">
+                </div>
             </div>
-        {% elif products %}
-            <!-- شبكة عرض المنتجات بجانب بعضها (عمودين في الهواتف، و3 إلى 4 في الشاشات الأكبر) -->
-            <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6" id="products-grid">
-                {% for product in products %}
-                    <div class="product-card-container bg-white rounded-2xl shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden flex flex-col justify-between p-3 sm:p-4">
-                        
-                        <!-- صورة المنتج مربعة الشكل وصغيرة وفي المنتصف -->
-                        <div class="relative w-28 h-28 sm:w-32 sm:h-32 mx-auto bg-gray-100 rounded-xl overflow-hidden mb-3">
-                            {% if product['product-images'] %}
-                                <img src="{{ product['product-images'] }}" class="w-full h-full object-cover" alt="{{ product.name }}">
-                            {% else %}
-                                <div class="w-full h-full flex items-center justify-center text-gray-400">
-                                    <i class="fas fa-image text-3xl"></i>
-                                </div>
-                            {% endif %}
-                            
-                            {% if product.quantity > 0 %}
-                                <span class="absolute top-1 right-1 bg-green-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">متوفر</span>
-                            {% else %}
-                                <span class="absolute top-1 right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">نفذت</span>
-                            {% endif %}
-                        </div>
 
-                        <!-- تفاصيل المنتج -->
-                        <div class="flex-grow flex flex-col justify-between">
-                            <div>
-                                <h3 class="card-title text-sm sm:text-base font-bold text-gray-800 mb-1 text-center line-clamp-1">{{ product.name }}</h3>
-                                <p class="text-indigo-600 font-extrabold text-base sm:text-lg mb-3 text-center">
-                                    {{ product.price }} <span class="text-xs font-normal">{{ currency or 'د.ج' }}</span>
-                                </p>
-                            </div>
-
-                            {% if product.quantity > 0 %}
-                                <a href="/checkout/{{ product.id }}" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-center font-bold py-2 px-3 rounded-xl transition duration-200 flex items-center justify-center gap-1.5 shadow-sm text-xs sm:text-sm">
-                                    <i class="fas fa-shopping-bag"></i> شراء الآن
-                                </a>
-                            {% else %}
-                                <button disabled class="w-full bg-gray-200 text-gray-400 text-center font-bold py-2 px-3 rounded-xl cursor-not-allowed text-xs sm:text-sm">غير متوفر</button>
-                            {% endif %}
-                        </div>
-                    </div>
-                {% endfor %}
+            <div class="mb-3">
+                <label class="form-label">رقم الهاتف</label>
+                <input type="tel" name="phone" class="form-control" required placeholder="0XXXXXXXXX">
             </div>
-        {% endif %}
-    </main>
 
-    <!-- سكربت الترجمة من جوجل -->
-    <script type="text/javascript">
-    function googleTranslateElementInit() {
-      new google.translate.TranslateElement({
-        pageLanguage: 'ar',
-        includedLanguages: 'ar,en,fr,es',
-        layout: google.translate.TranslateElement.InlineLayout.SIMPLE
-      }, 'google_translate_element');
-    }
-    </script>
-    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+            <!-- خانة البلد -->
+            <div class="mb-3">
+                <label for="country" class="form-label">البلد</label>
+                <select id="country" name="country" class="form-select" onchange="toggleCountryFields()" required>
+                    <option value="" disabled selected>-- اختر الدولة --</option>
+                    <option value="algeria">الجزائر 🇩🇿</option>
+                    <option value="jordan">الأردن 🇯🇴</option>
+                </select>
+            </div>
 
-    <script>
-        // خاصية البحث المباشر
-        document.getElementById('searchInput').addEventListener('keyup', function() {
-            let filter = this.value.toLowerCase();
-            let products = document.querySelectorAll('.product-card-container');
-            
-            products.forEach(item => {
-                let title = item.querySelector('.card-title').innerText.toLowerCase();
-                if (title.includes(filter)) {
-                    item.style.display = "";
-                } else {
-                    item.style.display = "none";
+            <!-- خانة الكمية -->
+            <div class="mb-3">
+                <label for="quantity" class="form-label">الكمية</label>
+                <input type="number" id="quantity" name="quantity" class="form-control" value="1" min="1" oninput="calculateTotal()" required>
+            </div>
+
+            <!-- خانة ولايات الجزائر -->
+            <div class="mb-3" id="algeria_section">
+                <label class="form-label">الولاية</label>
+                <select id="wilaya" name="wilaya" class="form-select" onchange="calculateTotal()">
+                    <option value="">-- اختر الولاية --</option>
+                    {% for wilaya in rates %}
+                        <option value="{{ wilaya.id }}" 
+                                data-home="{{ wilaya.home_price }}" 
+                                data-office="{{ wilaya.office_price }}">
+                            {{ wilaya.wilaya_name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- خانة محافظات الأردن (محدثة بالاسم الصحيح للعمود governorate_name) -->
+            <div class="mb-3 d-none" id="jordan_section">
+                <label for="jordan_region" class="form-label">المحافظة والمنطقة (الأردن)</label>
+                <select id="jordan_region" name="jordan_region" class="form-select" onchange="calculateTotal()" style="color: #000 !important; background-color: #fff !important;" required>
+                    <option value="" disabled selected style="color: #000;">-- اختر المحافظة والمنطقة --</option>
+                    {% for rate in jordan_rates %}
+                        <option value="{{ rate.id }}" 
+                                data-home="{{ rate.home_price }}" 
+                                data-office="{{ rate.office_price }}"
+                                style="color: #000 !important; background-color: #fff !important;">
+                            {{ rate.governorate_name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- حاوية خانة البلدية (تظهر للجزائر وتختفي للأردن تلقائياً) -->
+            <div class="mb-3" id="baladiya_container">
+                <label class="form-label">البلدية</label>
+                <input type="text" name="baladia" id="baladiya_input" class="form-control" placeholder="أدخل اسم البلدية">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">العنوان بالتفصيل</label>
+                <input type="text" name="address" class="form-control" placeholder="الحي أو الشارع" required>
+            </div>
+
+            <div class="mb-3" id="delivery_type_box">
+                <label class="form-label">طريقة التوصيل</label>
+                <select id="delivery_type" name="delivery_type" class="form-select" onchange="calculateTotal()" required>
+                    <option value="home">توصيل للمنزل</option>
+                    <option value="office">توصيل للمكتب</option>
+                </select>
+            </div>
+
+            <input type="hidden" name="delivery_price" id="delivery_price_input" value="0">
+
+            <div class="price-box">
+                <h5>سعر التوصيل: <span id="shipping_display">0</span></h5>
+                <h4 class="text-primary mt-2">المجموع الكلي: <span id="total_display">{{ product.price }}</span></h4>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn-confirm">تأكيد الطلب</button>
+                <a href="/store2" class="btn-back">رجوع</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script type="text/javascript">
+function googleTranslateElementInit() {
+  new google.translate.TranslateElement({
+    pageLanguage: 'ar',
+    includedLanguages: 'ar,en,fr,es',
+    layout: google.translate.TranslateElement.InlineLayout.SIMPLE
+  }, 'google_translate_element');
+}
+</script>
+<script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+
+<script>
+    let basePrice = parseFloat("{{ product.price }}");
+
+    function toggleCountryFields() {
+        const country = document.getElementById('country').value;
+        const algeriaSection = document.getElementById('algeria_section');
+        const jordanSection = document.getElementById('jordan_section');
+        const wilayaSelect = document.getElementById('wilaya');
+        const jordanSelect = document.getElementById('jordan_region');
+        const baladiyaContainer = document.getElementById('baladiya_container');
+        const baladiyaInput = document.getElementById('baladiya_input');
+
+        if (country === 'algeria') {
+            algeriaSection.classList.remove('d-none');
+            jordanSection.classList.add('d-none');
+            wilayaSelect.setAttribute('required', 'required');
+            jordanSelect.removeAttribute('required');
+            jordanSelect.value = "";
+
+            if (baladiyaContainer) {
+                baladiyaContainer.style.display = "block";
+                if (baladiyaInput) baladiyaInput.setAttribute('required', 'required');
+            }
+        } else if (country === 'jordan') {
+            algeriaSection.classList.add('d-none');
+            jordanSection.classList.remove('d-none');
+            jordanSelect.setAttribute('required', 'required');
+            wilayaSelect.removeAttribute('required');
+            wilayaSelect.value = "";
+
+            if (baladiyaContainer) {
+                baladiyaContainer.style.display = "none";
+                if (baladiyaInput) {
+                    baladiyaInput.removeAttribute('required');
+                    baladiyaInput.value = "";
                 }
-            });
-        });
-    </script>
+            }
+        }
+        calculateTotal();
+    }
+
+    function calculateTotal() {
+        const country = document.getElementById('country').value;
+        const shippingDisplay = document.getElementById('shipping_display');
+        const totalDisplay = document.getElementById('total_display');
+        const deliveryPriceInput = document.getElementById('delivery_price_input');
+        const quantity = parseInt(document.getElementById('quantity').value) || 1;
+
+        let shippingPrice = 0;
+
+        if (country === 'algeria') {
+            const wilayaSelect = document.getElementById('wilaya');
+            const deliveryType = document.getElementById('delivery_type').value;
+            const selectedOption = wilayaSelect.options[wilayaSelect.selectedIndex];
+            
+            if (selectedOption && selectedOption.value !== "") {
+                shippingPrice = (deliveryType === 'home') ? parseFloat(selectedOption.dataset.home || 0) : parseFloat(selectedOption.dataset.office || 0);
+            }
+        } else if (country === 'jordan') {
+            const jordanSelect = document.getElementById('jordan_region');
+            const deliveryType = document.getElementById('delivery_type').value;
+            const selectedJordanOption = jordanSelect.options[jordanSelect.selectedIndex];
+            
+            if (selectedJordanOption && selectedJordanOption.value !== "") {
+                shippingPrice = (deliveryType === 'home') ? parseFloat(selectedJordanOption.dataset.home || 0) : parseFloat(selectedJordanOption.dataset.office || 0);
+            }
+        }
+        
+        let productsTotal = basePrice * quantity;
+        let finalTotal = productsTotal + shippingPrice;
+
+        shippingDisplay.innerText = shippingPrice;
+        totalDisplay.innerText = finalTotal;
+        deliveryPriceInput.value = shippingPrice;
+    }
+</script>
+
 </body>
 </html>
