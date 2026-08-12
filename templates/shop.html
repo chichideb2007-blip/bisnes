@@ -3,119 +3,157 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ current_company if current_company else 'المتجر' }}</title>
-    <!-- Tailwind CSS للتنسيق السريع والحديث -->
+    <title>{{ current_company if current_company else 'المتجر الإلكتروني' }}</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- FontAwesome للأيقونات -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        /* إخفاء شريط جوجل العلوي وتثبيت الصفحة لمنع الاهتزاز عند الترجمة */
-        .goog-te-banner-frame.skiptranslate {
-            display: none !important;
-        }
-        body {
-            top: 0px !important;
-        }
-        /* تنسيق عنصر اختيار اللغة ليطابق تصميم الموقع */
+        /* إخفاء شريط جوجل العلوي وتثبيت الصفحة عند الترجمة */
+        .goog-te-banner-frame.skiptranslate { display: none !important; }
+        body { top: 0px !important; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
+        /* تنسيق عنصر اختيار اللغة */
         .goog-te-combo {
-            padding: 6px 12px;
+            padding: 6px 14px;
             border-radius: 9999px;
-            border: 1px solid #d1d5db;
+            border: 1px solid #e5e7eb;
             outline: none;
-            background-color: white;
-            font-size: 14px;
-            color: #374151;
+            background-color: #f9fafb;
+            font-size: 13px;
+            color: #4b5563;
+            transition: all 0.3s ease;
+        }
+        .goog-te-combo:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        }
+
+        /* خلفية جمالية خفيفة */
+        .page-bg {
+            background-color: #f3f4f6;
+            background-image: radial-gradient(#e5e7eb 1px, transparent 1px);
+            background-size: 24px 24px;
         }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans">
+<body class="page-bg text-gray-800 min-h-screen flex flex-col justify-between">
 
-    <!-- الهيدر / رأس الصفحة -->
-    <header class="bg-white shadow-sm sticky top-0 z-50">
-        <div class="max-w-6xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-4">
+    <!-- الهيدر / رأس الصفحة الاحترافي -->
+    <header class="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50 border-b border-gray-100">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-wrap justify-between items-center gap-4">
             
-            <!-- عبارة الترحيب الواضحة والجذابة مع اسم المتجر -->
+            <!-- عبارة الترحيب واسم المتجر بشكل أنيق -->
             <div class="flex items-center gap-2">
-                <span class="text-xl sm:text-2xl font-black text-gray-800 tracking-wide">مرحباً بك في متجر</span>
-                <h1 class="text-xl sm:text-2xl font-black text-indigo-600 tracking-wide">
+                <span class="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-xs sm:text-sm font-bold tracking-wide border border-indigo-100 shadow-inner flex items-center gap-1">
+                    <i class="fas fa-store"></i> مرحباً بك في متجر
+                </span>
+                <h1 class="text-lg sm:text-xl font-extrabold text-gray-900 tracking-tight">
                     {{ current_company if current_company else 'متجرنا' }}
                 </h1>
             </div>
             
-            <!-- شريط البحث -->
-            <div class="flex-grow max-w-sm">
-                <input type="text" id="searchInput" class="w-full px-4 py-2 rounded-full border border-gray-300 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="ابحث عن منتج...">
+            <!-- شريط البحث العصري -->
+            <div class="flex-grow max-w-md relative">
+                <span class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-gray-400">
+                    <i class="fas fa-search"></i>
+                </span>
+                <input type="text" id="searchInput" class="w-full pl-4 pr-11 py-2.5 rounded-full border border-gray-200 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none transition-all duration-300 text-sm shadow-sm" placeholder="ابحث عن منتجك المفضّل...">
             </div>
 
-            <!-- أداة الترجمة وجانب التحكم -->
+            <!-- خيارات الترجمة والتحكم -->
             <div class="flex items-center gap-3">
-                <!-- مكان ظهور خيارات الترجمة -->
                 <div id="google_translate_element"></div>
 
                 {% if current_company %}
-                    <a href="/clear_session" class="text-sm text-gray-500 hover:text-indigo-600 underline">تغيير المتجر</a>
+                    <a href="/clear_session" class="text-xs sm:text-sm font-medium text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-3.5 py-2 rounded-full transition-colors border border-rose-100 flex items-center gap-1">
+                        <i class="fas fa-exchange-alt"></i> تغيير المتجر
+                    </a>
                 {% endif %}
             </div>
         </div>
     </header>
 
-    <!-- محتوى الصفحة -->
-    <main class="max-w-6xl mx-auto px-4 py-8">
+    <!-- المحتوى الرئيسي -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex-grow w-full">
 
-        <!-- قسم اختيار المتجر (إذا لم يكن هناك متجر مختار) -->
+        <!-- واجهة إدخال اسم المتجر عند عدم وجود جلسة نشطة -->
         {% if not current_company %}
-        <div class="bg-white p-8 rounded-2xl shadow-sm text-center mb-8">
-            <h2 class="text-xl font-bold mb-4">أدخل اسم المتجر الذي تود التسوق منه:</h2>
-            <form action="/shop" method="POST" class="flex flex-col sm:flex-row gap-2 justify-center">
-                <input type="text" name="company_name" class="px-4 py-2 rounded-xl border border-gray-300 w-full sm:max-w-xs" placeholder="اسم المتجر..." required>
-                <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-indigo-700">دخول</button>
+        <div class="max-w-xl mx-auto bg-white p-8 sm:p-10 rounded-3xl shadow-xl shadow-indigo-100/50 border border-gray-100 text-center mb-12 transform transition-all">
+            <div class="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl mx-auto flex items-center justify-center text-2xl mb-4 shadow-inner">
+                <i class="fas fa-shopping-bag"></i>
+            </div>
+            <h2 class="text-xl sm:text-2xl font-black text-gray-900 mb-2">أهلاً بك في منصة التسوق</h2>
+            <p class="text-gray-500 text-sm mb-6">أدخل اسم المتجر الذي تود التسوق منه لمشاهدة أحدث المنتجات</p>
+            
+            <form action="/shop" method="POST" class="flex flex-col sm:flex-row gap-3 justify-center">
+                <input type="text" name="company_name" class="px-5 py-3 rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none w-full text-sm font-medium shadow-sm" placeholder="اكتب اسم المتجر هنا..." required>
+                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-2xl font-bold transition-all duration-300 shadow-lg shadow-indigo-600/30 text-sm flex items-center justify-center gap-2 shrink-0">
+                    <span>دخول</span>
+                    <i class="fas fa-arrow-left text-xs"></i>
+                </button>
             </form>
         </div>
         {% endif %}
         
-        <!-- قائمة المنتجات -->
+        <!-- الحالات الفارغة والمنتجات -->
         {% if not products and current_company %}
-            <div class="text-center py-16 bg-white rounded-lg shadow-sm">
-                <i class="fas fa-box-open text-5xl text-gray-300 mb-4"></i>
-                <h2 class="text-xl font-semibold text-gray-600">لا توجد منتجات متاحة حالياً</h2>
+            <div class="text-center py-20 bg-white rounded-3xl shadow-sm border border-gray-100 max-w-lg mx-auto">
+                <div class="w-20 h-20 bg-amber-50 text-amber-500 rounded-full mx-auto flex items-center justify-center text-3xl mb-4">
+                    <i class="fas fa-box-open"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-800 mb-1">لا توجد منتجات متاحة حالياً</h3>
+                <p class="text-gray-400 text-sm">يرجى العودة لاحقاً أو تفقد متجر آخر.</p>
             </div>
         {% elif products %}
-            <!-- شبكة عرض المنتجات بجانب بعضها (عمودين في الهواتف، و3 إلى 4 في الشاشات الأكبر) -->
+            <!-- شبكة عرض المنتجات -->
             <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6" id="products-grid">
                 {% for product in products %}
-                    <div class="product-card-container bg-white rounded-2xl shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden flex flex-col justify-between p-3 sm:p-4">
+                    <div class="product-card-container bg-white rounded-3xl shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 overflow-hidden flex flex-col justify-between p-3.5 sm:p-5 group">
                         
-                        <!-- صورة المنتج مربعة الشكل وصغيرة وفي المنتصف -->
-                        <div class="relative w-28 h-28 sm:w-32 sm:h-32 mx-auto bg-gray-100 rounded-xl overflow-hidden mb-3">
+                        <!-- صندوق صورة المنتج -->
+                        <div class="relative w-full h-36 sm:h-44 bg-gray-50 rounded-2xl overflow-hidden mb-4 shadow-inner">
                             {% if product['product-images'] %}
-                                <img src="{{ product['product-images'] }}" class="w-full h-full object-cover" alt="{{ product.name }}">
+                                <img src="{{ product['product-images'] }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="{{ product.name }}">
                             {% else %}
-                                <div class="w-full h-full flex items-center justify-center text-gray-400">
-                                    <i class="fas fa-image text-3xl"></i>
+                                <div class="w-full h-full flex items-center justify-center text-gray-300">
+                                    <i class="fas fa-image text-4xl"></i>
                                 </div>
                             {% endif %}
                             
+                            <!-- شارة التوفر -->
                             {% if product.quantity > 0 %}
-                                <span class="absolute top-1 right-1 bg-green-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">متوفر</span>
+                                <span class="absolute top-2.5 right-2.5 bg-emerald-500/90 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-1 rounded-full shadow-sm flex items-center gap-1">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span> متوفر
+                                </span>
                             {% else %}
-                                <span class="absolute top-1 right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">نفذت</span>
+                                <span class="absolute top-2.5 right-2.5 bg-rose-500/90 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-1 rounded-full shadow-sm">
+                                    نفذت الكمية
+                                </span>
                             {% endif %}
                         </div>
 
                         <!-- تفاصيل المنتج -->
                         <div class="flex-grow flex flex-col justify-between">
                             <div>
-                                <h3 class="card-title text-sm sm:text-base font-bold text-gray-800 mb-1 text-center line-clamp-1">{{ product.name }}</h3>
-                                <p class="text-indigo-600 font-extrabold text-base sm:text-lg mb-3 text-center">
-                                    {{ product.price }} <span class="text-xs font-normal">{{ currency or 'د.ج' }}</span>
-                                </p>
+                                <h3 class="card-title text-sm sm:text-base font-bold text-gray-800 mb-2 line-clamp-1 group-hover:text-indigo-600 transition-colors">
+                                    {{ product.name }}
+                                </h3>
+                                <div class="flex items-baseline justify-center gap-1 mb-4">
+                                    <span class="text-indigo-600 font-black text-lg sm:text-xl tracking-tight">{{ product.price }}</span>
+                                    <span class="text-xs font-bold text-gray-400">{{ currency or 'د.ج' }}</span>
+                                </div>
                             </div>
 
+                            <!-- أزرار الشراء -->
                             {% if product.quantity > 0 %}
-                                <a href="/checkout/{{ product.id }}" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-center font-bold py-2 px-3 rounded-xl transition duration-200 flex items-center justify-center gap-1.5 shadow-sm text-xs sm:text-sm">
-                                    <i class="fas fa-shopping-bag"></i> شراء الآن
+                                <a href="/checkout/{{ product.id }}" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-center font-bold py-2.5 px-3 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-md shadow-indigo-600/20 hover:shadow-indigo-600/40 text-xs sm:text-sm active:scale-95">
+                                    <i class="fas fa-shopping-bag text-xs"></i> شراء الآن
                                 </a>
                             {% else %}
-                                <button disabled class="w-full bg-gray-200 text-gray-400 text-center font-bold py-2 px-3 rounded-xl cursor-not-allowed text-xs sm:text-sm">غير متوفر</button>
+                                <button disabled class="w-full bg-gray-100 text-gray-400 text-center font-bold py-2.5 px-3 rounded-xl cursor-not-allowed text-xs sm:text-sm">
+                                    غير متوفر حالياً
+                                </button>
                             {% endif %}
                         </div>
                     </div>
@@ -124,7 +162,12 @@
         {% endif %}
     </main>
 
-    <!-- سكربت الترجمة من جوجل -->
+    <!-- تذييل الصفحة (Footer) خفيف وراقي -->
+    <footer class="bg-white border-t border-gray-100 py-6 mt-12 text-center text-xs text-gray-400">
+        <p>جميع الحقوق محفوظة &copy; 2026 - منصة المتاجر الإلكترونية</p>
+    </footer>
+
+    <!-- سكربت ترجمة جوجل -->
     <script type="text/javascript">
     function googleTranslateElementInit() {
       new google.translate.TranslateElement({
@@ -136,10 +179,10 @@
     </script>
     <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
+    <!-- سكربت البحث الفوري المطور -->
     <script>
-        // خاصية البحث المباشر عن المنتجات
-        document.getElementById('searchInput').addEventListener('keyup', function() {
-            let filter = this.value.toLowerCase();
+        document.getElementById('searchInput')?.addEventListener('keyup', function() {
+            let filter = this.value.toLowerCase().trim();
             let products = document.querySelectorAll('.product-card-container');
             
             products.forEach(item => {
