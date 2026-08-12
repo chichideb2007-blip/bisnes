@@ -145,12 +145,21 @@ def home():
 def checkout(product_id):
     rates = get_wilayas_from_db()
     
-    # جلب بيانات الأردن وتمريرها للصفحة لحل مشكلة القائمة الفارغة
+    # جلب بيانات الأردن وتمريرها للصفحة
     jordan_res = supabase.table("jordan_rates").select("*").execute()
     jordan_rates = jordan_res.data if jordan_res.data else []
     
     product = get_product_from_db(product_id)
     
+    if product:
+        # استخراج كود الشركة من المنتج وحفظ اسم المتجر تلقائياً في الجلسة لمنع ضياعه
+        company_code = product.get('company_id_text')
+        if company_code:
+            settings_res = supabase.table("settings").select("company_name").eq("company_code", company_code).execute()
+            if settings_res.data:
+                shop_name = settings_res.data[0].get('company_name')
+                session['current_shop_name'] = shop_name
+                
     return render_template('checkout.html', product=product, rates=rates, jordan_rates=jordan_rates)
 
 @app.route('/submit-order', methods=['POST'])
@@ -491,6 +500,7 @@ def get_shipping_rates():
     except Exception as e:
         pass
     return jsonify({"price": 0})
+
 
 @app.route('/get_all_shipping_rates', methods=['GET'])
 @login_required
