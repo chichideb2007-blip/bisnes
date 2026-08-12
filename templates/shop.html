@@ -59,7 +59,7 @@
         <!-- قسم اختيار المتجر (إذا لم يكن هناك متجر مختار) -->
         {% if not current_company %}
         <div class="bg-white p-8 rounded-2xl shadow-sm text-center mb-8">
-            <h2 class="text-xl font-bold mb-4">أدخل اسم المتجر الذي تود الطلب منه:</h2>
+            <h2 class="text-xl font-bold mb-4">أدخل اسم المتجر الذي تود التسوق منه:</h2>
             <form action="/store2" method="POST" class="flex flex-col sm:flex-row gap-2 justify-center">
                 <input type="text" name="company_name" class="px-4 py-2 rounded-xl border border-gray-300 w-full sm:max-w-xs" placeholder="اسم المتجر..." required>
                 <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-indigo-700">دخول</button>
