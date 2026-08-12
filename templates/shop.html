@@ -15,7 +15,7 @@
         body {
             top: 0px !important;
         }
-        /* تنسيق عنصر اختيار اللغة ليطابق تصميم الموقع */
+        /* تنسيق بسيط لعنصر اختيار اللغة ليطابق تصميم الموقع */
         .goog-te-combo {
             padding: 6px 12px;
             border-radius: 9999px;
@@ -33,7 +33,7 @@
     <header class="bg-white shadow-sm sticky top-0 z-50">
         <div class="max-w-6xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-4">
             <h1 class="text-2xl font-bold text-indigo-600">
-                {{ current_company if current_company else 'المتجر الثاني' }}
+                {{ current_company if current_company else 'متجرنا' }}
             </h1>
             
             <!-- شريط البحث -->
@@ -47,7 +47,7 @@
                 <div id="google_translate_element"></div>
 
                 {% if current_company %}
-                    <a href="/clear_store2_session" class="text-sm text-gray-500 hover:text-indigo-600 underline">تغيير المتجر</a>
+                    <a href="/clear_session" class="text-sm text-gray-500 hover:text-indigo-600 underline">تغيير المتجر</a>
                 {% endif %}
             </div>
         </div>
@@ -59,8 +59,8 @@
         <!-- قسم اختيار المتجر (إذا لم يكن هناك متجر مختار) -->
         {% if not current_company %}
         <div class="bg-white p-8 rounded-2xl shadow-sm text-center mb-8">
-            <h2 class="text-xl font-bold mb-4">أدخل اسم المتجر الذي تود الطلب منه:</h2>
-            <form action="/store2" method="POST" class="flex flex-col sm:flex-row gap-2 justify-center">
+            <h2 class="text-xl font-bold mb-4">أدخل اسم المتجر الذي تود التسوق منه:</h2>
+            <form action="/shop" method="POST" class="flex flex-col sm:flex-row gap-2 justify-center">
                 <input type="text" name="company_name" class="px-4 py-2 rounded-xl border border-gray-300 w-full sm:max-w-xs" placeholder="اسم المتجر..." required>
                 <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-indigo-700">دخول</button>
             </form>
@@ -82,10 +82,10 @@
                         <!-- صورة المنتج مربعة الشكل وصغيرة وفي المنتصف -->
                         <div class="relative w-28 h-28 sm:w-32 sm:h-32 mx-auto bg-gray-100 rounded-xl overflow-hidden mb-3">
                             {% if product['product-images'] %}
-                                <img src="{{ product['product-images'] }}" alt="{{ product.name }}" class="w-full h-full object-cover">
+                                <img src="{{ product['product-images'] }}" class="w-full h-full object-cover" alt="{{ product.name }}">
                             {% else %}
                                 <div class="w-full h-full flex items-center justify-center text-gray-400">
-                                    <i class="fas fa-box text-3xl"></i>
+                                    <i class="fas fa-image text-3xl"></i>
                                 </div>
                             {% endif %}
                             
@@ -101,13 +101,13 @@
                             <div>
                                 <h3 class="card-title text-sm sm:text-base font-bold text-gray-800 mb-1 text-center line-clamp-1">{{ product.name }}</h3>
                                 <p class="text-indigo-600 font-extrabold text-base sm:text-lg mb-3 text-center">
-                                    {{ product.price }} <span class="text-xs font-normal">د.ج</span>
+                                    {{ product.price }} <span class="text-xs font-normal">{{ currency or 'د.ج' }}</span>
                                 </p>
                             </div>
 
                             {% if product.quantity > 0 %}
-                                <a href="/store2_checkout/{{ product.id }}" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-center font-bold py-2 px-3 rounded-xl transition duration-200 flex items-center justify-center gap-1.5 shadow-sm text-xs sm:text-sm">
-                                    <i class="fas fa-shopping-bag"></i> اطلب الآن
+                                <a href="/checkout/{{ product.id }}" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-center font-bold py-2 px-3 rounded-xl transition duration-200 flex items-center justify-center gap-1.5 shadow-sm text-xs sm:text-sm">
+                                    <i class="fas fa-shopping-bag"></i> شراء الآن
                                 </a>
                             {% else %}
                                 <button disabled class="w-full bg-gray-200 text-gray-400 text-center font-bold py-2 px-3 rounded-xl cursor-not-allowed text-xs sm:text-sm">غير متوفر</button>
@@ -132,7 +132,7 @@
     <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
     <script>
-        // خاصية البحث المباشر عن المنتجات
+        // خاصية البحث المباشر
         document.getElementById('searchInput').addEventListener('keyup', function() {
             let filter = this.value.toLowerCase();
             let products = document.querySelectorAll('.product-card-container');
