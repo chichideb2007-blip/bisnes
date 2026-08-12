@@ -3,326 +3,325 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ current_company if current_company else 'متجرنا - المنتجات المتوفرة' }}</title>
-    <!-- Bootstrap 5 RTL CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/rtl.min.css">
-    <!-- Font Awesome الأيقونات -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <!-- Google Fonts (Cairo) خط عربي فخم -->
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
-    
+    <title>إتمام الطلب</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        :root {
-            --primary-color: #4f46e5;
-            --primary-hover: #4338ca;
-            --accent-color: #10b981;
-            --bg-body: #f8fafc;
-            --text-main: #1e293b;
-        }
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', sans-serif; padding: 20px; }
+        .checkout-card { background: white; border-radius: 15px; padding: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 600px; margin: auto; }
+        .form-label { font-weight: bold; color: #333; }
+        .price-box { background: #e9ecef; padding: 15px; border-radius: 10px; margin: 20px 0; }
+        .btn-confirm { background-color: #198754; color: white; padding: 12px; font-weight: bold; border: none; border-radius: 8px; flex-grow: 1; }
+        .btn-back { background-color: #6c757d; color: white; padding: 12px; font-weight: bold; border: none; border-radius: 8px; text-decoration: none; text-align: center; }
 
+        /* إخفاء شريط جوجل العلوي وتثبيت الصفحة لمنع الاهتزاز عند الترجمة */
+        .goog-te-banner-frame.skiptranslate {
+            display: none !important;
+        }
         body {
-            font-family: 'Cairo', sans-serif;
-            background-color: var(--bg-body);
-            color: var(--text-main);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
+            top: 0px !important;
         }
-
-        /* ترويسة المتجر العلوية الفخمة والحديثة */
-        .store-header {
-            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-            color: white;
-            padding: 40px 0 30px;
-            border-bottom-left-radius: 30px;
-            border-bottom-right-radius: 30px;
-            box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.3);
-            margin-bottom: 35px;
-        }
-
-        /* بطاقة المنتج الفاخرة */
-        .product-card {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 20px;
-            overflow: hidden;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-        }
-
-        .product-card:hover {
-            transform: translateY(-6px);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            border-color: #cbd5e1;
-        }
-
-        /* حاوية الصورة بشكل أنيق وثابت الأبعاد */
-        .product-img-wrapper {
-            position: relative;
-            width: 100%;
-            padding-top: 100%; /* نسبة عرض لارتفاع 1:1 لضمان مربع مثالي */
-            background-color: #f1f5f9;
-            overflow: hidden;
-        }
-
-        .product-img-wrapper img {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: transform 0.6s ease;
-        }
-
-        .product-card:hover .product-img-wrapper img {
-            transform: scale(1.07);
-        }
-
-        /* تفاصيل جسم المنتج */
-        .product-body {
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            flex-grow: 1;
-        }
-
-        .product-title {
-            font-size: 0.95rem;
-            font-weight: 700;
-            color: #0f172a;
-            margin-bottom: 8px;
-            display: -webkit-box;
-            -webkit-line-clamp: 2; /* السماح بسطرين لاسم المنتج لئلا يتقطع بشكل سيء */
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-            height: 2.6rem;
-            line-height: 1.3;
-        }
-
-        .product-price {
-            font-size: 1.15rem;
-            font-weight: 900;
-            color: var(--primary-color);
-            margin-bottom: 14px;
-            display: flex;
-            align-items: baseline;
-            gap: 4px;
-        }
-
-        .product-price .currency {
-            font-size: 0.8rem;
-            font-weight: 600;
-            color: #64748b;
-        }
-
-        /* زر الشراء العصري والبارز */
-        .btn-buy {
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            padding: 10px 14px;
-            font-weight: 700;
-            text-align: center;
-            text-decoration: none;
-            transition: all 0.2s ease;
-            margin-top: auto;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            font-size: 0.9rem;
-            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
-        }
-
-        .btn-buy:hover {
-            background-color: var(--primary-hover);
-            color: white;
-            box-shadow: 0 6px 15px rgba(79, 70, 229, 0.35);
-        }
-
-        /* الشارات العلوية (متوفر / نفذت) */
-        .badge-status {
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            padding: 5px 12px;
-            font-size: 11px;
-            font-weight: 700;
-            border-radius: 30px;
-            z-index: 3;
-            backdrop-filter: blur(4px);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        /* تنسيق شريط البحث الفاخر */
-        .search-box-wrapper {
-            max-width: 500px;
-            margin: 0 auto;
-        }
-        
-        .search-input {
-            border-radius: 50px;
-            padding: 12px 20px 12px 45px;
-            border: none;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            font-size: 0.95rem;
-        }
-
-        .search-input:focus {
-            box-shadow: 0 4px 25px rgba(0,0,0,0.12);
-            border-color: transparent;
-        }
-
-        /* إخفاء شريط ترجمة جوجل المزعج وتثبيت الصفحة */
-        .goog-te-banner-frame.skiptranslate { display: none !important; }
-        body { top: 0px !important; }
+        /* تنسيق عنصر اختيار اللغة ليطابق تصميم الموقع */
         .goog-te-combo {
-            padding: 6px 14px;
-            border-radius: 30px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 6px 12px;
+            border-radius: 9999px;
+            border: 1px solid #d1d5db;
             outline: none;
-            background-color: rgba(255, 255, 255, 0.9);
-            font-size: 13px;
-            color: #334155;
+            background-color: white;
+            font-size: 14px;
+            color: #374151;
         }
     </style>
 </head>
 <body>
 
-    <!-- رأسية المتجر الاحترافية -->
-    <div class="store-header">
-        <div class="container">
-            <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
-                <h1 class="fw-bold h4 mb-0 d-flex align-items-center gap-2">
-                    <i class="fas fa-store-alt"></i> {{ current_company if current_company else 'متجرنا المميز' }}
-                </h1>
-                
-                <!-- عناصر التحكم والترجمة -->
-                <div class="d-flex align-items-center gap-3">
-                    <div id="google_translate_element"></div>
-                    {% if current_company %}
-                        <a href="/clear_session" class="btn btn-sm btn-light rounded-pill px-3 fw-bold text-primary shadow-sm">
-                            <i class="fas fa-exchange-alt me-1"></i> تغيير المتجر
-                        </a>
-                    {% endif %}
+<!-- شريط علوي صغير لأداة الترجمة -->
+<div class="container mb-3" style="max-width: 600px;">
+    <div class="d-flex justify-content-end">
+        <div id="google_translate_element"></div>
+    </div>
+</div>
+
+<div class="container mt-2">
+    <div class="checkout-card">
+        <h3 class="text-center mb-4">معلومات الطلب</h3>
+        
+        <div class="card p-3 mb-3 border-0 bg-light">
+            <h5>المنتج: <span class="text-indigo">{{ product.name }}</span></h5>
+            <p class="mb-0 text-danger fw-bold">السعر: {{ product.price }} دج</p>
+        </div>
+
+        <form action="/submit-order" method="POST">
+            <input type="hidden" name="product_id" value="{{ product.id }}">
+
+            <!-- خانة البلد -->
+            <div class="mb-3">
+                <label for="country" class="form-label">البلد</label>
+                <select id="country" name="country" class="form-select" onchange="toggleCountryFields()" required>
+                    <option value="" disabled selected>-- اختر الدولة --</option>
+                    <option value="algeria">الجزائر 🇩🇿</option>
+                    <option value="jordan">الأردن 🇯🇴</option>
+                </select>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">الاسم</label>
+                    <input type="text" name="customer_name" class="form-control" required placeholder="الاسم">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">اللقب</label>
+                    <input type="text" name="customer_last_name" class="form-control" required placeholder="اللقب">
                 </div>
             </div>
-            
-            <p class="text-white-50 text-center mb-4 small">اكتشف أرقى المنتجات بأفضل الأسعار مع خدمة توصيل سريعة وموثوقة</p>
-            
-            <!-- شريط البحث الحي السريع -->
-            <div class="search-box-wrapper position-relative">
-                <input type="text" id="searchInput" class="form-control search-input" placeholder="ابحث عن منتج يهمك...">
-                <span class="position-absolute top-50 start-0 translate-middle-y ms-4 text-muted pointer-event">
-                    <i class="fas fa-search"></i>
-                </span>
+
+            <div class="mb-3">
+                <label class="form-label">رقم الهاتف</label>
+                <input type="tel" name="phone" class="form-control" required placeholder="0XXXXXXXXX">
             </div>
-        </div>
+
+            <!-- خانة ولايات الجزائر (تظهر افتراضياً أو عند اختيار الجزائر) -->
+            <div class="mb-3" id="algeria_section">
+                <label class="form-label">الولاية</label>
+                <select id="wilaya" name="wilaya" class="form-select" onchange="calculateTotal()" required>
+                    <option value="">-- اختر الولاية --</option>
+                    {% for wilaya in rates %}
+                        <option value="{{ wilaya.id }}" 
+                                data-home="{{ wilaya.home_price }}" 
+                                data-office="{{ wilaya.office_price }}">
+                            {{ wilaya.wilaya_name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- خانة محافظات ومناطق الأردن (مخفية ولا تظهر إلا عند اختيار الأردن) -->
+            <div class="mb-3 d-none" id="jordan_section">
+                <label for="jordan_region" class="form-label">المحافظة والمنطقة (الأردن)</label>
+                <select id="jordan_region" name="jordan_region" class="form-select">
+                    <option value="" disabled selected>-- اختر المحافظة والمنطقة --</option>
+                    
+                    <optgroup label="محافظة العاصمة (عمان)">
+                        <option value="amman_center">وسط البلد (العاصمة)</option>
+                        <option value="jubeiha">الجبيهة</option>
+                        <option value="tla_ali">تلاع العلي</option>
+                        <option value="khalda">خلدا</option>
+                        <option value="abdoun">عبدون</option>
+                        <option value="sweifieh">الصويفية</option>
+                        <option value="shmeisani">الشميساني</option>
+                        <option value="tabarbour">طبربور</option>
+                        <option value="abu_nsair">أبو نصير</option>
+                        <option value="jabal_amman">جبل عمان</option>
+                        <option value="jabal_hussain">جبل الحسين</option>
+                        <option value="shafa_badran">شفا بدران</option>
+                        <option value="sahab">سحاب</option>
+                        <option value="wadi_seir">وادي السير</option>
+                        <option value="marj_el_hammam">مرج الحمام</option>
+                        <option value="muqablain">المقابلين</option>
+                        <option value="quwaysimah">القويسمة</option>
+                        <option value="jawwadeh">الجيدة</option>
+                    </optgroup>
+
+                    <optgroup label="محافظة الزرقاء">
+                        <option value="zarqa_city">مدينة الزرقاء</option>
+                        <option value="zarqa_new">الزرقاء الجديدة</option>
+                        <option value="russayfa">الرصيفة</option>
+                        <option value="dhulayl">الضليل</option>
+                        <option value="azraq">الأزرق</option>
+                        <option value="hashimiyya">الهاشمية</option>
+                    </optgroup>
+
+                    <optgroup label="محافظة إربد">
+                        <option value="irbid_city">مدينة إربد</option>
+                        <option value="ramtha">الرمثا</option>
+                        <option value="sarar">صريح</option>
+                        <option value="aidoun">إيدون</option>
+                        <option value="husn">الحصن</option>
+                        <option value="kurayyimah">الكورة</option>
+                        <option value="bani_kinanah">باني كنانة</option>
+                        <option value="mazar_shamali">المزار الشمالي</option>
+                        <option value="taybeh">الطيبة</option>
+                    </optgroup>
+
+                    <optgroup label="محافظة البلقاء">
+                        <option value="salt_city">السلط (المركز)</option>
+                        <option value="baqaa">البقعة</option>
+                        <option value="ein_basha">عين الباشا</option>
+                        <option value="fuhis">الفحيص</option>
+                        <option value="mahis">ماحص</option>
+                    </optgroup>
+
+                    <optgroup label="محافظة مادبا">
+                        <option value="madaba_city">مدينة مادبا</option>
+                        <option value="dhiban">ذيبان</option>
+                    </optgroup>
+
+                    <optgroup label="محافظة جرش">
+                        <option value="jerash_city">مدينة جرش</option>
+                        <option value="souf">صوف</option>
+                        <option value="deir_al_yousef">برما</option>
+                    </optgroup>
+
+                    <optgroup label="محافظة عجلون">
+                        <option value="ajloun_city">مدينة عجلون</option>
+                        <option value="kufranjah">كفرنجة</option>
+                        <option value="anjarah">عنجرة</option>
+                    </optgroup>
+
+                    <optgroup label="محافظة المفرق">
+                        <option value="mafraq_city">مدينة المفرق</option>
+                        <option value="sabha">الصبحا</option>
+                        <option value="ruwaished">الرويشد</option>
+                    </optgroup>
+
+                    <optgroup label="محافظة الكرك">
+                        <option value="karak_city">مدينة الكرك</option>
+                        <option value="mutah">مؤة</option>
+                        <option value="mazar_janoubi">المزار الجنوبي</option>
+                        <option value="qatraneh">القطرانة</option>
+                    </optgroup>
+
+                    <optgroup label="محافظة الطفيلة">
+                        <option value="tafilah_city">مدينة الطفيلة</option>
+                        <option value="buseira">بصيرة</option>
+                        <option value="hasa">الحسا</option>
+                    </optgroup>
+
+                    <optgroup label="محافظة معان">
+                        <option value="maan_city">مدينة معان</option>
+                        <option value="wadi_musa">وادي موسى (البتراء)</option>
+                        <option value="shobak">الشوبك</option>
+                        <option value="jafr">الجفر</option>
+                    </optgroup>
+
+                    <optgroup label="محافظة العقبة">
+                        <option value="aqaba_city">مدينة العقبة (المركز)</option>
+                        <option value="quwayrah">القويرة</option>
+                        <option value="wadi_rum">وادي رم</option>
+                    </optgroup>
+                </select>
+            </div>
+
+            <!-- حاوية خانة البلدية (تظهر للجزائر وتختفي للأردن) -->
+            <div class="mb-3" id="baladiya_container">
+                <label class="form-label">البلدية</label>
+                <input type="text" name="baladia" id="baladiya_input" class="form-control" placeholder="أدخل اسم البلدية" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">العنوان بالتفصيل</label>
+                <input type="text" name="address" class="form-control" placeholder="الحي أو الشارع" required>
+            </div>
+
+            <div class="mb-3" id="delivery_type_box">
+                <label class="form-label">طريقة التوصيل</label>
+                <select id="delivery_type" name="delivery_type" class="form-select" onchange="calculateTotal()" required>
+                    <option value="home">توصيل للمنزل</option>
+                    <option value="office">توصيل للمكتب</option>
+                </select>
+            </div>
+
+            <input type="hidden" name="delivery_price" id="delivery_price_input" value="0">
+
+            <div class="price-box">
+                <h5>سعر التوصيل: <span id="shipping_display">0</span> دج</h5>
+                <h4 class="text-primary mt-2">المجموع الكلي: <span id="total_display">{{ product.price }}</span> دج</h4>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn-confirm">تأكيد الطلب</button>
+                <a href="/store2" class="btn-back">رجوع</a>
+            </div>
+        </form>
     </div>
+</div>
 
-    <!-- المحتوى الرئيسي للمتجر -->
-    <div class="container mb-5 flex-grow-1">
+<!-- سكربت الترجمة من جوجل -->
+<script type="text/javascript">
+function googleTranslateElementInit() {
+  new google.translate.TranslateElement({
+    pageLanguage: 'ar',
+    includedLanguages: 'ar,en,fr,es',
+    layout: google.translate.TranslateElement.InlineLayout.SIMPLE
+  }, 'google_translate_element');
+}
+</script>
+<script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
-        <!-- واجهة اختيار المتجر في حال عدم التحديد -->
-        {% if not current_company %}
-        <div class="bg-white p-5 rounded-4 shadow-sm text-center mb-5 mx-auto border" style="max-width: 500px;">
-            <div class="text-primary mb-3"><i class="fas fa-store fa-3x"></i></div>
-            <h5 class="fw-bold mb-3 text-dark">أدخل اسم المتجر الذي تود التسوق منه:</h5>
-            <form action="/shop" method="POST" class="d-flex gap-2 justify-content-center">
-                <input type="text" name="company_name" class="form-control rounded-pill px-4" placeholder="مثال: متجر بلال..." required>
-                <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold">دخول</button>
-            </form>
-        </div>
-        {% endif %}
+<script>
+    let basePrice = parseFloat("{{ product.price }}");
 
-        <!-- في حال كانت القائمة فارغة -->
-        {% if not products and current_company %}
-            <div class="text-center py-5 bg-white rounded-4 shadow-sm border my-5">
-                <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
-                <h5 class="text-secondary fw-semibold">لا توجد منتجات متاحة في هذا المتجر حالياً</h5>
-            </div>
-        {% elif products %}
-            <!-- شبكة عرض المنتجات الفاخرة (2 أعمدة في الهواتف، و3-4 في الحواسيب) -->
-            <div class="row g-3 g-md-4" id="products-grid">
-                {% for product in products %}
-                <div class="col-6 col-md-4 col-lg-3 product-card-container-wrapper">
-                    <div class="product-card">
-                        <div class="product-img-wrapper">
-                            {% if product['product-images'] %}
-                                <img src="{{ product['product-images'] }}" alt="{{ product.name }}">
-                            {% elif product.image_url %}
-                                <img src="{{ product.image_url }}" alt="{{ product.name }}">
-                            {% else %}
-                                <img src="https://via.placeholder.com/300" alt="{{ product.name }}">
-                            {% endif %}
-                            
-                            <!-- الشارات الاحترافية -->
-                            {% if product.quantity is defined and product.quantity > 0 %}
-                                <span class="badge-status bg-success bg-opacity-75 text-white">متوفر</span>
-                            {% elif product.quantity is defined and product.quantity <= 0 %}
-                                <span class="badge-status bg-danger bg-opacity-75 text-white">نفذت</span>
-                            {% else %}
-                                <span class="badge-status bg-primary bg-opacity-75 text-white">جديد</span>
-                            {% endif %}
-                        </div>
+    // دالة تبديل الحقول بناءً على الدولة المتاحة والتحكم في البلدية
+    function toggleCountryFields() {
+        const country = document.getElementById('country').value;
+        const algeriaSection = document.getElementById('algeria_section');
+        const jordanSection = document.getElementById('jordan_section');
+        const wilayaSelect = document.getElementById('wilaya');
+        const jordanSelect = document.getElementById('jordan_region');
+        const baladiyaContainer = document.getElementById('baladiya_container');
+        const baladiyaInput = document.getElementById('baladiya_input');
 
-                        <div class="product-body">
-                            <h3 class="product-title card-title" title="{{ product.name }}">{{ product.name }}</h3>
-                            <div class="product-price">
-                                {{ product.price }} <span class="currency">{{ currency or 'دج' }}</span>
-                            </div>
+        if (country === 'algeria') {
+            algeriaSection.classList.remove('d-none');
+            jordanSection.classList.add('d-none');
+            wilayaSelect.setAttribute('required', 'required');
+            jordanSelect.removeAttribute('required');
+            jordanSelect.value = "";
 
-                            {% if product.quantity is not defined or product.quantity > 0 %}
-                                <a href="/checkout/{{ product.id }}" class="btn-buy">
-                                    <i class="fas fa-shopping-bag"></i> شراء الآن
-                                </a>
-                            {% else %}
-                                <button disabled class="btn btn-secondary w-100 rounded-pill py-2 mt-auto opacity-50 cursor-not-allowed" style="font-size: 0.85rem;">غير متوفر</button>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-        {% endif %}
-    </div>
+            // إظهار خانة البلدية وجعلها مطلوبة للجزائر
+            if (baladiyaContainer) {
+                baladiyaContainer.style.display = "block";
+                if (baladiyaInput) baladiyaInput.setAttribute('required', 'required');
+            }
+        } else if (country === 'jordan') {
+            algeriaSection.classList.add('d-none');
+            jordanSection.classList.remove('d-none');
+            jordanSelect.setAttribute('required', 'required');
+            wilayaSelect.removeAttribute('required');
+            wilayaSelect.value = "";
 
-    <!-- سكربت ترجمة جوجل -->
-    <script type="text/javascript">
-    function googleTranslateElementInit() {
-      new google.translate.TranslateElement({
-        pageLanguage: 'ar',
-        includedLanguages: 'ar,en,fr,es',
-        layout: google.translate.TranslateElement.InlineLayout.SIMPLE
-      }, 'google_translate_element');
-    }
-    </script>
-    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
-
-    <!-- سكربت البحث الفوري المباشر -->
-    <script>
-        document.getElementById('searchInput')?.addEventListener('keyup', function() {
-            let filter = this.value.toLowerCase();
-            let products = document.querySelectorAll('.product-card-container-wrapper');
-            
-            products.forEach(item => {
-                let title = item.querySelector('.card-title').innerText.toLowerCase();
-                if (title.includes(filter)) {
-                    item.style.display = "";
-                } else {
-                    item.style.display = "none";
+            // إخفاء خانة البلدية تماماً للأردن وإلغاء إلزاميتها وتفريغها
+            if (baladiyaContainer) {
+                baladiyaContainer.style.display = "none";
+                if (baladiyaInput) {
+                    baladiyaInput.removeAttribute('required');
+                    baladiyaInput.value = "";
                 }
-            });
-        });
-    </script>
+            }
+            
+            // تصفير سعر التوصيل مؤقتاً لزبائن الأردن
+            document.getElementById('shipping_display').innerText = "0";
+            document.getElementById('delivery_price_input').value = 0;
+            document.getElementById('total_display').innerText = basePrice;
+        }
+        calculateTotal();
+    }
 
-    <!-- Bootstrap 5 JS Bundle -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    function calculateTotal() {
+        const country = document.getElementById('country').value;
+        const shippingDisplay = document.getElementById('shipping_display');
+        const totalDisplay = document.getElementById('total_display');
+        const deliveryPriceInput = document.getElementById('delivery_price_input');
+
+        let shippingPrice = 0;
+
+        if (country === 'algeria') {
+            const wilayaSelect = document.getElementById('wilaya');
+            const deliveryType = document.getElementById('delivery_type').value;
+            const selectedOption = wilayaSelect.options[wilayaSelect.selectedIndex];
+            
+            if (selectedOption && selectedOption.value !== "") {
+                shippingPrice = (deliveryType === 'home') ? parseFloat(selectedOption.dataset.home) : parseFloat(selectedOption.dataset.office);
+            }
+        } else if (country === 'jordan') {
+            shippingPrice = 0; // يمكنك تعديل سعر التوصيل الثابت للأردن لاحقاً هنا إذا أردت
+        }
+        
+        shippingDisplay.innerText = shippingPrice;
+        totalDisplay.innerText = (basePrice + shippingPrice);
+        deliveryPriceInput.value = shippingPrice;
+    }
+</script>
+
 </body>
 </html>
