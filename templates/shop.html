@@ -17,9 +17,9 @@
         .goog-te-combo {
             padding: 6px 14px;
             border-radius: 9999px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.4);
             outline: none;
-            background-color: rgba(255, 255, 255, 0.9);
+            background-color: rgba(255, 255, 255, 0.95);
             font-size: 13px;
             color: #4b5563;
             transition: all 0.3s ease;
@@ -29,22 +29,28 @@
             box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
         }
 
-        /* خلفية متدرجة فخمة وحيوية بدلاً من البياض السادة */
-        .page-gradient-bg {
-            background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 50%, #f1f5f9 100%);
+        /* خلفية حيوية جداً مليئة بالألوان والزخارف العصرية */
+        .vibrant-bg {
+            background-color: #f8fafc;
+            background-image: 
+                radial-gradient(at 10% 20%, rgba(99, 102, 241, 0.12) 0px, transparent 50%),
+                radial-gradient(at 90% 10%, rgba(168, 85, 247, 0.12) 0px, transparent 50%),
+                radial-gradient(at 50% 50%, rgba(236, 72, 153, 0.08) 0px, transparent 50%),
+                radial-gradient(at 10% 90%, rgba(59, 130, 246, 0.12) 0px, transparent 50%);
             min-height: 100vh;
+            background-attachment: fixed;
         }
     </style>
 </head>
-<body class="page-gradient-bg text-gray-800 flex flex-col justify-between">
+<body class="vibrant-bg text-gray-800 flex flex-col justify-between">
 
     <!-- الهيدر / رأس الصفحة بتصميم متدرج وفخم -->
-    <header class="bg-white/90 backdrop-blur-md shadow-md sticky top-0 z-50 border-b border-indigo-50">
+    <header class="bg-white/80 backdrop-blur-xl shadow-lg sticky top-0 z-50 border-b border-indigo-100/50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex flex-wrap justify-between items-center gap-4">
             
             <!-- عبارة الترحيب واسم المتجر بشكل أنيق -->
             <div class="flex items-center gap-2">
-                <span class="bg-gradient-to-r from-indigo-600 to-violet-600 text-white px-3 py-1 rounded-full text-xs sm:text-sm font-bold tracking-wide shadow-sm flex items-center gap-1.5">
+                <span class="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white px-3 py-1 rounded-full text-xs sm:text-sm font-bold tracking-wide shadow-md flex items-center gap-1.5">
                     <i class="fas fa-store"></i> متجر
                 </span>
                 <h1 class="text-base sm:text-xl font-black text-gray-900 tracking-tight">
@@ -54,10 +60,10 @@
             
             <!-- شريط البحث العصري -->
             <div class="flex-grow max-w-md relative">
-                <span class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-indigo-400">
+                <span class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-indigo-500">
                     <i class="fas fa-search"></i>
                 </span>
-                <input type="text" id="searchInput" class="w-full pl-4 pr-11 py-2 rounded-full border border-indigo-100 bg-indigo-50/30 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none transition-all duration-300 text-sm shadow-inner" placeholder="ابحث عن منتجك المفضّل...">
+                <input type="text" id="searchInput" class="w-full pl-4 pr-11 py-2.5 rounded-full border border-indigo-200/60 bg-white/80 focus:bg-white focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-600 outline-none transition-all duration-300 text-sm shadow-sm" placeholder="ابحث عن منتجك المفضّل...">
             </div>
 
             <!-- خيارات الترجمة والتحكم -->
@@ -65,7 +71,7 @@
                 <div id="google_translate_element"></div>
 
                 {% if current_company %}
-                    <a href="/clear_session" class="text-xs sm:text-sm font-semibold text-rose-600 hover:text-white bg-rose-50 hover:bg-rose-600 px-3.5 py-2 rounded-full transition-all duration-300 border border-rose-100 flex items-center gap-1 shadow-sm">
+                    <a href="/clear_session" class="text-xs sm:text-sm font-semibold text-rose-600 hover:text-white bg-rose-50 hover:bg-rose-600 px-3.5 py-2 rounded-full transition-all duration-300 border border-rose-200 flex items-center gap-1 shadow-sm">
                         <i class="fas fa-exchange-alt"></i> تغيير المتجر
                     </a>
                 {% endif %}
@@ -78,16 +84,16 @@
 
         <!-- واجهة إدخال اسم المتجر عند عدم وجود جلسة نشطة -->
         {% if not current_company %}
-        <div class="max-w-xl mx-auto bg-white/90 backdrop-blur-md p-8 sm:p-10 rounded-3xl shadow-xl shadow-indigo-100/50 border border-indigo-50 text-center mb-12 transform transition-all">
-            <div class="w-16 h-16 bg-gradient-to-tr from-indigo-600 to-violet-600 text-white rounded-2xl mx-auto flex items-center justify-center text-2xl mb-4 shadow-lg shadow-indigo-500/30">
+        <div class="max-w-xl mx-auto bg-white/90 backdrop-blur-xl p-8 sm:p-10 rounded-3xl shadow-2xl shadow-indigo-500/10 border border-indigo-100 text-center mb-12 transform transition-all">
+            <div class="w-16 h-16 bg-gradient-to-tr from-indigo-600 to-pink-600 text-white rounded-2xl mx-auto flex items-center justify-center text-2xl mb-4 shadow-lg shadow-indigo-500/30">
                 <i class="fas fa-shopping-bag"></i>
             </div>
             <h2 class="text-xl sm:text-2xl font-black text-gray-900 mb-2">أهلاً بك في منصة التسوق</h2>
             <p class="text-gray-500 text-sm mb-6">أدخل اسم المتجر الذي تود التسوق منه لمشاهدة أحدث المنتجات</p>
             
             <form action="/shop" method="POST" class="flex flex-col sm:flex-row gap-3 justify-center">
-                <input type="text" name="company_name" class="px-5 py-3 rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none w-full text-sm font-medium shadow-sm" placeholder="اكتب اسم المتجر هنا..." required>
-                <button type="submit" class="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white px-8 py-3 rounded-2xl font-bold transition-all duration-300 shadow-lg shadow-indigo-600/30 text-sm flex items-center justify-center gap-2 shrink-0">
+                <input type="text" name="company_name" class="px-5 py-3 rounded-2xl border border-indigo-200 bg-white focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-600 outline-none w-full text-sm font-medium shadow-sm" placeholder="اكتب اسم المتجر هنا..." required>
+                <button type="submit" class="bg-gradient-to-r from-indigo-600 to-pink-600 hover:from-indigo-700 hover:to-pink-700 text-white px-8 py-3 rounded-2xl font-bold transition-all duration-300 shadow-lg shadow-indigo-600/30 text-sm flex items-center justify-center gap-2 shrink-0">
                     <span>دخول</span>
                     <i class="fas fa-arrow-left text-xs"></i>
                 </button>
@@ -97,8 +103,8 @@
         
         <!-- الحالات الفارغة والمنتجات -->
         {% if not products and current_company %}
-            <div class="text-center py-20 bg-white/80 backdrop-blur-md rounded-3xl shadow-sm border border-indigo-50 max-w-lg mx-auto">
-                <div class="w-20 h-20 bg-amber-50 text-amber-500 rounded-full mx-auto flex items-center justify-center text-3xl mb-4">
+            <div class="text-center py-20 bg-white/90 backdrop-blur-xl rounded-3xl shadow-lg border border-indigo-100 max-w-lg mx-auto">
+                <div class="w-20 h-20 bg-amber-50 text-amber-500 rounded-full mx-auto flex items-center justify-center text-3xl mb-4 shadow-inner">
                     <i class="fas fa-box-open"></i>
                 </div>
                 <h3 class="text-xl font-bold text-gray-800 mb-1">لا توجد منتجات متاحة حالياً</h3>
@@ -108,14 +114,14 @@
             <!-- شبكة عرض المنتجات -->
             <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6" id="products-grid">
                 {% for product in products %}
-                    <div class="product-card-container bg-white/90 backdrop-blur-sm rounded-3xl shadow-md hover:shadow-2xl transition-all duration-300 border border-indigo-50 overflow-hidden flex flex-col justify-between p-3.5 sm:p-5 group">
+                    <div class="product-card-container bg-white/95 backdrop-blur-md rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-indigo-100/80 overflow-hidden flex flex-col justify-between p-3.5 sm:p-5 group hover:-translate-y-1">
                         
                         <!-- صندوق صورة المنتج -->
-                        <div class="relative w-full h-36 sm:h-44 bg-gradient-to-b from-gray-50 to-indigo-50/30 rounded-2xl overflow-hidden mb-4 shadow-inner">
+                        <div class="relative w-full h-36 sm:h-44 bg-gradient-to-br from-indigo-50/50 via-purple-50/30 to-pink-50/50 rounded-2xl overflow-hidden mb-4 shadow-inner">
                             {% if product['product-images'] %}
-                                <img src="{{ product['product-images'] }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="{{ product.name }}">
+                                <img src="{{ product['product-images'] }}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="{{ product.name }}">
                             {% else %}
-                                <div class="w-full h-full flex items-center justify-center text-indigo-200">
+                                <div class="w-full h-full flex items-center justify-center text-indigo-300">
                                     <i class="fas fa-image text-4xl"></i>
                                 </div>
                             {% endif %}
@@ -139,14 +145,14 @@
                                     {{ product.name }}
                                 </h3>
                                 <div class="flex items-baseline justify-center gap-1 mb-4">
-                                    <span class="text-indigo-600 font-black text-lg sm:text-xl tracking-tight">{{ product.price }}</span>
+                                    <span class="bg-gradient-to-r from-indigo-600 to-pink-600 bg-clip-text text-transparent font-black text-lg sm:text-xl tracking-tight">{{ product.price }}</span>
                                     <span class="text-xs font-bold text-gray-400">{{ currency or 'د.ج' }}</span>
                                 </div>
                             </div>
 
                             <!-- أزرار الشراء -->
                             {% if product.quantity > 0 %}
-                                <a href="/checkout/{{ product.id }}" class="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white text-center font-bold py-2.5 px-3 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-md shadow-indigo-600/30 hover:shadow-indigo-600/50 text-xs sm:text-sm active:scale-95">
+                                <a href="/checkout/{{ product.id }}" class="w-full bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:opacity-95 text-white text-center font-bold py-2.5 px-3 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 hover:shadow-indigo-600/50 text-xs sm:text-sm active:scale-95">
                                     <i class="fas fa-shopping-bag text-xs"></i> شراء الآن
                                 </a>
                             {% else %}
@@ -162,7 +168,7 @@
     </main>
 
     <!-- تذييل الصفحة (Footer) خفيف وراقي -->
-    <footer class="bg-white/80 backdrop-blur-md border-t border-indigo-50 py-6 mt-12 text-center text-xs text-gray-400 shadow-inner">
+    <footer class="bg-white/80 backdrop-blur-md border-t border-indigo-100 py-6 mt-12 text-center text-xs text-gray-500 shadow-inner">
         <p>جميع الحقوق محفوظة &copy; 2026 - منصة المتاجر الإلكترونية</p>
     </footer>
 
