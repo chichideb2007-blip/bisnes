@@ -42,16 +42,22 @@ def get_wilayas_from_db():
     res = supabase.table("shipping_rates").select("*").order("id").execute()
     return res.data if res.data else []
 
-# --- دالة تنبيه نفاذ المخزون عبر تيليجرام ---
-def send_telegram_alert(product_name, company_name):
-    TOKEN = "YOUR_TELEGRAM_BOT_TOKEN"
-    CHAT_ID = "YOUR_MANAGER_CHAT_ID"
-    
-    message = f"🚨 تنبيه نفاذ المخزون!\n\n🏪 المحل / المتجر: {company_name}\n📦 المنتج الذي نفد: {product_name}\n\n⚠️ لقد نفذت كمية هذا المنتج تماماً من المخزون!"
-    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage?chat_id={CHAT_ID}&text={requests.utils.quote(message)}"
-    
+# --- دالة تنبيه نفاذ المخزون عبر تيليجرام (المحدثة) ---
+def send_telegram_alert(product_name, company_name, company_code=""):
     try:
-        requests.get(url)
+        # محاولة جلب التوكن والـ Chat ID الخاص بالمحل من جدول settings
+        if company_code:
+            res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
+            if res_settings.data:
+                s = res_settings.data[0]
+                token, chat_id = s.get('telegram_token'), s.get('telegram_chat_id')
+                if token and chat_id:
+                    message = f"🚨 تنبيه نفاذ المخزون!\n\n🏪 المحل / المتجر: {company_name}\n📦 المنتج الذي نفد: {product_name}\n\n⚠️ لقد نفذت كمية هذا المنتج تماماً من المخزون!"
+                    url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={requests.utils.quote(message)}"
+                    requests.get(url)
+                    print(f"DEBUG: تم إرسال تنبيه نفاذ المخزون للمنتج {product_name}")
+                    return
+        print("DEBUG: لم يتم العثور على توكن تيليجرام خاص بهذا المحل في الإعدادات.")
     except Exception as e:
         print("Telegram error:", e)
 
@@ -280,9 +286,9 @@ def submit_order():
                 # تحديث الكمية في قاعدة البيانات
                 supabase.table("inventory").update({"quantity": new_qty}).eq("id", p_id).execute()
                 
-                # التحقق مما إذا نفد المخزون تماماً لإرسال التنبيه
+                # التحقق مما إذا نفد المخزون تماماً لإرسال التنبيه مع تمرير كود الشركة
                 if new_qty <= 0:
-                    send_telegram_alert(product_name_db, current_company)
+                    send_telegram_alert(product_name_db, current_company, company_code)
                     
         except Exception as ex:
             print(f"DEBUG: خطأ في خصم مخزون المنتج {p_id}: {ex}")
@@ -478,7 +484,7 @@ def settings():
             return f"حدث خطأ أثناء الحفظ: {str(e)}", 500
         return redirect(url_for('settings'))
     
-    res = supabase.table("settings").select("*").eq("company_code", company_code).execute()
+res = supabase.table("settings").select("*").eq("company_code", company_code).execute()
     settings_data = res.data[0] if res.data else {}
     return render_template('settings.html', settings=settings_data, currencies=currencies)
 
