@@ -57,7 +57,7 @@
                         <tr>
                             <th>الصورة</th>
                             <th>اسم المنتج</th>
-                            <th>الكمية</th>
+                            <th>الكمية والتحديث</th>
                             <th>السعر</th>
                             <th>الإجراءات</th>
                         </tr>
@@ -73,7 +73,14 @@
                                 {% endif %}
                             </td>
                             <td>{{ p.name }}</td>
-                            <td>{{ p.quantity }}</td>
+                            <td>
+                                <!-- نموذج تحديث الكمية المدمج -->
+                                <form action="/update_quantity/{{ p.id }}" method="POST" class="d-inline-flex gap-1 align-items-center justify-content-center">
+                                    <input type="hidden" name="action_type" value="set">
+                                    <input type="number" name="amount" value="{{ p.quantity }}" class="form-control form-control-sm text-center" style="width: 75px;" min="0">
+                                    <button type="submit" class="btn btn-sm btn-success" title="حفظ الكمية الجديدة">تحديث</button>
+                                </form>
+                            </td>
                             <td>{{ p.price }} {{ currency }}</td>
                             <td>
                                 <a href="{{ url_for('edit_product', id=p.id) }}" class="btn btn-sm btn-warning">تعديل</a>
