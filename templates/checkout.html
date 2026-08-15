@@ -1,236 +1,867 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>إتمام الطلب</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        body { background-color: #f8f9fa; font-family: 'Segoe UI', sans-serif; padding: 20px; }
-        .checkout-card { background: white; border-radius: 15px; padding: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 600px; margin: auto; }
-        .form-label { font-weight: bold; color: #333; }
-        .price-box { background: #e9ecef; padding: 15px; border-radius: 10px; margin: 20px 0; }
-        .btn-confirm { background-color: #198754; color: white; padding: 12px; font-weight: bold; border: none; border-radius: 8px; flex-grow: 1; }
-        .btn-back { background-color: #6c757d; color: white; padding: 12px; font-weight: bold; border: none; border-radius: 8px; text-decoration: none; text-align: center; }
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, make_response
+from supabase import create_client
+from collections import defaultdict
+from datetime import datetime
+from functools import wraps
+import os
+import time
+import requests
+import urllib.parse
+import base64
+import json
+from google import genai 
+from google.genai import types 
 
-        .goog-te-banner-frame.skiptranslate { display: none !important; }
-        body { top: 0px !important; }
-        .goog-te-combo {
-            padding: 6px 12px;
-            border-radius: 9999px;
-            border: 1px solid #d1d5db;
-            outline: none;
-            background-color: white;
-            font-size: 14px;
-            color: #374151;
-        }
-    </style>
-</head>
-<body>
+app = Flask(__name__)
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "fallback_dev_key")
 
-<div class="container mb-3" style="max-width: 600px;">
-    <div class="d-flex justify-content-end">
-        <div id="google_translate_element"></div>
-    </div>
-</div>
+# إعداد Supabase و Gemini
+supabase = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY"))
+client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
-<div class="container mt-2">
-    <div class="checkout-card">
-        <h3 class="text-center mb-4">معلومات الطلب</h3>
+# --- المعالج التلقائي للعملة (مُحدث) ---
+@app.context_processor
+def inject_currency():
+    company_code = session.get('company_code')
+    if company_code:
+        try:
+            res = supabase.table('settings').select("currency").eq("company_code", company_code).single().execute()
+            if res.data:
+                return dict(currency=res.data.get('currency', ''))
+        except:
+            pass
+    return dict(currency='DA')
+
+# --- الدوال المساعدة ---
+
+def get_product_from_db(product_id):
+    res = supabase.table("inventory").select("*").eq("id", product_id).single().execute()
+    return res.data if res.data else None
+
+def get_wilayas_from_db():
+    res = supabase.table("shipping_rates").select("*").order("id").execute()
+    return res.data if res.data else []
+
+# --- دالة تنبيه نفاذ المخزون عبر تيليجرام (المحدثة) ---
+def send_telegram_alert(product_name, company_name, company_code=""):
+    try:
+        if company_code:
+            res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
+            if res_settings.data:
+                s = res_settings.data[0]
+                token, chat_id = s.get('telegram_token'), s.get('telegram_chat_id')
+                if token and chat_id:
+                    message = f"🚨 تنبيه نفاذ المخزون!\n\n🏪 المحل / المتجر: {company_name}\n📦 المنتج الذي نفد: {product_name}\n\n⚠️ لقد نفذت كمية هذا المنتج تماماً من المخزون!"
+                    url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={requests.utils.quote(message)}"
+                    requests.get(url)
+                    print(f"DEBUG: تم إرسال تنبيه نفاذ المخزون للمنتج {product_name}")
+                    return
+        print("DEBUG: لم يتم العثور على توكن تيليجرام خاص بهذا المحل في الإعدادات.")
+    except Exception as e:
+        print("Telegram error:", e)
+
+def send_telegram_alert_by_token(token, chat_id, message):
+    if not token or not chat_id:
+        print("DEBUG: فشل إرسال التنبيه - التوكن أو Chat ID فارغ")
+        return False
+    
+    try:
+        url = f"https://api.telegram.org/bot{token}/sendMessage"
+        params = {"chat_id": chat_id, "text": message}
+        response = requests.get(url, params=params)
         
-        <div class="card p-3 mb-3 border-0 bg-light">
-            <h5>المنتج: <span class="text-indigo">{{ product.name }}</span></h5>
-            <p class="mb-0 text-danger fw-bold">السعر للقطعة: <span id="product_unit_price">{{ product.price }}</span> دج</p>
+        if response.status_code == 200:
+            print("DEBUG: تم إرسال التنبيه إلى تيلجرام بنجاح!")
+            return True
+        else:
+            print(f"DEBUG: فشل الإرسال. الكود: {response.status_code}, الرد: {response.text}")
+            return False
+    except Exception as e:
+        print(f"DEBUG: خطأ في الاتصال بتليجرام: {e}")
+        return False
+
+def send_order_alert(token, chat_id, message, order_id):
+    if not token or not chat_id:
+        return False
+    try:
+        url = f"https://api.telegram.org/bot{token}/sendMessage"
+        keyboard = {
+            "inline_keyboard": [[
+                {"text": "✅ تم التحضير", "callback_data": f"status_done_{order_id}"},
+                {"text": "❌ لم يتم التحضير", "callback_data": f"status_pending_{order_id}"}
+            ]]
+        }
+        payload = {
+            "chat_id": chat_id, 
+            "text": message, 
+            "reply_markup": keyboard
+        }
+        response = requests.post(url, json=payload)
+        return response.status_code == 200
+    except Exception as e:
+        print(f"Error sending order alert with buttons: {e}")
+        return False
+
+def get_products_by_shop_name(shop_name):
+    try:
+        shop_name_decoded = urllib.parse.unquote(shop_name).strip()
+        print(f"DEBUG: ابحث عن متجر باسم: {shop_name_decoded}")
+        
+        settings = supabase.table("settings").select("company_code").ilike("company_name", shop_name_decoded).execute()
+        
+        if not settings.data:
+            print("DEBUG: لم أجد متجراً بهذا الاسم")
+            return []
+        
+        company_code = settings.data[0]['company_code']
+        print(f"DEBUG: وجدت الكود: {company_code}")
+        
+        products = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
+        
+        print(f"DEBUG: المنتجات التي وجدتها لـ {company_code} هي: {len(products.data)}")
+        return products.data
+    except Exception as e:
+        print(f"DEBUG ERROR: {e}")
+        return []
+
+def get_delivery_price(wilaya, delivery_type):
+    return 500
+
+def refresh_instagram_token():
+    res = supabase.table("settings").select("company_code, instagram_token").execute()
+    for row in res.data:
+        old_token = row.get('instagram_token')
+        if old_token:
+            url = f"https://graph.facebook.com/v20.0/oauth/access_token?grant_type=fb_exchange_token&client_id={os.environ.get('APP_ID')}&client_secret={os.environ.get('APP_SECRET')}&fb_exchange_token={old_token}"
+            try:
+                response = requests.get(url).json()
+                new_token = response.get('access_token')
+                if new_token:
+                    supabase.table("settings").update({"instagram_token": new_token}).eq("company_code", row['company_code']).execute()
+            except Exception as e:
+                print(f"Token Refresh Error: {e}")
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'company_code' not in session: return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# --- المسارات ---
+
+@app.route('/favicon.ico')
+def favicon():
+    return '', 204
+
+@app.route('/')
+def home():
+    return redirect(url_for('login'))
+
+@app.route('/checkout/<int:product_id>')
+def checkout(product_id):
+    rates = get_wilayas_from_db()
+    
+    jordan_res = supabase.table("jordan_rates").select("*").execute()
+    jordan_rates = jordan_res.data if jordan_res.data else []
+    
+    product = get_product_from_db(product_id)
+    
+    if product:
+        company_code = product.get('company_id_text')
+        if company_code:
+            settings_res = supabase.table("settings").select("company_name").eq("company_code", company_code).execute()
+            if settings_res.data:
+                shop_name = settings_res.data[0].get('company_name')
+                session['current_shop_name'] = shop_name
+                
+    return render_template('checkout.html', product=product, rates=rates, jordan_rates=jordan_rates)
+
+@app.route('/submit-order', methods=['POST'])
+def submit_order():
+    customer_name = request.form.get('customer_name')
+    customer_last_name = request.form.get('customer_last_name', '')
+    full_name = f"{customer_name} {customer_last_name}".strip()
+    
+    phone = request.form.get('phone')
+    country = request.form.get('country', 'algeria')
+    
+    # التقاط اسم البلدية بغض النظر عن طريقة كتابتها في الـ HTML
+    baladiya = (
+        request.form.get('baladiya') or 
+        request.form.get('baladia') or 
+        request.form.get('municipality') or 
+        request.form.get('city') or 
+        "غير محددة"
+    )
+    
+    address = request.form.get('address', '')
+    delivery_type = request.form.get('delivery_type')
+    delivery_price = float(request.form.get('delivery_price', 0))
+    quantity_ordered = int(request.form.get('quantity', 1))
+    
+    cart_raw = request.form.get('cart_data', '')
+    cart_data = []
+    
+    if cart_raw and cart_raw != '[]':
+        try:
+            cart_data = json.loads(cart_raw)
+        except:
+            cart_data = []
+            
+    product_id = request.form.get('product_id')
+    if not cart_data and product_id:
+        single_product = get_product_from_db(product_id)
+        if single_product:
+            cart_data = [single_product]
+
+    base_price = sum(float(item.get('price', 0)) for item in cart_data)
+    total_price = (base_price * quantity_ordered) + delivery_price
+
+    company_code = ""
+    if cart_data:
+        first_item = cart_data[0]
+        company_code = first_item.get('company_id_text') or first_item.get('company_code') or ""
+    
+    if not company_code and 'current_shop_name' in session:
+        shop_name = session.get('current_shop_name')
+        settings_res = supabase.table("settings").select("company_code").ilike("company_name", shop_name).execute()
+        if settings_res.data:
+            company_code = settings_res.data[0]['company_code']
+
+    if not company_code and 'current_store2_name' in session:
+        shop_name = session.get('current_store2_name')
+        settings_res = supabase.table("settings").select("company_code").ilike("company_name", shop_name).execute()
+        if settings_res.data:
+            company_code = settings_res.data[0]['company_code']
+
+    current_company = session.get('current_shop_name') or session.get('current_store2_name') or "متجر غير معروف"
+    if not current_company and company_code:
+        s_res = supabase.table("settings").select("company_name").eq("company_code", company_code).execute()
+        if s_res.data:
+            current_company = s_res.data[0].get('company_name', "متجر")
+
+    # تحديد اسم الولاية أو المحافظة حسب الدولة المختارة
+    region_name = ""
+    if country == 'algeria':
+        wilaya = request.form.get('wilaya')
+        region_name = wilaya
+        try:
+            w_res = supabase.table("shipping_rates").select("wilaya_name").eq("id", wilaya).single().execute()
+            if w_res.data and w_res.data.get('wilaya_name'):
+                region_name = w_res.data.get('wilaya_name')
+        except:
+            pass
+    elif country == 'jordan':
+        jordan_region_id = request.form.get('jordan_region')
+        region_name = "الأردن"
+        try:
+            j_res = supabase.table("jordan_rates").select("governorate_name").eq("id", jordan_region_id).single().execute()
+            if j_res.data and j_res.data.get('governorate_name'):
+                region_name = f"الأردن - {j_res.data.get('governorate_name')}"
+        except:
+            pass
+
+    main_product_id = cart_data[0].get('id') if cart_data else (int(product_id) if product_id else None)
+
+    order_data = {
+        "customer_name": full_name,
+        "customer_phone": phone,
+        "product_name": ", ".join([str(item.get('name', 'منتج')) for item in cart_data]), 
+        "quantity": quantity_ordered,
+        "total_price": total_price,
+        "company_code": company_code,
+        "status": "قيد الانتظار",
+        "state": region_name,
+        "baladiya": baladiya,
+        "delivery_type": delivery_type,
+        "delivery_price": delivery_price,
+        "product_id": main_product_id
+    }
+    
+    inserted_order_id = None
+    try:
+        res_insert = supabase.table("orders").insert(order_data).execute()
+        if res_insert.data and len(res_insert.data) > 0:
+            inserted_order_id = res_insert.data[0].get('id')
+    except Exception as e:
+        print(f"Error inserting order: {e}")
+
+    items_to_deduct = []
+    if cart_data:
+        for item in cart_data:
+            item_id = item.get('id') or item.get('product_id')
+            if item_id:
+                items_to_deduct.append(int(item_id))
+    elif product_id:
+        items_to_deduct.append(int(product_id))
+
+    for p_id in items_to_deduct:
+        try:
+            prod_res = supabase.table("inventory").select("name, quantity").eq("id", p_id).execute()
+            if prod_res.data and len(prod_res.data) > 0:
+                prod_info = prod_res.data[0]
+                current_qty = int(prod_info.get('quantity', 0))
+                product_name_db = prod_info.get('name', 'منتج')
+                new_qty = max(0, current_qty - quantity_ordered)
+                
+                supabase.table("inventory").update({"quantity": new_qty}).eq("id", p_id).execute()
+                
+                if new_qty <= 0:
+                    send_telegram_alert(product_name_db, current_company, company_code)
+                    
+        except Exception as ex:
+            print(f"DEBUG: خطأ في خصم مخزون المنتج {p_id}: {ex}")
+
+    if company_code:
+        res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
+        if res_settings.data:
+            s = res_settings.data[0]
+            token, chat_id = s.get('telegram_token'), s.get('telegram_chat_id')
+            product_names_str = ", ".join([str(item.get('name', 'منتج')) for item in cart_data])
+            if token and chat_id:
+                delivery_text = "توصيل للمنزل" if delivery_type == "home" else "توصيل للمكتب"
+                msg = (
+                    f"🛒 طلبية جديدة!\n"
+                    f"👤 الاسم: {full_name}\n"
+                    f"📞 الهاتف: {phone}\n"
+                    f"📦 المنتجات: {product_names_str}\n"
+                    f"🔢 الكمية: {quantity_ordered}\n"
+                    f"📍 المنطقة/الولاية: {region_name}\n"
+                    f"🏘️ البلدية: {baladiya}\n"
+                    f"🏠 العنوان: {address}\n"
+                    f"🚚 التوصيل: {delivery_text} ({delivery_price} دج)\n"
+                    f"💰 المجموع الكلي: {total_price} دج"
+                )
+                if inserted_order_id:
+                    send_order_alert(token, chat_id, msg, inserted_order_id)
+                else:
+                    send_telegram_alert_by_token(token, chat_id, msg)
+
+    return """
+    <!DOCTYPE html>
+    <html lang="ar" dir="rtl">
+    <head>
+        <meta charset="UTF-8">
+        <title>تم الطلب بنجاح</title>
+        <style>
+            body { font-family: Tahoma, sans-serif; background-color: #f4f7f6; text-align: center; padding-top: 50px; margin: 0; }
+            .card { background: white; max-width: 400px; margin: auto; padding: 30px; border-radius: 10px; box-shadow: 0px 4px 10px rgba(0,0,0,0.1); }
+            h2 { color: #28a745; }
+            p { color: #555; font-size: 16px; }
+            .btn { display: inline-block; margin-top: 20px; background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; }
+            .btn:hover { background: #0056b3; }
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <h2>🎉 تم تأكيد طلبك بنجاح!</h2>
+            <p>شكراً لثقتكم بنا، سيتم الاتصال بكم قريباً لتأكيد الطلب.</p>
+            <a href="/store2" class="btn">🔙 العودة إلى المتجر</a>
         </div>
+    </body>
+    </html>
+    """
 
-        <form action="/submit-order" method="POST">
-            <input type="hidden" name="product_id" value="{{ product.id }}">
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        company_code = request.form.get('company_code')
+        res = supabase.table("settings").select("company_code").eq("company_code", company_code).execute()
+        if res.data:
+            session['company_code'] = company_code
+            return redirect(url_for('dashboard'))
+        else:
+            return "كود الشركة غير صحيح، يرجى التأكد منه.", 401
+    return render_template('login.html')
 
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">الاسم</label>
-                    <input type="text" name="customer_name" class="form-control" required placeholder="الاسم">
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">اللقب</label>
-                    <input type="text" name="customer_last_name" class="form-control" required placeholder="اللقب">
-                </div>
-            </div>
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if request.method == 'POST':
+        company_code = request.form.get('company_code')
+        company_name = request.form.get('company_name')
+        res = supabase.table("settings").select("company_code").eq("company_code", company_code).execute()
+        if res.data:
+            return "هذا الكود مستخدم بالفعل، يرجى اختيار كود آخر!", 400
+        try:
+            supabase.table("settings").insert({"company_code": company_code, "company_name": company_name}).execute()
+            return "تم إنشاء الحساب بنجاح!"
+        except Exception as e:
+            return f"حدث خطأ: {e}", 500
+    return render_template('signup.html')
 
-            <div class="mb-3">
-                <label class="form-label">رقم الهاتف</label>
-                <input type="tel" name="phone" class="form-control" required placeholder="0XXXXXXXXX">
-            </div>
+@app.route('/logout')
+def logout():
+    session.pop('company_code', None)
+    return redirect(url_for('login'))
 
-            <!-- خانة البلد -->
-            <div class="mb-3">
-                <label for="country" class="form-label">البلد</label>
-                <select id="country" name="country" class="form-select" onchange="toggleCountryFields()" required>
-                    <option value="" disabled selected>-- اختر الدولة --</option>
-                    <option value="algeria">الجزائر 🇩🇿</option>
-                    <option value="jordan">الأردن 🇯🇴</option>
-                </select>
-            </div>
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    return render_template('dashboard.html')
 
-            <!-- خانة الكمية -->
-            <div class="mb-3">
-                <label for="quantity" class="form-label">الكمية</label>
-                <input type="number" id="quantity" name="quantity" class="form-control" value="1" min="1" oninput="calculateTotal()" required>
-            </div>
+@app.route('/check_orphaned_products')
+@login_required
+def check_orphaned_products():
+    try:
+        res = supabase.rpc("get_orphaned_products").execute()
+        return jsonify({"orphaned_products": res.data})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
-            <!-- خانة ولايات الجزائر -->
-            <div class="mb-3" id="algeria_section">
-                <label class="form-label">الولاية</label>
-                <select id="wilaya" name="wilaya" class="form-select" onchange="calculateTotal()">
-                    <option value="">-- اختر الولاية --</option>
-                    {% for wilaya in rates %}
-                        <option value="{{ wilaya.id }}" 
-                                data-home="{{ wilaya.home_price }}" 
-                                data-office="{{ wilaya.office_price }}">
-                            {{ wilaya.wilaya_name }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
+@app.route('/stats')
+@login_required
+def stats():
+    company_code = session.get('company_code')
+    try:
+        res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
+        orders = res.data or []
+    except Exception as e:
+        orders = []
 
-            <!-- خانة محافظات الأردن (محدثة بالاسم الصحيح للعمود governorate_name) -->
-            <div class="mb-3 d-none" id="jordan_section">
-                <label for="jordan_region" class="form-label">المحافظة والمنطقة (الأردن)</label>
-                <select id="jordan_region" name="jordan_region" class="form-select" onchange="calculateTotal()" style="color: #000 !important; background-color: #fff !important;" required>
-                    <option value="" disabled selected style="color: #000;">-- اختر المحافظة والمنطقة --</option>
-                    {% for rate in jordan_rates %}
-                        <option value="{{ rate.id }}" 
-                                data-home="{{ rate.home_price }}" 
-                                data-office="{{ rate.office_price }}"
-                                style="color: #000 !important; background-color: #fff !important;">
-                            {{ rate.governorate_name }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
+    total_revenue = sum(float(order.get("total_price") or 0) for order in orders)
+    total_orders_count = len(orders)
+    total_expenses = 0.0 
 
-            <!-- حاوية خانة البلدية (تظهر للجزائر وتختفي للأردن تلقائياً) -->
-            <div class="mb-3" id="baladiya_container">
-                <label class="form-label">البلدية</label>
-                <input type="text" name="baladia" id="baladiya_input" class="form-control" placeholder="أدخل اسم البلدية">
-            </div>
+    days_map = {"السبت": 0, "الأحد": 0, "الاثنين": 0, "الثلاثاء": 0, "الأربعاء": 0, "الخميس": 0, "الجمعة": 0}
+    day_names_map = {5: "السبت", 6: "الأحد", 0: "الاثنين", 1: "الثلاثاء", 2: "الأربعاء", 3: "الخميس", 4: "الجمعة"}
 
-            <div class="mb-3">
-                <label class="form-label">العنوان بالتفصيل</label>
-                <input type="text" name="address" class="form-control" placeholder="الحي أو الشارع" required>
-            </div>
-
-            <div class="mb-3" id="delivery_type_box">
-                <label class="form-label">طريقة التوصيل</label>
-                <select id="delivery_type" name="delivery_type" class="form-select" onchange="calculateTotal()" required>
-                    <option value="home">توصيل للمنزل</option>
-                    <option value="office">توصيل للمكتب</option>
-                </select>
-            </div>
-
-            <input type="hidden" name="delivery_price" id="delivery_price_input" value="0">
-
-            <div class="price-box">
-                <h5>سعر التوصيل: <span id="shipping_display">0</span></h5>
-                <h4 class="text-primary mt-2">المجموع الكلي: <span id="total_display">{{ product.price }}</span></h4>
-            </div>
-
-            <div class="d-flex gap-2">
-                <button type="submit" class="btn-confirm">تأكيد الطلب</button>
-                <a href="/store2" class="btn-back">رجوع</a>
-            </div>
-        </form>
-    </div>
-</div>
-
-<script type="text/javascript">
-function googleTranslateElementInit() {
-  new google.translate.TranslateElement({
-    pageLanguage: 'ar',
-    includedLanguages: 'ar,en,fr,es',
-    layout: google.translate.TranslateElement.InlineLayout.SIMPLE
-  }, 'google_translate_element');
-}
-</script>
-<script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
-
-<script>
-    let basePrice = parseFloat("{{ product.price }}");
-
-    function toggleCountryFields() {
-        const country = document.getElementById('country').value;
-        const algeriaSection = document.getElementById('algeria_section');
-        const jordanSection = document.getElementById('jordan_section');
-        const wilayaSelect = document.getElementById('wilaya');
-        const jordanSelect = document.getElementById('jordan_region');
-        const baladiyaContainer = document.getElementById('baladiya_container');
-        const baladiyaInput = document.getElementById('baladiya_input');
-
-        if (country === 'algeria') {
-            algeriaSection.classList.remove('d-none');
-            jordanSection.classList.add('d-none');
-            wilayaSelect.setAttribute('required', 'required');
-            jordanSelect.removeAttribute('required');
-            jordanSelect.value = "";
-
-            if (baladiyaContainer) {
-                baladiyaContainer.style.display = "block";
-                if (baladiyaInput) baladiyaInput.setAttribute('required', 'required');
-            }
-        } else if (country === 'jordan') {
-            algeriaSection.classList.add('d-none');
-            jordanSection.classList.remove('d-none');
-            jordanSelect.setAttribute('required', 'required');
-            wilayaSelect.removeAttribute('required');
-            wilayaSelect.value = "";
-
-            if (baladiyaContainer) {
-                baladiyaContainer.style.display = "none";
-                if (baladiyaInput) {
-                    baladiyaInput.removeAttribute('required');
-                    baladiyaInput.value = "";
-                }
-            }
-        }
-        calculateTotal();
+    monthly_map = {
+        "جانفي": 0, "فيفري": 0, "مارس": 0, "أفريل": 0, "ماي": 0, "جوان": 0,
+        "جويلية": 0, "أوت": 0, "سبتمبر": 0, "أكتوبر": 0, "نوفمبر": 0, "ديسمبر": 0
+    }
+    month_names_map = {
+        1: "جانفي", 2: "فيفري", 3: "مارس", 4: "أفريل", 5: "ماي", 6: "جوان",
+        7: "جويلية", 8: "أوت", 9: "سبتمبر", 10: "أكتوبر", 11: "نوفمبر", 12: "ديسمبر"
     }
 
-    function calculateTotal() {
-        const country = document.getElementById('country').value;
-        const shippingDisplay = document.getElementById('shipping_display');
-        const totalDisplay = document.getElementById('total_display');
-        const deliveryPriceInput = document.getElementById('delivery_price_input');
-        const quantity = parseInt(document.getElementById('quantity').value) || 1;
+    current_year = datetime.now().year
+    yearly_map = {}
+    for y in range(2026, max(current_year + 1, 2027)):
+        yearly_map[str(y)] = 0
 
-        let shippingPrice = 0;
+    for order in orders:
+        created_at = order.get("created_at")
+        total_price = float(order.get("total_price") or 0)
+        if created_at:
+            try:
+                dt = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                
+                day_name = day_names_map.get(dt.weekday())
+                if day_name in days_map:
+                    days_map[day_name] += total_price
 
-        if (country === 'algeria') {
-            const wilayaSelect = document.getElementById('wilaya');
-            const deliveryType = document.getElementById('delivery_type').value;
-            const selectedOption = wilayaSelect.options[wilayaSelect.selectedIndex];
+                month_name = month_names_map.get(dt.month)
+                if month_name in monthly_map:
+                    monthly_map[month_name] += total_price
+
+                year_str = str(dt.year)
+                if year_str not in yearly_map:
+                    yearly_map[year_str] = 0
+                yearly_map[year_str] += total_price
+
+            except Exception as ex:
+                print(f"Date parse error: {ex}")
+
+    cleaned_orders = []
+    for order in orders:
+        cleaned_order = {
+            "id": order.get("id"),
+            "customer_name": str(order.get("customer_name") or ""),
+            "total_price": float(order.get("total_price") or 0),
+            "status": str(order.get("status") or ""),
+            "created_at": str(order.get("created_at") or ""),
+            "product_name": str(order.get("product_name") or "")
+        }
+        cleaned_orders.append(cleaned_order)
+
+    return render_template(
+        'stats.html', 
+        orders=cleaned_orders, 
+        total_orders_count=total_orders_count, 
+        total_revenue=total_revenue,
+        total_expenses=total_expenses,
+        daily=days_map,
+        monthly=monthly_map,
+        yearly=yearly_map
+    )
+
+@app.route('/settings', methods=['GET', 'POST'])
+@login_required
+def settings():
+    company_code = session.get('company_code')
+    currencies = [
+        ("USD", "دولار أمريكي"), ("EUR", "يورو"), ("GBP", "جنيه إسترليني"), ("JPY", "ين ياباني"),
+        ("SAR", "ريال سعودي"), ("AED", "درهم إماراتي"), ("DZD", "دينار جزائري"), ("EGP", "جنيه مصري"),
+        ("KWD", "دينار كويتي"), ("QAR", "ريال قطري"), ("BHD", "دينار بحريني"), ("OMR", "ريال عماني"),
+        ("JOD", "دينار أردني"), ("LBP", "ليرة لبنانية"), ("LYD", "دينار ليبي"), ("MAD", "درهم مغربي"),
+        ("TND", "دينار تونسي"), ("IQD", "دينار عراقي"), ("SYP", "ليرة سورية"), ("YER", "ريال يمني"),
+        ("TRY", "ليرة تركية"), ("AUD", "دولار أسترالي"), ("CAD", "دولار كندي"), ("CHF", "فرنك سويسري"),
+        ("CNY", "يوان صيني"), ("INR", "روبية هندية"), ("RUB", "روبل روسي"), ("SGD", "دولار سنغافوري"),
+        ("SDG", "جنيه سوداني"), ("MRU", "أوقية موريتانية"), ("SOS", "شلن صومالي"), ("KMF", "فرنك جزر القمر"),
+        ("DJF", "فرنك جيبوتي"), ("BND", "دولار بروناي"), ("KRW", "وون كوري جنوبي"), ("MXN", "بيزو مكسيكي")
+    ]
+    
+    if request.method == 'POST':
+        data = {
+            "company_name": request.form.get('shop_name'),
+            "telegram_token": request.form.get('bot_token'),
+            "telegram_chat_id": request.form.get('chat_id'),
+            "instagram_url": request.form.get('instagram_link'),
+            "currency": request.form.get('currency') 
+        }
+        try:
+            supabase.table("settings").update(data).eq("company_code", company_code).execute()
+        except Exception as e:
+            return f"حدث خطأ أثناء الحفظ: {str(e)}", 500
+        return redirect(url_for('settings'))
+    
+    res = supabase.table("settings").select("*").eq("company_code", company_code).execute()
+    settings_data = res.data[0] if res.data else {}
+    return render_template('settings.html', settings=settings_data, currencies=currencies)
+
+@app.route('/shipping_settings', methods=['GET'])
+@login_required
+def shipping_settings():
+    return render_template('shipping_settings.html')
+
+@app.route('/get_delivery_prices', methods=['GET'])
+@login_required
+def get_delivery_prices():
+    company_code = session.get('company_code')
+    data = supabase.table("delivery_prices").select("*").eq("company_code", company_code).execute()
+    return jsonify(data.data)
+
+@app.route('/update_delivery_price', methods=['POST'])
+@login_required
+def update_delivery_price():
+    data = request.json
+    row_id = data.get('id')
+    new_office = data.get('office_price')
+    new_home = data.get('home_price')
+    
+    try:
+        supabase.table("shipping_rates").update({
+            "office_price": new_office,
+            "home_price": new_home
+        }).eq("id", row_id).execute()
+        return jsonify({"status": "success"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/get_shipping_rates')
+def get_shipping_rates():
+    company_code = request.args.get('company_code')
+    delivery_type = request.args.get('type') 
+    
+    try:
+        res = supabase.table("delivery_prices") \
+            .select("home_price, office_price") \
+            .eq("company_code", company_code) \
+            .single().execute()
+        if res.data:
+            price = res.data.get('home_price') if delivery_type == 'home' else res.data.get('office_price')
+            return jsonify({"price": float(price or 0)})
+    except Exception as e:
+        pass
+    return jsonify({"price": 0})
+
+@app.route('/get_all_shipping_rates', methods=['GET'])
+@login_required
+def get_all_shipping_rates():
+    res = supabase.table("shipping_rates").select("*").order("id").execute()
+    return jsonify(res.data)
+
+@app.route('/update_delivery_settings', methods=['POST'])
+@login_required
+def update_delivery_settings():
+    data = request.json
+    company_code = session.get('company_code')
+    supabase.table("company_settings").update({
+        "delivery_office_price": data.get('office_price'),
+        "delivery_home_price": data.get('home_price')
+    }).eq("company_code", company_code).execute()
+    return jsonify({"status": "success"})
+
+@app.route('/admin/jordan-shipping')
+@login_required
+def admin_jordan_shipping():
+    res = supabase.table("jordan_rates").select("*").order("id").execute()
+    jordan_rates = res.data if res.data else []
+    return render_template('admin_jordan.html', jordan_rates=jordan_rates)
+
+@app.route('/admin/update-jordan-rate/<int:id>', methods=['POST'])
+@login_required
+def update_jordan_rate(id):
+    try:
+        if request.is_json:
+            data = request.json
+            home_price = data.get('home_price')
+            office_price = data.get('office_price')
+        else:
+            home_price = request.form.get('home_price')
+            office_price = request.form.get('office_price')
+
+        supabase.table("jordan_rates").update({
+            "home_price": float(home_price or 0),
+            "office_price": float(office_price or 0)
+        }).eq("id", id).execute()
+
+        if request.is_json:
+            return jsonify({"status": "success"})
+        return redirect(url_for('orders'))
+    except Exception as e:
+        if request.is_json:
+            return jsonify({"status": "error", "message": str(e)}), 500
+        return f"حدث خطأ: {e}", 500
+
+@app.route('/products', methods=['GET', 'POST'])
+@login_required
+def products():
+    company_code = session.get('company_code')
+    
+    if request.method == 'POST':
+        file = request.files.get('product_image')
+        encoded_string = ""
+        if file and file.filename != '':
+            encoded_string = f'data:image/jpeg;base64,{base64.b64encode(file.read()).decode("utf-8")}'
+
+        data = {
+            'name': request.form.get('name'),
+            'quantity': int(request.form.get('quantity', 0)),
+            'price': float(request.form.get('price', 0.0)),
+            'company_id_text': company_code,
+            'product-images': encoded_string
+        }
+        try:
+            supabase.table('inventory').insert(data).execute()
+            return redirect(url_for('products'))
+        except Exception as e:
+            return f"خطأ في قاعدة البيانات: {str(e)}", 500
+
+    res = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
+    return render_template('products.html', products=res.data or [])
+
+@app.route('/inventory_management', methods=['GET', 'POST'])
+@login_required
+def inventory_management():
+    company_code = session.get('company_code')
+    
+    if request.method == 'POST':
+        product_id = request.form.get('product_id')
+        new_quantity = request.form.get('quantity')
+        file = request.files.get('product_image')
+        
+        update_data = {"quantity": int(new_quantity)}
+        
+        if file and file.filename != '':
+            filename = f"{company_code}/{int(time.time())}_{file.filename}"
+            supabase.storage.from_("products").upload(
+                path=filename,
+                file=file.read(),
+                file_options={"content-type": file.content_type}
+            )
+            public_url = supabase.storage.from_("products").get_public_url(filename)
+            update_data["product-images"] = public_url
+        
+        try:
+            supabase.table('inventory').update(update_data).eq("id", product_id).eq("company_id_text", company_code).execute()
+        except Exception as e:
+            print(f"DEBUG: خطأ في تحديث المخزون: {e}")
             
-            if (selectedOption && selectedOption.value !== "") {
-                shippingPrice = (deliveryType === 'home') ? parseFloat(selectedOption.dataset.home || 0) : parseFloat(selectedOption.dataset.office || 0);
-            }
-        } else if (country === 'jordan') {
-            const jordanSelect = document.getElementById('jordan_region');
-            const deliveryType = document.getElementById('delivery_type').value;
-            const selectedJordanOption = jordanSelect.options[jordanSelect.selectedIndex];
+    try:
+        res = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
+        inventory_data = res.data or []
+    except Exception as e:
+        inventory_data = []
+        
+    return render_template('inventory_management.html', inventory=inventory_data)
+
+@app.route('/edit_product/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit_product(id):
+    company_code = session.get('company_code')
+    res = supabase.table("inventory").select("*").eq("id", id).eq("company_id_text", company_code).execute()
+    product = res.data[0] if res.data else None
+    
+    if not product:
+        return "المنتج غير موجود", 404
+
+    if request.method == 'POST':
+        new_name = request.form.get('name')
+        new_quantity = request.form.get('quantity')
+        new_price = request.form.get('price')
+        
+        supabase.table("inventory").update({
+            "name": new_name,
+            "quantity": int(new_quantity),
+            "price": float(new_price)
+        }).eq("id", id).execute()
+        
+        return redirect(url_for('products'))
+        
+    return render_template('edit_product.html', product=product)
+
+@app.route('/update_quantity/<int:product_id>', methods=['POST'])
+@login_required
+def update_quantity(product_id):
+    company_code = session.get('company_code')
+    action_type = request.form.get('action_type')
+    amount = int(request.form.get('amount', 0))
+    
+    prod = supabase.table("inventory").select("quantity").eq("id", product_id).eq("company_id_text", company_code).single().execute()
+    
+    if prod.data:
+        current_qty = prod.data.get('quantity', 0)
+        
+        if action_type == 'add':
+            new_qty = current_qty + amount
+        else:
+            new_qty = amount
             
-            if (selectedJordanOption && selectedJordanOption.value !== "") {
-                shippingPrice = (deliveryType === 'home') ? parseFloat(selectedJordanOption.dataset.home || 0) : parseFloat(selectedJordanOption.dataset.office || 0);
-            }
+        supabase.table("inventory").update({"quantity": new_qty}).eq("id", product_id).execute()
+        
+    return redirect(url_for('products'))
+
+@app.route('/delete_product/<int:id>', methods=['POST'])
+@login_required
+def delete_product(id):
+    try: supabase.table("inventory").delete().eq("id", id).execute()
+    except Exception as e: print(f"Delete Error: {e}")
+    return redirect(url_for('products'))
+
+@app.route('/delete_order/<int:id>', methods=['POST'])
+@login_required
+def delete_order(id):
+    supabase.table("orders").delete().eq("id", id).execute()
+    return redirect(url_for('orders'))
+
+@app.route('/update_status/<int:order_id>', methods=['POST'])
+@login_required
+def update_status(order_id):
+    new_status = request.form.get('status')
+    if new_status:
+        supabase.table("orders").update({"status": new_status}).eq("id", order_id).execute()
+    return redirect(url_for('orders'))
+
+@app.route('/orders', methods=['GET', 'POST'])
+@login_required
+def orders():
+    company_code = session.get('company_code')
+    
+    if request.method == 'POST':
+        product_name = request.form.get('product_name')
+        requested_qty = int(request.form.get('quantity', 1))
+        customer_name = request.form.get('customer_name')
+        customer_phone = request.form.get('customer_phone')
+        state = request.form.get('state')
+        delivery_type = request.form.get('delivery_type')
+        delivery_price = float(request.form.get('delivery_price', 0.0))
+        base_price = float(request.form.get('price', 0.0))
+        total_price = base_price + delivery_price
+
+        product_res = supabase.table("inventory").select("id, quantity").eq("name", product_name).eq("company_id_text", company_code).execute()
+        
+        prod_id = None
+        if product_res.data:
+            product = product_res.data[0]
+            prod_id = product['id']
+            current_qty = product['quantity']
+            new_qty = max(0, current_qty - requested_qty)
+            supabase.table("inventory").update({"quantity": new_qty}).eq("id", prod_id).execute()
+
+        order_data = {
+            "customer_name": customer_name,
+            "customer_phone": customer_phone,
+            "product_name": product_name,
+            "quantity": requested_qty,
+            "total_price": total_price,
+            "company_code": company_code,
+            "status": "قيد الانتظار",
+            "state": state,
+            "delivery_type": delivery_type,
+            "delivery_price": delivery_price,
+            "product_id": prod_id
         }
         
-        let productsTotal = basePrice * quantity;
-        let finalTotal = productsTotal + shippingPrice;
+        res_insert = supabase.table("orders").insert(order_data).execute()
+        inserted_order_id = res_insert.data[0].get('id') if res_insert.data else None
+        
+        res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
+        if res_settings.data:
+            s = res_settings.data[0]
+            token = s.get('telegram_token')
+            chat_id = s.get('telegram_chat_id')
+            if token and chat_id:
+                msg = f"🛒 طلبية جديدة من لوحة التحكم!\nالعميل: {customer_name}\nالمنتج: {product_name}\nالكمية: {requested_qty}\nالولاية: {state}"
+                if inserted_order_id:
+                    send_order_alert(token, chat_id, msg, inserted_order_id)
+                else:
+                    send_telegram_alert_by_token(token, chat_id, msg)
+        
+        return redirect(url_for('orders'))
 
-        shippingDisplay.innerText = shippingPrice;
-        totalDisplay.innerText = finalTotal;
-        deliveryPriceInput.value = shippingPrice;
-    }
-</script>
+    orders_res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
+    wilayas_res = supabase.table("shipping_rates").select("*").order("id").execute()
+    jordan_res = supabase.table("jordan_rates").select("*").order("id").execute()
+    
+    return render_template('orders_dashboard.html', 
+                           orders=orders_res.data or [], 
+                           wilayas=wilayas_res.data or [],
+                           jordan_rates=jordan_res.data or [])
 
-</body>
-</html>
+@app.route('/shop', methods=['GET', 'POST'])
+def shop():
+    if request.method == 'POST' and 'company_name' in request.form:
+        session['current_shop_name'] = request.form.get('company_name')
+        return redirect(url_for('shop'))
+
+    shop_name = session.get('current_shop_name')
+    products = []
+    if shop_name:
+        products = get_products_by_shop_name(shop_name)
+    
+    return render_template('shop.html', products=products, current_company=shop_name)
+
+@app.route('/clear_session')
+def clear_session():
+    session.pop('current_shop_name', None)
+    return redirect(url_for('shop'))
+
+@app.route('/store2', methods=['GET', 'POST'])
+def store2():
+    if request.method == 'POST' and 'company_name' in request.form:
+        session['current_store2_name'] = request.form.get('company_name')
+        return redirect(url_for('store2'))
+
+    shop_name = session.get('current_store2_name')
+    products = []
+    if shop_name:
+        products = get_products_by_shop_name(shop_name)
+    
+    return render_template('store2.html', products=products, current_company=shop_name)
+
+@app.route('/clear_store2_session')
+def clear_store2_session():
+    session.pop('current_store2_name', None)
+    return redirect(url_for('store2'))
+
+@app.route('/store2_cart')
+def store2_cart():
+    return render_template('store2_cart.html')
+
+@app.route('/store2_checkout_page')
+def store2_checkout_page():
+    rates = get_wilayas_from_db()
+    return render_template('store2_order.html', rates=rates)
+
+@app.route('/store2_checkout/<int:product_id>')
+def store2_checkout(product_id):
+    product = get_product_from_db(product_id)
+    if not product:
+        return "المنتج غير موجود", 404
+    rates = get_wilayas_from_db()
+    return render_template('store2_checkout.html', product=product, rates=rates)
+
+if __name__ =='__main__':
+    app.run(debug=True)
