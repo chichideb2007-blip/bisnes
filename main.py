@@ -671,6 +671,30 @@ def edit_product(id):
         
     return render_template('edit_product.html', product=product)
 
+@app.route('/update_quantity/<int:product_id>', methods=['POST'])
+@login_required
+def update_quantity(product_id):
+    company_code = session.get('company_code')
+    # قراءة الكمية الجديدة أو الكمية المضافة من النموذج
+    action_type = request.form.get('action_type') # 'set' أو 'add'
+    amount = int(request.form.get('amount', 0))
+    
+    # جلب المنتج الحالي للتأكد من ملكيته ولحساب الكمية إذا كانت إضافة
+    prod = supabase.table("inventory").select("quantity").eq("id", product_id).eq("company_id_text", company_code).single().execute()
+    
+    if prod.data:
+        current_qty = prod.data.get('quantity', 0)
+        
+        if action_type == 'add':
+            new_qty = current_qty + amount
+        else:  # 'set' لتحديثها مباشرة
+            new_qty = amount
+            
+        # تحديث قاعدة البيانات
+        supabase.table("inventory").update({"quantity": new_qty}).eq("id", product_id).execute()
+        
+    return redirect(url_for('products')) # أو العودة لصفحة إدارة المخزون
+
 @app.route('/delete_product/<int:id>', methods=['POST'])
 @login_required
 def delete_product(id):
