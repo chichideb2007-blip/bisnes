@@ -470,8 +470,7 @@ def settings():
         ("DJF", "فرنك جيبوتي"), ("BND", "دولار بروناي"), ("KRW", "وون كوري جنوبي"), ("MXN", "بيزو مكسيكي")
     ]
     
-    
-        if request.method == 'POST':
+    if request.method == 'POST':
         data = {
             "company_name": request.form.get('shop_name'),
             "telegram_token": request.form.get('bot_token'),
