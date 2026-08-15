@@ -4,233 +4,262 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>إتمام الطلب</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome للأيقونات -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        body { background-color: #f8f9fa; font-family: 'Segoe UI', sans-serif; padding: 20px; }
-        .checkout-card { background: white; border-radius: 15px; padding: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 600px; margin: auto; }
-        .form-label { font-weight: bold; color: #333; }
-        .price-box { background: #e9ecef; padding: 15px; border-radius: 10px; margin: 20px 0; }
-        .btn-confirm { background-color: #198754; color: white; padding: 12px; font-weight: bold; border: none; border-radius: 8px; flex-grow: 1; }
-        .btn-back { background-color: #6c757d; color: white; padding: 12px; font-weight: bold; border: none; border-radius: 8px; text-decoration: none; text-align: center; }
-
+        /* إخفاء شريط جوجل العلوي وتثبيت الصفحة عند الترجمة */
         .goog-te-banner-frame.skiptranslate { display: none !important; }
-        body { top: 0px !important; }
+        body { top: 0px !important; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
+        /* تنسيق عنصر اختيار اللغة */
         .goog-te-combo {
-            padding: 6px 12px;
+            padding: 6px 14px;
             border-radius: 9999px;
-            border: 1px solid #d1d5db;
+            border: 1px solid #e5e7eb;
             outline: none;
-            background-color: white;
-            font-size: 14px;
-            color: #374151;
+            background-color: #f9fafb;
+            font-size: 13px;
+            color: #4b5563;
+            transition: all 0.3s ease;
+        }
+        .goog-te-combo:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        }
+
+        /* سمة وخلفية حيوية وملونة متطابقة مع صفحة المتجر */
+        .store-theme-bg {
+            background-color: #f8fafc;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.08) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(168, 85, 247, 0.08) 0px, transparent 50%),
+                radial-gradient(at 50% 100%, rgba(59, 130, 246, 0.08) 0px, transparent 50%);
+            min-height: 100vh;
+            background-attachment: fixed;
         }
     </style>
 </head>
-<body>
+<body class="store-theme-bg text-gray-800 flex flex-col justify-between py-6">
 
-<div class="container mb-3" style="max-width: 600px;">
-    <div class="d-flex justify-content-end">
+    <!-- شريط الترجمة العلوي -->
+    <div class="max-w-xl mx-auto w-full px-4 mb-2 flex justify-end">
         <div id="google_translate_element"></div>
     </div>
-</div>
 
-<div class="container mt-2">
-    <div class="checkout-card">
-        <h3 class="text-center mb-4">معلومات الطلب</h3>
-        
-        <div class="card p-3 mb-3 border-0 bg-light">
-            <h5>المنتج: <span class="text-indigo">{{ product.name }}</span></h5>
-            <p class="mb-0 text-danger fw-bold">السعر للقطعة: <span id="product_unit_price">{{ product.price }}</span> دج</p>
+    <!-- صندوق إتمام الطلب الرئيسي -->
+    <main class="max-w-xl mx-auto w-full px-4 flex-grow">
+        <div class="bg-white/95 backdrop-blur-md p-6 sm:p-8 rounded-3xl shadow-xl shadow-indigo-100/50 border border-gray-100">
+            <h3 class="text-xl sm:text-2xl font-black text-center text-gray-900 mb-6">معلومات الطلب</h3>
+            
+            <!-- بطاقة معلومات المنتج -->
+            <div class="p-4 mb-5 rounded-2xl bg-indigo-50/50 border border-indigo-100/60 shadow-inner">
+                <h5 class="text-sm sm:text-base font-bold text-gray-800 mb-1">المنتج: <span class="text-indigo-600">{{ product.name }}</span></h5>
+                <p class="mb-0 text-rose-500 font-extrabold text-sm">السعر للقطعة: <span id="product_unit_price">{{ product.price }}</span> دج</p>
+            </div>
+
+            <form action="/submit-order" method="POST">
+                <input type="hidden" name="product_id" value="{{ product.id }}">
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1.5">الاسم</label>
+                        <input type="text" name="customer_name" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none text-sm transition-all" required placeholder="الاسم">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1.5">اللقب</label>
+                        <input type="text" name="customer_last_name" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none text-sm transition-all" required placeholder="اللقب">
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-xs font-bold text-gray-700 mb-1.5">رقم الهاتف</label>
+                    <input type="tel" name="phone" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none text-sm transition-all" required placeholder="0XXXXXXXXX">
+                </div>
+
+                <!-- خانة البلد -->
+                <div class="mb-4">
+                    <label for="country" class="block text-xs font-bold text-gray-700 mb-1.5">البلد</label>
+                    <select id="country" name="country" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none text-sm transition-all" onchange="toggleCountryFields()" required>
+                        <option value="" disabled selected>-- اختر الدولة --</option>
+                        <option value="algeria">الجزائر 🇩🇿</option>
+                        <option value="jordan">الأردن 🇯🇴</option>
+                    </select>
+                </div>
+
+                <!-- خانة الكمية -->
+                <div class="mb-4">
+                    <label for="quantity" class="block text-xs font-bold text-gray-700 mb-1.5">الكمية</label>
+                    <input type="number" id="quantity" name="quantity" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none text-sm transition-all" value="1" min="1" oninput="calculateTotal()" required>
+                </div>
+
+                <!-- خانة ولايات الجزائر -->
+                <div class="mb-4 d-none" id="algeria_section">
+                    <label class="block text-xs font-bold text-gray-700 mb-1.5">الولاية</label>
+                    <select id="wilaya" name="wilaya" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none text-sm transition-all" onchange="calculateTotal()">
+                        <option value="">-- اختر الولاية --</option>
+                        {% for wilaya in rates %}
+                            <option value="{{ wilaya.id }}" 
+                                    data-home="{{ wilaya.home_price }}" 
+                                    data-office="{{ wilaya.office_price }}">
+                                {{ wilaya.wilaya_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- خانة محافظات الأردن -->
+                <div class="mb-4 d-none" id="jordan_section">
+                    <label for="jordan_region" class="block text-xs font-bold text-gray-700 mb-1.5">المحافظة والمنطقة (الأردن)</label>
+                    <select id="jordan_region" name="jordan_region" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none text-sm transition-all" onchange="calculateTotal()">
+                        <option value="" disabled selected>-- اختر المحافظة والمنطقة --</option>
+                        {% for rate in jordan_rates %}
+                            <option value="{{ rate.id }}" 
+                                    data-home="{{ rate.home_price }}" 
+                                    data-office="{{ rate.office_price }}">
+                                {{ rate.governorate_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- حاوية خانة البلدية -->
+                <div class="mb-4" id="baladiya_container">
+                    <label class="block text-xs font-bold text-gray-700 mb-1.5">البلدية</label>
+                    <input type="text" name="baladia" id="baladiya_input" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none text-sm transition-all" placeholder="أدخل اسم البلدية">
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-xs font-bold text-gray-700 mb-1.5">العنوان بالتفصيل</label>
+                    <input type="text" name="address" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none text-sm transition-all" placeholder="الحي أو الشارع" required>
+                </div>
+
+                <div class="mb-4" id="delivery_type_box">
+                    <label class="block text-xs font-bold text-gray-700 mb-1.5">طريقة التوصيل</label>
+                    <select id="delivery_type" name="delivery_type" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none text-sm transition-all" onchange="calculateTotal()" required>
+                        <option value="home">توصيل للمنزل</option>
+                        <option value="office">توصيل للمكتب</option>
+                    </select>
+                </div>
+
+                <input type="hidden" name="delivery_price" id="delivery_price_input" value="0">
+
+                <!-- صندوق الأسعار المجموع -->
+                <div class="p-4 bg-indigo-50/40 rounded-2xl border border-indigo-100/60 my-5">
+                    <div class="text-sm font-semibold text-gray-600 mb-1">سعر التوصيل: <span id="shipping_display" class="font-bold text-gray-800">0</span> دج</div>
+                    <div class="text-base font-black text-indigo-600 mt-1">المجموع الكلي: <span id="total_display">{{ product.price }}</span> دج</div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <button type="submit" class="flex-grow bg-emerald-600 hover:bg-emerald-700 text-white text-center font-bold py-3 px-4 rounded-xl shadow-md shadow-emerald-600/20 transition-all duration-300 text-sm flex items-center justify-center gap-2">
+                        <i class="fas fa-check-circle"></i> تأكيد الطلب
+                    </button>
+                    <a href="/store2" class="bg-gray-100 hover:bg-gray-200 text-gray-600 text-center font-bold py-3 px-5 rounded-xl transition-all duration-300 text-sm">
+                        رجوع
+                    </a>
+                </div>
+            </form>
         </div>
+    </main>
 
-        <form action="/submit-order" method="POST">
-            <input type="hidden" name="product_id" value="{{ product.id }}">
+    <!-- تذييل الصفحة -->
+    <footer class="text-center text-xs text-gray-400 mt-8">
+        <p>جميع الحقوق محفوظة &copy; 2026 - منصة المتاجر الإلكترونية</p>
+    </footer>
 
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">الاسم</label>
-                    <input type="text" name="customer_name" class="form-control" required placeholder="الاسم">
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">اللقب</label>
-                    <input type="text" name="customer_last_name" class="form-control" required placeholder="اللقب">
-                </div>
-            </div>
+    <!-- سكربت ترجمة جوجل -->
+    <script type="text/javascript">
+    function googleTranslateElementInit() {
+      new google.translate.TranslateElement({
+        pageLanguage: 'ar',
+        includedLanguages: 'ar,en,fr,es',
+        layout: google.translate.TranslateElement.InlineLayout.SIMPLE
+      }, 'google_translate_element');
+    }
+    </script>
+    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
-            <div class="mb-3">
-                <label class="form-label">رقم الهاتف</label>
-                <input type="tel" name="phone" class="form-control" required placeholder="0XXXXXXXXX">
-            </div>
+    <!-- السكربت الوظيفي للتحكم بالدول والأسعار -->
+    <script>
+        let basePrice = parseFloat("{{ product.price }}");
 
-            <!-- خانة البلد -->
-            <div class="mb-3">
-                <label for="country" class="form-label">البلد</label>
-                <select id="country" name="country" class="form-select" onchange="toggleCountryFields()" required>
-                    <option value="" disabled selected>-- اختر الدولة --</option>
-                    <option value="algeria">الجزائر 🇩🇿</option>
-                    <option value="jordan">الأردن 🇯🇴</option>
-                </select>
-            </div>
+        function toggleCountryFields() {
+            const country = document.getElementById('country').value;
+            const algeriaSection = document.getElementById('algeria_section');
+            const jordanSection = document.getElementById('jordan_section');
+            const wilayaSelect = document.getElementById('wilaya');
+            const jordanSelect = document.getElementById('jordan_region');
+            const baladiyaContainer = document.getElementById('baladiya_container');
+            const baladiyaInput = document.getElementById('baladiya_input');
 
-            <!-- خانة الكمية -->
-            <div class="mb-3">
-                <label for="quantity" class="form-label">الكمية</label>
-                <input type="number" id="quantity" name="quantity" class="form-control" value="1" min="1" oninput="calculateTotal()" required>
-            </div>
+            if (country === 'algeria') {
+                algeriaSection.classList.remove('d-none');
+                algeriaSection.style.display = "block";
+                jordanSection.classList.add('d-none');
+                jordanSection.style.display = "none";
+                wilayaSelect.setAttribute('required', 'required');
+                jordanSelect.removeAttribute('required');
+                jordanSelect.value = "";
 
-            <!-- خانة ولايات الجزائر -->
-            <div class="mb-3 d-none" id="algeria_section">
-                <label class="form-label">الولاية</label>
-                <select id="wilaya" name="wilaya" class="form-select" onchange="calculateTotal()">
-                    <option value="">-- اختر الولاية --</option>
-                    {% for wilaya in rates %}
-                        <option value="{{ wilaya.id }}" 
-                                data-home="{{ wilaya.home_price }}" 
-                                data-office="{{ wilaya.office_price }}">
-                            {{ wilaya.wilaya_name }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
+                if (baladiyaContainer) {
+                    baladiyaContainer.style.display = "block";
+                    if (baladiyaInput) baladiyaInput.setAttribute('required', 'required');
+                }
+            } else if (country === 'jordan') {
+                algeriaSection.classList.add('d-none');
+                algeriaSection.style.display = "none";
+                jordanSection.classList.remove('d-none');
+                jordanSection.style.display = "block";
+                jordanSelect.setAttribute('required', 'required');
+                wilayaSelect.removeAttribute('required');
+                wilayaSelect.value = "";
 
-            <!-- خانة محافظات الأردن -->
-            <div class="mb-3 d-none" id="jordan_section">
-                <label for="jordan_region" class="form-label">المحافظة والمنطقة (الأردن)</label>
-                <select id="jordan_region" name="jordan_region" class="form-select" onchange="calculateTotal()" style="color: #000 !important; background-color: #fff !important;">
-                    <option value="" disabled selected style="color: #000;">-- اختر المحافظة والمنطقة --</option>
-                    {% for rate in jordan_rates %}
-                        <option value="{{ rate.id }}" 
-                                data-home="{{ rate.home_price }}" 
-                                data-office="{{ rate.office_price }}"
-                                style="color: #000 !important; background-color: #fff !important;">
-                            {{ rate.governorate_name }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <!-- حاوية خانة البلدية (تظهر للجزائر وتختفي للأردن تلقائياً) -->
-            <div class="mb-3" id="baladiya_container">
-                <label class="form-label">البلدية</label>
-                <input type="text" name="baladia" id="baladiya_input" class="form-control" placeholder="أدخل اسم البلدية">
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label">العنوان بالتفصيل</label>
-                <input type="text" name="address" class="form-control" placeholder="الحي أو الشارع" required>
-            </div>
-
-            <div class="mb-3" id="delivery_type_box">
-                <label class="form-label">طريقة التوصيل</label>
-                <select id="delivery_type" name="delivery_type" class="form-select" onchange="calculateTotal()" required>
-                    <option value="home">توصيل للمنزل</option>
-                    <option value="office">توصيل للمكتب</option>
-                </select>
-            </div>
-
-            <input type="hidden" name="delivery_price" id="delivery_price_input" value="0">
-
-            <div class="price-box">
-                <h5>سعر التوصيل: <span id="shipping_display">0</span></h5>
-                <h4 class="text-primary mt-2">المجموع الكلي: <span id="total_display">{{ product.price }}</span></h4>
-            </div>
-
-            <div class="d-flex gap-2">
-                <button type="submit" class="btn-confirm">تأكيد الطلب</button>
-                <a href="/store2" class="btn-back">رجوع</a>
-            </div>
-        </form>
-    </div>
-</div>
-
-<script type="text/javascript">
-function googleTranslateElementInit() {
-  new google.translate.TranslateElement({
-    pageLanguage: 'ar',
-    includedLanguages: 'ar,en,fr,es',
-    layout: google.translate.TranslateElement.InlineLayout.SIMPLE
-  }, 'google_translate_element');
-}
-</script>
-<script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
-
-<script>
-    let basePrice = parseFloat("{{ product.price }}");
-
-    function toggleCountryFields() {
-        const country = document.getElementById('country').value;
-        const algeriaSection = document.getElementById('algeria_section');
-        const jordanSection = document.getElementById('jordan_section');
-        const wilayaSelect = document.getElementById('wilaya');
-        const jordanSelect = document.getElementById('jordan_region');
-        const baladiyaContainer = document.getElementById('baladiya_container');
-        const baladiyaInput = document.getElementById('baladiya_input');
-
-        if (country === 'algeria') {
-            algeriaSection.classList.remove('d-none');
-            jordanSection.classList.add('d-none');
-            wilayaSelect.setAttribute('required', 'required');
-            jordanSelect.removeAttribute('required');
-            jordanSelect.value = "";
-
-            if (baladiyaContainer) {
-                baladiyaContainer.style.display = "block";
-                if (baladiyaInput) baladiyaInput.setAttribute('required', 'required');
-            }
-        } else if (country === 'jordan') {
-            algeriaSection.classList.add('d-none');
-            jordanSection.classList.remove('d-none');
-            jordanSelect.setAttribute('required', 'required');
-            wilayaSelect.removeAttribute('required');
-            wilayaSelect.value = "";
-
-            if (baladiyaContainer) {
-                baladiyaContainer.style.display = "none";
-                if (baladiyaInput) {
-                    baladiyaInput.removeAttribute('required');
-                    baladiyaInput.value = "";
+                if (baladiyaContainer) {
+                    baladiyaContainer.style.display = "none";
+                    if (baladiyaInput) {
+                        baladiyaInput.removeAttribute('required');
+                        baladiyaInput.value = "";
+                    }
                 }
             }
+            calculateTotal();
         }
-        calculateTotal();
-    }
 
-    function calculateTotal() {
-        const country = document.getElementById('country').value;
-        const shippingDisplay = document.getElementById('shipping_display');
-        const totalDisplay = document.getElementById('total_display');
-        const deliveryPriceInput = document.getElementById('delivery_price_input');
-        const quantity = parseInt(document.getElementById('quantity').value) || 1;
+        function calculateTotal() {
+            const country = document.getElementById('country').value;
+            const shippingDisplay = document.getElementById('shipping_display');
+            const totalDisplay = document.getElementById('total_display');
+            const deliveryPriceInput = document.getElementById('delivery_price_input');
+            const quantity = parseInt(document.getElementById('quantity').value) || 1;
 
-        let shippingPrice = 0;
+            let shippingPrice = 0;
 
-        if (country === 'algeria') {
-            const wilayaSelect = document.getElementById('wilaya');
-            const deliveryType = document.getElementById('delivery_type').value;
-            const selectedOption = wilayaSelect.options[wilayaSelect.selectedIndex];
-            
-            if (selectedOption && selectedOption.value !== "") {
-                shippingPrice = (deliveryType === 'home') ? parseFloat(selectedOption.dataset.home || 0) : parseFloat(selectedOption.dataset.office || 0);
+            if (country === 'algeria') {
+                const wilayaSelect = document.getElementById('wilaya');
+                const deliveryType = document.getElementById('delivery_type').value;
+                const selectedOption = wilayaSelect.options[wilayaSelect.selectedIndex];
+                
+                if (selectedOption && selectedOption.value !== "") {
+                    shippingPrice = (deliveryType === 'home') ? parseFloat(selectedOption.dataset.home || 0) : parseFloat(selectedOption.dataset.office || 0);
+                }
+            } else if (country === 'jordan') {
+                const jordanSelect = document.getElementById('jordan_region');
+                const deliveryType = document.getElementById('delivery_type').value;
+                const selectedJordanOption = jordanSelect.options[jordanSelect.selectedIndex];
+                
+                if (selectedJordanOption && selectedJordanOption.value !== "") {
+                    shippingPrice = (deliveryType === 'home') ? parseFloat(selectedJordanOption.dataset.home || 0) : parseFloat(selectedJordanOption.dataset.office || 0);
+                }
             }
-        } else if (country === 'jordan') {
-            const jordanSelect = document.getElementById('jordan_region');
-            const deliveryType = document.getElementById('delivery_type').value;
-            const selectedJordanOption = jordanSelect.options[jordanSelect.selectedIndex];
             
-            if (selectedJordanOption && selectedJordanOption.value !== "") {
-                shippingPrice = (deliveryType === 'home') ? parseFloat(selectedJordanOption.dataset.home || 0) : parseFloat(selectedJordanOption.dataset.office || 0);
-            }
+            let productsTotal = basePrice * quantity;
+            let finalTotal = productsTotal + shippingPrice;
+
+            shippingDisplay.innerText = shippingPrice;
+            totalDisplay.innerText = finalTotal;
+            deliveryPriceInput.value = shippingPrice;
         }
-        
-        let productsTotal = basePrice * quantity;
-        let finalTotal = productsTotal + shippingPrice;
-
-        shippingDisplay.innerText = shippingPrice;
-        totalDisplay.innerText = finalTotal;
-        deliveryPriceInput.value = shippingPrice;
-    }
-</script>
-
+    </script>
 </body>
 </html>
