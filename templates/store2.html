@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>إتمام الطلب</title>
+    <title>{{ current_company if current_company else 'المطعم الإلكتروني' }}</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome للأيقونات -->
@@ -29,7 +29,7 @@
             box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
         }
 
-        /* سمة وخلفية حيوية وملونة متطابقة مع صفحة المتجر */
+        /* سمة وخلفية حيوية وملونة للمطعم بدون أن تكون بيضاء سادة */
         .store-theme-bg {
             background-color: #f8fafc;
             background-image: 
@@ -41,131 +41,134 @@
         }
     </style>
 </head>
-<body class="store-theme-bg text-gray-800 flex flex-col justify-between py-6">
+<body class="store-theme-bg text-gray-800 flex flex-col justify-between">
 
-    <!-- شريط الترجمة العلوي -->
-    <div class="max-w-xl mx-auto w-full px-4 mb-2 flex justify-end">
-        <div id="google_translate_element"></div>
-    </div>
-
-    <!-- صندوق إتمام الطلب الرئيسي -->
-    <main class="max-w-xl mx-auto w-full px-4 flex-grow">
-        <div class="bg-white/95 backdrop-blur-md p-6 sm:p-8 rounded-3xl shadow-xl shadow-indigo-100/50 border border-gray-100">
-            <h3 class="text-xl sm:text-2xl font-black text-center text-gray-900 mb-6">معلومات الطلب</h3>
+    <!-- الهيدر / رأس الصفحة الاحترافي للمطعم -->
+    <header class="bg-white/90 backdrop-blur-md shadow-sm sticky top-0 z-50 border-b border-gray-100">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-wrap justify-between items-center gap-4">
             
-            <!-- بطاقة معلومات المنتج -->
-            <div class="p-4 mb-5 rounded-2xl bg-indigo-50/50 border border-indigo-100/60 shadow-inner">
-                <h5 class="text-sm sm:text-base font-bold text-gray-800 mb-1">المنتج: <span class="text-indigo-600">{{ product.name }}</span></h5>
-                <p class="mb-0 text-rose-500 font-extrabold text-sm">السعر للقطعة: <span id="product_unit_price">{{ product.price }}</span> دج</p>
+            <!-- عبارة الترحيب واسم المطعم -->
+            <div class="flex items-center gap-2">
+                <span class="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-xs sm:text-sm font-bold tracking-wide border border-indigo-100 shadow-inner flex items-center gap-1">
+                    <i class="fas fa-utensils"></i> مرحباً بك في مطعم
+                </span>
+                <h1 class="text-lg sm:text-xl font-extrabold text-gray-900 tracking-tight">
+                    {{ current_company if current_company else 'مطعمنا' }}
+                </h1>
+            </div>
+            
+            <!-- شريط البحث العصري للوجبات -->
+            <div class="flex-grow max-w-md relative">
+                <span class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-gray-400">
+                    <i class="fas fa-search"></i>
+                </span>
+                <input type="text" id="searchInput" class="w-full pl-4 pr-11 py-2.5 rounded-full border border-gray-200 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none transition-all duration-300 text-sm shadow-sm" placeholder="ابحث عن وجبتك المفضّلة...">
             </div>
 
-            <form action="/submit-order" method="POST">
-                <input type="hidden" name="product_id" value="{{ product.id }}">
+            <!-- خيارات الترجمة والتحكم (زر تغيير المطعم) -->
+            <div class="flex items-center gap-3">
+                <div id="google_translate_element"></div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1.5">الاسم</label>
-                        <input type="text" name="customer_name" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none text-sm transition-all" required placeholder="الاسم">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1.5">اللقب</label>
-                        <input type="text" name="customer_last_name" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none text-sm transition-all" required placeholder="اللقب">
-                    </div>
-                </div>
-
-                <div class="mb-4">
-                    <label class="block text-xs font-bold text-gray-700 mb-1.5">رقم الهاتف</label>
-                    <input type="tel" name="phone" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none text-sm transition-all" required placeholder="0XXXXXXXXX">
-                </div>
-
-                <!-- خانة البلد -->
-                <div class="mb-4">
-                    <label for="country" class="block text-xs font-bold text-gray-700 mb-1.5">البلد</label>
-                    <select id="country" name="country" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none text-sm transition-all" onchange="toggleCountryFields()" required>
-                        <option value="" disabled selected>-- اختر الدولة --</option>
-                        <option value="algeria">الجزائر 🇩🇿</option>
-                        <option value="jordan">الأردن 🇯🇴</option>
-                    </select>
-                </div>
-
-                <!-- خانة الكمية -->
-                <div class="mb-4">
-                    <label for="quantity" class="block text-xs font-bold text-gray-700 mb-1.5">الكمية</label>
-                    <input type="number" id="quantity" name="quantity" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none text-sm transition-all" value="1" min="1" oninput="calculateTotal()" required>
-                </div>
-
-                <!-- خانة ولايات الجزائر -->
-                <div class="mb-4 d-none" id="algeria_section">
-                    <label class="block text-xs font-bold text-gray-700 mb-1.5">الولاية</label>
-                    <select id="wilaya" name="wilaya" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none text-sm transition-all" onchange="calculateTotal()">
-                        <option value="">-- اختر الولاية --</option>
-                        {% for wilaya in rates %}
-                            <option value="{{ wilaya.id }}" 
-                                    data-home="{{ wilaya.home_price }}" 
-                                    data-office="{{ wilaya.office_price }}">
-                                {{ wilaya.wilaya_name }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <!-- خانة محافظات الأردن -->
-                <div class="mb-4 d-none" id="jordan_section">
-                    <label for="jordan_region" class="block text-xs font-bold text-gray-700 mb-1.5">المحافظة والمنطقة (الأردن)</label>
-                    <select id="jordan_region" name="jordan_region" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none text-sm transition-all" onchange="calculateTotal()">
-                        <option value="" disabled selected>-- اختر المحافظة والمنطقة --</option>
-                        {% for rate in jordan_rates %}
-                            <option value="{{ rate.id }}" 
-                                    data-home="{{ rate.home_price }}" 
-                                    data-office="{{ rate.office_price }}">
-                                {{ rate.governorate_name }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <!-- حاوية خانة البلدية -->
-                <div class="mb-4" id="baladiya_container">
-                    <label class="block text-xs font-bold text-gray-700 mb-1.5">البلدية</label>
-                    <input type="text" name="baladia" id="baladiya_input" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none text-sm transition-all" placeholder="أدخل اسم البلدية">
-                </div>
-
-                <div class="mb-4">
-                    <label class="block text-xs font-bold text-gray-700 mb-1.5">العنوان بالتفصيل</label>
-                    <input type="text" name="address" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none text-sm transition-all" placeholder="الحي أو الشارع" required>
-                </div>
-
-                <div class="mb-4" id="delivery_type_box">
-                    <label class="block text-xs font-bold text-gray-700 mb-1.5">طريقة التوصيل</label>
-                    <select id="delivery_type" name="delivery_type" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none text-sm transition-all" onchange="calculateTotal()" required>
-                        <option value="home">توصيل للمنزل</option>
-                        <option value="office">توصيل للمكتب</option>
-                    </select>
-                </div>
-
-                <input type="hidden" name="delivery_price" id="delivery_price_input" value="0">
-
-                <!-- صندوق الأسعار المجموع -->
-                <div class="p-4 bg-indigo-50/40 rounded-2xl border border-indigo-100/60 my-5">
-                    <div class="text-sm font-semibold text-gray-600 mb-1">سعر التوصيل: <span id="shipping_display" class="font-bold text-gray-800">0</span> دج</div>
-                    <div class="text-base font-black text-indigo-600 mt-1">المجموع الكلي: <span id="total_display">{{ product.price }}</span> دج</div>
-                </div>
-
-                <div class="flex items-center gap-3">
-                    <button type="submit" class="flex-grow bg-emerald-600 hover:bg-emerald-700 text-white text-center font-bold py-3 px-4 rounded-xl shadow-md shadow-emerald-600/20 transition-all duration-300 text-sm flex items-center justify-center gap-2">
-                        <i class="fas fa-check-circle"></i> تأكيد الطلب
-                    </button>
-                    <a href="/store2" class="bg-gray-100 hover:bg-gray-200 text-gray-600 text-center font-bold py-3 px-5 rounded-xl transition-all duration-300 text-sm">
-                        رجوع
+                {% if current_company %}
+                    <a href="/clear_session" class="text-xs sm:text-sm font-medium text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-3.5 py-2 rounded-full transition-colors border border-rose-100 flex items-center gap-1">
+                        <i class="fas fa-exchange-alt"></i> تغيير المطعم
                     </a>
-                </div>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <!-- المحتوى الرئيسي -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex-grow w-full">
+
+        <!-- واجهة إدخال اسم المطعم عند عدم وجود جلسة نشطة -->
+        {% if not current_company %}
+        <div class="max-w-xl mx-auto bg-white/95 backdrop-blur-md p-8 sm:p-10 rounded-3xl shadow-xl shadow-indigo-100/50 border border-gray-100 text-center mb-12 transform transition-all">
+            <div class="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl mx-auto flex items-center justify-center text-2xl mb-4 shadow-inner">
+                <i class="fas fa-hamburger"></i>
+            </div>
+            <h2 class="text-xl sm:text-2xl font-black text-gray-900 mb-2">أهلاً بك في منصة الطلبات</h2>
+            <p class="text-gray-500 text-sm mb-6">أدخل اسم المطعم الذي تود الطلب منه لمشاهدة أحدث الوجبات</p>
+            
+            <form action="/shop" method="POST" class="flex flex-col sm:flex-row gap-3 justify-center">
+                <input type="text" name="company_name" class="px-5 py-3 rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none w-full text-sm font-medium shadow-sm" placeholder="اكتب اسم المطعم هنا..." required>
+                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-2xl font-bold transition-all duration-300 shadow-lg shadow-indigo-600/30 text-sm flex items-center justify-center gap-2 shrink-0">
+                    <span>دخول</span>
+                    <i class="fas fa-arrow-left text-xs"></i>
+                </button>
             </form>
         </div>
+        {% endif %}
+        
+        <!-- الحالات الفارغة والوجبات -->
+        {% if not products and current_company %}
+            <div class="text-center py-20 bg-white/95 backdrop-blur-md rounded-3xl shadow-sm border border-gray-100 max-w-lg mx-auto">
+                <div class="w-20 h-20 bg-amber-50 text-amber-500 rounded-full mx-auto flex items-center justify-center text-3xl mb-4">
+                    <i class="fas fa-utensils"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-800 mb-1">لا توجد وجبات متاحة حالياً</h3>
+                <p class="text-gray-400 text-sm">يرجى العودة لاحقاً أو تفقد مطعم آخر.</p>
+            </div>
+        {% elif products %}
+            <!-- شبكة عرض الوجبات -->
+            <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6" id="products-grid">
+                {% for product in products %}
+                    <div class="product-card-container bg-white/95 backdrop-blur-md rounded-3xl shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 overflow-hidden flex flex-col justify-between p-3.5 sm:p-5 group">
+                        
+                        <!-- صندوق صورة الوجبة -->
+                        <div class="relative w-full h-36 sm:h-44 bg-gray-50 rounded-2xl overflow-hidden mb-4 shadow-inner">
+                            {% if product['product-images'] %}
+                                <img src="{{ product['product-images'] }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="{{ product.name }}">
+                            {% else %}
+                                <div class="w-full h-full flex items-center justify-center text-gray-300">
+                                    <i class="fas fa-image text-4xl"></i>
+                                </div>
+                            {% endif %}
+                            
+                            <!-- شارة التوفر -->
+                            {% if product.quantity > 0 %}
+                                <span class="absolute top-2.5 right-2.5 bg-emerald-500/90 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-1 rounded-full shadow-sm flex items-center gap-1">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span> متوفر
+                                </span>
+                            {% else %}
+                                <span class="absolute top-2.5 right-2.5 bg-rose-500/90 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-1 rounded-full shadow-sm">
+                                    نفذت الوجبة
+                                </span>
+                            {% endif %}
+                        </div>
+
+                        <!-- تفاصيل الوجبة -->
+                        <div class="flex-grow flex flex-col justify-between">
+                            <div>
+                                <h3 class="card-title text-sm sm:text-base font-bold text-gray-800 mb-2 line-clamp-1 group-hover:text-indigo-600 transition-colors">
+                                    {{ product.name }}
+                                </h3>
+                                <div class="flex items-baseline justify-center gap-1 mb-4">
+                                    <span class="text-indigo-600 font-black text-lg sm:text-xl tracking-tight">{{ product.price }}</span>
+                                    <span class="text-xs font-bold text-gray-400">{{ currency or 'د.ج' }}</span>
+                                </div>
+                            </div>
+
+                            <!-- زر اطلب الآن -->
+                            {% if product.quantity > 0 %}
+                                <a href="/checkout/{{ product.id }}" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-center font-bold py-2.5 px-3 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-md shadow-indigo-600/20 hover:shadow-indigo-600/40 text-xs sm:text-sm active:scale-95">
+                                    <i class="fas fa-utensils text-xs"></i> اطلب الآن
+                                </a>
+                            {% else %}
+                                <button disabled class="w-full bg-gray-100 text-gray-400 text-center font-bold py-2.5 px-3 rounded-xl cursor-not-allowed text-xs sm:text-sm">
+                                    غير متوفر حالياً
+                                </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
     </main>
 
-    <!-- تذييل الصفحة -->
-    <footer class="text-center text-xs text-gray-400 mt-8">
-        <p>جميع الحقوق محفوظة &copy; 2026 - منصة المتاجر الإلكترونية</p>
+    <!-- تذييل الصفحة (Footer) -->
+    <footer class="bg-white/90 backdrop-blur-md border-t border-gray-100 py-6 mt-12 text-center text-xs text-gray-400">
+        <p>جميع الحقوق محفوظة &copy; 2026 - منصة المطاعم الإلكترونية</p>
     </footer>
 
     <!-- سكربت ترجمة جوجل -->
@@ -180,86 +183,21 @@
     </script>
     <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
-    <!-- السكربت الوظيفي للتحكم بالدول والأسعار -->
+    <!-- سكربت البحث الفوري المطور للوجبات -->
     <script>
-        let basePrice = parseFloat("{{ product.price }}");
-
-        function toggleCountryFields() {
-            const country = document.getElementById('country').value;
-            const algeriaSection = document.getElementById('algeria_section');
-            const jordanSection = document.getElementById('jordan_section');
-            const wilayaSelect = document.getElementById('wilaya');
-            const jordanSelect = document.getElementById('jordan_region');
-            const baladiyaContainer = document.getElementById('baladiya_container');
-            const baladiyaInput = document.getElementById('baladiya_input');
-
-            if (country === 'algeria') {
-                algeriaSection.classList.remove('d-none');
-                algeriaSection.style.display = "block";
-                jordanSection.classList.add('d-none');
-                jordanSection.style.display = "none";
-                wilayaSelect.setAttribute('required', 'required');
-                jordanSelect.removeAttribute('required');
-                jordanSelect.value = "";
-
-                if (baladiyaContainer) {
-                    baladiyaContainer.style.display = "block";
-                    if (baladiyaInput) baladiyaInput.setAttribute('required', 'required');
-                }
-            } else if (country === 'jordan') {
-                algeriaSection.classList.add('d-none');
-                algeriaSection.style.display = "none";
-                jordanSection.classList.remove('d-none');
-                jordanSection.style.display = "block";
-                jordanSelect.setAttribute('required', 'required');
-                wilayaSelect.removeAttribute('required');
-                wilayaSelect.value = "";
-
-                if (baladiyaContainer) {
-                    baladiyaContainer.style.display = "none";
-                    if (baladiyaInput) {
-                        baladiyaInput.removeAttribute('required');
-                        baladiyaInput.value = "";
-                    }
-                }
-            }
-            calculateTotal();
-        }
-
-        function calculateTotal() {
-            const country = document.getElementById('country').value;
-            const shippingDisplay = document.getElementById('shipping_display');
-            const totalDisplay = document.getElementById('total_display');
-            const deliveryPriceInput = document.getElementById('delivery_price_input');
-            const quantity = parseInt(document.getElementById('quantity').value) || 1;
-
-            let shippingPrice = 0;
-
-            if (country === 'algeria') {
-                const wilayaSelect = document.getElementById('wilaya');
-                const deliveryType = document.getElementById('delivery_type').value;
-                const selectedOption = wilayaSelect.options[wilayaSelect.selectedIndex];
-                
-                if (selectedOption && selectedOption.value !== "") {
-                    shippingPrice = (deliveryType === 'home') ? parseFloat(selectedOption.dataset.home || 0) : parseFloat(selectedOption.dataset.office || 0);
-                }
-            } else if (country === 'jordan') {
-                const jordanSelect = document.getElementById('jordan_region');
-                const deliveryType = document.getElementById('delivery_type').value;
-                const selectedJordanOption = jordanSelect.options[jordanSelect.selectedIndex];
-                
-                if (selectedJordanOption && selectedJordanOption.value !== "") {
-                    shippingPrice = (deliveryType === 'home') ? parseFloat(selectedJordanOption.dataset.home || 0) : parseFloat(selectedJordanOption.dataset.office || 0);
-                }
-            }
+        document.getElementById('searchInput')?.addEventListener('keyup', function() {
+            let filter = this.value.toLowerCase().trim();
+            let products = document.querySelectorAll('.product-card-container');
             
-            let productsTotal = basePrice * quantity;
-            let finalTotal = productsTotal + shippingPrice;
-
-            shippingDisplay.innerText = shippingPrice;
-            totalDisplay.innerText = finalTotal;
-            deliveryPriceInput.value = shippingPrice;
-        }
+            products.forEach(item => {
+                let title = item.querySelector('.card-title').innerText.toLowerCase();
+                if (title.includes(filter)) {
+                    item.style.display = "";
+                } else {
+                    item.style.display = "none";
+                }
+            });
+        });
     </script>
 </body>
 </html>
