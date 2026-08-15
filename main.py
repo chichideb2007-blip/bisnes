@@ -470,7 +470,8 @@ def settings():
         ("DJF", "فرنك جيبوتي"), ("BND", "دولار بروناي"), ("KRW", "وون كوري جنوبي"), ("MXN", "بيزو مكسيكي")
     ]
     
-    if request.method == 'POST':
+    
+        if request.method == 'POST':
         data = {
             "company_name": request.form.get('shop_name'),
             "telegram_token": request.form.get('bot_token'),
@@ -484,7 +485,7 @@ def settings():
             return f"حدث خطأ أثناء الحفظ: {str(e)}", 500
         return redirect(url_for('settings'))
     
-res = supabase.table("settings").select("*").eq("company_code", company_code).execute()
+    res = supabase.table("settings").select("*").eq("company_code", company_code).execute()
     settings_data = res.data[0] if res.data else {}
     return render_template('settings.html', settings=settings_data, currencies=currencies)
 
