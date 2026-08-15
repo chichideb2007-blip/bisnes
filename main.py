@@ -45,7 +45,6 @@ def get_wilayas_from_db():
 # --- دالة تنبيه نفاذ المخزون عبر تيليجرام (المحدثة) ---
 def send_telegram_alert(product_name, company_name, company_code=""):
     try:
-        # محاولة جلب التوكن والـ Chat ID الخاص بالمحل من جدول settings
         if company_code:
             res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
             if res_settings.data:
@@ -81,7 +80,6 @@ def send_telegram_alert_by_token(token, chat_id, message):
         print(f"DEBUG: خطأ في الاتصال بتليجرام: {e}")
         return False
 
-# دالة إرسال الطلبية مع الأزرار التفاعلية (تم التحضير / لم يتم التحضير)
 def send_order_alert(token, chat_id, message, order_id):
     if not token or not chat_id:
         return False
@@ -182,12 +180,24 @@ def checkout(product_id):
 @app.route('/submit-order', methods=['POST'])
 def submit_order():
     customer_name = request.form.get('customer_name')
+    customer_last_name = request.form.get('customer_last_name', '')
+    full_name = f"{customer_name} {customer_last_name}".strip()
+    
     phone = request.form.get('phone')
-    wilaya = request.form.get('wilaya') 
-    baladiya = request.form.get('baladiya')
+    country = request.form.get('country', 'algeria')
+    
+    # التقاط اسم البلدية بغض النظر عن طريقة كتابتها في الـ HTML
+    baladiya = (
+        request.form.get('baladiya') or 
+        request.form.get('baladia') or 
+        request.form.get('municipality') or 
+        request.form.get('city') or 
+        "غير محددة"
+    )
+    
+    address = request.form.get('address', '')
     delivery_type = request.form.get('delivery_type')
     delivery_price = float(request.form.get('delivery_price', 0))
-    
     quantity_ordered = int(request.form.get('quantity', 1))
     
     cart_raw = request.form.get('cart_data', '')
@@ -225,32 +235,44 @@ def submit_order():
         if settings_res.data:
             company_code = settings_res.data[0]['company_code']
 
-    # استخراج اسم المتجر الحالي المعروض (لإرساله في تنبيه تيليجرام)
     current_company = session.get('current_shop_name') or session.get('current_store2_name') or "متجر غير معروف"
     if not current_company and company_code:
         s_res = supabase.table("settings").select("company_name").eq("company_code", company_code).execute()
         if s_res.data:
             current_company = s_res.data[0].get('company_name', "متجر")
 
-    wilaya_name = wilaya
-    try:
-        w_res = supabase.table("shipping_rates").select("wilaya_name").eq("id", wilaya).single().execute()
-        if w_res.data and w_res.data.get('wilaya_name'):
-            wilaya_name = w_res.data.get('wilaya_name')
-    except:
-        pass
+    # تحديد اسم الولاية أو المحافظة حسب الدولة المختارة
+    region_name = ""
+    if country == 'algeria':
+        wilaya = request.form.get('wilaya')
+        region_name = wilaya
+        try:
+            w_res = supabase.table("shipping_rates").select("wilaya_name").eq("id", wilaya).single().execute()
+            if w_res.data and w_res.data.get('wilaya_name'):
+                region_name = w_res.data.get('wilaya_name')
+        except:
+            pass
+    elif country == 'jordan':
+        jordan_region_id = request.form.get('jordan_region')
+        region_name = "الأردن"
+        try:
+            j_res = supabase.table("jordan_rates").select("governorate_name").eq("id", jordan_region_id).single().execute()
+            if j_res.data and j_res.data.get('governorate_name'):
+                region_name = f"الأردن - {j_res.data.get('governorate_name')}"
+        except:
+            pass
 
     main_product_id = cart_data[0].get('id') if cart_data else (int(product_id) if product_id else None)
 
     order_data = {
-        "customer_name": customer_name,
+        "customer_name": full_name,
         "customer_phone": phone,
         "product_name": ", ".join([str(item.get('name', 'منتج')) for item in cart_data]), 
         "quantity": quantity_ordered,
         "total_price": total_price,
         "company_code": company_code,
         "status": "قيد الانتظار",
-        "state": wilaya_name,
+        "state": region_name,
         "baladiya": baladiya,
         "delivery_type": delivery_type,
         "delivery_price": delivery_price,
@@ -283,10 +305,8 @@ def submit_order():
                 product_name_db = prod_info.get('name', 'منتج')
                 new_qty = max(0, current_qty - quantity_ordered)
                 
-                # تحديث الكمية في قاعدة البيانات
                 supabase.table("inventory").update({"quantity": new_qty}).eq("id", p_id).execute()
                 
-                # التحقق مما إذا نفد المخزون تماماً لإرسال التنبيه مع تمرير كود الشركة
                 if new_qty <= 0:
                     send_telegram_alert(product_name_db, current_company, company_code)
                     
@@ -300,7 +320,19 @@ def submit_order():
             token, chat_id = s.get('telegram_token'), s.get('telegram_chat_id')
             product_names_str = ", ".join([str(item.get('name', 'منتج')) for item in cart_data])
             if token and chat_id:
-                msg = (f"🛒 طلبية جديدة!\n👤 الاسم: {customer_name}\n📞 الهاتف: {phone}\n📦 المنتجات: {product_names_str}\n🔢 الكمية: {quantity_ordered}\n📍 الولاية: {wilaya_name}\n🏘️ البلدية: {baladiya}\n🚚 التوصيل: {delivery_type} ({delivery_price} دج)\n💰 المجموع الكلي: {total_price} دج")
+                delivery_text = "توصيل للمنزل" if delivery_type == "home" else "توصيل للمكتب"
+                msg = (
+                    f"🛒 طلبية جديدة!\n"
+                    f"👤 الاسم: {full_name}\n"
+                    f"📞 الهاتف: {phone}\n"
+                    f"📦 المنتجات: {product_names_str}\n"
+                    f"🔢 الكمية: {quantity_ordered}\n"
+                    f"📍 المنطقة/الولاية: {region_name}\n"
+                    f"🏘️ البلدية: {baladiya}\n"
+                    f"🏠 العنوان: {address}\n"
+                    f"🚚 التوصيل: {delivery_text} ({delivery_price} دج)\n"
+                    f"💰 المجموع الكلي: {total_price} دج"
+                )
                 if inserted_order_id:
                     send_order_alert(token, chat_id, msg, inserted_order_id)
                 else:
@@ -534,7 +566,6 @@ def get_shipping_rates():
         pass
     return jsonify({"price": 0})
 
-
 @app.route('/get_all_shipping_rates', methods=['GET'])
 @login_required
 def get_all_shipping_rates():
@@ -675,11 +706,9 @@ def edit_product(id):
 @login_required
 def update_quantity(product_id):
     company_code = session.get('company_code')
-    # قراءة الكمية الجديدة أو الكمية المضافة من النموذج
-    action_type = request.form.get('action_type') # 'set' أو 'add'
+    action_type = request.form.get('action_type')
     amount = int(request.form.get('amount', 0))
     
-    # جلب المنتج الحالي للتأكد من ملكيته ولحساب الكمية إذا كانت إضافة
     prod = supabase.table("inventory").select("quantity").eq("id", product_id).eq("company_id_text", company_code).single().execute()
     
     if prod.data:
@@ -687,13 +716,12 @@ def update_quantity(product_id):
         
         if action_type == 'add':
             new_qty = current_qty + amount
-        else:  # 'set' لتحديثها مباشرة
+        else:
             new_qty = amount
             
-        # تحديث قاعدة البيانات
         supabase.table("inventory").update({"quantity": new_qty}).eq("id", product_id).execute()
         
-    return redirect(url_for('products')) # أو العودة لصفحة إدارة المخزون
+    return redirect(url_for('products'))
 
 @app.route('/delete_product/<int:id>', methods=['POST'])
 @login_required
