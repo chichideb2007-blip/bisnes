@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ current_company if current_company else 'المطعم الإلكتروني' }}</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome للأيقونات -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         /* إخفاء شريط جوجل العلوي وتثبيت الصفحة عند الترجمة */
@@ -29,7 +27,7 @@
             box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
         }
 
-        /* سمة وخلفية حيوية وملونة للمطعم بدون أن تكون بيضاء سادة */
+        /* سمة وخلفية حيوية وملونة للمطعم */
         .store-theme-bg {
             background-color: #f8fafc;
             background-image: 
@@ -43,11 +41,9 @@
 </head>
 <body class="store-theme-bg text-gray-800 flex flex-col justify-between">
 
-    <!-- الهيدر / رأس الصفحة الاحترافي للمطعم -->
     <header class="bg-white/90 backdrop-blur-md shadow-sm sticky top-0 z-50 border-b border-gray-100">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-wrap justify-between items-center gap-4">
             
-            <!-- عبارة الترحيب واسم المطعم -->
             <div class="flex items-center gap-2">
                 <span class="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-xs sm:text-sm font-bold tracking-wide border border-indigo-100 shadow-inner flex items-center gap-1">
                     <i class="fas fa-utensils"></i> مرحباً بك في مطعم
@@ -57,7 +53,6 @@
                 </h1>
             </div>
             
-            <!-- شريط البحث العصري للوجبات -->
             <div class="flex-grow max-w-md relative">
                 <span class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-gray-400">
                     <i class="fas fa-search"></i>
@@ -65,7 +60,6 @@
                 <input type="text" id="searchInput" class="w-full pl-4 pr-11 py-2.5 rounded-full border border-gray-200 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none transition-all duration-300 text-sm shadow-sm" placeholder="ابحث عن وجبتك المفضّلة...">
             </div>
 
-            <!-- خيارات الترجمة والتحكم (زر تغيير المطعم) -->
             <div class="flex items-center gap-3">
                 <div id="google_translate_element"></div>
 
@@ -78,10 +72,8 @@
         </div>
     </header>
 
-    <!-- المحتوى الرئيسي -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex-grow w-full">
 
-        <!-- واجهة إدخال اسم المطعم عند عدم وجود جلسة نشطة -->
         {% if not current_company %}
         <div class="max-w-xl mx-auto bg-white/95 backdrop-blur-md p-8 sm:p-10 rounded-3xl shadow-xl shadow-indigo-100/50 border border-gray-100 text-center mb-12 transform transition-all">
             <div class="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl mx-auto flex items-center justify-center text-2xl mb-4 shadow-inner">
@@ -90,7 +82,7 @@
             <h2 class="text-xl sm:text-2xl font-black text-gray-900 mb-2">أهلاً بك في منصة الطلبات</h2>
             <p class="text-gray-500 text-sm mb-6">أدخل اسم المطعم الذي تود الطلب منه لمشاهدة أحدث الوجبات</p>
             
-            <form action="/shop" method="POST" class="flex flex-col sm:flex-row gap-3 justify-center">
+            <form action="/store2" method="POST" class="flex flex-col sm:flex-row gap-3 justify-center">
                 <input type="text" name="company_name" class="px-5 py-3 rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none w-full text-sm font-medium shadow-sm" placeholder="اكتب اسم المطعم هنا..." required>
                 <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-2xl font-bold transition-all duration-300 shadow-lg shadow-indigo-600/30 text-sm flex items-center justify-center gap-2 shrink-0">
                     <span>دخول</span>
@@ -100,7 +92,6 @@
         </div>
         {% endif %}
         
-        <!-- الحالات الفارغة والوجبات -->
         {% if not products and current_company %}
             <div class="text-center py-20 bg-white/95 backdrop-blur-md rounded-3xl shadow-sm border border-gray-100 max-w-lg mx-auto">
                 <div class="w-20 h-20 bg-amber-50 text-amber-500 rounded-full mx-auto flex items-center justify-center text-3xl mb-4">
@@ -110,12 +101,10 @@
                 <p class="text-gray-400 text-sm">يرجى العودة لاحقاً أو تفقد مطعم آخر.</p>
             </div>
         {% elif products %}
-            <!-- شبكة عرض الوجبات -->
             <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6" id="products-grid">
                 {% for product in products %}
                     <div class="product-card-container bg-white/95 backdrop-blur-md rounded-3xl shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 overflow-hidden flex flex-col justify-between p-3.5 sm:p-5 group">
                         
-                        <!-- صندوق صورة الوجبة -->
                         <div class="relative w-full h-36 sm:h-44 bg-gray-50 rounded-2xl overflow-hidden mb-4 shadow-inner">
                             {% if product['product-images'] %}
                                 <img src="{{ product['product-images'] }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="{{ product.name }}">
@@ -125,7 +114,6 @@
                                 </div>
                             {% endif %}
                             
-                            <!-- شارة التوفر -->
                             {% if product.quantity > 0 %}
                                 <span class="absolute top-2.5 right-2.5 bg-emerald-500/90 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-1 rounded-full shadow-sm flex items-center gap-1">
                                     <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span> متوفر
@@ -137,7 +125,6 @@
                             {% endif %}
                         </div>
 
-                        <!-- تفاصيل الوجبة -->
                         <div class="flex-grow flex flex-col justify-between">
                             <div>
                                 <h3 class="card-title text-sm sm:text-base font-bold text-gray-800 mb-2 line-clamp-1 group-hover:text-indigo-600 transition-colors">
@@ -149,7 +136,6 @@
                                 </div>
                             </div>
 
-                            <!-- زر اطلب الآن -->
                             {% if product.quantity > 0 %}
                                 <a href="/checkout/{{ product.id }}" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-center font-bold py-2.5 px-3 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-md shadow-indigo-600/20 hover:shadow-indigo-600/40 text-xs sm:text-sm active:scale-95">
                                     <i class="fas fa-utensils text-xs"></i> اطلب الآن
@@ -166,12 +152,10 @@
         {% endif %}
     </main>
 
-    <!-- تذييل الصفحة (Footer) -->
     <footer class="bg-white/90 backdrop-blur-md border-t border-gray-100 py-6 mt-12 text-center text-xs text-gray-400">
         <p>جميع الحقوق محفوظة &copy; 2026 - منصة المطاعم الإلكترونية</p>
     </footer>
 
-    <!-- سكربت ترجمة جوجل -->
     <script type="text/javascript">
     function googleTranslateElementInit() {
       new google.translate.TranslateElement({
@@ -183,7 +167,6 @@
     </script>
     <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
-    <!-- سكربت البحث الفوري المطور للوجبات -->
     <script>
         document.getElementById('searchInput')?.addEventListener('keyup', function() {
             let filter = this.value.toLowerCase().trim();
