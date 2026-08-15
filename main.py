@@ -42,6 +42,19 @@ def get_wilayas_from_db():
     res = supabase.table("shipping_rates").select("*").order("id").execute()
     return res.data if res.data else []
 
+# --- دالة تنبيه نفاذ المخزون عبر تيليجرام ---
+def send_telegram_alert(product_name, company_name):
+    TOKEN = "YOUR_TELEGRAM_BOT_TOKEN"
+    CHAT_ID = "YOUR_MANAGER_CHAT_ID"
+    
+    message = f"🚨 تنبيه نفاذ المخزون!\n\n🏪 المحل / المتجر: {company_name}\n📦 المنتج الذي نفد: {product_name}\n\n⚠️ لقد نفذت كمية هذا المنتج تماماً من المخزون!"
+    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage?chat_id={CHAT_ID}&text={requests.utils.quote(message)}"
+    
+    try:
+        requests.get(url)
+    except Exception as e:
+        print("Telegram error:", e)
+
 def send_telegram_alert_by_token(token, chat_id, message):
     if not token or not chat_id:
         print("DEBUG: فشل إرسال التنبيه - التوكن أو Chat ID فارغ")
@@ -145,14 +158,12 @@ def home():
 def checkout(product_id):
     rates = get_wilayas_from_db()
     
-    # جلب بيانات الأردن وتمريرها للصفحة
     jordan_res = supabase.table("jordan_rates").select("*").execute()
     jordan_rates = jordan_res.data if jordan_res.data else []
     
     product = get_product_from_db(product_id)
     
     if product:
-        # استخراج كود الشركة من المنتج وحفظ اسم المتجر تلقائياً في الجلسة لمنع ضياعه
         company_code = product.get('company_id_text')
         if company_code:
             settings_res = supabase.table("settings").select("company_name").eq("company_code", company_code).execute()
@@ -208,6 +219,13 @@ def submit_order():
         if settings_res.data:
             company_code = settings_res.data[0]['company_code']
 
+    # استخراج اسم المتجر الحالي المعروض (لإرساله في تنبيه تيليجرام)
+    current_company = session.get('current_shop_name') or session.get('current_store2_name') or "متجر غير معروف"
+    if not current_company and company_code:
+        s_res = supabase.table("settings").select("company_name").eq("company_code", company_code).execute()
+        if s_res.data:
+            current_company = s_res.data[0].get('company_name', "متجر")
+
     wilaya_name = wilaya
     try:
         w_res = supabase.table("shipping_rates").select("wilaya_name").eq("id", wilaya).single().execute()
@@ -252,11 +270,20 @@ def submit_order():
 
     for p_id in items_to_deduct:
         try:
-            prod_res = supabase.table("inventory").select("quantity").eq("id", p_id).execute()
+            prod_res = supabase.table("inventory").select("name, quantity").eq("id", p_id).execute()
             if prod_res.data and len(prod_res.data) > 0:
-                current_qty = int(prod_res.data[0].get('quantity', 0))
+                prod_info = prod_res.data[0]
+                current_qty = int(prod_info.get('quantity', 0))
+                product_name_db = prod_info.get('name', 'منتج')
                 new_qty = max(0, current_qty - quantity_ordered)
+                
+                # تحديث الكمية في قاعدة البيانات
                 supabase.table("inventory").update({"quantity": new_qty}).eq("id", p_id).execute()
+                
+                # التحقق مما إذا نفد المخزون تماماً لإرسال التنبيه
+                if new_qty <= 0:
+                    send_telegram_alert(product_name_db, current_company)
+                    
         except Exception as ex:
             print(f"DEBUG: خطأ في خصم مخزون المنتج {p_id}: {ex}")
 
@@ -519,7 +546,6 @@ def update_delivery_settings():
     }).eq("company_code", company_code).execute()
     return jsonify({"status": "success"})
 
-# --- مسارات إدارة أسعار توصيل الأردن الجديدة ---
 @app.route('/admin/jordan-shipping')
 @login_required
 def admin_jordan_shipping():
@@ -743,8 +769,6 @@ def shop():
 def clear_session():
     session.pop('current_shop_name', None)
     return redirect(url_for('shop'))
-
-# --- مسارات المتجر الثاني (store2) المدمجة ---
 
 @app.route('/store2', methods=['GET', 'POST'])
 def store2():
