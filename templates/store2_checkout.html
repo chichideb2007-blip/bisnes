@@ -39,13 +39,26 @@
     <div class="checkout-card">
         <h3 class="text-center mb-4">معلومات الطلب</h3>
         
-        <div class="card p-3 mb-3 border-0 bg-light">
-            <h5>المنتج: <span class="text-indigo">{{ product.name }}</span></h5>
-            <p class="mb-0 text-danger fw-bold">السعر للقطعة: <span id="product_unit_price">{{ product.price }}</span> دج</p>
+        <!-- صندوق عرض المنتجات (يتكيف تلقائياً ليظهر محتوى السلة أو منتج مفرد) -->
+        <div class="card p-3 mb-3 border-0 bg-light" id="product-info-box">
+            <div id="cart-summary-list">
+                {% if product %}
+                <h5>المنتج: <span class="text-indigo">{{ product.name }}</span></h5>
+                <p class="mb-0 text-danger fw-bold">السعر للقطعة: <span id="product_unit_price">{{ product.price }}</span> دج</p>
+                {% else %}
+                <h5 class="mb-2 fw-bold text-dark">منتجات السلة:</h5>
+                <p class="text-muted mb-0">جاري تحميل المنتجات...</p>
+                {% endif %}
+            </div>
         </div>
 
-        <form action="/submit-order" method="POST">
+        <form action="/submit-order" method="POST" id="order-form">
+            <!-- الحقل المخفي لبيانات السلة -->
+            <input type="hidden" name="cart_data" id="cart_data_input">
+            
+            {% if product %}
             <input type="hidden" name="product_id" value="{{ product.id }}">
+            {% endif %}
 
             <div class="row">
                 <div class="col-md-6 mb-3">
@@ -94,7 +107,7 @@
                 </select>
             </div>
 
-            <!-- خانة محافظات الأردن (محدثة بالاسم الصحيح للعمود governorate_name) -->
+            <!-- خانة محافظات الأردن -->
             <div class="mb-3 d-none" id="jordan_section">
                 <label for="jordan_region" class="form-label">المحافظة والمنطقة (الأردن)</label>
                 <select id="jordan_region" name="jordan_region" class="form-select" onchange="calculateTotal()" style="color: #000 !important; background-color: #fff !important;" required>
@@ -110,7 +123,7 @@
                 </select>
             </div>
 
-            <!-- حاوية خانة البلدية (تظهر للجزائر وتختفي للأردن تلقائياً) -->
+            <!-- حاوية خانة البلدية -->
             <div class="mb-3" id="baladiya_container">
                 <label class="form-label">البلدية</label>
                 <input type="text" name="baladia" id="baladiya_input" class="form-control" placeholder="أدخل اسم البلدية">
@@ -133,11 +146,11 @@
 
             <div class="price-box">
                 <h5>سعر التوصيل: <span id="shipping_display">0</span></h5>
-                <h4 class="text-primary mt-2">المجموع الكلي: <span id="total_display">{{ product.price }}</span></h4>
+                <h4 class="text-primary mt-2">المجموع الكلي: <span id="total_display">{{ product.price if product else 0 }}</span></h4>
             </div>
 
             <div class="d-flex gap-2">
-                <button type="submit" class="btn-confirm">تأكيد الطلب</button>
+                <button type="submit" class="btn-confirm">تأكيد الطلب النهائي</button>
                 <a href="/store2" class="btn-back">رجوع</a>
             </div>
         </form>
@@ -156,7 +169,48 @@ function googleTranslateElementInit() {
 <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
 <script>
-    let basePrice = parseFloat("{{ product.price }}");
+    let basePrice = parseFloat("{{ product.price if product else 0 }}");
+    let cartItems = [];
+
+    document.addEventListener("DOMContentLoaded", function() {
+        let storedCart = JSON.parse(localStorage.getItem('user_cart')) || [];
+        let cartInput = document.getElementById('cart_data_input');
+        let summaryList = document.getElementById('cart-summary-list');
+        let quantityInput = document.getElementById('quantity');
+
+        if (storedCart.length > 0) {
+            cartItems = storedCart;
+            if (cartInput) {
+                cartInput.value = JSON.stringify(cartItems);
+            }
+
+            let htmlContent = '<h5 class="mb-2 fw-bold text-dark">منتجات السلة:</h5><ul class="list-unstyled mb-0">';
+            let totalCartPrice = 0;
+            let totalQuantity = 0;
+
+            cartItems.forEach(item => {
+                let itemTotal = parseFloat(item.price) * parseInt(item.quantity);
+                totalCartPrice += itemTotal;
+                totalQuantity += parseInt(item.quantity);
+                htmlContent += `<li class="small text-muted border-bottom py-1">🛒 ${item.name} (${item.price} دج × ${item.quantity})</li>`;
+            });
+
+            htmlContent += `</ul>`;
+            summaryList.innerHTML = htmlContent;
+
+            basePrice = totalCartPrice / totalQuantity;
+            quantityInput.value = totalQuantity;
+        }
+
+        calculateTotal();
+
+        // إضافة حالة التحميل عند الإرسال لمنع التكرار
+        document.getElementById('order-form').addEventListener('submit', function() {
+            let btn = document.querySelector('.btn-confirm');
+            btn.disabled = true;
+            btn.innerHTML = '⏳ جاري إرسال الطلب...';
+        });
+    });
 
     function toggleCountryFields() {
         const country = document.getElementById('country').value;
@@ -223,7 +277,17 @@ function googleTranslateElementInit() {
             }
         }
         
-        let productsTotal = basePrice * quantity;
+        let productsTotal = 0;
+        if (cartItems.length > 0) {
+            let originalCartTotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            let originalQuantity = cartItems.reduce((sum, item) => sum + item.quantity, 1);
+            let unitAveragePrice = originalCartTotal / originalQuantity;
+            productsTotal = unitAveragePrice * quantity;
+        } else {
+            let unitPrice = parseFloat(document.getElementById('product_unit_price')?.innerText || basePrice);
+            productsTotal = unitPrice * quantity;
+        }
+
         let finalTotal = productsTotal + shippingPrice;
 
         shippingDisplay.innerText = shippingPrice;
