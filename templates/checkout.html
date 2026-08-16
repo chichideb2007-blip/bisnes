@@ -39,25 +39,22 @@
     <div class="checkout-card">
         <h3 class="text-center mb-4">معلومات الطلب</h3>
         
-        <!-- صندوق عرض المنتج الفردي أو قائمة السلة -->
-        <div class="card p-3 mb-3 border-0 bg-light" id="product_info_box">
-            {% if product %}
-                <h5>المنتج: <span class="text-indigo">{{ product.name }}</span></h5>
-                <p class="mb-0 text-danger fw-bold">السعر للقطعة: <span id="product_unit_price">{{ product.price }}</span> دج</p>
-            {% else %}
-                <h5>المنتجات في السلة:</h5>
-                <ul id="cart_items_list" class="mb-2 ps-3"></ul>
-                <p class="mb-0 text-danger fw-bold">إجمالي المنتجات: <span id="cart_base_price_display">0</span> دج</p>
-            {% endif %}
+        <!-- صندوق عرض المنتجات (يتم تعبئته تلقائياً من السلة أو المنتج المفرد) -->
+        <div class="card p-3 mb-3 border-0 bg-light" id="product-info-box">
+            <div id="cart-summary-list">
+                <!-- افتراضي في حال لم تكن سلة -->
+                <h5>المنتج: <span class="text-indigo">{{ product.name if product else '' }}</span></h5>
+                <p class="mb-0 text-danger fw-bold">السعر للقطعة: <span id="product_unit_price">{{ product.price if product else 0 }}</span> دج</p>
+            </div>
         </div>
 
-        <form action="/submit-order" method="POST" onsubmit="prepareOrderSubmission()">
-            {% if product %}
-                <input type="hidden" name="product_id" value="{{ product.id }}">
-            {% endif %}
-            
+        <form action="/submit-order" method="POST" id="order-form">
             <!-- حقل مخفي لبيانات السلة -->
-            <input type="hidden" name="cart_data" id="cart_data_input" value="">
+            <input type="hidden" name="cart_data" id="cart_data_input">
+            
+            {% if product %}
+            <input type="hidden" name="product_id" value="{{ product.id }}">
+            {% endif %}
 
             <div class="row">
                 <div class="col-md-6 mb-3">
@@ -85,9 +82,9 @@
                 </select>
             </div>
 
-            <!-- خانة الكمية (تظهر فقط للشراء المباشر، وتختفي إذا كان الطلب من السلة لأن السلة تحتوي على كمياتها مسبقاً) -->
-            <div class="mb-3" id="quantity_container">
-                <label for="quantity" class="form-label">الكمية</label>
+            <!-- خانة الكمية (تتحدث تلقائياً أو يدوياً) -->
+            <div class="mb-3" id="quantity-section">
+                <label for="quantity" class="form-label">الكمية الإجمالية</label>
                 <input type="number" id="quantity" name="quantity" class="form-control" value="1" min="1" oninput="calculateTotal()" required>
             </div>
 
@@ -144,13 +141,13 @@
             <input type="hidden" name="delivery_price" id="delivery_price_input" value="0">
 
             <div class="price-box">
-                <h5>سعر التوصيل: <span id="shipping_display">0</span></h5>
-                <h4 class="text-primary mt-2">المجموع الكلي: <span id="total_display">0</span></h4>
+                <h5>سعر التوصيل: <span id="shipping_display">0</span> دج</h5>
+                <h4 class="text-primary mt-2">المجموع الكلي: <span id="total_display">0</span> دج</h4>
             </div>
 
             <div class="d-flex gap-2">
-                <button type="submit" class="btn-confirm">تأكيد الطلب</button>
-                <a href="/store2" class="btn-back">رجوع</a>
+                <button type="submit" class="btn-confirm">تأكيد الطلب النهائي</button>
+                <a href="/shop" class="btn-back">رجوع</a>
             </div>
         </form>
     </div>
@@ -168,62 +165,45 @@ function googleTranslateElementInit() {
 <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
 <script>
-    // تحديد ما إذا كان المنتج مفرد أم من السلة
-    let isSingleProduct = {% if product %}true{% else %}false{% endif %};
-    let basePrice = isSingleProduct ? parseFloat("{{ product.price }}") : 0;
-    
-    // محاولة جلب السلة إذا لم يكن منتجاً مفرداً
-    // نحتاج لمعرفة اسم المتجر الحالي لتحديد المفتاح الصحيح للسلة
-    const pathSegments = window.location.pathname.split('/');
-    // يمكنك تعديل طريقة استخراج اسم المتجر حسب تخزينك أو الاعتماد على LocalStorage الموحد
-    let cartDataList = [];
-    
-    if (!isSingleProduct) {
-        // البحث عن أي سلة مخزنة في الـ localStorage
-        for (let i = 0; i < localStorage.length; i++) {
-            let key = localStorage.key(i);
-            if (key && key.startsWith('cart_')) {
-                try {
-                    let items = JSON.parse(localStorage.getItem(key));
-                    if (Array.isArray(items) && items.length > 0) {
-                        cartDataList = items;
-                        break;
-                    }
-                } catch(e) {}
-            }
-        }
-        
-        // حساب إجمالي أسعار السلة
-        let listContainer = document.getElementById('cart_items_list');
-        cartDataList.forEach(item => {
-            basePrice += parseFloat(item.price || 0);
-            if (listContainer) {
-                let li = document.createElement('li');
-                li.innerText = `${item.name} - ${item.price} دج`;
-                listContainer.appendChild(li);
-            }
-        });
-        
-        document.getElementById('cart_base_price_display').innerText = basePrice;
-        // إخفاء حقل الكمية لأن السلة تحتوى على منتجاتها مباشرة
-        document.getElementById('quantity_container').style.display = 'none';
-        document.getElementById('quantity').value = 1;
-    }
+    // تحديد السعر الأساسي بناءً على المتغير القادم من البايثون أو من السلة المحلية
+    let basePrice = parseFloat("{{ product.price if product else 0 }}");
+    let cartItems = [];
 
-    // تعبئة حقل بيانات السلة عند إرسال النموذج وتفريغ السلة
-    function prepareOrderSubmission() {
-        if (!isSingleProduct && cartDataList.length > 0) {
-            document.getElementById('cart_data_input').value = JSON.stringify(cartDataList);
-            // تفريغ السلات بعد الطلب الناجح
-            for (let i = 0; i < localStorage.length; i++) {
-                let key = localStorage.key(i);
-                if (key && key.startsWith('cart_')) {
-                    localStorage.removeItem(key);
-                }
-            }
+    document.addEventListener("DOMContentLoaded", function() {
+        // فحص السلة من localStorage
+        let storedCart = JSON.parse(localStorage.getItem('user_cart')) || [];
+        let cartInput = document.getElementById('cart_data_input');
+        let summaryList = document.getElementById('cart-summary-list');
+        let quantityInput = document.getElementById('quantity');
+
+        if (storedCart.length > 0) {
+            cartItems = storedCart;
+            if (cartInput) cartInput.value = JSON.stringify(cartItems);
+
+            // عرض منتجات السلة داخل الصندوق
+            let htmlContent = '<h5 class="mb-2 fw-bold text-dark">منتجات السلة:</h5><ul class="list-unstyled mb-0">';
+            let totalCartPrice = 0;
+            let totalQuantity = 0;
+
+            cartItems.forEach(item => {
+                let itemTotal = item.price * item.quantity;
+                totalCartPrice += itemTotal;
+                totalQuantity += item.quantity;
+                htmlContent += `<li class="small text-muted border-bottom py-1">🛒 ${item.name} (${item.price} دج × ${item.quantity})</li>`;
+            });
+
+            htmlContent += `</ul>`;
+            summaryList.innerHTML = htmlContent;
+
+            // ضبط السعر الأساسي الإجمالي والكمية تلقائياً للسلة
+            basePrice = totalCartPrice / totalQuantity; 
+            quantityInput.value = totalQuantity;
+            // إذا أردت جعل الكمية غير قابلة للتعديل يدوياً إذا كانت سلة:
+            // quantityInput.readOnly = true; 
         }
+
         calculateTotal();
-    }
+    });
 
     function toggleCountryFields() {
         const country = document.getElementById('country').value;
@@ -268,7 +248,7 @@ function googleTranslateElementInit() {
         const shippingDisplay = document.getElementById('shipping_display');
         const totalDisplay = document.getElementById('total_display');
         const deliveryPriceInput = document.getElementById('delivery_price_input');
-        const quantity = isSingleProduct ? (parseInt(document.getElementById('quantity').value) || 1) : 1;
+        const quantity = parseInt(document.getElementById('quantity').value) || 1;
 
         let shippingPrice = 0;
 
@@ -290,18 +270,21 @@ function googleTranslateElementInit() {
             }
         }
         
-        let productsTotal = basePrice * quantity;
+        // حساب إجمالي المنتجات (سواء كانت سلة متعددة أو منتج مفرد)
+        let productsTotal = 0;
+        if (cartItems.length > 0) {
+            productsTotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        } else {
+            let unitPrice = parseFloat(document.getElementById('product_unit_price')?.innerText || basePrice);
+            productsTotal = unitPrice * quantity;
+        }
+
         let finalTotal = productsTotal + shippingPrice;
 
         shippingDisplay.innerText = shippingPrice;
         totalDisplay.innerText = finalTotal;
         deliveryPriceInput.value = shippingPrice;
     }
-
-    // تشغيل الحساب أوليّاً عند التحميل
-    window.onload = function() {
-        calculateTotal();
-    };
 </script>
 
 </body>
