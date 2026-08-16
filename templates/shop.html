@@ -39,15 +39,6 @@
             min-height: 100vh;
             background-attachment: fixed;
         }
-
-        /* تخصيص بسيط لنافذة السلة الجانبية */
-        .cart-drawer {
-            transform: translateX(100%);
-            transition: transform 0.3s ease-in-out;
-        }
-        .cart-drawer.open {
-            transform: translateX(0);
-        }
     </style>
 </head>
 <body class="store-theme-bg text-gray-800 flex flex-col justify-between">
@@ -74,9 +65,14 @@
                 <input type="text" id="searchInput" class="w-full pl-4 pr-11 py-2.5 rounded-full border border-gray-200 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none transition-all duration-300 text-sm shadow-sm" placeholder="ابحث عن منتجك المفضّل...">
             </div>
 
-            <!-- خيارات الترجمة والأزرار -->
+            <!-- خيارات الترجمة، سلة الطلبات، والتحكم -->
             <div class="flex items-center gap-3">
                 <div id="google_translate_element"></div>
+
+                <!-- أيقونة سلة الطلبات -->
+                <a href="/cart" class="text-xs sm:text-sm font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-3.5 py-2 rounded-full transition-colors border border-indigo-100 flex items-center gap-1.5 shadow-sm">
+                    <i class="fas fa-shopping-cart"></i> السلة (<span id="cart-count">0</span>)
+                </a>
 
                 {% if current_company %}
                     <a href="/clear_session" class="text-xs sm:text-sm font-medium text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-3.5 py-2 rounded-full transition-colors border border-rose-100 flex items-center gap-1">
@@ -158,22 +154,14 @@
                                 </div>
                             </div>
 
-                            <!-- الأزرار (شراء الآن + إضافة إلى السلة) -->
+                            <!-- أزرار الشراء والإضافة إلى السلة -->
                             {% if product.quantity > 0 %}
-                                <div class="flex flex-col gap-2">
-                                    <!-- زر الشراء السريع المباشر -->
-                                    <a href="/checkout/{{ product.id }}" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-center font-bold py-2 px-3 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-md shadow-indigo-600/20 text-xs sm:text-sm active:scale-95">
-                                        <i class="fas fa-bolt text-xs"></i> شراء سريع
+                                <div class="space-y-2">
+                                    <a href="/checkout/{{ product.id }}" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-center font-bold py-2 px-3 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-md shadow-indigo-600/20 text-xs active:scale-95">
+                                        <i class="fas fa-bolt text-xs"></i> شراء الآن
                                     </a>
-                                    <!-- زر إضافة إلى السلة -->
-                                    <button onclick="addToCart(
-                                        '{{ product.id }}', 
-                                        '{{ product.name }}', 
-                                        '{{ product.price }}', 
-                                        '{{ product.get('company_id_text', '') }}', 
-                                        '{{ product.get('product-images', '') }}'
-                                    )" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-center font-bold py-2 px-3 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 text-xs sm:text-sm active:scale-95">
-                                        <i class="fas fa-cart-plus text-xs"></i> أضف للسلة
+                                    <button onclick='addToCart({{ product | tojson }})' class="w-full bg-gray-100 hover:bg-indigo-50 text-indigo-700 text-center font-bold py-2 px-3 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 text-xs border border-gray-200">
+                                        <i class="fas fa-cart-plus text-xs"></i> إضافة إلى السلة
                                     </button>
                                 </div>
                             {% else %}
@@ -187,45 +175,6 @@
             </div>
         {% endif %}
     </main>
-
-    <!-- زر السلة العائم -->
-    <button onclick="toggleCartDrawer()" class="fixed bottom-6 left-6 z-40 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-full shadow-2xl flex items-center gap-3 transition-transform hover:scale-105">
-        <i class="fas fa-shopping-cart text-lg"></i>
-        <span class="font-bold text-sm">السلة</span>
-        <span id="cart-count-badge" class="bg-white text-indigo-600 text-xs font-black px-2 py-0.5 rounded-full shadow-inner">0</span>
-    </button>
-
-    <!-- خلفية تظليل السلة -->
-    <div id="cart-backdrop" onclick="toggleCartDrawer()" class="fixed inset-0 bg-black/50 z-50 hidden transition-opacity"></div>
-
-    <!-- نافذة السلة الجانبية (Drawer Cart) -->
-    <div id="cart-drawer" class="fixed top-0 left-0 h-full w-full sm:w-96 bg-white z-50 shadow-2xl cart-drawer flex flex-col justify-between">
-        <!-- هيدر السلة -->
-        <div class="p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50">
-            <h3 class="font-black text-lg text-gray-900 flex items-center gap-2">
-                <i class="fas fa-shopping-basket text-indigo-600"></i> سلة المشتريات
-            </h3>
-            <button onclick="toggleCartDrawer()" class="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-gray-600 transition-colors">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-
-        <!-- محتوى منتجات السلة -->
-        <div id="cart-items-container" class="p-5 flex-grow overflow-y-auto space-y-3">
-            <!-- ستتم تعبئة المنتجات هنا تلقائياً عبر الجافاسكريبت -->
-        </div>
-
-        <!-- تذييل السلة والمجموع -->
-        <div id="cart-footer" class="p-5 border-t border-gray-100 bg-gray-50 d-none">
-            <div class="flex justify-between items-center mb-4">
-                <span class="font-bold text-gray-600">المجموع الكلي:</span>
-                <span class="font-black text-xl text-indigo-600"><span id="cart-total-price">0</span> دج</span>
-            </div>
-            <button onclick="proceedToCheckout()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-2xl font-bold transition-all shadow-lg shadow-emerald-600/30 text-center block">
-                🚚 تأكيد الطلب وإدخال معلومات التوصيل
-            </button>
-        </div>
-    </div>
 
     <!-- تذييل الصفحة (Footer) -->
     <footer class="bg-white/90 backdrop-blur-md border-t border-gray-100 py-6 mt-12 text-center text-xs text-gray-400">
@@ -244,7 +193,7 @@
     </script>
     <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
-    <!-- سكربت السلة والبحث المطور -->
+    <!-- سكربت البحث الفوري المطور وإدارة السلة -->
     <script>
         // البحث الفوري
         document.getElementById('searchInput')?.addEventListener('keyup', function() {
@@ -261,114 +210,35 @@
             });
         });
 
-        // إدارة السلة (LocalStorage)
-        function toggleCartDrawer() {
-            let drawer = document.getElementById('cart-drawer');
-            let backdrop = document.getElementById('cart-backdrop');
-            drawer.classList.toggle('open');
-            backdrop.classList.toggle('hidden');
-            loadCartUI();
-        }
-
-        function addToCart(id, name, price, companyCode, image) {
-            let cart = JSON.parse(localStorage.getItem('user_cart')) || [];
+        // دالة إضافة المنتج للسلة
+        function addToCart(product) {
+            let cart = JSON.parse(localStorage.getItem('cart')) || [];
             
-            // منع خلط منتجات متاجر مختلفة
-            if (cart.length > 0 && cart[0].company_id_text !== companyCode) {
-                alert("لا يمكنك طلب منتجات من متاجر مختلفة في نفس السلة. يرجى إفراغ السلة أولاً.");
-                return;
-            }
-
-            let existingItem = cart.find(item => item.id === id);
+            let existingItem = cart.find(item => item.id === product.id);
             if (existingItem) {
-                existingItem.quantity += 1;
+                existingItem.quantity = (existingItem.quantity || 1) + 1;
             } else {
-                cart.push({
-                    id: id,
-                    name: name,
-                    price: parseFloat(price),
-                    company_id_text: companyCode,
-                    image: image,
-                    quantity: 1
-                });
+                product.quantity = 1;
+                cart.push(product);
             }
-
-            localStorage.setItem('user_cart', JSON.stringify(cart));
-            loadCartUI();
-            toggleCartDrawer(); // فتح السلة تلقائياً عند الإضافة
-        }
-
-        function loadCartUI() {
-            let cart = JSON.parse(localStorage.getItem('user_cart')) || [];
-            let container = document.getElementById('cart-items-container');
-            let footer = document.getElementById('cart-footer');
-            let countBadge = document.getElementById('cart-count-badge');
-            let totalPriceEl = document.getElementById('cart-total-price');
             
-            container.innerHTML = '';
-            let totalCount = 0;
-            let totalPrice = 0;
+            localStorage.setItem('cart', JSON.stringify(cart));
+            updateCartCount();
+            alert("تمت إضافة المنتج إلى السلة بنجاح!");
+        }
 
-            countBadge.innerText = cart.reduce((sum, item) => sum + item.quantity, 0);
-
-            if (cart.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-20 text-gray-400">
-                        <i class="fas fa-shopping-cart fa-3x mb-3 text-gray-300"></i>
-                        <p class="text-sm font-bold">سلتك فارغة حالياً</p>
-                    </div>
-                `;
-                footer.classList.add('d-none');
-                footer.style.display = 'none';
-                return;
+        // تحديث عداد السلة في الأيقونة
+        function updateCartCount() {
+            let cart = JSON.parse(localStorage.getItem('cart')) || [];
+            let totalCount = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
+            let countElement = document.getElementById('cart-count');
+            if (countElement) {
+                countElement.innerText = totalCount;
             }
-
-            footer.style.display = 'block';
-            footer.classList.remove('d-none');
-
-            cart.forEach((item, index) => {
-                totalPrice += item.price * item.quantity;
-                container.innerHTML += `
-                    <div class="flex items-center justify-between bg-gray-50 p-3 rounded-2xl border border-gray-100">
-                        <div class="flex items-center gap-3">
-                            <img src="${item.image || 'https://via.placeholder.com/60'}" class="w-14 h-14 object-cover rounded-xl shadow-inner">
-                            <div>
-                                <h4 class="font-bold text-sm text-gray-800 line-clamp-1">${item.name}</h4>
-                                <p class="text-xs text-indigo-600 font-bold">${item.price} دج × ${item.quantity}</p>
-                            </div>
-                        </div>
-                        <button onclick="removeFromCart(${index})" class="text-rose-400 hover:text-rose-600 p-2 transition-colors">
-                            <i class="fas fa-trash-alt text-sm"></i>
-                        </button>
-                    </div>
-                `;
-            });
-
-            totalPriceEl.innerText = totalPrice;
         }
 
-        function removeFromCart(index) {
-            let cart = JSON.parse(localStorage.getItem('user_cart')) || [];
-            cart.splice(index, 1);
-            localStorage.setItem('user_cart', JSON.stringify(cart));
-            loadCartUI();
-        }
-
-        function proceedToCheckout() {
-            let cart = JSON.parse(localStorage.getItem('user_cart')) || [];
-            if (cart.length === 0) {
-                alert("السلة فارغة!");
-                return;
-            }
-            // الانتقال لصفحة معلومات التوصيل القديمة لتأكيد الطلب
-            window.location.href = "/store2_checkout_page";
-        }
-
-        // تحديث أعداد السلة فور تحميل الصفحة
-        document.addEventListener("DOMContentLoaded", function() {
-            let cart = JSON.parse(localStorage.getItem('user_cart')) || [];
-            document.getElementById('cart-count-badge').innerText = cart.reduce((sum, item) => sum + item.quantity, 0);
-        });
+        // تشغيل الدالة عند تحميل الصفحة
+        window.onload = updateCartCount;
     </script>
 </body>
 </html>
