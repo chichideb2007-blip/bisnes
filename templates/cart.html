@@ -2,98 +2,85 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>سلة التسوق</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f9; }
-        .cart-container { background: white; border-radius: 15px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .total-box { font-size: 1.2rem; font-weight: bold; color: #28a745; }
-    </style>
+    <title>سلة المشتريات</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
 </head>
-<body>
-
-<div class="container mt-5">
-    <div class="cart-container">
-        <h2 class="mb-4 text-center">سلة التسوق الخاصة بك</h2>
+<body class="bg-light p-4">
+    <div class="container" style="max-width: 600px;">
+        <h2 class="mb-4 text-center">🛒 سلة المشتريات</h2>
         
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th>المنتج</th>
-                    <th>السعر</th>
-                    <th>إجراء</th>
-                </tr>
-            </thead>
-            <tbody id="cart-table-body">
-                <!-- سيتم ملء البيانات هنا بواسطة JavaScript -->
-            </tbody>
-        </table>
+        <div id="cart-items-container">
+            <!-- سيتم تعبئة المنتجات هنا تلقائياً بواسطة الجافاسكريبت -->
+        </div>
 
-        <div class="d-flex justify-content-between align-items-center mt-4">
-            <div class="total-box">المجموع: <span id="total-price">0</span> دج</div>
-            <div>
-                <a href="/shop" class="btn btn-secondary">العودة للمتجر</a>
-                <button class="btn btn-success" onclick="checkout()">إتمام الطلب</button>
-            </div>
+        <div id="cart-summary" class="card p-3 mt-3 shadow-sm d-none">
+            <h4>المجموع الكلي للمنتجات: <span id="total-price">0</span> دج</h4>
+            <button onclick="proceedToCheckout()" class="btn btn-success w-100 mt-3 py-2 fw-bold">
+                🚚 تأكيد الطلب وإدخال معلومات التوصيل
+            </button>
+        </div>
+
+        <div id="empty-cart-msg" class="text-center text-muted mt-5">
+            <h4>السلة فارغة حالياً 🛍️</h4>
+            <a href="/store2" class="btn btn-primary mt-3">العودة للمتجر</a>
         </div>
     </div>
-</div>
 
-<script>
-    // 1. تحميل المنتجات من localStorage
-    function loadCart() {
-        let cart = JSON.parse(localStorage.getItem('cart') || '[]');
-        let tbody = document.getElementById('cart-table-body');
-        let total = 0;
-        
-        tbody.innerHTML = '';
-        
-        if (cart.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="3" class="text-center">السلة فارغة</td></tr>';
-        } else {
+    <script>
+        function loadCart() {
+            let cart = JSON.parse(localStorage.getItem('user_cart')) || [];
+            let container = document.getElementById('cart-items-container');
+            let summary = document.getElementById('cart-summary');
+            let emptyMsg = document.getElementById('empty-cart-msg');
+            
+            container.innerHTML = '';
+
+            if (cart.length === 0) {
+                emptyMsg.classList.remove('d-none');
+                summary.classList.add('d-none');
+                return;
+            }
+
+            emptyMsg.classList.add('d-none');
+            summary.classList.remove('d-none');
+
+            let total = 0;
             cart.forEach((item, index) => {
-                total += parseFloat(item.price);
-                tbody.innerHTML += `
-                    <tr>
-                        <td>${item.name}</td>
-                        <td>${item.price} دج</td>
-                        <td>
-                            <button class="btn btn-danger btn-sm" onclick="removeItem(${index})">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
+                let itemTotal = item.price * item.quantity;
+                total += itemTotal;
+
+                container.innerHTML += `
+                    <div class="card mb-3 p-3 shadow-sm d-flex flex-row align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <img src="${item.image || 'https://via.placeholder.com/60'}" style="width: 60px; height: 60px; object-fit: cover;" class="rounded ms-3">
+                            <div>
+                                <h5 class="mb-1">${item.name}</h5>
+                                <p class="text-muted mb-0">${item.price} دج × ${item.quantity}</p>
+                            </div>
+                        </div>
+                        <div>
+                            <button class="btn btn-sm btn-outline-danger" onclick="removeItem(${index})">🗑️</button>
+                        </div>
+                    </div>
                 `;
             });
+
+            document.getElementById('total-price').innerText = total;
         }
-        document.getElementById('total-price').innerText = total;
-    }
 
-    // 2. حذف منتج من السلة
-    function removeItem(index) {
-        let cart = JSON.parse(localStorage.getItem('cart') || '[]');
-        cart.splice(index, 1);
-        localStorage.setItem('cart', JSON.stringify(cart));
-        loadCart(); // إعادة تحميل الجدول
-    }
-
-    // 3. إتمام الطلب (مؤقتاً يعيد توجيه لصفحة الدفع)
-    function checkout() {
-        let cart = JSON.parse(localStorage.getItem('cart') || '[]');
-        if (cart.length === 0) {
-            alert("السلة فارغة!");
-            return;
+        function removeItem(index) {
+            let cart = JSON.parse(localStorage.getItem('user_cart')) || [];
+            cart.splice(index, 1);
+            localStorage.setItem('user_cart', JSON.stringify(cart));
+            loadCart();
         }
-        // هنا يمكنك التوجيه لصفحة إدخال المعلومات أو إرسال البيانات للسيرفر
-        alert("جاري التحويل لصفحة إتمام الطلب...");
-        window.location.href = '/checkout'; 
-    }
 
-    // تشغيل الدالة عند فتح الصفحة
-    window.onload = loadCart;
-</script>
+        function proceedToCheckout() {
+            // الانتقال لصفحة الدفع والتوصيل القديمة
+            window.location.href = "/store2_checkout_page";
+        }
 
+        loadCart();
+    </script>
 </body>
 </html>
