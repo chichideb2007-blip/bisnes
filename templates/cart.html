@@ -60,7 +60,8 @@
                 let itemTotal = itemPrice * itemQty;
                 total += itemTotal;
 
-                let imgSrc = item['product-images'] || 'https://via.placeholder.com/80';
+                // توافق تام مع مفتاح الصور المرسل من المتجر
+                let imgSrc = item['product-images'] || item.image || 'https://via.placeholder.com/80';
 
                 container.innerHTML += `
                     <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between gap-4">
