@@ -65,7 +65,12 @@
                         </div>
 
                         <div>
-                            <button type="button" onclick="addToCart('{{ product.id }}', '{{ product.name | e }}', '{{ product.price }}', '{{ product['product-images'] if product['product-images'] else '' }}')" class="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold py-2.5 rounded-xl transition-all text-xs flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/20 cursor-pointer">
+                            <button type="button" 
+                                    data-id="{{ product.id }}" 
+                                    data-name="{{ product.name }}" 
+                                    data-price="{{ product.price }}" 
+                                    data-image="{{ product['product-images'] if product['product-images'] else '' }}" 
+                                    class="add-to-cart-btn w-full bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold py-2.5 rounded-xl transition-all text-xs flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/20 cursor-pointer">
                                 <i class="fas fa-cart-plus"></i> إضافة للسلة
                             </button>
                         </div>
@@ -78,7 +83,7 @@
     </main>
 
     <script>
-        // دالة تحديث عداد السلة في الهيدر
+        // دالة تحديث عداد السلة
         function updateCartCount() {
             let cart = JSON.parse(localStorage.getItem('cart')) || [];
             let totalCount = cart.reduce((sum, item) => sum + (parseInt(item.quantity) || 1), 0);
@@ -88,18 +93,26 @@
             }
         }
 
-        // دالة إضافة المنتج للسلة واستجابة الزر فوراً
-        function addToCart(id, name, price, image) {
+        // الاستماع لجميع أزرار الإضافة للسلة بأمان تام
+        document.addEventListener('click', function(event) {
+            let btn = event.target.closest('.add-to-cart-btn');
+            if (!btn) return;
+
+            let id = btn.getAttribute('data-id');
+            let name = btn.getAttribute('data-name');
+            let price = parseFloat(btn.getAttribute('data-price')) || 0;
+            let image = btn.getAttribute('data-image');
+
             let cart = JSON.parse(localStorage.getItem('cart')) || [];
-            
             let existingItem = cart.find(item => item.id == id);
+
             if (existingItem) {
                 existingItem.quantity = (parseInt(existingItem.quantity) || 1) + 1;
             } else {
                 cart.push({
                     id: id,
                     name: name,
-                    price: parseFloat(price) || 0,
+                    price: price,
                     'product-images': image,
                     quantity: 1
                 });
@@ -107,12 +120,10 @@
 
             localStorage.setItem('cart', JSON.stringify(cart));
             updateCartCount();
-            
-            // إشعار بسيط وسريع للمستخدم بأن المنتج أُضيف
             showToast("تمت إضافة المنتج إلى السلة بنجاح! 🛒");
-        }
+        });
 
-        // رسالة إشعار منبثقة غير مزعجة
+        // رسالة إشعار منبثقة
         function showToast(message) {
             let existingToast = document.getElementById('toast-notification');
             if (existingToast) existingToast.remove();
