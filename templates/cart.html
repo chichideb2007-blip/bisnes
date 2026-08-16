@@ -2,33 +2,70 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>سلة المشتريات</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <!-- Tailwind CSS للتصميم العصري المماثل لباقي الصفحات -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome للأيقونات -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; }
+    </style>
 </head>
-<body class="bg-light p-4">
-    <div class="container" style="max-width: 600px;">
-        <h2 class="mb-4 text-center">🛒 سلة المشتريات</h2>
+<body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col justify-between">
+
+    <!-- رأس الصفحة -->
+    <header class="bg-white/90 backdrop-blur-md shadow-sm sticky top-0 z-50 border-b border-gray-100 py-4 px-6">
+        <div class="max-w-4xl mx-auto flex justify-between items-center">
+            <h1 class="text-lg sm:text-xl font-black text-gray-900 flex items-center gap-2">
+                <i class="fas fa-shopping-cart text-indigo-600"></i> سلة المشتريات
+            </h1>
+            <a href="/shop" class="text-xs sm:text-sm font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-4 py-2 rounded-full border border-indigo-100 transition-all flex items-center gap-1.5">
+                <i class="fas fa-arrow-right"></i> العودة للمتجر
+            </a>
+        </div>
+    </header>
+
+    <!-- المحتوى الرئيسي -->
+    <main class="max-w-4xl mx-auto px-4 py-8 flex-grow w-full">
         
-        <div id="cart-items-container">
-            <!-- سيتم تعبئة المنتجات هنا تلقائياً بواسطة الجافاسكريبت -->
+        <!-- حاوية المنتجات داخل السلة -->
+        <div id="cart-items-container" class="space-y-4 mb-6">
+            <!-- يتم تعبئتها ديناميكياً عبر الجافاسكريبت -->
         </div>
 
-        <div id="cart-summary" class="card p-3 mt-3 shadow-sm d-none">
-            <h4>المجموع الكلي للمنتجات: <span id="total-price">0</span> دج</h4>
-            <button onclick="proceedToCheckout()" class="btn btn-success w-100 mt-3 py-2 fw-bold">
-                🚚 تأكيد الطلب وإدخال معلومات التوصيل
+        <!-- صندوق المجموع الكلي وأزرار المتابعة -->
+        <div id="cart-summary" class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 d-none">
+            <div class="flex justify-between items-center mb-4">
+                <span class="text-gray-500 font-bold">المجموع الكلي للمنتجات:</span>
+                <span class="text-xl sm:text-2xl font-black text-indigo-600"><span id="total-price">0</span> دج</span>
+            </div>
+            <button onclick="proceedToCheckout()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-4 rounded-2xl transition-all shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 text-sm sm:text-base">
+                <i class="fas fa-truck-fast"></i> تأكيد الطلب وإدخال معلومات التوصيل
             </button>
         </div>
 
-        <div id="empty-cart-msg" class="text-center text-muted mt-5">
-            <h4>السلة فارغة حالياً 🛍️</h4>
-            <a href="/shop" class="btn btn-primary mt-3">العودة للمتجر</a>
+        <!-- حالة السلة الفارغة -->
+        <div id="empty-cart-msg" class="text-center py-16 bg-white rounded-3xl shadow-sm border border-gray-100 hidden">
+            <div class="w-16 h-16 bg-indigo-50 text-indigo-500 rounded-full mx-auto flex items-center justify-center text-2xl mb-4">
+                <i class="fas fa-box-open"></i>
+            </div>
+            <h3 class="text-lg font-bold text-gray-800 mb-1">سلة المشتريات فارغة حالياً</h3>
+            <p class="text-gray-400 text-sm mb-6">أضف بعض المنتجات الرائعة لتراها هنا!</p>
+            <a href="/shop" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition-all shadow-md shadow-indigo-600/20">
+                تصفح المنتجات
+            </a>
         </div>
-    </div>
+    </main>
 
+    <!-- تذييل الصفحة -->
+    <footer class="bg-white border-t border-gray-100 py-4 text-center text-xs text-gray-400">
+        <p>جميع الحقوق محفوظة &copy; 2026 - منصة المتاجر الإلكترونية</p>
+    </footer>
+
+    <!-- سكربت إدارة السلة والكميات بشكل صحيح ودقيق -->
     <script>
         function loadCart() {
-            // استخدام مفتاح 'cart' الموحد مع باقي الصفحات
             let cart = JSON.parse(localStorage.getItem('cart')) || [];
             let container = document.getElementById('cart-items-container');
             let summary = document.getElementById('cart-summary');
@@ -37,30 +74,46 @@
             container.innerHTML = '';
 
             if (cart.length === 0) {
-                emptyMsg.classList.remove('d-none');
-                summary.classList.add('d-none');
+                emptyMsg.classList.remove('hidden');
+                summary.classList.add('hidden');
                 return;
             }
 
-            emptyMsg.classList.add('d-none');
-            summary.classList.remove('d-none');
+            emptyMsg.classList.add('hidden');
+            summary.classList.remove('hidden');
 
             let total = 0;
             cart.forEach((item, index) => {
-                let itemTotal = item.price * (item.quantity || 1);
+                let itemPrice = parseFloat(item.price) || 0;
+                let itemQty = parseInt(item.quantity) || 1;
+                let itemTotal = itemPrice * itemQty;
                 total += itemTotal;
 
+                let imgSrc = item['product-images'] || item.image || 'https://via.placeholder.com/80';
+
                 container.innerHTML += `
-                    <div class="card mb-3 p-3 shadow-sm d-flex flex-row align-items-center justify-content-between">
-                        <div class="d-flex align-items-center">
-                            <img src="${item['product-images'] || item.image || 'https://via.placeholder.com/60'}" style="width: 60px; height: 60px; object-fit: cover;" class="rounded ms-3">
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div class="flex items-center gap-4 w-full sm:w-auto">
+                            <img src="${imgSrc}" style="width: 70px; height: 70px; object-fit: cover;" class="rounded-xl border border-gray-100 shrink-0">
                             <div>
-                                <h5 class="mb-1">${item.name}</h5>
-                                <p class="text-muted mb-0">${item.price} دج × ${item.quantity || 1}</p>
+                                <h3 class="font-bold text-gray-800 text-sm sm:text-base">${item.name}</h3>
+                                <p class="text-indigo-600 font-black text-sm mt-0.5">${itemPrice} دج</p>
                             </div>
                         </div>
-                        <div>
-                            <button class="btn btn-sm btn-outline-danger" onclick="removeItem(${index})">🗑️</button>
+                        
+                        <div class="flex items-center justify-between w-full sm:w-auto gap-4">
+                            <!-- أزرار التحكم في الكمية وحسابها بدقة -->
+                            <div class="flex items-center border border-gray-200 rounded-xl overflow-hidden bg-gray-50">
+                                <button onclick="changeQuantity(${index}, -1)" class="px-3 py-1.5 text-gray-600 hover:bg-gray-200 transition-colors font-bold">-</button>
+                                <span class="px-4 py-1.5 font-bold text-sm text-gray-800">${itemQty}</span>
+                                <button onclick="changeQuantity(${index}, 1)" class="px-3 py-1.5 text-gray-600 hover:bg-gray-200 transition-colors font-bold">+</button>
+                            </div>
+
+                            <span class="font-black text-gray-900 text-sm sm:text-base min-w-[80px] text-left">${itemTotal} دج</span>
+
+                            <button onclick="removeItem(${index})" class="text-rose-500 hover:text-rose-700 p-2 transition-colors">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
                         </div>
                     </div>
                 `;
@@ -69,6 +122,20 @@
             document.getElementById('total-price').innerText = total;
         }
 
+        // دالة تغيير الكمية (+ أو -) وتحديث السعر الإجمالي فوراً في الـ localStorage
+        function changeQuantity(index, delta) {
+            let cart = JSON.parse(localStorage.getItem('cart')) || [];
+            if (cart[index]) {
+                cart[index].quantity = (cart[index].quantity || 1) + delta;
+                if (cart[index].quantity < 1) {
+                    cart[index].quantity = 1;
+                }
+                localStorage.setItem('cart', JSON.stringify(cart));
+                loadCart();
+            }
+        }
+
+        // دالة حذف منتج من السلة
         function removeItem(index) {
             let cart = JSON.parse(localStorage.getItem('cart')) || [];
             cart.splice(index, 1);
@@ -76,11 +143,12 @@
             loadCart();
         }
 
+        // الانتقال لصفحة تأكيد الطلب
         function proceedToCheckout() {
-            // الانتقال إلى مسار السلة في البايثون الذي أعددناه مسبقاً
             window.location.href = "/checkout_cart";
         }
 
+        // تحميل السلة فور فتح الصفحة
         loadCart();
     </script>
 </body>
