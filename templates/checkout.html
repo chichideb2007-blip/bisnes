@@ -11,7 +11,7 @@
         .checkout-card { background: white; border-radius: 15px; padding: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 600px; margin: auto; }
         .form-label { font-weight: bold; color: #333; }
         .price-box { background: #e9ecef; padding: 15px; border-radius: 10px; margin: 20px 0; }
-        .btn-confirm { background-color: #198754; color: white; padding: 12px; font-weight: bold; border: none; border-radius: 8px; flex-grow: 1; }
+        .btn-confirm { background-color: #198754; color: white; padding: 12px; font-weight: bold; border: none; border-radius: 8px; flex-grow: 1; transition: opacity 0.2s ease; }
         .btn-back { background-color: #6c757d; color: white; padding: 12px; font-weight: bold; border: none; border-radius: 8px; text-decoration: none; text-align: center; }
 
         .goog-te-banner-frame.skiptranslate { display: none !important; }
@@ -192,18 +192,22 @@ function googleTranslateElementInit() {
             htmlContent += `</ul>`;
             summaryList.innerHTML = htmlContent;
 
-            // حساب السعر الأساسي للقطعة الواحدة في السلة لكي تتفاعل خانة الكمية بشكل صحيح
             basePrice = totalCartPrice / totalQuantity; 
             quantityInput.value = totalQuantity;
         }
 
         calculateTotal();
 
-        // منع تكرار الضغط وإظهار حالة التحميل عند الإرسال
-        document.getElementById('order-form').addEventListener('submit', function() {
+        // منع الإرسال المزدوج بطريقة خفيفة وسريعة بدون إبطاء المتصفح
+        document.getElementById('order-form').addEventListener('submit', function(e) {
             let btn = document.querySelector('.btn-confirm');
-            btn.disabled = true;
-            btn.innerHTML = '⏳ جاري إرسال الطلب، يرجى الانتظار...';
+            
+            if (btn.classList.contains('submitting')) {
+                e.preventDefault();
+                return;
+            }
+            btn.classList.add('submitting');
+            btn.style.opacity = '0.7';
         });
     });
 
@@ -251,7 +255,6 @@ function googleTranslateElementInit() {
         const totalDisplay = document.getElementById('total_display');
         const deliveryPriceInput = document.getElementById('delivery_price_input');
         
-        // جلب الكمية الجديدة التي أدخلها المستخدم يدوياً
         const quantityInput = document.getElementById('quantity');
         const quantity = parseInt(quantityInput.value) || 1;
 
@@ -278,7 +281,6 @@ function googleTranslateElementInit() {
         let productsTotal = 0;
         
         if (cartItems.length > 0) {
-            // حساب إجمالي المنتجات بناءً على السعر الأساسي مضروباً في الكمية الجديدة المحدثة
             let originalCartTotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
             let originalQuantity = cartItems.reduce((sum, item) => sum + item.quantity, 1);
             let unitAveragePrice = originalCartTotal / originalQuantity;
