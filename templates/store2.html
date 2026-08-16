@@ -137,9 +137,15 @@
                             </div>
 
                             {% if product.quantity > 0 %}
-                                <a href="/checkout/{{ product.id }}" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-center font-bold py-2.5 px-3 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-md shadow-indigo-600/20 hover:shadow-indigo-600/40 text-xs sm:text-sm active:scale-95">
-                                    <i class="fas fa-utensils text-xs"></i> اطلب الآن
-                                </a>
+                                <button onclick="addToCart(
+                                    '{{ product.id }}', 
+                                    '{{ product.name }}', 
+                                    '{{ product.price }}', 
+                                    '{{ product.company_id_text }}', 
+                                    '{{ product.get("product-images", "") }}'
+                                )" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-center font-bold py-2.5 px-3 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-md shadow-indigo-600/20 hover:shadow-indigo-600/40 text-xs sm:text-sm active:scale-95">
+                                    🛒 إضافة إلى السلة
+                                </button>
                             {% else %}
                                 <button disabled class="w-full bg-gray-100 text-gray-400 text-center font-bold py-2.5 px-3 rounded-xl cursor-not-allowed text-xs sm:text-sm">
                                     غير متوفر حالياً
@@ -168,6 +174,7 @@
     <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
     <script>
+        // دالة البحث المباشر
         document.getElementById('searchInput')?.addEventListener('keyup', function() {
             let filter = this.value.toLowerCase().trim();
             let products = document.querySelectorAll('.product-card-container');
@@ -181,6 +188,34 @@
                 }
             });
         });
+
+        // دالة إضافة المنتج إلى السلة والتوجيه المباشر
+        function addToCart(id, name, price, company_code, image) {
+            let cart = JSON.parse(localStorage.getItem('user_cart')) || [];
+            
+            // التحقق مما إذا كان المنتج من متجر آخر
+            if (cart.length > 0 && cart[0].company_id_text !== company_code) {
+                alert("لا يمكنك طلب منتجات من متاجر مختلفة في نفس السلة. يرجى إفراغ السلة أولاً أو الشراء من نفس المتجر.");
+                return;
+            }
+
+            let existingProduct = cart.find(item => item.id === id);
+            if (existingProduct) {
+                existingProduct.quantity += 1;
+            } else {
+                cart.push({
+                    id: id,
+                    name: name,
+                    price: parseFloat(price),
+                    company_id_text: company_code,
+                    image: image,
+                    quantity: 1
+                });
+            }
+
+            localStorage.setItem('user_cart', JSON.stringify(cart));
+            window.location.href = "/store2_cart"; // التوجيه المباشر للسلة
+        }
     </script>
 </body>
 </html>
