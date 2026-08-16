@@ -127,20 +127,6 @@ def get_products_by_shop_name(shop_name):
 def get_delivery_price(wilaya, delivery_type):
     return 500
 
-def refresh_instagram_token():
-    res = supabase.table("settings").select("company_code, instagram_token").execute()
-    for row in res.data:
-        old_token = row.get('instagram_token')
-        if old_token:
-            url = f"https://graph.facebook.com/v20.0/oauth/access_token?grant_type=fb_exchange_token&client_id={os.environ.get('APP_ID')}&client_secret={os.environ.get('APP_SECRET')}&fb_exchange_token={old_token}"
-            try:
-                response = requests.get(url).json()
-                new_token = response.get('access_token')
-                if new_token:
-                    supabase.table("settings").update({"instagram_token": new_token}).eq("company_code", row['company_code']).execute()
-            except Exception as e:
-                print(f"Token Refresh Error: {e}")
-
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -186,7 +172,6 @@ def submit_order():
     phone = request.form.get('phone')
     country = request.form.get('country', 'algeria')
     
-    # التقاط اسم البلدية بغض النظر عن طريقة كتابتها في الـ HTML
     baladiya = (
         request.form.get('baladiya') or 
         request.form.get('baladia') or 
@@ -200,6 +185,7 @@ def submit_order():
     delivery_price = float(request.form.get('delivery_price', 0))
     quantity_ordered = int(request.form.get('quantity', 1))
     
+    # التقاط بيانات السلة وقراءتها بشكل صحيح من أي متجر
     cart_raw = request.form.get('cart_data', '')
     cart_data = []
     
@@ -215,6 +201,7 @@ def submit_order():
         if single_product:
             cart_data = [single_product]
 
+    # حساب المجموع الأساسي للمنتجات
     base_price = sum(float(item.get('price', 0)) for item in cart_data)
     total_price = (base_price * quantity_ordered) + delivery_price
 
@@ -241,7 +228,6 @@ def submit_order():
         if s_res.data:
             current_company = s_res.data[0].get('company_name', "متجر")
 
-    # تحديد اسم الولاية أو المحافظة حسب الدولة المختارة
     region_name = ""
     if country == 'algeria':
         wilaya = request.form.get('wilaya')
@@ -853,7 +839,9 @@ def store2_cart():
 @app.route('/store2_checkout_page')
 def store2_checkout_page():
     rates = get_wilayas_from_db()
-    return render_template('store2_order.html', rates=rates)
+    jordan_res = supabase.table("jordan_rates").select("*").execute()
+    jordan_rates = jordan_res.data if jordan_res.data else []
+    return render_template('checkout.html', rates=rates, jordan_rates=jordan_rates)
 
 @app.route('/store2_checkout/<int:product_id>')
 def store2_checkout(product_id):
@@ -861,7 +849,9 @@ def store2_checkout(product_id):
     if not product:
         return "المنتج غير موجود", 404
     rates = get_wilayas_from_db()
-    return render_template('store2_checkout.html', product=product, rates=rates)
+    jordan_res = supabase.table("jordan_rates").select("*").execute()
+    jordan_rates = jordan_res.data if jordan_res.data else []
+    return render_template('checkout.html', product=product, rates=rates, jordan_rates=jordan_rates)
 
 if __name__ =='__main__':
     app.run(debug=True)
