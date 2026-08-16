@@ -53,7 +53,7 @@ def send_telegram_alert(product_name, company_name, company_code=""):
                 if token and chat_id:
                     message = f"🚨 تنبيه نفاذ المخزون!\n\n🏪 المحل / المتجر: {company_name}\n📦 المنتج الذي نفد: {product_name}\n\n⚠️ لقد نفذت كمية هذا المنتج تماماً من المخزون!"
                     url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={requests.utils.quote(message)}"
-                    requests.get(url)
+                    requests.get(url, timeout=3)
                     print(f"DEBUG: تم إرسال تنبيه نفاذ المخزون للمنتج {product_name}")
                     return
         print("DEBUG: لم يتم العثور على توكن تيليجرام خاص بهذا المحل في الإعدادات.")
@@ -62,22 +62,16 @@ def send_telegram_alert(product_name, company_name, company_code=""):
 
 def send_telegram_alert_by_token(token, chat_id, message):
     if not token or not chat_id:
-        print("DEBUG: فشل إرسال التنبيه - التوكن أو Chat ID فارغ")
         return False
     
     try:
         url = f"https://api.telegram.org/bot{token}/sendMessage"
         params = {"chat_id": chat_id, "text": message}
-        response = requests.get(url, params=params)
-        
-        if response.status_code == 200:
-            print("DEBUG: تم إرسال التنبيه إلى تيلجرام بنجاح!")
-            return True
-        else:
-            print(f"DEBUG: فشل الإرسال. الكود: {response.status_code}, الرد: {response.text}")
-            return False
+        # إضافة timeout=3 لمنع تعليق السيرفر نهائياً
+        response = requests.get(url, params=params, timeout=3)
+        return response.status_code == 200
     except Exception as e:
-        print(f"DEBUG: خطأ في الاتصال بتليجرام: {e}")
+        print(f"DEBUG: خطأ أو مهلة في الاتصال بتليجرام: {e}")
         return False
 
 def send_order_alert(token, chat_id, message, order_id):
@@ -96,10 +90,11 @@ def send_order_alert(token, chat_id, message, order_id):
             "text": message, 
             "reply_markup": keyboard
         }
-        response = requests.post(url, json=payload)
+        # إضافة timeout=3 هنا أيضاً
+        response = requests.post(url, json=payload, timeout=3)
         return response.status_code == 200
     except Exception as e:
-        print(f"Error sending order alert with buttons: {e}")
+        print(f"Error sending order alert with buttons (Timeout/Error): {e}")
         return False
 
 def get_products_by_shop_name(shop_name):
