@@ -20,12 +20,10 @@
             </h1>
             
             <div class="flex items-center gap-3">
-                <!-- أيقونة السلة -->
                 <a href="/cart" class="text-sm font-bold text-indigo-600 bg-indigo-50 px-4 py-2 rounded-full border border-indigo-100 flex items-center gap-2">
                     <i class="fas fa-shopping-cart"></i> السلة (<span id="cart-count">0</span>)
                 </a>
 
-                <!-- زر تغيير المتجر -->
                 {% if current_company %}
                     <a href="/clear_session" class="text-sm font-medium text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-4 py-2 rounded-full transition-colors border border-rose-100 flex items-center gap-1.5">
                         <i class="fas fa-exchange-alt"></i> تغيير المتجر
@@ -51,16 +49,11 @@
         {% if products %}
             <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                 {% for product in products %}
-                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col justify-between product-card"
-                         data-id="{{ product.id }}"
-                         data-name="{{ product.name }}"
-                         data-price="{{ product.price }}"
-                         data-image="{{ product['product-images'] if product['product-images'] else '' }}">
-                        
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col justify-between product-card">
                         <div>
                             <div class="w-full h-36 bg-gray-100 rounded-xl overflow-hidden mb-3">
                                 {% if product['product-images'] %}
-                                    <img src="{{ product['product-images'] }}" class="w-full h-full object-cover" alt="{{ product.name }}">
+                                    <img src="{{ product['product-images'] }}" class="w-full h-full object-cover product-img" alt="{{ product.name }}">
                                 {% else %}
                                     <div class="w-full h-full flex items-center justify-center text-gray-400">
                                         <i class="fas fa-image text-2xl"></i>
@@ -71,9 +64,8 @@
                             <p class="text-indigo-600 font-black text-base mb-3"><span class="product-price">{{ product.price }}</span> دج</p>
                         </div>
 
-                        <!-- زر إضافة للسلة فقط -->
                         <div>
-                            <button onclick="addToCart(this)" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl transition-all text-xs flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/20">
+                            <button type="button" onclick="addToCart('{{ product.id }}', '{{ product.name | e }}', '{{ product.price }}', '{{ product['product-images'] if product['product-images'] else '' }}')" class="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold py-2.5 rounded-xl transition-all text-xs flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/20 cursor-pointer">
                                 <i class="fas fa-cart-plus"></i> إضافة للسلة
                             </button>
                         </div>
@@ -86,20 +78,18 @@
     </main>
 
     <script>
+        // دالة تحديث عداد السلة في الهيدر
         function updateCartCount() {
             let cart = JSON.parse(localStorage.getItem('cart')) || [];
             let totalCount = cart.reduce((sum, item) => sum + (parseInt(item.quantity) || 1), 0);
             let countEl = document.getElementById('cart-count');
-            if (countEl) countEl.innerText = totalCount;
+            if (countEl) {
+                countEl.innerText = totalCount;
+            }
         }
 
-        function addToCart(button) {
-            let card = button.closest('.product-card');
-            let id = card.getAttribute('data-id');
-            let name = card.getAttribute('data-name');
-            let price = parseFloat(card.getAttribute('data-price')) || 0;
-            let image = card.getAttribute('data-image');
-
+        // دالة إضافة المنتج للسلة واستجابة الزر فوراً
+        function addToCart(id, name, price, image) {
             let cart = JSON.parse(localStorage.getItem('cart')) || [];
             
             let existingItem = cart.find(item => item.id == id);
@@ -109,7 +99,7 @@
                 cart.push({
                     id: id,
                     name: name,
-                    price: price,
+                    price: parseFloat(price) || 0,
                     'product-images': image,
                     quantity: 1
                 });
@@ -117,9 +107,29 @@
 
             localStorage.setItem('cart', JSON.stringify(cart));
             updateCartCount();
-            alert("تمت الإضافة إلى السلة بنجاح! 🛒");
+            
+            // إشعار بسيط وسريع للمستخدم بأن المنتج أُضيف
+            showToast("تمت إضافة المنتج إلى السلة بنجاح! 🛒");
         }
 
+        // رسالة إشعار منبثقة غير مزعجة
+        function showToast(message) {
+            let existingToast = document.getElementById('toast-notification');
+            if (existingToast) existingToast.remove();
+
+            let toast = document.createElement('div');
+            toast.id = 'toast-notification';
+            toast.className = 'fixed bottom-5 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs font-bold px-4 py-2.5 rounded-full shadow-2xl z-50 transition-all duration-300';
+            toast.innerText = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 2000);
+        }
+
+        // تحديث العداد فور تحميل الصفحة
         window.onload = updateCartCount;
     </script>
 </body>
