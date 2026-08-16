@@ -39,13 +39,25 @@
     <div class="checkout-card">
         <h3 class="text-center mb-4">معلومات الطلب</h3>
         
-        <div class="card p-3 mb-3 border-0 bg-light">
-            <h5>المنتج: <span class="text-indigo">{{ product.name }}</span></h5>
-            <p class="mb-0 text-danger fw-bold">السعر للقطعة: <span id="product_unit_price">{{ product.price }}</span> دج</p>
+        <!-- صندوق عرض المنتج الفردي أو قائمة السلة -->
+        <div class="card p-3 mb-3 border-0 bg-light" id="product_info_box">
+            {% if product %}
+                <h5>المنتج: <span class="text-indigo">{{ product.name }}</span></h5>
+                <p class="mb-0 text-danger fw-bold">السعر للقطعة: <span id="product_unit_price">{{ product.price }}</span> دج</p>
+            {% else %}
+                <h5>المنتجات في السلة:</h5>
+                <ul id="cart_items_list" class="mb-2 ps-3"></ul>
+                <p class="mb-0 text-danger fw-bold">إجمالي المنتجات: <span id="cart_base_price_display">0</span> دج</p>
+            {% endif %}
         </div>
 
-        <form action="/submit-order" method="POST">
-            <input type="hidden" name="product_id" value="{{ product.id }}">
+        <form action="/submit-order" method="POST" onsubmit="prepareOrderSubmission()">
+            {% if product %}
+                <input type="hidden" name="product_id" value="{{ product.id }}">
+            {% endif %}
+            
+            <!-- حقل مخفي لبيانات السلة -->
+            <input type="hidden" name="cart_data" id="cart_data_input" value="">
 
             <div class="row">
                 <div class="col-md-6 mb-3">
@@ -73,8 +85,8 @@
                 </select>
             </div>
 
-            <!-- خانة الكمية -->
-            <div class="mb-3">
+            <!-- خانة الكمية (تظهر فقط للشراء المباشر، وتختفي إذا كان الطلب من السلة لأن السلة تحتوي على كمياتها مسبقاً) -->
+            <div class="mb-3" id="quantity_container">
                 <label for="quantity" class="form-label">الكمية</label>
                 <input type="number" id="quantity" name="quantity" class="form-control" value="1" min="1" oninput="calculateTotal()" required>
             </div>
@@ -94,7 +106,7 @@
                 </select>
             </div>
 
-            <!-- خانة محافظات الأردن (محدثة بالاسم الصحيح للعمود governorate_name) -->
+            <!-- خانة محافظات الأردن -->
             <div class="mb-3 d-none" id="jordan_section">
                 <label for="jordan_region" class="form-label">المحافظة والمنطقة (الأردن)</label>
                 <select id="jordan_region" name="jordan_region" class="form-select" onchange="calculateTotal()" style="color: #000 !important; background-color: #fff !important;" required>
@@ -110,7 +122,7 @@
                 </select>
             </div>
 
-            <!-- حاوية خانة البلدية (تظهر للجزائر وتختفي للأردن تلقائياً) -->
+            <!-- حاوية خانة البلدية -->
             <div class="mb-3" id="baladiya_container">
                 <label class="form-label">البلدية</label>
                 <input type="text" name="baladia" id="baladiya_input" class="form-control" placeholder="أدخل اسم البلدية">
@@ -133,7 +145,7 @@
 
             <div class="price-box">
                 <h5>سعر التوصيل: <span id="shipping_display">0</span></h5>
-                <h4 class="text-primary mt-2">المجموع الكلي: <span id="total_display">{{ product.price }}</span></h4>
+                <h4 class="text-primary mt-2">المجموع الكلي: <span id="total_display">0</span></h4>
             </div>
 
             <div class="d-flex gap-2">
@@ -156,7 +168,62 @@ function googleTranslateElementInit() {
 <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
 <script>
-    let basePrice = parseFloat("{{ product.price }}");
+    // تحديد ما إذا كان المنتج مفرد أم من السلة
+    let isSingleProduct = {% if product %}true{% else %}false{% endif %};
+    let basePrice = isSingleProduct ? parseFloat("{{ product.price }}") : 0;
+    
+    // محاولة جلب السلة إذا لم يكن منتجاً مفرداً
+    // نحتاج لمعرفة اسم المتجر الحالي لتحديد المفتاح الصحيح للسلة
+    const pathSegments = window.location.pathname.split('/');
+    // يمكنك تعديل طريقة استخراج اسم المتجر حسب تخزينك أو الاعتماد على LocalStorage الموحد
+    let cartDataList = [];
+    
+    if (!isSingleProduct) {
+        // البحث عن أي سلة مخزنة في الـ localStorage
+        for (let i = 0; i < localStorage.length; i++) {
+            let key = localStorage.key(i);
+            if (key && key.startsWith('cart_')) {
+                try {
+                    let items = JSON.parse(localStorage.getItem(key));
+                    if (Array.isArray(items) && items.length > 0) {
+                        cartDataList = items;
+                        break;
+                    }
+                } catch(e) {}
+            }
+        }
+        
+        // حساب إجمالي أسعار السلة
+        let listContainer = document.getElementById('cart_items_list');
+        cartDataList.forEach(item => {
+            basePrice += parseFloat(item.price || 0);
+            if (listContainer) {
+                let li = document.createElement('li');
+                li.innerText = `${item.name} - ${item.price} دج`;
+                listContainer.appendChild(li);
+            }
+        });
+        
+        document.getElementById('cart_base_price_display').innerText = basePrice;
+        // إخفاء حقل الكمية لأن السلة تحتوى على منتجاتها مباشرة
+        document.getElementById('quantity_container').style.display = 'none';
+        document.getElementById('quantity').value = 1;
+    }
+
+    // تعبئة حقل بيانات السلة عند إرسال النموذج وتفريغ السلة
+    function prepareOrderSubmission() {
+        if (!isSingleProduct && cartDataList.length > 0) {
+            document.getElementById('cart_data_input').value = JSON.stringify(cartDataList);
+            // تفريغ السلات بعد الطلب الناجح
+            for (let i = 0; i < localStorage.length; i++) {
+                let key = localStorage.key(i);
+                if (key && key.startsWith('cart_')) {
+                    localStorage.removeItem(key);
+                }
+            }
+        }
+        calculateTotal();
+    }
 
     function toggleCountryFields() {
         const country = document.getElementById('country').value;
@@ -201,7 +268,7 @@ function googleTranslateElementInit() {
         const shippingDisplay = document.getElementById('shipping_display');
         const totalDisplay = document.getElementById('total_display');
         const deliveryPriceInput = document.getElementById('delivery_price_input');
-        const quantity = parseInt(document.getElementById('quantity').value) || 1;
+        const quantity = isSingleProduct ? (parseInt(document.getElementById('quantity').value) || 1) : 1;
 
         let shippingPrice = 0;
 
@@ -230,6 +297,11 @@ function googleTranslateElementInit() {
         totalDisplay.innerText = finalTotal;
         deliveryPriceInput.value = shippingPrice;
     }
+
+    // تشغيل الحساب أوليّاً عند التحميل
+    window.onload = function() {
+        calculateTotal();
+    };
 </script>
 
 </body>
