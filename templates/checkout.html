@@ -165,12 +165,10 @@ function googleTranslateElementInit() {
 <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
 <script>
-    // تحديد السعر الأساسي بناءً على المتغير القادم من البايثون أو من السلة المحلية
     let basePrice = parseFloat("{{ product.price if product else 0 }}");
     let cartItems = [];
 
     document.addEventListener("DOMContentLoaded", function() {
-        // فحص السلة من localStorage
         let storedCart = JSON.parse(localStorage.getItem('user_cart')) || [];
         let cartInput = document.getElementById('cart_data_input');
         let summaryList = document.getElementById('cart-summary-list');
@@ -180,7 +178,6 @@ function googleTranslateElementInit() {
             cartItems = storedCart;
             if (cartInput) cartInput.value = JSON.stringify(cartItems);
 
-            // عرض منتجات السلة داخل الصندوق
             let htmlContent = '<h5 class="mb-2 fw-bold text-dark">منتجات السلة:</h5><ul class="list-unstyled mb-0">';
             let totalCartPrice = 0;
             let totalQuantity = 0;
@@ -195,14 +192,19 @@ function googleTranslateElementInit() {
             htmlContent += `</ul>`;
             summaryList.innerHTML = htmlContent;
 
-            // ضبط السعر الأساسي الإجمالي والكمية تلقائياً للسلة
+            // حساب السعر الأساسي للقطعة الواحدة في السلة لكي تتفاعل خانة الكمية بشكل صحيح
             basePrice = totalCartPrice / totalQuantity; 
             quantityInput.value = totalQuantity;
-            // إذا أردت جعل الكمية غير قابلة للتعديل يدوياً إذا كانت سلة:
-            // quantityInput.readOnly = true; 
         }
 
         calculateTotal();
+
+        // منع تكرار الضغط وإظهار حالة التحميل عند الإرسال
+        document.getElementById('order-form').addEventListener('submit', function() {
+            let btn = document.querySelector('.btn-confirm');
+            btn.disabled = true;
+            btn.innerHTML = '⏳ جاري إرسال الطلب، يرجى الانتظار...';
+        });
     });
 
     function toggleCountryFields() {
@@ -248,7 +250,10 @@ function googleTranslateElementInit() {
         const shippingDisplay = document.getElementById('shipping_display');
         const totalDisplay = document.getElementById('total_display');
         const deliveryPriceInput = document.getElementById('delivery_price_input');
-        const quantity = parseInt(document.getElementById('quantity').value) || 1;
+        
+        // جلب الكمية الجديدة التي أدخلها المستخدم يدوياً
+        const quantityInput = document.getElementById('quantity');
+        const quantity = parseInt(quantityInput.value) || 1;
 
         let shippingPrice = 0;
 
@@ -270,10 +275,15 @@ function googleTranslateElementInit() {
             }
         }
         
-        // حساب إجمالي المنتجات (سواء كانت سلة متعددة أو منتج مفرد)
         let productsTotal = 0;
+        
         if (cartItems.length > 0) {
-            productsTotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            // حساب إجمالي المنتجات بناءً على السعر الأساسي مضروباً في الكمية الجديدة المحدثة
+            let originalCartTotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            let originalQuantity = cartItems.reduce((sum, item) => sum + item.quantity, 1);
+            let unitAveragePrice = originalCartTotal / originalQuantity;
+            
+            productsTotal = unitAveragePrice * quantity;
         } else {
             let unitPrice = parseFloat(document.getElementById('product_unit_price')?.innerText || basePrice);
             productsTotal = unitPrice * quantity;
