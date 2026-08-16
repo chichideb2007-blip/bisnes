@@ -22,13 +22,14 @@
 
         <div id="empty-cart-msg" class="text-center text-muted mt-5">
             <h4>السلة فارغة حالياً 🛍️</h4>
-            <a href="/store2" class="btn btn-primary mt-3">العودة للمتجر</a>
+            <a href="/shop" class="btn btn-primary mt-3">العودة للمتجر</a>
         </div>
     </div>
 
     <script>
         function loadCart() {
-            let cart = JSON.parse(localStorage.getItem('user_cart')) || [];
+            // استخدام مفتاح 'cart' الموحد مع باقي الصفحات
+            let cart = JSON.parse(localStorage.getItem('cart')) || [];
             let container = document.getElementById('cart-items-container');
             let summary = document.getElementById('cart-summary');
             let emptyMsg = document.getElementById('empty-cart-msg');
@@ -46,16 +47,16 @@
 
             let total = 0;
             cart.forEach((item, index) => {
-                let itemTotal = item.price * item.quantity;
+                let itemTotal = item.price * (item.quantity || 1);
                 total += itemTotal;
 
                 container.innerHTML += `
                     <div class="card mb-3 p-3 shadow-sm d-flex flex-row align-items-center justify-content-between">
                         <div class="d-flex align-items-center">
-                            <img src="${item.image || 'https://via.placeholder.com/60'}" style="width: 60px; height: 60px; object-fit: cover;" class="rounded ms-3">
+                            <img src="${item['product-images'] || item.image || 'https://via.placeholder.com/60'}" style="width: 60px; height: 60px; object-fit: cover;" class="rounded ms-3">
                             <div>
                                 <h5 class="mb-1">${item.name}</h5>
-                                <p class="text-muted mb-0">${item.price} دج × ${item.quantity}</p>
+                                <p class="text-muted mb-0">${item.price} دج × ${item.quantity || 1}</p>
                             </div>
                         </div>
                         <div>
@@ -69,15 +70,15 @@
         }
 
         function removeItem(index) {
-            let cart = JSON.parse(localStorage.getItem('user_cart')) || [];
+            let cart = JSON.parse(localStorage.getItem('cart')) || [];
             cart.splice(index, 1);
-            localStorage.setItem('user_cart', JSON.stringify(cart));
+            localStorage.setItem('cart', JSON.stringify(cart));
             loadCart();
         }
 
         function proceedToCheckout() {
-            // الانتقال لصفحة الدفع والتوصيل القديمة
-            window.location.href = "/store2_checkout_page";
+            // الانتقال إلى مسار السلة في البايثون الذي أعددناه مسبقاً
+            window.location.href = "/checkout_cart";
         }
 
         loadCart();
