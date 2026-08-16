@@ -11,7 +11,7 @@
         .checkout-card { background: white; border-radius: 15px; padding: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 600px; margin: auto; }
         .form-label { font-weight: bold; color: #333; }
         .price-box { background: #e9ecef; padding: 15px; border-radius: 10px; margin: 20px 0; }
-        .btn-confirm { background-color: #198754; color: white; padding: 12px; font-weight: bold; border: none; border-radius: 8px; flex-grow: 1; transition: opacity 0.2s ease; }
+        .btn-confirm { background-color: #198754; color: white; padding: 12px; font-weight: bold; border: none; border-radius: 8px; flex-grow: 1; }
         .btn-back { background-color: #6c757d; color: white; padding: 12px; font-weight: bold; border: none; border-radius: 8px; text-decoration: none; text-align: center; }
 
         .goog-te-banner-frame.skiptranslate { display: none !important; }
@@ -39,22 +39,25 @@
     <div class="checkout-card">
         <h3 class="text-center mb-4">معلومات الطلب</h3>
         
-        <!-- صندوق عرض المنتجات (يتم تعبئته تلقائياً من السلة أو المنتج المفرد) -->
-        <div class="card p-3 mb-3 border-0 bg-light" id="product-info-box">
-            <div id="cart-summary-list">
-                <!-- افتراضي في حال لم تكن سلة -->
-                <h5>المنتج: <span class="text-indigo">{{ product.name if product else '' }}</span></h5>
-                <p class="mb-0 text-danger fw-bold">السعر للقطعة: <span id="product_unit_price">{{ product.price if product else 0 }}</span> دج</p>
-            </div>
+        <!-- صندوق معلومات المنتج أو السلة -->
+        <div class="card p-3 mb-3 border-0 bg-light" id="product_info_box">
+            {% if is_cart %}
+                <h5>الطلب: <span class="text-indigo">سلة المشتريات</span></h5>
+                <div id="cart_items_summary" class="mt-2 text-muted small"></div>
+                <p class="mb-0 text-danger fw-bold mt-2">مجموع المنتجات: <span id="product_unit_price">0</span> دج</p>
+            {% else %}
+                <h5>المنتج: <span class="text-indigo">{{ product.name }}</span></h5>
+                <p class="mb-0 text-danger fw-bold">السعر للقطعة: <span id="product_unit_price">{{ product.price }}</span> دج</p>
+            {% endif %}
         </div>
 
-        <form action="/submit-order" method="POST" id="order-form">
-            <!-- حقل مخفي لبيانات السلة -->
-            <input type="hidden" name="cart_data" id="cart_data_input">
-            
-            {% if product %}
-            <input type="hidden" name="product_id" value="{{ product.id }}">
+        <form action="/submit-order" method="POST" onsubmit="prepareCartData()">
+            {% if not is_cart %}
+                <input type="hidden" name="product_id" value="{{ product.id }}">
             {% endif %}
+            
+            <!-- حقل مخفي لحمل بيانات السلة كاملة إذا كان الطلب عبارة عن سلة -->
+            <input type="hidden" name="cart_data" id="cart_data_input">
 
             <div class="row">
                 <div class="col-md-6 mb-3">
@@ -82,9 +85,9 @@
                 </select>
             </div>
 
-            <!-- خانة الكمية (تتحدث تلقائياً أو يدوياً) -->
-            <div class="mb-3" id="quantity-section">
-                <label for="quantity" class="form-label">الكمية الإجمالية</label>
+            <!-- خانة الكمية (تختفي أو تصبح غير مفعلة تلقائياً إذا كان الطلب سلة لأن السلة تحوي كمياتها مسبقاً) -->
+            <div class="mb-3" id="quantity_container">
+                <label for="quantity" class="form-label">الكمية</label>
                 <input type="number" id="quantity" name="quantity" class="form-control" value="1" min="1" oninput="calculateTotal()" required>
             </div>
 
@@ -141,12 +144,12 @@
             <input type="hidden" name="delivery_price" id="delivery_price_input" value="0">
 
             <div class="price-box">
-                <h5>سعر التوصيل: <span id="shipping_display">0</span> دج</h5>
-                <h4 class="text-primary mt-2">المجموع الكلي: <span id="total_display">0</span> دج</h4>
+                <h5>سعر التوصيل: <span id="shipping_display">0</span></h5>
+                <h4 class="text-primary mt-2">المجموع الكلي: <span id="total_display">0</span></h4>
             </div>
 
             <div class="d-flex gap-2">
-                <button type="submit" class="btn-confirm">تأكيد الطلب النهائي</button>
+                <button type="submit" class="btn-confirm">تأكيد الطلب</button>
                 <a href="/shop" class="btn-back">رجوع</a>
             </div>
         </form>
@@ -165,50 +168,42 @@ function googleTranslateElementInit() {
 <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
 <script>
-    let basePrice = parseFloat("{{ product.price if product else 0 }}");
-    let cartItems = [];
+    let isCartOrder = "{{ 'true' if is_cart else 'false' }}" === "true";
+    let basePrice = 0;
 
-    document.addEventListener("DOMContentLoaded", function() {
-        let storedCart = JSON.parse(localStorage.getItem('user_cart')) || [];
-        let cartInput = document.getElementById('cart_data_input');
-        let summaryList = document.getElementById('cart-summary-list');
-        let quantityInput = document.getElementById('quantity');
-
-        if (storedCart.length > 0) {
-            cartItems = storedCart;
-            if (cartInput) cartInput.value = JSON.stringify(cartItems);
-
-            let htmlContent = '<h5 class="mb-2 fw-bold text-dark">منتجات السلة:</h5><ul class="list-unstyled mb-0">';
-            let totalCartPrice = 0;
-            let totalQuantity = 0;
-
-            cartItems.forEach(item => {
-                let itemTotal = item.price * item.quantity;
-                totalCartPrice += itemTotal;
-                totalQuantity += item.quantity;
-                htmlContent += `<li class="small text-muted border-bottom py-1">🛒 ${item.name} (${item.price} دج × ${item.quantity})</li>`;
-            });
-
-            htmlContent += `</ul>`;
-            summaryList.innerHTML = htmlContent;
-
-            basePrice = totalCartPrice / totalQuantity; 
-            quantityInput.value = totalQuantity;
-        }
-
-        calculateTotal();
-
-        // منع الإرسال المزدوج بطريقة خفيفة وسريعة بدون إبطاء المتصفح
-        document.getElementById('order-form').addEventListener('submit', function(e) {
-            let btn = document.querySelector('.btn-confirm');
+    // عند تحميل الصفحة، نتحقق هل هي سلة أم منتج منفرد
+    window.addEventListener('DOMContentLoaded', () => {
+        if (isCartOrder) {
+            let cart = JSON.parse(localStorage.getItem('cart')) || [];
+            let summaryContainer = document.getElementById('cart_items_summary');
+            let priceSpan = document.getElementById('product_unit_price');
+            let quantityContainer = document.getElementById('quantity_container');
             
-            if (btn.classList.contains('submitting')) {
-                e.preventDefault();
-                return;
+            // إخفاء حقل الكمية العادي لأن السلة تحتوي عدة منتجات
+            if(quantityContainer) quantityContainer.style.display = 'none';
+            
+            if (cart.length > 0) {
+                let htmlList = "<ul class='mb-0 ps-3'>";
+                let cartTotal = 0;
+                
+                cart.forEach(item => {
+                    let itemTotal = item.price * (item.quantity || 1);
+                    cartTotal += itemTotal;
+                    htmlList += `<li>${item.name} (الكمية: ${item.quantity || 1}) - ${itemTotal} دج</li>`;
+                });
+                htmlList += "</ul>";
+                
+                if(summaryContainer) summaryContainer.innerHTML = htmlList;
+                basePrice = cartTotal;
+                if(priceSpan) priceSpan.innerText = cartTotal;
+            } else {
+                if(summaryContainer) summaryContainer.innerHTML = "السلة فارغة!";
+                basePrice = 0;
             }
-            btn.classList.add('submitting');
-            btn.style.opacity = '0.7';
-        });
+        } else {
+            basePrice = parseFloat("{{ product.price if product else 0 }}");
+        }
+        calculateTotal();
     });
 
     function toggleCountryFields() {
@@ -255,8 +250,10 @@ function googleTranslateElementInit() {
         const totalDisplay = document.getElementById('total_display');
         const deliveryPriceInput = document.getElementById('delivery_price_input');
         
-        const quantityInput = document.getElementById('quantity');
-        const quantity = parseInt(quantityInput.value) || 1;
+        let quantity = 1;
+        if (!isCartOrder) {
+            quantity = parseInt(document.getElementById('quantity').value) || 1;
+        }
 
         let shippingPrice = 0;
 
@@ -278,24 +275,21 @@ function googleTranslateElementInit() {
             }
         }
         
-        let productsTotal = 0;
-        
-        if (cartItems.length > 0) {
-            let originalCartTotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            let originalQuantity = cartItems.reduce((sum, item) => sum + item.quantity, 1);
-            let unitAveragePrice = originalCartTotal / originalQuantity;
-            
-            productsTotal = unitAveragePrice * quantity;
-        } else {
-            let unitPrice = parseFloat(document.getElementById('product_unit_price')?.innerText || basePrice);
-            productsTotal = unitPrice * quantity;
-        }
-
+        let productsTotal = isCartOrder ? basePrice : (basePrice * quantity);
         let finalTotal = productsTotal + shippingPrice;
 
         shippingDisplay.innerText = shippingPrice;
         totalDisplay.innerText = finalTotal;
         deliveryPriceInput.value = shippingPrice;
+    }
+
+    // دالة لتجهيز وإرسال بيانات السلة عبر الحقل المخفي وتفريغها بعد التأكيد
+    function prepareCartData() {
+        if (isCartOrder) {
+            let cart = localStorage.getItem('cart') || '[]';
+            document.getElementById('cart_data_input').value = cart;
+            localStorage.removeItem('cart');
+        }
     }
 </script>
 
