@@ -53,7 +53,7 @@ def send_telegram_alert(product_name, company_name, company_code=""):
                 if token and chat_id:
                     message = f"🚨 تنبيه نفاذ المخزون!\n\n🏪 المحل / المتجر: {company_name}\n📦 المنتج الذي نفد: {product_name}\n\n⚠️ لقد نفذت كمية هذا المنتج تماماً من المخزون!"
                     url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={requests.utils.quote(message)}"
-                    requests.get(url, timeout=3)
+                    requests.get(url)
                     print(f"DEBUG: تم إرسال تنبيه نفاذ المخزون للمنتج {product_name}")
                     return
         print("DEBUG: لم يتم العثور على توكن تيليجرام خاص بهذا المحل في الإعدادات.")
@@ -62,16 +62,22 @@ def send_telegram_alert(product_name, company_name, company_code=""):
 
 def send_telegram_alert_by_token(token, chat_id, message):
     if not token or not chat_id:
+        print("DEBUG: فشل إرسال التنبيه - التوكن أو Chat ID فارغ")
         return False
     
     try:
         url = f"https://api.telegram.org/bot{token}/sendMessage"
         params = {"chat_id": chat_id, "text": message}
-        # إضافة timeout=3 لمنع تعليق السيرفر نهائياً
-        response = requests.get(url, params=params, timeout=3)
-        return response.status_code == 200
+        response = requests.get(url, params=params)
+        
+        if response.status_code == 200:
+            print("DEBUG: تم إرسال التنبيه إلى تيلجرام بنجاح!")
+            return True
+        else:
+            print(f"DEBUG: فشل الإرسال. الكود: {response.status_code}, الرد: {response.text}")
+            return False
     except Exception as e:
-        print(f"DEBUG: خطأ أو مهلة في الاتصال بتليجرام: {e}")
+        print(f"DEBUG: خطأ في الاتصال بتليجرام: {e}")
         return False
 
 def send_order_alert(token, chat_id, message, order_id):
@@ -90,11 +96,10 @@ def send_order_alert(token, chat_id, message, order_id):
             "text": message, 
             "reply_markup": keyboard
         }
-        # إضافة timeout=3 هنا أيضاً
-        response = requests.post(url, json=payload, timeout=3)
+        response = requests.post(url, json=payload)
         return response.status_code == 200
     except Exception as e:
-        print(f"Error sending order alert with buttons (Timeout/Error): {e}")
+        print(f"Error sending order alert with buttons: {e}")
         return False
 
 def get_products_by_shop_name(shop_name):
@@ -122,6 +127,20 @@ def get_products_by_shop_name(shop_name):
 def get_delivery_price(wilaya, delivery_type):
     return 500
 
+def refresh_instagram_token():
+    res = supabase.table("settings").select("company_code, instagram_token").execute()
+    for row in res.data:
+        old_token = row.get('instagram_token')
+        if old_token:
+            url = f"https://graph.facebook.com/v20.0/oauth/access_token?grant_type=fb_exchange_token&client_id={os.environ.get('APP_ID')}&client_secret={os.environ.get('APP_SECRET')}&fb_exchange_token={old_token}"
+            try:
+                response = requests.get(url).json()
+                new_token = response.get('access_token')
+                if new_token:
+                    supabase.table("settings").update({"instagram_token": new_token}).eq("company_code", row['company_code']).execute()
+            except Exception as e:
+                print(f"Token Refresh Error: {e}")
+
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -138,6 +157,17 @@ def favicon():
 @app.route('/')
 def home():
     return redirect(url_for('login'))
+
+@app.route('/cart')
+def cart_page():
+    # صفحة عرض السلة
+    return render_template('cart.html')
+
+@app.route('/checkout_cart')
+def checkout_cart_page():
+    # صفحة إتمام الطلب لكل محتويات السلة
+    rates = get_wilayas_from_db() # دالة جلب ولايات الشحن
+    return render_template('checkout.html', rates=rates, is_cart=True)
 
 @app.route('/checkout/<int:product_id>')
 def checkout(product_id):
@@ -180,7 +210,6 @@ def submit_order():
     delivery_price = float(request.form.get('delivery_price', 0))
     quantity_ordered = int(request.form.get('quantity', 1))
     
-    # التقاط بيانات السلة وقراءتها بشكل صحيح من أي متجر
     cart_raw = request.form.get('cart_data', '')
     cart_data = []
     
@@ -196,9 +225,8 @@ def submit_order():
         if single_product:
             cart_data = [single_product]
 
-    # حساب المجموع الأساسي للمنتجات
-    base_price = sum(float(item.get('price', 0)) for item in cart_data)
-    total_price = (base_price * quantity_ordered) + delivery_price
+    base_price = sum(float(item.get('price', 0)) * int(item.get('quantity', 1)) for item in cart_data)
+    total_price = base_price + delivery_price
 
     company_code = ""
     if cart_data:
@@ -248,7 +276,7 @@ def submit_order():
     order_data = {
         "customer_name": full_name,
         "customer_phone": phone,
-        "product_name": ", ".join([str(item.get('name', 'منتج')) for item in cart_data]), 
+        "product_name": ", ".join([f"{item.get('name', 'منتج')} (x{item.get('quantity', 1)})" for item in cart_data]), 
         "quantity": quantity_ordered,
         "total_price": total_price,
         "company_code": company_code,
@@ -268,38 +296,32 @@ def submit_order():
     except Exception as e:
         print(f"Error inserting order: {e}")
 
-    items_to_deduct = []
-    if cart_data:
-        for item in cart_data:
-            item_id = item.get('id') or item.get('product_id')
-            if item_id:
-                items_to_deduct.append(int(item_id))
-    elif product_id:
-        items_to_deduct.append(int(product_id))
-
-    for p_id in items_to_deduct:
-        try:
-            prod_res = supabase.table("inventory").select("name, quantity").eq("id", p_id).execute()
-            if prod_res.data and len(prod_res.data) > 0:
-                prod_info = prod_res.data[0]
-                current_qty = int(prod_info.get('quantity', 0))
-                product_name_db = prod_info.get('name', 'منتج')
-                new_qty = max(0, current_qty - quantity_ordered)
-                
-                supabase.table("inventory").update({"quantity": new_qty}).eq("id", p_id).execute()
-                
-                if new_qty <= 0:
-                    send_telegram_alert(product_name_db, current_company, company_code)
+    for item in cart_data:
+        p_id = item.get('id') or item.get('product_id')
+        item_qty = int(item.get('quantity', 1))
+        if p_id:
+            try:
+                prod_res = supabase.table("inventory").select("name, quantity").eq("id", p_id).execute()
+                if prod_res.data and len(prod_res.data) > 0:
+                    prod_info = prod_res.data[0]
+                    current_qty = int(prod_info.get('quantity', 0))
+                    product_name_db = prod_info.get('name', 'منتج')
+                    new_qty = max(0, current_qty - item_qty)
                     
-        except Exception as ex:
-            print(f"DEBUG: خطأ في خصم مخزون المنتج {p_id}: {ex}")
+                    supabase.table("inventory").update({"quantity": new_qty}).eq("id", p_id).execute()
+                    
+                    if new_qty <= 0:
+                        send_telegram_alert(product_name_db, current_company, company_code)
+                        
+            except Exception as ex:
+                print(f"DEBUG: خطأ في خصم مخزون المنتج {p_id}: {ex}")
 
     if company_code:
         res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
         if res_settings.data:
             s = res_settings.data[0]
             token, chat_id = s.get('telegram_token'), s.get('telegram_chat_id')
-            product_names_str = ", ".join([str(item.get('name', 'منتج')) for item in cart_data])
+            product_names_str = ", ".join([f"{item.get('name', 'منتج')} (x{item.get('quantity', 1)})" for item in cart_data])
             if token and chat_id:
                 delivery_text = "توصيل للمنزل" if delivery_type == "home" else "توصيل للمكتب"
                 msg = (
@@ -307,7 +329,6 @@ def submit_order():
                     f"👤 الاسم: {full_name}\n"
                     f"📞 الهاتف: {phone}\n"
                     f"📦 المنتجات: {product_names_str}\n"
-                    f"🔢 الكمية: {quantity_ordered}\n"
                     f"📍 المنطقة/الولاية: {region_name}\n"
                     f"🏘️ البلدية: {baladiya}\n"
                     f"🏠 العنوان: {address}\n"
@@ -475,7 +496,7 @@ def settings():
         ("USD", "دولار أمريكي"), ("EUR", "يورو"), ("GBP", "جنيه إسترليني"), ("JPY", "ين ياباني"),
         ("SAR", "ريال سعودي"), ("AED", "درهم إماراتي"), ("DZD", "دينار جزائري"), ("EGP", "جنيه مصري"),
         ("KWD", "دينار كويتي"), ("QAR", "ريال قطري"), ("BHD", "دينار بحريني"), ("OMR", "ريال عماني"),
-        ("JOD", "دينار أردني"), ("LBP", "ليرة لبنانية"), ("LYD", "دينار ليبي"), ("MAD", "درهم مغربي"),
+      ("JOD", "دينار أردني"), ("LBP", "ليرة لبنانية"), ("LYD", "دينار ليبي"), ("MAD", "درهم مغربي"),
         ("TND", "دينار تونسي"), ("IQD", "دينار عراقي"), ("SYP", "ليرة سورية"), ("YER", "ريال يمني"),
         ("TRY", "ليرة تركية"), ("AUD", "دولار أسترالي"), ("CAD", "دولار كندي"), ("CHF", "فرنك سويسري"),
         ("CNY", "يوان صيني"), ("INR", "روبية هندية"), ("RUB", "روبل روسي"), ("SGD", "دولار سنغافوري"),
@@ -834,9 +855,7 @@ def store2_cart():
 @app.route('/store2_checkout_page')
 def store2_checkout_page():
     rates = get_wilayas_from_db()
-    jordan_res = supabase.table("jordan_rates").select("*").execute()
-    jordan_rates = jordan_res.data if jordan_res.data else []
-    return render_template('checkout.html', rates=rates, jordan_rates=jordan_rates)
+    return render_template('store2_order.html', rates=rates)
 
 @app.route('/store2_checkout/<int:product_id>')
 def store2_checkout(product_id):
@@ -844,9 +863,7 @@ def store2_checkout(product_id):
     if not product:
         return "المنتج غير موجود", 404
     rates = get_wilayas_from_db()
-    jordan_res = supabase.table("jordan_rates").select("*").execute()
-    jordan_rates = jordan_res.data if jordan_res.data else []
-    return render_template('checkout.html', product=product, rates=rates, jordan_rates=jordan_rates)
+    return render_template('store2_checkout.html', product=product, rates=rates)
 
 if __name__ =='__main__':
     app.run(debug=True)
