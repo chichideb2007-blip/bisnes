@@ -3,16 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>سلة المشتريات</title>
+    <title>سلة الطلبات</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
-<body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col justify-between">
+<body class="bg-amber-50/30 text-gray-800 min-h-screen flex flex-col justify-between">
 
     <header class="bg-white shadow-sm sticky top-0 z-50 border-b border-gray-100 py-4 px-6">
         <div class="max-w-4xl mx-auto flex justify-between items-center">
-            <h1 class="text-lg font-black text-gray-900">🛒 سلة المشتريات</h1>
-            <a href="/shop" class="text-sm font-bold text-indigo-600 bg-indigo-50 px-4 py-2 rounded-full">العودة للمتجر</a>
+            <h1 class="text-lg font-black text-gray-900 flex items-center gap-2">
+                <i class="fas fa-shopping-bag text-amber-600"></i> سلة طلبات المطعم
+            </h1>
+            <a href="/shop" class="text-sm font-bold text-amber-700 bg-amber-50 px-4 py-2 rounded-full border border-amber-200 hover:bg-amber-100 transition-colors">العودة لقائمة الطعام</a>
         </div>
     </header>
 
@@ -21,17 +23,21 @@
 
         <div id="cart-summary" class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hidden">
             <div class="flex justify-between items-center mb-4">
-                <span class="text-gray-500 font-bold">المجموع الكلي:</span>
-                <span class="text-2xl font-black text-indigo-600"><span id="total-price">0</span> دج</span>
+                <span class="text-gray-500 font-bold">المجموع الكلي للوجبات:</span>
+                <span class="text-2xl font-black text-amber-600"><span id="total-price">0</span> دج</span>
             </div>
-            <button onclick="proceedToCheckout()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-2xl shadow-lg transition-all">
-                🚚 تأكيد الطلب وإدخال معلومات التوصيل
+            <button onclick="proceedToCheckout()" class="w-full bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-amber-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer">
+                <i class="fas fa-motorcycle"></i> تأكيد الطلب وإدخال معلومات التوصيل
             </button>
         </div>
 
-        <div id="empty-cart-msg" class="text-center py-16 bg-white rounded-3xl shadow-sm border border-gray-100 hidden">
-            <h3 class="text-lg font-bold text-gray-800 mb-2">سلة المشتريات فارغة حالياً</h3>
-            <a href="/shop" class="bg-indigo-600 text-white font-bold px-6 py-2.5 rounded-xl text-sm inline-block">تصفح المنتجات</a>
+        <div id="empty-cart-msg" class="text-center py-16 bg-white rounded-3xl shadow-sm border border-gray-100 hidden flex flex-col items-center gap-3">
+            <div class="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center text-2xl">
+                <i class="fas fa-utensils"></i>
+            </div>
+            <h3 class="text-lg font-bold text-gray-800 mb-1">سلة الطلبات فارغة حالياً</h3>
+            <p class="text-gray-500 text-sm mb-4">لم تقم بإضافة أي وجبات أو مشروبات إلى السلة بعد</p>
+            <a href="/shop" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm inline-block shadow-md shadow-amber-600/20 transition-colors">تصفح قائمة الطعام</a>
         </div>
     </main>
 
@@ -66,21 +72,21 @@
                 container.innerHTML += `
                     <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between gap-4">
                         <div class="flex items-center gap-4">
-                            <img src="${imgSrc}" style="width: 70px; height: 70px; object-fit: cover;" class="rounded-xl border">
+                            <img src="${imgSrc}" style="width: 70px; height: 70px; object-fit: cover;" class="rounded-xl border border-amber-100">
                             <div>
                                 <h3 class="font-bold text-gray-800">${item.name}</h3>
-                                <p class="text-indigo-600 font-black text-sm">${itemPrice} دج</p>
+                                <p class="text-amber-600 font-black text-sm">${itemPrice} دج</p>
                             </div>
                         </div>
                         
                         <div class="flex items-center gap-4">
-                            <div class="flex items-center border rounded-xl overflow-hidden bg-gray-50">
-                                <button onclick="changeQuantity(${index}, -1)" class="px-3 py-1 font-bold">-</button>
-                                <span class="px-3 font-bold">${itemQty}</span>
-                                <button onclick="changeQuantity(${index}, 1)" class="px-3 py-1 font-bold">+</button>
+                            <div class="flex items-center border border-amber-200 rounded-xl overflow-hidden bg-amber-50/50">
+                                <button onclick="changeQuantity(${index}, -1)" class="px-3 py-1 font-bold text-amber-700 hover:bg-amber-100 transition-colors">-</button>
+                                <span class="px-3 font-bold text-gray-800">${itemQty}</span>
+                                <button onclick="changeQuantity(${index}, 1)" class="px-3 py-1 font-bold text-amber-700 hover:bg-amber-100 transition-colors">+</button>
                             </div>
-                            <span class="font-black text-gray-900">${itemTotal} دج</span>
-                            <button onclick="removeItem(${index})" class="text-rose-500 p-2"><i class="fas fa-trash-alt"></i></button>
+                            <span class="font-black text-gray-900 min-w-[70px] text-left">${itemTotal} دج</span>
+                            <button onclick="removeItem(${index})" class="text-rose-500 hover:text-rose-700 p-2 transition-colors"><i class="fas fa-trash-alt"></i></button>
                         </div>
                     </div>
                 `;
