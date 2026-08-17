@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ current_company if current_company else 'قائمة طعام المطعم' }}</title>
+    <title>{{ current_company if current_company else 'مطعمنا الإلكتروني' }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -11,22 +11,21 @@
         body { top: 0px !important; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     </style>
 </head>
-<body class="bg-amber-50/30 text-gray-800 flex flex-col justify-between min-h-screen">
+<body class="bg-gray-50 text-gray-800 flex flex-col justify-between min-h-screen">
 
     <header class="bg-white shadow-sm sticky top-0 z-50 border-b border-gray-100">
         <div class="max-w-7xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-4">
-            <h1 class="text-lg font-extrabold text-gray-900 flex items-center gap-2">
-                <i class="fas fa-utensils text-amber-600"></i>
-                {{ current_company if current_company else 'مطعمنا' }}
+            <h1 class="text-lg font-extrabold text-gray-900">
+                🍽️ {{ current_company if current_company else 'مطعمنا' }}
             </h1>
             
             <div class="flex items-center gap-3">
-                <a href="/cart" class="text-sm font-bold text-amber-700 bg-amber-50 px-4 py-2 rounded-full border border-amber-200 flex items-center gap-2 shadow-sm">
-                    <i class="fas fa-shopping-bag"></i> سلة الطلبات (<span id="cart-count">0</span>)
+                <a href="/store2_cart" class="text-sm font-bold text-orange-600 bg-orange-50 px-4 py-2 rounded-full border border-orange-100 flex items-center gap-2">
+                    <i class="fas id-shopping-cart"></i> سلة الوجبات (<span id="cart-count">0</span>)
                 </a>
 
                 {% if current_company %}
-                    <a href="/clear_session" class="text-sm font-medium text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-4 py-2 rounded-full transition-colors border border-rose-100 flex items-center gap-1.5">
+                    <a href="/clear_store2_session" class="text-sm font-medium text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-4 py-2 rounded-full transition-colors border border-rose-100 flex items-center gap-1.5">
                         <i class="fas fa-exchange-alt"></i> تغيير المطعم
                     </a>
                 {% endif %}
@@ -37,42 +36,36 @@
     <main class="max-w-7xl mx-auto px-4 py-8 flex-grow w-full">
         {% if not current_company %}
         <div class="max-w-xl mx-auto bg-white p-8 rounded-3xl shadow-xl border border-gray-100 text-center mb-12">
-            <div class="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
-                <i class="fas fa-burger"></i>
-            </div>
-            <h2 class="text-xl font-black text-gray-900 mb-2">أهلاً بك في نظام طلبات المطعم</h2>
-            <p class="text-gray-500 text-sm mb-6">أدخل اسم المطعم الذي تود طلب الوجبات منه لعرض القائمة</p>
+            <h2 class="text-xl font-black text-gray-900 mb-2">أهلاً بك في منصة المطاعم</h2>
+            <p class="text-gray-500 text-sm mb-6">أدخل اسم المطعم الذي تود الطلب منه لعرض قائمة الوجبات</p>
             
-            <form action="/shop" method="POST" class="flex flex-col sm:flex-row gap-3 justify-center">
-                <input type="text" name="company_name" class="px-5 py-3 rounded-2xl border border-gray-200 bg-gray-50 outline-none w-full text-sm font-medium focus:border-amber-500" placeholder="اكتب اسم المطعم هنا..." required>
-                <button type="submit" class="bg-amber-600 hover:bg-amber-700 text-white px-8 py-3 rounded-2xl font-bold text-sm shrink-0 transition-colors shadow-lg shadow-amber-600/20">دخول القائمة</button>
+            <form action="/store2" method="POST" class="flex flex-col sm:flex-row gap-3 justify-center">
+                <input type="text" name="company_name" class="px-5 py-3 rounded-2xl border border-gray-200 bg-gray-50 outline-none w-full text-sm font-medium" placeholder="اكتب اسم المطعم هنا..." required>
+                <button type="submit" class="bg-orange-600 hover:bg-orange-700 text-white px-8 py-3 rounded-2xl font-bold text-sm shrink-0">دخول للقائمة</button>
             </form>
         </div>
         {% endif %}
 
         {% if products %}
-            <div class="mb-6">
-                <h2 class="text-xl font-black text-gray-900 mb-1 flex items-center gap-2">
-                    <i class="fas fa-book-open text-amber-600"></i> قائمة الوجبات والأسعار
-                </h2>
-                <p class="text-gray-500 text-sm">اختر ما يعجبك من أطباق ومشروبات وأضفه إلى سلة طلباتك</p>
+            <div class="mb-6 max-w-md mx-auto">
+                <input type="text" id="product-search" onkeyup="searchMeals()" placeholder="ابحث عن وجبتك المفضلة..." class="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-white outline-none text-sm shadow-sm focus:border-orange-500">
             </div>
 
             <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                 {% for product in products %}
-                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col justify-between product-card hover:shadow-md transition-shadow">
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col justify-between product-card">
                         <div>
-                            <div class="w-full h-36 bg-amber-50/50 rounded-xl overflow-hidden mb-3 relative">
+                            <div class="w-full h-36 bg-gray-100 rounded-xl overflow-hidden mb-3">
                                 {% if product['product-images'] %}
                                     <img src="{{ product['product-images'] }}" class="w-full h-full object-cover product-img" alt="{{ product.name }}">
                                 {% else %}
-                                    <div class="w-full h-full flex items-center justify-center text-amber-400">
-                                        <i class="fas fa-pizza-slice text-3xl"></i>
+                                    <div class="w-full h-full flex items-center justify-center text-gray-400">
+                                        <i class="fas fa-utensils text-2xl"></i>
                                     </div>
                                 {% endif %}
                             </div>
                             <h3 class="font-bold text-gray-800 text-sm mb-1 line-clamp-1 product-name">{{ product.name }}</h3>
-                            <p class="text-amber-600 font-black text-base mb-3"><span class="product-price">{{ product.price }}</span> دج</p>
+                            <p class="text-orange-600 font-black text-base mb-3"><span class="product-price">{{ product.price }}</span> دج</p>
                         </div>
 
                         <div>
@@ -81,25 +74,22 @@
                                     data-name="{{ product.name }}" 
                                     data-price="{{ product.price }}" 
                                     data-image="{{ product['product-images'] if product['product-images'] else '' }}" 
-                                    class="add-to-cart-btn w-full bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-bold py-2.5 rounded-xl transition-all text-xs flex items-center justify-center gap-1.5 shadow-md shadow-amber-600/20 cursor-pointer">
-                                <i class="fas fa-plus-circle"></i> أضف للطلب
+                                    class="add-to-cart-btn w-full bg-orange-600 hover:bg-orange-700 active:scale-95 text-white font-bold py-2.5 rounded-xl transition-all text-xs flex items-center justify-center gap-1.5 shadow-md shadow-orange-600/20 cursor-pointer">
+                                <i class="fas fa-cart-plus"></i> إضافة إلى السلة
                             </button>
                         </div>
                     </div>
                 {% endfor %}
             </div>
         {% elif current_company %}
-            <div class="text-center py-20 text-gray-400 flex flex-col items-center gap-3">
-                <i class="fas fa-mug-hot text-4xl text-amber-300"></i>
-                <p>عذراً، لا توجد وجبات أو مشروبات متاحة حالياً في هذا المطعم</p>
-            </div>
+            <div class="text-center py-20 text-gray-400">لا توجد وجبات متاحة حالياً في هذا المطعم</div>
         {% endif %}
     </main>
 
     <script>
-        // دالة تحديث عداد سلة الطلبات
+        // دالة تحديث عداد سلة المطعم
         function updateCartCount() {
-            let cart = JSON.parse(localStorage.getItem('cart')) || [];
+            let cart = JSON.parse(localStorage.getItem('store2_cart')) || [];
             let totalCount = cart.reduce((sum, item) => sum + (parseInt(item.quantity) || 1), 0);
             let countEl = document.getElementById('cart-count');
             if (countEl) {
@@ -107,7 +97,17 @@
             }
         }
 
-        // الاستماع لأزرار إضافة الوجبات للسلة
+        // البحث الفوري بين الوجبات
+        function searchMeals() {
+            let input = document.getElementById('product-search').value.toLowerCase();
+            let cards = document.querySelectorAll('.product-card');
+            cards.forEach(card => {
+                let name = card.querySelector('.product-name').innerText.toLowerCase();
+                card.style.display = name.includes(input) ? "" : "none";
+            });
+        }
+
+        // الاستماع لأزرار الإضافة مع تخصيص سلة المطعم (store2_cart) لتنفصل عن المتجر العادي
         document.addEventListener('click', function(event) {
             let btn = event.target.closest('.add-to-cart-btn');
             if (!btn) return;
@@ -117,7 +117,7 @@
             let price = parseFloat(btn.getAttribute('data-price')) || 0;
             let image = btn.getAttribute('data-image');
 
-            let cart = JSON.parse(localStorage.getItem('cart')) || [];
+            let cart = JSON.parse(localStorage.getItem('store2_cart')) || [];
             let existingItem = cart.find(item => item.id == id);
 
             if (existingItem) {
@@ -132,20 +132,21 @@
                 });
             }
 
-            localStorage.setItem('cart', JSON.stringify(cart));
+            localStorage.setItem('store2_cart', JSON.stringify(cart));
             updateCartCount();
-            showToast("تمت إضافة الوجبة إلى سلة الطلبات بنجاح! 🍔");
+            
+            showToast("تمت إضافة الوجبة إلى السلة بنجاح! 🍔");
         });
 
-        // رسالة إشعار منبثقة بتصميم مطعم
+        // رسالة إشعار منبثقة
         function showToast(message) {
             let existingToast = document.getElementById('toast-notification');
             if (existingToast) existingToast.remove();
 
             let toast = document.createElement('div');
             toast.id = 'toast-notification';
-            toast.className = 'fixed bottom-5 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs font-bold px-4 py-2.5 rounded-full shadow-2xl z-50 transition-all duration-300 flex items-center gap-2';
-            toast.innerHTML = `<i class="fas fa-check-circle text-amber-400"></i> ${message}`;
+            toast.className = 'fixed bottom-5 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs font-bold px-4 py-2.5 rounded-full shadow-2xl z-50 transition-all duration-300';
+            toast.innerText = message;
             document.body.appendChild(toast);
 
             setTimeout(() => {
@@ -154,7 +155,7 @@
             }, 2000);
         }
 
-        // تحديث العداد فور تحميل الصفحة
+        // تحديث العداد فور التحميل
         window.onload = updateCartCount;
     </script>
 </body>
