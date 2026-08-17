@@ -3,68 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ current_company if current_company else 'المطعم الإلكتروني' }}</title>
+    <title>{{ current_company if current_company else 'قائمة طعام المطعم' }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        /* إخفاء شريط جوجل العلوي وتثبيت الصفحة عند الترجمة */
         .goog-te-banner-frame.skiptranslate { display: none !important; }
         body { top: 0px !important; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        
-        /* تنسيق عنصر اختيار اللغة */
-        .goog-te-combo {
-            padding: 6px 14px;
-            border-radius: 9999px;
-            border: 1px solid #e5e7eb;
-            outline: none;
-            background-color: #f9fafb;
-            font-size: 13px;
-            color: #4b5563;
-            transition: all 0.3s ease;
-        }
-        .goog-te-combo:focus {
-            border-color: #6366f1;
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
-        }
-
-        /* سمة وخلفية حيوية وملونة للمطعم */
-        .store-theme-bg {
-            background-color: #f8fafc;
-            background-image: 
-                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.08) 0px, transparent 50%),
-                radial-gradient(at 100% 0%, rgba(168, 85, 247, 0.08) 0px, transparent 50%),
-                radial-gradient(at 50% 100%, rgba(59, 130, 246, 0.08) 0px, transparent 50%);
-            min-height: 100vh;
-            background-attachment: fixed;
-        }
     </style>
 </head>
-<body class="store-theme-bg text-gray-800 flex flex-col justify-between">
+<body class="bg-amber-50/30 text-gray-800 flex flex-col justify-between min-h-screen">
 
-    <header class="bg-white/90 backdrop-blur-md shadow-sm sticky top-0 z-50 border-b border-gray-100">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-wrap justify-between items-center gap-4">
+    <header class="bg-white shadow-sm sticky top-0 z-50 border-b border-gray-100">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-4">
+            <h1 class="text-lg font-extrabold text-gray-900 flex items-center gap-2">
+                <i class="fas fa-utensils text-amber-600"></i>
+                {{ current_company if current_company else 'مطعمنا' }}
+            </h1>
             
-            <div class="flex items-center gap-2">
-                <span class="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-xs sm:text-sm font-bold tracking-wide border border-indigo-100 shadow-inner flex items-center gap-1">
-                    <i class="fas fa-utensils"></i> مرحباً بك في مطعم
-                </span>
-                <h1 class="text-lg sm:text-xl font-extrabold text-gray-900 tracking-tight">
-                    {{ current_company if current_company else 'مطعمنا' }}
-                </h1>
-            </div>
-            
-            <div class="flex-grow max-w-md relative">
-                <span class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-gray-400">
-                    <i class="fas fa-search"></i>
-                </span>
-                <input type="text" id="searchInput" class="w-full pl-4 pr-11 py-2.5 rounded-full border border-gray-200 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none transition-all duration-300 text-sm shadow-sm" placeholder="ابحث عن وجبتك المفضّلة...">
-            </div>
-
             <div class="flex items-center gap-3">
-                <div id="google_translate_element"></div>
+                <a href="/cart" class="text-sm font-bold text-amber-700 bg-amber-50 px-4 py-2 rounded-full border border-amber-200 flex items-center gap-2 shadow-sm">
+                    <i class="fas fa-shopping-bag"></i> سلة الطلبات (<span id="cart-count">0</span>)
+                </a>
 
                 {% if current_company %}
-                    <a href="/clear_session" class="text-xs sm:text-sm font-medium text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-3.5 py-2 rounded-full transition-colors border border-rose-100 flex items-center gap-1">
+                    <a href="/clear_session" class="text-sm font-medium text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-4 py-2 rounded-full transition-colors border border-rose-100 flex items-center gap-1.5">
                         <i class="fas fa-exchange-alt"></i> تغيير المطعم
                     </a>
                 {% endif %}
@@ -72,150 +34,128 @@
         </div>
     </header>
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex-grow w-full">
-
+    <main class="max-w-7xl mx-auto px-4 py-8 flex-grow w-full">
         {% if not current_company %}
-        <div class="max-w-xl mx-auto bg-white/95 backdrop-blur-md p-8 sm:p-10 rounded-3xl shadow-xl shadow-indigo-100/50 border border-gray-100 text-center mb-12 transform transition-all">
-            <div class="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl mx-auto flex items-center justify-center text-2xl mb-4 shadow-inner">
-                <i class="fas fa-hamburger"></i>
+        <div class="max-w-xl mx-auto bg-white p-8 rounded-3xl shadow-xl border border-gray-100 text-center mb-12">
+            <div class="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                <i class="fas fa-burger"></i>
             </div>
-            <h2 class="text-xl sm:text-2xl font-black text-gray-900 mb-2">أهلاً بك في منصة الطلبات</h2>
-            <p class="text-gray-500 text-sm mb-6">أدخل اسم المطعم الذي تود الطلب منه لمشاهدة أحدث الوجبات</p>
+            <h2 class="text-xl font-black text-gray-900 mb-2">أهلاً بك في نظام طلبات المطعم</h2>
+            <p class="text-gray-500 text-sm mb-6">أدخل اسم المطعم الذي تود طلب الوجبات منه لعرض القائمة</p>
             
-            <form action="/store2" method="POST" class="flex flex-col sm:flex-row gap-3 justify-center">
-                <input type="text" name="company_name" class="px-5 py-3 rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none w-full text-sm font-medium shadow-sm" placeholder="اكتب اسم المطعم هنا..." required>
-                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-2xl font-bold transition-all duration-300 shadow-lg shadow-indigo-600/30 text-sm flex items-center justify-center gap-2 shrink-0">
-                    <span>دخول</span>
-                    <i class="fas fa-arrow-left text-xs"></i>
-                </button>
+            <form action="/shop" method="POST" class="flex flex-col sm:flex-row gap-3 justify-center">
+                <input type="text" name="company_name" class="px-5 py-3 rounded-2xl border border-gray-200 bg-gray-50 outline-none w-full text-sm font-medium focus:border-amber-500" placeholder="اكتب اسم المطعم هنا..." required>
+                <button type="submit" class="bg-amber-600 hover:bg-amber-700 text-white px-8 py-3 rounded-2xl font-bold text-sm shrink-0 transition-colors shadow-lg shadow-amber-600/20">دخول القائمة</button>
             </form>
         </div>
         {% endif %}
-        
-        {% if not products and current_company %}
-            <div class="text-center py-20 bg-white/95 backdrop-blur-md rounded-3xl shadow-sm border border-gray-100 max-w-lg mx-auto">
-                <div class="w-20 h-20 bg-amber-50 text-amber-500 rounded-full mx-auto flex items-center justify-center text-3xl mb-4">
-                    <i class="fas fa-utensils"></i>
-                </div>
-                <h3 class="text-xl font-bold text-gray-800 mb-1">لا توجد وجبات متاحة حالياً</h3>
-                <p class="text-gray-400 text-sm">يرجى العودة لاحقاً أو تفقد مطعم آخر.</p>
+
+        {% if products %}
+            <div class="mb-6">
+                <h2 class="text-xl font-black text-gray-900 mb-1 flex items-center gap-2">
+                    <i class="fas fa-book-open text-amber-600"></i> قائمة الوجبات والأسعار
+                </h2>
+                <p class="text-gray-500 text-sm">اختر ما يعجبك من أطباق ومشروبات وأضفه إلى سلة طلباتك</p>
             </div>
-        {% elif products %}
-            <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6" id="products-grid">
+
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                 {% for product in products %}
-                    <div class="product-card-container bg-white/95 backdrop-blur-md rounded-3xl shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 overflow-hidden flex flex-col justify-between p-3.5 sm:p-5 group">
-                        
-                        <div class="relative w-full h-36 sm:h-44 bg-gray-50 rounded-2xl overflow-hidden mb-4 shadow-inner">
-                            {% if product['product-images'] %}
-                                <img src="{{ product['product-images'] }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="{{ product.name }}">
-                            {% else %}
-                                <div class="w-full h-full flex items-center justify-center text-gray-300">
-                                    <i class="fas fa-image text-4xl"></i>
-                                </div>
-                            {% endif %}
-                            
-                            {% if product.quantity > 0 %}
-                                <span class="absolute top-2.5 right-2.5 bg-emerald-500/90 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-1 rounded-full shadow-sm flex items-center gap-1">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span> متوفر
-                                </span>
-                            {% else %}
-                                <span class="absolute top-2.5 right-2.5 bg-rose-500/90 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-1 rounded-full shadow-sm">
-                                    نفذت الوجبة
-                                </span>
-                            {% endif %}
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col justify-between product-card hover:shadow-md transition-shadow">
+                        <div>
+                            <div class="w-full h-36 bg-amber-50/50 rounded-xl overflow-hidden mb-3 relative">
+                                {% if product['product-images'] %}
+                                    <img src="{{ product['product-images'] }}" class="w-full h-full object-cover product-img" alt="{{ product.name }}">
+                                {% else %}
+                                    <div class="w-full h-full flex items-center justify-center text-amber-400">
+                                        <i class="fas fa-pizza-slice text-3xl"></i>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <h3 class="font-bold text-gray-800 text-sm mb-1 line-clamp-1 product-name">{{ product.name }}</h3>
+                            <p class="text-amber-600 font-black text-base mb-3"><span class="product-price">{{ product.price }}</span> دج</p>
                         </div>
 
-                        <div class="flex-grow flex flex-col justify-between">
-                            <div>
-                                <h3 class="card-title text-sm sm:text-base font-bold text-gray-800 mb-2 line-clamp-1 group-hover:text-indigo-600 transition-colors">
-                                    {{ product.name }}
-                                </h3>
-                                <div class="flex items-baseline justify-center gap-1 mb-4">
-                                    <span class="text-indigo-600 font-black text-lg sm:text-xl tracking-tight">{{ product.price }}</span>
-                                    <span class="text-xs font-bold text-gray-400">{{ currency or 'د.ج' }}</span>
-                                </div>
-                            </div>
-
-                            {% if product.quantity > 0 %}
-                                <button onclick="addToCart(
-                                    '{{ product.id }}', 
-                                    '{{ product.name }}', 
-                                    '{{ product.price }}', 
-                                    '{{ product.company_id_text }}', 
-                                    '{{ product.get("product-images", "") }}'
-                                )" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-center font-bold py-2.5 px-3 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-md shadow-indigo-600/20 hover:shadow-indigo-600/40 text-xs sm:text-sm active:scale-95">
-                                    🛒 إضافة إلى السلة
-                                </button>
-                            {% else %}
-                                <button disabled class="w-full bg-gray-100 text-gray-400 text-center font-bold py-2.5 px-3 rounded-xl cursor-not-allowed text-xs sm:text-sm">
-                                    غير متوفر حالياً
-                                </button>
-                            {% endif %}
+                        <div>
+                            <button type="button" 
+                                    data-id="{{ product.id }}" 
+                                    data-name="{{ product.name }}" 
+                                    data-price="{{ product.price }}" 
+                                    data-image="{{ product['product-images'] if product['product-images'] else '' }}" 
+                                    class="add-to-cart-btn w-full bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-bold py-2.5 rounded-xl transition-all text-xs flex items-center justify-center gap-1.5 shadow-md shadow-amber-600/20 cursor-pointer">
+                                <i class="fas fa-plus-circle"></i> أضف للطلب
+                            </button>
                         </div>
                     </div>
                 {% endfor %}
             </div>
+        {% elif current_company %}
+            <div class="text-center py-20 text-gray-400 flex flex-col items-center gap-3">
+                <i class="fas fa-mug-hot text-4xl text-amber-300"></i>
+                <p>عذراً، لا توجد وجبات أو مشروبات متاحة حالياً في هذا المطعم</p>
+            </div>
         {% endif %}
     </main>
 
-    <footer class="bg-white/90 backdrop-blur-md border-t border-gray-100 py-6 mt-12 text-center text-xs text-gray-400">
-        <p>جميع الحقوق محفوظة &copy; 2026 - منصة المطاعم الإلكترونية</p>
-    </footer>
-
-    <script type="text/javascript">
-    function googleTranslateElementInit() {
-      new google.translate.TranslateElement({
-        pageLanguage: 'ar',
-        includedLanguages: 'ar,en,fr,es',
-        layout: google.translate.TranslateElement.InlineLayout.SIMPLE
-      }, 'google_translate_element');
-    }
-    </script>
-    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
-
     <script>
-        // دالة البحث المباشر
-        document.getElementById('searchInput')?.addEventListener('keyup', function() {
-            let filter = this.value.toLowerCase().trim();
-            let products = document.querySelectorAll('.product-card-container');
-            
-            products.forEach(item => {
-                let title = item.querySelector('.card-title').innerText.toLowerCase();
-                if (title.includes(filter)) {
-                    item.style.display = "";
-                } else {
-                    item.style.display = "none";
-                }
-            });
-        });
-
-        // دالة إضافة المنتج إلى السلة والتوجيه المباشر
-        function addToCart(id, name, price, company_code, image) {
-            let cart = JSON.parse(localStorage.getItem('user_cart')) || [];
-            
-            // التحقق مما إذا كان المنتج من متجر آخر
-            if (cart.length > 0 && cart[0].company_id_text !== company_code) {
-                alert("لا يمكنك طلب منتجات من متاجر مختلفة في نفس السلة. يرجى إفراغ السلة أولاً أو الشراء من نفس المتجر.");
-                return;
+        // دالة تحديث عداد سلة الطلبات
+        function updateCartCount() {
+            let cart = JSON.parse(localStorage.getItem('cart')) || [];
+            let totalCount = cart.reduce((sum, item) => sum + (parseInt(item.quantity) || 1), 0);
+            let countEl = document.getElementById('cart-count');
+            if (countEl) {
+                countEl.innerText = totalCount;
             }
+        }
 
-            let existingProduct = cart.find(item => item.id === id);
-            if (existingProduct) {
-                existingProduct.quantity += 1;
+        // الاستماع لأزرار إضافة الوجبات للسلة
+        document.addEventListener('click', function(event) {
+            let btn = event.target.closest('.add-to-cart-btn');
+            if (!btn) return;
+
+            let id = btn.getAttribute('data-id');
+            let name = btn.getAttribute('data-name');
+            let price = parseFloat(btn.getAttribute('data-price')) || 0;
+            let image = btn.getAttribute('data-image');
+
+            let cart = JSON.parse(localStorage.getItem('cart')) || [];
+            let existingItem = cart.find(item => item.id == id);
+
+            if (existingItem) {
+                existingItem.quantity = (parseInt(existingItem.quantity) || 1) + 1;
             } else {
                 cart.push({
                     id: id,
                     name: name,
-                    price: parseFloat(price),
-                    company_id_text: company_code,
-                    image: image,
+                    price: price,
+                    'product-images': image,
                     quantity: 1
                 });
             }
 
-            localStorage.setItem('user_cart', JSON.stringify(cart));
-            window.location.href = "/store2_cart"; // التوجيه المباشر للسلة
+            localStorage.setItem('cart', JSON.stringify(cart));
+            updateCartCount();
+            showToast("تمت إضافة الوجبة إلى سلة الطلبات بنجاح! 🍔");
+        });
+
+        // رسالة إشعار منبثقة بتصميم مطعم
+        function showToast(message) {
+            let existingToast = document.getElementById('toast-notification');
+            if (existingToast) existingToast.remove();
+
+            let toast = document.createElement('div');
+            toast.id = 'toast-notification';
+            toast.className = 'fixed bottom-5 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs font-bold px-4 py-2.5 rounded-full shadow-2xl z-50 transition-all duration-300 flex items-center gap-2';
+            toast.innerHTML = `<i class="fas fa-check-circle text-amber-400"></i> ${message}`;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 2000);
         }
+
+        // تحديث العداد فور تحميل الصفحة
+        window.onload = updateCartCount;
     </script>
 </body>
 </html>
