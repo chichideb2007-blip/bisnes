@@ -1,151 +1,205 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" dir="ltr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>French Access - Organisme de Formation</title>
+    <title>Souhila MERDACI Form Afer - Formations Certifiantes</title>
+    <!-- استدعاء خط Montserrat الاحترافي -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f8f5f0;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
+        :root {
+            --primary-color: #E86F61;
+            --dark-color: #172A46;
+            --bg-color: #F7F2EA;
+            --card-bg: #ffffff;
+            --text-color: #2d2d2d;
+            --border-radius: 14px;
         }
-        .card {
-            background: #ffffff;
-            padding: 40px 30px;
-            border-radius: 12px;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-            text-align: center;
-            max-width: 420px;
-            width: 100%;
-            border-top: 5px solid #1b2a4a;
-        }
-        .logo-img {
-            width: 100%;
-            max-height: 120px;
-            object-fit: contain;
-            margin-bottom: 20px;
-        }
-        h2 {
-            color: #1b2a4a;
-            font-size: 22px;
-            margin-bottom: 10px;
-        }
-        .subtitle {
-            color: #e36442;
-            font-size: 14px;
-            font-weight: bold;
-            letter-spacing: 1px;
-            margin-bottom: 25px;
-            text-transform: uppercase;
-        }
-        .form-group {
-            margin-bottom: 15px;
-            text-align: left;
-        }
-        label {
-            display: block;
-            margin-bottom: 8px;
-            color: #333;
-            font-weight: 600;
-            font-size: 14px;
-        }
-        input[type="text"] {
-            width: 100%;
-            padding: 12px;
-            box-sizing: border-box;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 15px;
-            outline: none;
-            transition: border-color 0.3s;
-        }
-        input[type="text"]:focus {
-            border-color: #1b2a4a;
-        }
-        .btn {
-            background-color: #1b2a4a;
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 6px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            width: 100%;
-            margin-top: 10px;
-            transition: background-color 0.3s;
-        }
-        .btn:hover {
-            background-color: #2c426e;
-        }
-        .contact-box {
-            margin-top: 25px;
-            padding: 20px;
-            background: #f4f6f9;
-            border-radius: 8px;
-        }
-        .contact-link {
-            display: block;
-            margin-top: 12px;
-            padding: 10px;
-            background: #25d366;
-            color: white;
-            border-radius: 6px;
-            text-decoration: none;
-            font-weight: bold;
-            font-size: 15px;
-            transition: background 0.3s;
-        }
-        .contact-link:hover {
-            background: #20ba5a;
-        }
-        .call-link {
-            background: #1b2a4a;
-        }
-        .call-link:hover {
-            background: #2c426e;
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Montserrat', sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); line-height: 1.6; }
+
+        header { background: #fff; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.03); position: sticky; top: 0; z-index: 1000; }
+        .logo-container { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+        
+        .brand-text { font-size: 16px; font-weight: 800; color: var(--dark-color); line-height: 1.2; }
+        .brand-text span { color: var(--primary-color); }
+        .brand-sub { font-size: 10px; font-weight: 700; color: var(--dark-color); letter-spacing: 2px; display: block; }
+
+        .hero { text-align: center; padding: 70px 20px; background: #fff; border-bottom-left-radius: 35px; border-bottom-right-radius: 35px; box-shadow: 0 5px 15px rgba(0,0,0,0.02); }
+        .hero h1 { font-size: 30px; font-weight: 800; margin-bottom: 15px; color: var(--dark-color); }
+        .hero h1 span { color: var(--primary-color); }
+        .hero p { font-size: 15px; color: #666; max-width: 600px; margin: 0 auto; }
+
+        .container { max-width: 900px; margin: 50px auto; padding: 0 20px; }
+        .section-title { font-size: 24px; font-weight: 800; margin-bottom: 30px; text-align: center; color: var(--dark-color); }
+        
+        .courses-grid { display: flex; flex-direction: column; gap: 20px; }
+        
+        .course-card { background: var(--card-bg); border-radius: var(--border-radius); padding: 30px; box-shadow: 0 5px 15px rgba(0,0,0,0.03); display: flex; justify-content: space-between; align-items: center; border: 1px solid #eaeaea; transition: 0.2s; }
+        .course-card:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0,0,0,0.06); }
+        
+        .course-info h3 { font-size: 18px; font-weight: 700; color: var(--dark-color); margin-bottom: 8px; }
+        .course-info p { color: #666; font-size: 13px; max-width: 450px; }
+        
+        .course-action { text-align: right; }
+        .course-price { font-size: 20px; font-weight: 800; color: var(--primary-color); margin-bottom: 10px; display: block; }
+        
+        .btn-main { background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 700; text-decoration: none; display: inline-block; box-shadow: 0 4px 10px rgba(232, 111, 97, 0.3); transition: 0.2s; }
+        .btn-main:hover { opacity: 0.9; }
+
+        /* تنسيقات لوحة المدير لتعديل رقم الهاتف */
+        .admin-panel-card { background: #ffffff; padding: 30px; border-radius: var(--border-radius); box-shadow: 0 5px 15px rgba(0,0,0,0.03); margin-bottom: 40px; border-top: 5px solid var(--dark-color); }
+        .admin-panel-card h3 { color: var(--dark-color); font-size: 18px; margin-bottom: 15px; }
+        .form-group { margin-bottom: 15px; text-align: left; }
+        label { display: block; margin-bottom: 8px; color: #333; font-weight: 600; font-size: 14px; }
+        input[type="text"] { width: 100%; padding: 12px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 6px; font-size: 15px; outline: none; transition: border-color 0.3s; }
+        input[type="text"]:focus { border-color: var(--dark-color); }
+        .btn-admin { background-color: var(--dark-color); color: white; border: none; padding: 12px 20px; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; width: 100%; transition: background-color 0.3s; }
+        .btn-admin:hover { background-color: #2c426e; }
+
+        .trust-section { background: var(--dark-color); color: white; text-align: center; padding: 40px 20px; border-radius: var(--border-radius); margin: 50px 0; }
+        .trust-section h2 { font-size: 22px; margin-bottom: 8px; font-weight: 700; }
+        .trust-section p { color: #bbb; font-size: 13px; }
+
+        .contact-box { background: #fff; padding: 40px 20px; text-align: center; border-radius: var(--border-radius); box-shadow: 0 5px 15px rgba(0,0,0,0.03); margin-top: 40px; }
+        .contact-box h2 { color: var(--dark-color); margin-bottom: 10px; font-size: 22px; }
+        .contact-box p { color: #666; font-size: 14px; margin-bottom: 20px; }
+        
+        .contact-link { display: inline-block; margin: 5px; padding: 12px 20px; background: #25d366; color: white; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 15px; box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3); transition: 0.2s; }
+        .contact-link:hover { opacity: 0.9; }
+        .call-link { background: var(--dark-color); box-shadow: 0 4px 12px rgba(23, 42, 70, 0.3); }
+
+        .whatsapp-float { position: fixed; bottom: 25px; right: 25px; background: #25d366; color: white; width: 55px; height: 55px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 26px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); text-decoration: none; z-index: 100; }
+
+        footer { text-align: center; padding: 20px; font-size: 12px; color: #888; background: #fff; border-top: 1px solid #eee; margin-top: 50px; }
+
+        @media (max-width: 768px) {
+            .course-card { flex-direction: column; align-items: flex-start; gap: 15px; }
+            .course-action { text-align: left; width: 100%; display: flex; justify-content: space-between; align-items: center; }
+            .hero h1 { font-size: 24px; }
         }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <!-- شعار الشركة (يمكنك وضع صورة الشعار في مجلد static/images وتسميتها logo.jpg مثلاً) -->
-    <img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="French Access Logo" class="logo-img">
-
-    <h2>French Access</h2>
-    <div class="subtitle">Organisme de Formation</div>
-
-    <!-- إذا كان المدير مسجل دخول، تظهر له خانة لتعديل رقم الهاتف مرة واحدة -->
-    {% if is_admin %}
-        <form method="POST">
-            <div class="form-group">
-                <label for="phone_number">Modifier le numéro de contact :</label>
-                <input type="text" id="phone_number" name="phone_number" value="{{ phone_number }}" placeholder="Ex: 0612345678" required>
+    <header>
+        <div class="logo-container">
+            <svg width="35" height="40" viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M50 10L42 100H58L50 10Z" fill="#172A46"/>
+                <path d="M35 70H65V78H35V70Z" fill="#172A46"/>
+                <path d="M38 45H62V53H38V45Z" fill="#172A46"/>
+                <path d="M25 85L55 45M55 45H42M55 45V58" stroke="#E86F61" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div class="brand-text">
+                SOUHILA MERDACI
+                <span class="brand-sub">FORM AFER</span>
             </div>
-            <button type="submit" class="btn">Enregistrer le numéro</button>
-        </form>
+        </div>
+    </header>
+
+    <section class="hero">
+        <h1>Compétences d'aujourd'hui, <span>succès de demain</span></h1>
+        <p>بني مسارك المهني بثقة واحصلي على دورات تكوينية معتمدة وموجهة خصيصاً لسوق العمل.</p>
+    </section>
+
+    <div class="container">
+        
+        <!-- خانة تحكم المدير لتعديل رقم الهاتف (تظهر فقط للمدير المسجل دخول) -->
+        {% if is_admin %}
+        <div class="admin-panel-card">
+            <h3>لوحة تحكم المدير - تعديل رقم التواصل</h3>
+            <form method="POST">
+                <div class="form-group">
+                    <label for="phone_number">Modifier le numéro de contact :</label>
+                    <input type="text" id="phone_number" name="phone_number" value="{{ phone_number }}" placeholder="Ex: 213600000000" required>
+                </div>
+                <button type="submit" class="btn-admin">Enregistrer le numéro</button>
+            </form>
+        </div>
+        {% endif %}
+
+        <h2 class="section-title">Nos Formations</h2>
+        
+        <div class="courses-grid">
+            <div class="course-card">
+                <div class="course-info">
+                    <h3>عنوان الدورة التدريبية الأولى</h3>
+                    <p>دورة شاملة تمنحك المفاتيح الأساسية والاحترافية للنجاح الميداني.</p>
+                </div>
+                <div class="course-action">
+                    <span class="course-price">15,000 دج</span>
+                    {% if phone_number %}
+                        <a href="https://wa.me/{{ phone_number }}" class="btn-main" target="_blank">Pré-inscription</a>
+                    {% else %}
+                        <a href="#" class="btn-main">Pré-inscription</a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="course-card">
+                <div class="course-info">
+                    <h3>عنوان الدورة التدريبية الثانية</h3>
+                    <p>برنامج تكويني مكثف مصمم لمرافقتك خطوة بخطوة نحو الاحتراف.</p>
+                </div>
+                <div class="course-action">
+                    <span class="course-price">20,000 دج</span>
+                    {% if phone_number %}
+                        <a href="https://wa.me/{{ phone_number }}" class="btn-main" target="_blank">Pré-inscription</a>
+                    {% else %}
+                        <a href="#" class="btn-main">Pré-inscription</a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="course-card">
+                <div class="course-info">
+                    <h3>عنوان الدورة التدريبية الثالثة</h3>
+                    <p>اكتسبي مهارات جديدة مطلوبة بقوة في السوق مع متابعة شخصية.</p>
+                </div>
+                <div class="course-action">
+                    <span class="course-price">12,000 دج</span>
+                    {% if phone_number %}
+                        <a href="https://wa.me/{{ phone_number }}" class="btn-main" target="_blank">Pré-inscription</a>
+                    {% else %}
+                        <a href="#" class="btn-main">Pré-inscription</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="trust-section">
+            <h2>Formation Certifiante</h2>
+            <p>دورات بشهادات معتمدة تضمن لك تكويناً عالي الجودة لتعزيز فرصك المهنية.</p>
+        </div>
+
+        <!-- قسم التواصل الذي يظهر أزرار الواتساب والاتصال بالرقم المخزن للزوار -->
+        <div class="contact-box" id="contact">
+            <h2>Contactez-nous</h2>
+            <p>هل لديك أي استفسار؟ تواصلي معنا مباشرة للإجابة على كل تساؤلاتك.</p>
+            
+            {% if phone_number %}
+                <div>
+                    <a href="https://wa.me/{{ phone_number }}" class="contact-link" target="_blank">💬 WhatsApp : {{ phone_number }}</a>
+                    <a href="tel:{{ phone_number }}" class="contact-link call-link">📞 Appeler : {{ phone_number }}</a>
+                </div>
+            {% else %}
+                {% if not is_admin %}
+                    <p style="color: #777; font-size: 14px;">Contactez-nous bientôt pour plus d'informations sur nos formations.</p>
+                {% endif %}
+            {% endif %}
+        </div>
+
+    </div>
+
+    <!-- زر الواتساب العائم الثابت في الزاوية -->
+    {% if phone_number %}
+        <a href="https://wa.me/{{ phone_number }}" class="whatsapp-float" target="_blank">💬</a>
     {% endif %}
 
-    <!-- أزرار التفاعل التلقائية للزوار والزبائن برقم الهاتف المخزن -->
-    {% if phone_number %}
-        <div class="contact-box">
-            <p style="margin: 0 0 10px 0; color: #333; font-weight: 600;">Contactez-nous :</p>
-            <a href="https://wa.me/{{ phone_number }}" class="contact-link" target="_blank">💬 WhatsApp : {{ phone_number }}</a>
-            <a href="tel:{{ phone_number }}" class="contact-link call-link">📞 Appeler : {{ phone_number }}</a>
-        </div>
-    {% else %}
-        {% if not is_admin %}
-            <p style="color: #777; font-size: 14px;">Contactez-nous bientôt pour plus d'informations sur nos formations.</p>
-        {% endif %}
-    {% endif %}
-</div>
+    <footer>
+        <p>Tous droits réservés © 2026 - Souhila MERDACI Form Afer</p>
+    </footer>
 
 </body>
 </html>
