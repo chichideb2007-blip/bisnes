@@ -209,7 +209,16 @@ def admin_panel():
     if request.method == 'POST':
         form_type = request.form.get('form_type')
         
-        if form_type == 'phone_update':
+        # --- إضافة حذف الدورة ---
+        if form_type == 'delete_course':
+            course_id = request.form.get('course_id')
+            try:
+                supabase.table("souhila_courses").delete().eq("id", course_id).eq("company_code", company_code).execute()
+                course_msg = "Formation supprimée avec succès !"
+            except Exception as e:
+                course_msg = f"Erreur lors de la suppression: {e}"
+                
+        elif form_type == 'phone_update':
             new_phone = request.form.get('phone_number', '')
             try:
                 supabase.table("settings").update({"souhila_phone": new_phone}).eq("company_code", company_code).execute()
@@ -220,11 +229,10 @@ def admin_panel():
         elif form_type == 'add_course':
             course_title = request.form.get('course_title')
             course_desc = request.form.get('course_desc')
-            file = request.files.get('course_image') # استقبال الملف المرفوع بضغطة زر
+            file = request.files.get('course_image')
             
             encoded_string = ""
             if file and file.filename != '':
-                # تحويل الصورة مباشرة إلى Base64
                 encoded_string = f'data:image/jpeg;base64,{base64.b64encode(file.read()).decode("utf-8")}'
                 
             try:
@@ -246,7 +254,15 @@ def admin_panel():
     except:
         pass
         
-    return render_template('admin.html', phone_number=phone_number, phone_msg=phone_msg, course_msg=course_msg)
+    # --- جلب الدورات الحالية لعرضها في لوحة التحكم ---
+    courses = []
+    try:
+        courses_res = supabase.table("souhila_courses").select("*").eq("company_code", company_code).execute()
+        courses = courses_res.data or []
+    except:
+        pass
+        
+    return render_template('admin.html', phone_number=phone_number, phone_msg=phone_msg, course_msg=course_msg, courses=courses)
 
 @app.route('/cart')
 def cart_page():
@@ -454,7 +470,7 @@ def submit_order():
     </head>
     <body>
         <div class="card">
-            <h2>🎉 تم تأكيد طلبك بنجاح!</h2>
+             <h2>🎉 تم تأكيد طلبك بنجاح!</h2>
             <p>شكراً لثقتكم بنا، سيتم الاتصال بكم قريباً لتأكيد الطلب.</p>
             <a href="/store2" class="btn">🔙 العودة إلى المتجر</a>
         </div>
