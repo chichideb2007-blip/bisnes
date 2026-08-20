@@ -62,7 +62,7 @@
         .call-link { background: var(--dark-color); }
         .email-link { background: #e86f61; }
 
-        /* تنسيق زر الواتساب العائم الجديد */
+        /* تنسيق زر الواتساب العائم في زاوية الشاشة */
         .whatsapp-float {
             position: fixed;
             bottom: 25px;
@@ -170,8 +170,8 @@
     </div>
 
     <!-- زر الواتساب العائم في زاوية الموقع -->
-    {% if whatsapp_number %}
-    <a href="https://wa.me/{{ whatsapp_number }}" target="_blank" class="whatsapp-float" title="Contactez-nous sur WhatsApp">
+    {% if phone_number %}
+    <a href="https://wa.me/{{ phone_number }}" target="_blank" class="whatsapp-float" title="Contactez-nous sur WhatsApp">
         <i class="fab fa-whatsapp"></i>
     </a>
     {% endif %}
