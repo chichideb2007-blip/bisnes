@@ -196,12 +196,16 @@ def admin_panel():
                 
                 # 1. تحديث معلومات الاتصال الشاملة (الهاتف، الواتساب، الإيميل، الموقع، السجل التجاري)
                 if form_type == 'contact_update':
+                    comm_phone = request.form.get('commercial_phone')
+                    # التأكد من أن السجل التجاري رقم صالح أو جعله None إذا كان فارغاً
+                    comm_phone_value = int(comm_phone) if comm_phone and comm_phone.isdigit() else None
+
                     update_data = {
                         'souhila_phone': request.form.get('phone_number'),
                         'souhila_whatsapp': request.form.get('whatsapp_number'),
                         'souhila_email': request.form.get('email_address'),
                         'souhila_website': request.form.get('website_url'),
-                        'souhila_commercial_phone': request.form.get('commercial_phone')
+                        'souhila_commercial_phone': comm_phone_value
                     }
                     supabase.table('settings').update(update_data).eq('id', rec_id).execute()
                     msg = "Informations de contact mises à jour avec succès !"
@@ -458,8 +462,7 @@ def submit_order():
     </head>
     <body>
         <div class="card">
-             <h2>🎉 تم تأكيد طلبك بنجاح!</h2>
-            <p>شكراً لثقتكم بنا، سيتم الاتصال بكم قريباً لتأكيد الطلب.</p>
+             <p>شكراً لثقتكم بنا، سيتم الاتصال بكم قريباً لتأكيد الطلب.</p>
             <a href="/store2" class="btn">🔙 العودة إلى المتجر</a>
         </div>
     </body>
