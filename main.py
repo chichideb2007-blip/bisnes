@@ -421,7 +421,8 @@ def submit_order():
                     f"🏘️ البلدية: {baladiya}\n"
                     f"🏠 العنوان: {address}\n"
                     f"🚚 التوصيل: {delivery_text} ({delivery_price} دج)\n"
-                    f"💰 المجموع الكلي: {total_price} دج"
+                    
+    f"💰 المجموع الكلي: {total_price} دج"
                 )
                 if inserted_order_id:
                     send_order_alert(token, chat_id, msg, inserted_order_id)
@@ -927,6 +928,7 @@ def clear_store2_session():
 @app.route('/store2_cart')
 def store2_cart():
     return render_template('store2_cart.html')
+
 
 @app.route('/store2_checkout_page')
 1def store2_checkout_page():
