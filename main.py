@@ -127,20 +127,6 @@ def get_products_by_shop_name(shop_name):
 def get_delivery_price(wilaya, delivery_type):
     return 500
 
-def refresh_instagram_token():
-    res = supabase.table("settings").select("company_code, instagram_token").execute()
-    for row in res.data:
-        old_token = row.get('instagram_token')
-        if old_token:
-            url = f"https://graph.facebook.com/v20.0/oauth/access_token?grant_type=fb_exchange_token&client_id={os.environ.get('APP_ID')}&client_secret={os.environ.get('APP_SECRET')}&fb_exchange_token={old_token}"
-            try:
-                response = requests.get(url).json()
-                new_token = response.get('access_token')
-                if new_token:
-                    supabase.table("settings").update({"instagram_token": new_token}).eq("company_code", row['company_code']).execute()
-            except Exception as e:
-                print(f"Token Refresh Error: {e}")
-
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -160,22 +146,18 @@ def home():
 
 @app.route('/cart')
 def cart_page():
-    # صفحة عرض السلة
     return render_template('cart.html')
 
 @app.route('/checkout_cart')
 def checkout_cart_page():
-    # صفحة إتمام الطلب لكل محتويات السلة
-    rates = get_wilayas_from_db() # دالة جلب ولايات الشحن
+    rates = get_wilayas_from_db()
     return render_template('checkout.html', rates=rates, is_cart=True)
 
 @app.route('/checkout/<int:product_id>')
 def checkout(product_id):
     rates = get_wilayas_from_db()
-    
     jordan_res = supabase.table("jordan_rates").select("*").execute()
     jordan_rates = jordan_res.data if jordan_res.data else []
-    
     product = get_product_from_db(product_id)
     
     if product:
@@ -296,25 +278,40 @@ def submit_order():
     except Exception as e:
         print(f"Error inserting order: {e}")
 
+    # --- خصم المخزون وإرسال تنبيه تيليجرام لكل منتج في السلة ---
     for item in cart_data:
-        p_id = item.get('id') or item.get('product_id')
+        p_id = item.get('id') or item.get('product_id') or item.get('productId')
+        p_name = item.get('name')
         item_qty = int(item.get('quantity', 1))
-        if p_id:
-            try:
-                prod_res = supabase.table("inventory").select("name, quantity").eq("id", p_id).execute()
+        
+        try:
+            prod_info = None
+            if p_id:
+                prod_res = supabase.table("inventory").select("id, name, quantity").eq("id", p_id).execute()
                 if prod_res.data and len(prod_res.data) > 0:
                     prod_info = prod_res.data[0]
-                    current_qty = int(prod_info.get('quantity', 0))
-                    product_name_db = prod_info.get('name', 'منتج')
-                    new_qty = max(0, current_qty - item_qty)
-                    
-                    supabase.table("inventory").update({"quantity": new_qty}).eq("id", p_id).execute()
-                    
-                    if new_qty <= 0:
-                        send_telegram_alert(product_name_db, current_company, company_code)
-                        
-            except Exception as ex:
-                print(f"DEBUG: خطأ في خصم مخزون المنتج {p_id}: {ex}")
+            elif p_name:
+                prod_res = supabase.table("inventory").select("id, name, quantity").eq("name", p_name).eq("company_id_text", company_code).execute()
+                if prod_res.data and len(prod_res.data) > 0:
+                    prod_info = prod_res.data[0]
+
+            if prod_info:
+                real_p_id = prod_info.get('id')
+                current_qty = int(prod_info.get('quantity', 0))
+                product_name_db = prod_info.get('name', 'منتج')
+                
+                new_qty = max(0, current_qty - item_qty)
+                
+                supabase.table("inventory").update({"quantity": new_qty}).eq("id", real_p_id).execute()
+                print(f"DEBUG: تم خصم {item_qty} من المنتج {product_name_db}. المخزون الجديد: {new_qty}")
+                
+                if new_qty <= 0:
+                    send_telegram_alert(product_name_db, current_company, company_code)
+            else:
+                print(f"DEBUG: لم يتم العثور على المنتج في قاعدة البيانات لخصم مخزونه: {item}")
+                
+        except Exception as ex:
+            print(f"DEBUG: خطأ في خصم مخزون المنتج: {ex}")
 
     if company_code:
         res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
@@ -402,226 +399,10 @@ def logout():
 def dashboard():
     return render_template('dashboard.html')
 
-@app.route('/check_orphaned_products')
-@login_required
-def check_orphaned_products():
-    try:
-        res = supabase.rpc("get_orphaned_products").execute()
-        return jsonify({"orphaned_products": res.data})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/stats')
-@login_required
-def stats():
-    company_code = session.get('company_code')
-    try:
-        res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
-        orders = res.data or []
-    except Exception as e:
-        orders = []
-
-    total_revenue = sum(float(order.get("total_price") or 0) for order in orders)
-    total_orders_count = len(orders)
-    total_expenses = 0.0 
-
-    days_map = {"السبت": 0, "الأحد": 0, "الاثنين": 0, "الثلاثاء": 0, "الأربعاء": 0, "الخميس": 0, "الجمعة": 0}
-    day_names_map = {5: "السبت", 6: "الأحد", 0: "الاثنين", 1: "الثلاثاء", 2: "الأربعاء", 3: "الخميس", 4: "الجمعة"}
-
-    monthly_map = {
-        "جانفي": 0, "فيفري": 0, "مارس": 0, "أفريل": 0, "ماي": 0, "جوان": 0,
-        "جويلية": 0, "أوت": 0, "سبتمبر": 0, "أكتوبر": 0, "نوفمبر": 0, "ديسمبر": 0
-    }
-    month_names_map = {
-        1: "جانفي", 2: "فيفري", 3: "مارس", 4: "أفريل", 5: "ماي", 6: "جوان",
-        7: "جويلية", 8: "أوت", 9: "سبتمبر", 10: "أكتوبر", 11: "نوفمبر", 12: "ديسمبر"
-    }
-
-    current_year = datetime.now().year
-    yearly_map = {}
-    for y in range(2026, max(current_year + 1, 2027)):
-        yearly_map[str(y)] = 0
-
-    for order in orders:
-        created_at = order.get("created_at")
-        total_price = float(order.get("total_price") or 0)
-        if created_at:
-            try:
-                dt = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
-                
-                day_name = day_names_map.get(dt.weekday())
-                if day_name in days_map:
-                    days_map[day_name] += total_price
-
-                month_name = month_names_map.get(dt.month)
-                if month_name in monthly_map:
-                    monthly_map[month_name] += total_price
-
-                year_str = str(dt.year)
-                if year_str not in yearly_map:
-                    yearly_map[year_str] = 0
-                yearly_map[year_str] += total_price
-
-            except Exception as ex:
-                print(f"Date parse error: {ex}")
-
-    cleaned_orders = []
-    for order in orders:
-        cleaned_order = {
-            "id": order.get("id"),
-            "customer_name": str(order.get("customer_name") or ""),
-            "total_price": float(order.get("total_price") or 0),
-            "status": str(order.get("status") or ""),
-            "created_at": str(order.get("created_at") or ""),
-            "product_name": str(order.get("product_name") or "")
-        }
-        cleaned_orders.append(cleaned_order)
-
-    return render_template(
-        'stats.html', 
-        orders=cleaned_orders, 
-        total_orders_count=total_orders_count, 
-        total_revenue=total_revenue,
-        total_expenses=total_expenses,
-        daily=days_map,
-        monthly=monthly_map,
-        yearly=yearly_map
-    )
-
-@app.route('/settings', methods=['GET', 'POST'])
-@login_required
-def settings():
-    company_code = session.get('company_code')
-    currencies = [
-        ("USD", "دولار أمريكي"), ("EUR", "يورو"), ("GBP", "جنيه إسترليني"), ("JPY", "ين ياباني"),
-        ("SAR", "ريال سعودي"), ("AED", "درهم إماراتي"), ("DZD", "دينار جزائري"), ("EGP", "جنيه مصري"),
-        ("KWD", "دينار كويتي"), ("QAR", "ريال قطري"), ("BHD", "دينار بحريني"), ("OMR", "ريال عماني"),
-      ("JOD", "دينار أردني"), ("LBP", "ليرة لبنانية"), ("LYD", "دينار ليبي"), ("MAD", "درهم مغربي"),
-        ("TND", "دينار تونسي"), ("IQD", "دينار عراقي"), ("SYP", "ليرة سورية"), ("YER", "ريال يمني"),
-        ("TRY", "ليرة تركية"), ("AUD", "دولار أسترالي"), ("CAD", "دولار كندي"), ("CHF", "فرنك سويسري"),
-        ("CNY", "يوان صيني"), ("INR", "روبية هندية"), ("RUB", "روبل روسي"), ("SGD", "دولار سنغافوري"),
-        ("SDG", "جنيه سوداني"), ("MRU", "أوقية موريتانية"), ("SOS", "شلن صومالي"), ("KMF", "فرنك جزر القمر"),
-        ("DJF", "فرنك جيبوتي"), ("BND", "دولار بروناي"), ("KRW", "وون كوري جنوبي"), ("MXN", "بيزو مكسيكي")
-    ]
-    
-    if request.method == 'POST':
-        data = {
-            "company_name": request.form.get('shop_name'),
-            "telegram_token": request.form.get('bot_token'),
-            "telegram_chat_id": request.form.get('chat_id'),
-            "instagram_url": request.form.get('instagram_link'),
-            "currency": request.form.get('currency') 
-        }
-        try:
-            supabase.table("settings").update(data).eq("company_code", company_code).execute()
-        except Exception as e:
-            return f"حدث خطأ أثناء الحفظ: {str(e)}", 500
-        return redirect(url_for('settings'))
-    
-    res = supabase.table("settings").select("*").eq("company_code", company_code).execute()
-    settings_data = res.data[0] if res.data else {}
-    return render_template('settings.html', settings=settings_data, currencies=currencies)
-
-@app.route('/shipping_settings', methods=['GET'])
-@login_required
-def shipping_settings():
-    return render_template('shipping_settings.html')
-
-@app.route('/get_delivery_prices', methods=['GET'])
-@login_required
-def get_delivery_prices():
-    company_code = session.get('company_code')
-    data = supabase.table("delivery_prices").select("*").eq("company_code", company_code).execute()
-    return jsonify(data.data)
-
-@app.route('/update_delivery_price', methods=['POST'])
-@login_required
-def update_delivery_price():
-    data = request.json
-    row_id = data.get('id')
-    new_office = data.get('office_price')
-    new_home = data.get('home_price')
-    
-    try:
-        supabase.table("shipping_rates").update({
-            "office_price": new_office,
-            "home_price": new_home
-        }).eq("id", row_id).execute()
-        return jsonify({"status": "success"})
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
-
-@app.route('/get_shipping_rates')
-def get_shipping_rates():
-    company_code = request.args.get('company_code')
-    delivery_type = request.args.get('type') 
-    
-    try:
-        res = supabase.table("delivery_prices") \
-            .select("home_price, office_price") \
-            .eq("company_code", company_code) \
-            .single().execute()
-        if res.data:
-            price = res.data.get('home_price') if delivery_type == 'home' else res.data.get('office_price')
-            return jsonify({"price": float(price or 0)})
-    except Exception as e:
-        pass
-    return jsonify({"price": 0})
-
-@app.route('/get_all_shipping_rates', methods=['GET'])
-@login_required
-def get_all_shipping_rates():
-    res = supabase.table("shipping_rates").select("*").order("id").execute()
-    return jsonify(res.data)
-
-@app.route('/update_delivery_settings', methods=['POST'])
-@login_required
-def update_delivery_settings():
-    data = request.json
-    company_code = session.get('company_code')
-    supabase.table("company_settings").update({
-        "delivery_office_price": data.get('office_price'),
-        "delivery_home_price": data.get('home_price')
-    }).eq("company_code", company_code).execute()
-    return jsonify({"status": "success"})
-
-@app.route('/admin/jordan-shipping')
-@login_required
-def admin_jordan_shipping():
-    res = supabase.table("jordan_rates").select("*").order("id").execute()
-    jordan_rates = res.data if res.data else []
-    return render_template('admin_jordan.html', jordan_rates=jordan_rates)
-
-@app.route('/admin/update-jordan-rate/<int:id>', methods=['POST'])
-@login_required
-def update_jordan_rate(id):
-    try:
-        if request.is_json:
-            data = request.json
-            home_price = data.get('home_price')
-            office_price = data.get('office_price')
-        else:
-            home_price = request.form.get('home_price')
-            office_price = request.form.get('office_price')
-
-        supabase.table("jordan_rates").update({
-            "home_price": float(home_price or 0),
-            "office_price": float(office_price or 0)
-        }).eq("id", id).execute()
-
-        if request.is_json:
-            return jsonify({"status": "success"})
-        return redirect(url_for('orders'))
-    except Exception as e:
-        if request.is_json:
-            return jsonify({"status": "error", "message": str(e)}), 500
-        return f"حدث خطأ: {e}", 500
-
 @app.route('/products', methods=['GET', 'POST'])
 @login_required
 def products():
     company_code = session.get('company_code')
-    
     if request.method == 'POST':
         file = request.files.get('product_image')
         encoded_string = ""
@@ -644,113 +425,10 @@ def products():
     res = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
     return render_template('products.html', products=res.data or [])
 
-@app.route('/inventory_management', methods=['GET', 'POST'])
-@login_required
-def inventory_management():
-    company_code = session.get('company_code')
-    
-    if request.method == 'POST':
-        product_id = request.form.get('product_id')
-        new_quantity = request.form.get('quantity')
-        file = request.files.get('product_image')
-        
-        update_data = {"quantity": int(new_quantity)}
-        
-        if file and file.filename != '':
-            filename = f"{company_code}/{int(time.time())}_{file.filename}"
-            supabase.storage.from_("products").upload(
-                path=filename,
-                file=file.read(),
-                file_options={"content-type": file.content_type}
-            )
-            public_url = supabase.storage.from_("products").get_public_url(filename)
-            update_data["product-images"] = public_url
-        
-        try:
-            supabase.table('inventory').update(update_data).eq("id", product_id).eq("company_id_text", company_code).execute()
-        except Exception as e:
-            print(f"DEBUG: خطأ في تحديث المخزون: {e}")
-            
-    try:
-        res = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
-        inventory_data = res.data or []
-    except Exception as e:
-        inventory_data = []
-        
-    return render_template('inventory_management.html', inventory=inventory_data)
-
-@app.route('/edit_product/<int:id>', methods=['GET', 'POST'])
-@login_required
-def edit_product(id):
-    company_code = session.get('company_code')
-    res = supabase.table("inventory").select("*").eq("id", id).eq("company_id_text", company_code).execute()
-    product = res.data[0] if res.data else None
-    
-    if not product:
-        return "المنتج غير موجود", 404
-
-    if request.method == 'POST':
-        new_name = request.form.get('name')
-        new_quantity = request.form.get('quantity')
-        new_price = request.form.get('price')
-        
-        supabase.table("inventory").update({
-            "name": new_name,
-            "quantity": int(new_quantity),
-            "price": float(new_price)
-        }).eq("id", id).execute()
-        
-        return redirect(url_for('products'))
-        
-    return render_template('edit_product.html', product=product)
-
-@app.route('/update_quantity/<int:product_id>', methods=['POST'])
-@login_required
-def update_quantity(product_id):
-    company_code = session.get('company_code')
-    action_type = request.form.get('action_type')
-    amount = int(request.form.get('amount', 0))
-    
-    prod = supabase.table("inventory").select("quantity").eq("id", product_id).eq("company_id_text", company_code).single().execute()
-    
-    if prod.data:
-        current_qty = prod.data.get('quantity', 0)
-        
-        if action_type == 'add':
-            new_qty = current_qty + amount
-        else:
-            new_qty = amount
-            
-        supabase.table("inventory").update({"quantity": new_qty}).eq("id", product_id).execute()
-        
-    return redirect(url_for('products'))
-
-@app.route('/delete_product/<int:id>', methods=['POST'])
-@login_required
-def delete_product(id):
-    try: supabase.table("inventory").delete().eq("id", id).execute()
-    except Exception as e: print(f"Delete Error: {e}")
-    return redirect(url_for('products'))
-
-@app.route('/delete_order/<int:id>', methods=['POST'])
-@login_required
-def delete_order(id):
-    supabase.table("orders").delete().eq("id", id).execute()
-    return redirect(url_for('orders'))
-
-@app.route('/update_status/<int:order_id>', methods=['POST'])
-@login_required
-def update_status(order_id):
-    new_status = request.form.get('status')
-    if new_status:
-        supabase.table("orders").update({"status": new_status}).eq("id", order_id).execute()
-    return redirect(url_for('orders'))
-
 @app.route('/orders', methods=['GET', 'POST'])
 @login_required
 def orders():
     company_code = session.get('company_code')
-    
     if request.method == 'POST':
         product_name = request.form.get('product_name')
         requested_qty = int(request.form.get('quantity', 1))
@@ -825,11 +503,6 @@ def shop():
     
     return render_template('shop.html', products=products, current_company=shop_name)
 
-@app.route('/clear_session')
-def clear_session():
-    session.pop('current_shop_name', None)
-    return redirect(url_for('shop'))
-
 @app.route('/store2', methods=['GET', 'POST'])
 def store2():
     if request.method == 'POST' and 'company_name' in request.form:
@@ -842,28 +515,6 @@ def store2():
         products = get_products_by_shop_name(shop_name)
     
     return render_template('store2.html', products=products, current_company=shop_name)
-
-@app.route('/clear_store2_session')
-def clear_store2_session():
-    session.pop('current_store2_name', None)
-    return redirect(url_for('store2'))
-
-@app.route('/store2_cart')
-def store2_cart():
-    return render_template('store2_cart.html')
-
-@app.route('/store2_checkout_page')
-def store2_checkout_page():
-    rates = get_wilayas_from_db()
-    return render_template('store2_order.html', rates=rates)
-
-@app.route('/store2_checkout/<int:product_id>')
-def store2_checkout(product_id):
-    product = get_product_from_db(product_id)
-    if not product:
-        return "المنتج غير موجود", 404
-    rates = get_wilayas_from_db()
-    return render_template('store2_checkout.html', product=product, rates=rates)
 
 if __name__ =='__main__':
     app.run(debug=True)
