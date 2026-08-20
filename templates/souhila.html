@@ -45,7 +45,6 @@
         .course-info p { color: #666; font-size: 13px; }
         
         .course-action { text-align: right; }
-        .course-price { font-size: 18px; font-weight: 800; color: var(--primary-color); margin-bottom: 8px; display: block; }
         .btn-main { background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 700; text-decoration: none; display: inline-block; box-shadow: 0 4px 10px rgba(232, 111, 97, 0.3); transition: 0.2s; }
         .btn-main:hover { opacity: 0.9; }
 
@@ -97,57 +96,28 @@
         
         <h2 class="section-title">Nos Formations</h2>
         
-        <!-- الدورات الثابتة -->
+        <!-- الدورات المستخرجة من قاعدة البيانات بدون أسعار -->
         <div class="courses-grid">
-            
-            <div class="course-card">
-                <img src="https://via.placeholder.com/120x90" alt="Course Image" class="course-img">
-                <div class="course-info">
-                    <h3>عنوان الدورة التدريبية الأولى</h3>
-                    <p>دورة شاملة تمنحك المفاتيح الأساسية والاحترافية للنجاح الميداني.</p>
+            {% if courses %}
+                {% for course in courses %}
+                <div class="course-card">
+                    <img src="{{ course.image }}" alt="Course Image" class="course-img">
+                    <div class="course-info">
+                        <h3>{{ course.title }}</h3>
+                        <p>{{ course.description }}</p>
+                    </div>
+                    <div class="course-action">
+                        {% if phone_number %}
+                            <a href="https://wa.me/{{ phone_number }}?text=Bonjour,%20je%20veux%20m'inscrire%20à%20la%20formation:%20{{ course.title }}" class="btn-main" target="_blank">Pré-inscription</a>
+                        {% else %}
+                            <a href="#" class="btn-main">Pré-inscription</a>
+                        {% endif %}
+                    </div>
                 </div>
-                <div class="course-action">
-                    <span class="course-price">15,000 دج</span>
-                    {% if phone_number %}
-                        <a href="https://wa.me/{{ phone_number }}?text=Bonjour,%20je%20veux%20m'inscrire%20à%20la%20formation" class="btn-main" target="_blank">Pré-inscription</a>
-                    {% else %}
-                        <a href="#" class="btn-main">Pré-inscription</a>
-                    {% endif %}
-                </div>
-            </div>
-
-            <div class="course-card">
-                <img src="https://via.placeholder.com/120x90" alt="Course Image" class="course-img">
-                <div class="course-info">
-                    <h3>عنوان الدورة التدريبية الثانية</h3>
-                    <p>برنامج تكويني مكثف مصمم لمرافقتك خطوة بخطوة نحو الاحتراف.</p>
-                </div>
-                <div class="course-action">
-                    <span class="course-price">20,000 دج</span>
-                    {% if phone_number %}
-                        <a href="https://wa.me/{{ phone_number }}?text=Bonjour,%20je%20veux%20m'inscrire%20à%20la%20formation" class="btn-main" target="_blank">Pré-inscription</a>
-                    {% else %}
-                        <a href="#" class="btn-main">Pré-inscription</a>
-                    {% endif %}
-                </div>
-            </div>
-
-            <div class="course-card">
-                <img src="https://via.placeholder.com/120x90" alt="Course Image" class="course-img">
-                <div class="course-info">
-                    <h3>عنوان الدورة التدريبية الثالثة</h3>
-                    <p>اكتسبي مهارات جديدة مطلوبة بقوة في السوق مع متابعة شخصية.</p>
-                </div>
-                <div class="course-action">
-                    <span class="course-price">12,000 دج</span>
-                    {% if phone_number %}
-                        <a href="https://wa.me/{{ phone_number }}?text=Bonjour,%20je%20veux%20m'inscrire%20à%20la%20formation" class="btn-main" target="_blank">Pré-inscription</a>
-                    {% else %}
-                        <a href="#" class="btn-main">Pré-inscription</a>
-                    {% endif %}
-                </div>
-            </div>
-
+                {% endfor %}
+            {% else %}
+                <p style="text-align: center; color: #777;">Aucune formation disponible pour le moment.</p>
+            {% endif %}
         </div>
 
         <div class="trust-section">
