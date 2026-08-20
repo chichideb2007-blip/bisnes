@@ -19,7 +19,7 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "fallback_dev_key")
 supabase = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY"))
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
-# --- المعالج التلقائي للعملة (مُحدث) ---
+# --- المعالج التلقائي للعملة ---
 @app.context_processor
 def inject_currency():
     company_code = session.get('company_code')
@@ -42,7 +42,6 @@ def get_wilayas_from_db():
     res = supabase.table("shipping_rates").select("*").order("id").execute()
     return res.data if res.data else []
 
-# --- دالة تنبيه نفاذ المخزون عبر تيليجرام (المحدثة) ---
 def send_telegram_alert(product_name, company_name, company_code=""):
     try:
         if company_code:
@@ -54,30 +53,19 @@ def send_telegram_alert(product_name, company_name, company_code=""):
                     message = f"🚨 تنبيه نفاذ المخزون!\n\n🏪 المحل / المتجر: {company_name}\n📦 المنتج الذي نفد: {product_name}\n\n⚠️ لقد نفذت كمية هذا المنتج تماماً من المخزون!"
                     url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={requests.utils.quote(message)}"
                     requests.get(url)
-                    print(f"DEBUG: تم إرسال تنبيه نفاذ المخزون للمنتج {product_name}")
                     return
-        print("DEBUG: لم يتم العثور على توكن تيليجرام خاص بهذا المحل في الإعدادات.")
     except Exception as e:
         print("Telegram error:", e)
 
 def send_telegram_alert_by_token(token, chat_id, message):
     if not token or not chat_id:
-        print("DEBUG: فشل إرسال التنبيه - التوكن أو Chat ID فارغ")
         return False
-    
     try:
         url = f"https://api.telegram.org/bot{token}/sendMessage"
         params = {"chat_id": chat_id, "text": message}
         response = requests.get(url, params=params)
-        
-        if response.status_code == 200:
-            print("DEBUG: تم إرسال التنبيه إلى تيلجرام بنجاح!")
-            return True
-        else:
-            print(f"DEBUG: فشل الإرسال. الكود: {response.status_code}, الرد: {response.text}")
-            return False
+        return response.status_code == 200
     except Exception as e:
-        print(f"DEBUG: خطأ في الاتصال بتليجرام: {e}")
         return False
 
 def send_order_alert(token, chat_id, message, order_id):
@@ -99,29 +87,18 @@ def send_order_alert(token, chat_id, message, order_id):
         response = requests.post(url, json=payload)
         return response.status_code == 200
     except Exception as e:
-        print(f"Error sending order alert with buttons: {e}")
         return False
 
 def get_products_by_shop_name(shop_name):
     try:
         shop_name_decoded = urllib.parse.unquote(shop_name).strip()
-        print(f"DEBUG: ابحث عن متجر باسم: {shop_name_decoded}")
-        
         settings = supabase.table("settings").select("company_code").ilike("company_name", shop_name_decoded).execute()
-        
         if not settings.data:
-            print("DEBUG: لم أجد متجراً بهذا الاسم")
             return []
-        
         company_code = settings.data[0]['company_code']
-        print(f"DEBUG: وجدت الكود: {company_code}")
-        
         products = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
-        
-        print(f"DEBUG: المنتجات التي وجدتها لـ {company_code} هي: {len(products.data)}")
         return products.data
     except Exception as e:
-        print(f"DEBUG ERROR: {e}")
         return []
 
 def login_required(f):
@@ -141,7 +118,6 @@ def favicon():
 def home():
     return redirect(url_for('login'))
 
-# --- مسار صفحة صوليحة (المحدث لدعم الحقول الجديدة) ---
 @app.route('/souhila')
 def souhila_home():
     phone = ""
@@ -160,7 +136,7 @@ def souhila_home():
             website = s_data.get('souhila_website', '')
             commercial_phone = s_data.get('souhila_commercial_phone', '')
     except Exception as e:
-        print(f"DEBUG Error fetching souhila settings: {e}")
+        pass
     
     courses_res = supabase.table('souhila_courses').select('*').execute()
     courses = courses_res.data if courses_res.data else []
@@ -173,7 +149,6 @@ def souhila_home():
                            commercial_phone=commercial_phone,
                            courses=courses)
 
-# --- مسار لوحة تحكم صوليحة (المحدث لتعديل الحقول الجديدة) ---
 @app.route('/admin', methods=['GET', 'POST'])
 def admin_panel():
     msg = None
@@ -181,24 +156,31 @@ def admin_panel():
     if request.method == 'POST':
         form_type = request.form.get('form_type')
         
-        # التأكد من وجود سجل للتعديل، وإن لم يوجد نقوم بإنشائه
         try:
             check_s = supabase.table('settings').select('id').limit(1).execute()
             if not check_s.data:
                 supabase.table('settings').insert({'company_code': 'default'}).execute()
         except Exception as e:
-            print(f"Error checking/creating settings row: {e}")
+            pass
 
         try:
             all_s = supabase.table('settings').select('id').limit(1).execute()
             if all_s.data:
                 rec_id = all_s.data[0]['id']
                 
-                # 1. تحديث معلومات الاتصال الشاملة (الهاتف، الواتساب، الإيميل، الموقع، السجل التجاري)
+                # 1. تحديث معلومات الاتصال الشاملة (مع المعالجة الذكية للسجل التجاري)
                 if form_type == 'contact_update':
-                    comm_phone = request.form.get('commercial_phone')
-                    # التأكد من أن السجل التجاري رقم صالح أو جعله None إذا كان فارغاً
-                    comm_phone_value = int(comm_phone) if comm_phone and comm_phone.isdigit() else None
+                    comm_phone = request.form.get('commercial_phone', '').strip()
+                    
+                    # نحاول معرفة نوع العمود في قاعدة البيانات أو إرسال القيمة بشكل آمن
+                    # إذا أدخل المستخدم أرقاماً بحتة نرسلها كـ int، وإذا تركها فارغة نرسل None
+                    if comm_phone.isdigit():
+                        comm_phone_value = int(comm_phone)
+                    elif comm_phone == "":
+                        comm_phone_value = None
+                    else:
+                        # لو أدخل حروفاً أو رموزاً نجعلها نصاً (في حال كان العمود من نوع نص text)
+                        comm_phone_value = comm_phone
 
                     update_data = {
                         'souhila_phone': request.form.get('phone_number'),
@@ -207,6 +189,7 @@ def admin_panel():
                         'souhila_website': request.form.get('website_url'),
                         'souhila_commercial_phone': comm_phone_value
                     }
+                    
                     supabase.table('settings').update(update_data).eq('id', rec_id).execute()
                     msg = "Informations de contact mises à jour avec succès !"
 
@@ -237,16 +220,15 @@ def admin_panel():
                     msg = "Formation supprimée avec succès !"
         except Exception as e:
             print(f"Error in admin POST: {e}")
-            msg = f"Erreur: {e}"
+            msg = f"Erreur lors de la mise à jour: {e}"
 
-    # جلب البيانات الحالية للعرض في لوحة التحكم
     settings_data = {}
     try:
         settings_res = supabase.table('settings').select('*').limit(1).execute()
         if settings_res.data:
             settings_data = settings_res.data[0]
     except Exception as e:
-        print(f"DEBUG Error fetching admin settings: {e}")
+        pass
 
     courses_res = supabase.table('souhila_courses').select('*').execute()
     courses = courses_res.data if courses_res.data else []
@@ -268,10 +250,8 @@ def checkout_cart_page():
 @app.route('/checkout/<int:product_id>')
 def checkout(product_id):
     rates = get_wilayas_from_db()
-    
     jordan_res = supabase.table("jordan_rates").select("*").execute()
     jordan_rates = jordan_res.data if jordan_res.data else []
-    
     product = get_product_from_db(product_id)
     
     if product:
@@ -279,8 +259,7 @@ def checkout(product_id):
         if company_code:
             settings_res = supabase.table("settings").select("company_name").eq("company_code", company_code).execute()
             if settings_res.data:
-                shop_name = settings_res.data[0].get('company_name')
-                session['current_shop_name'] = shop_name
+                session['current_shop_name'] = settings_res.data[0].get('company_name')
                 
     return render_template('checkout.html', product=product, rates=rates, jordan_rates=jordan_rates)
 
@@ -419,7 +398,7 @@ def submit_order():
                 if new_qty <= 0:
                     send_telegram_alert(product_name_db, current_company, company_code)
         except Exception as ex:
-            print(f"DEBUG: خطأ في خصم مخزون المنتج: {ex}")
+            pass
 
     if company_code:
         res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
@@ -454,10 +433,8 @@ def submit_order():
         <style>
             body { font-family: Tahoma, sans-serif; background-color: #f4f7f6; text-align: center; padding-top: 50px; margin: 0; }
             .card { background: white; max-width: 400px; margin: auto; padding: 30px; border-radius: 10px; box-shadow: 0px 4px 10px rgba(0,0,0,0.1); }
-            h2 { color: #28a745; }
             p { color: #555; font-size: 16px; }
             .btn { display: inline-block; margin-top: 20px; background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; }
-            .btn:hover { background: #0056b3; }
         </style>
     </head>
     <body>
@@ -543,7 +520,6 @@ def stats():
         if created_at:
             try:
                 dt = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
-                
                 day_name = day_names_map.get(dt.weekday())
                 if day_name in days_map:
                     days_map[day_name] += total_price
@@ -556,9 +532,8 @@ def stats():
                 if year_str not in yearly_map:
                     yearly_map[year_str] = 0
                 yearly_map[year_str] += total_price
-
             except Exception as ex:
-                print(f"Date parse error: {ex}")
+                pass
 
     cleaned_orders = []
     for order in orders:
@@ -764,7 +739,7 @@ def inventory_management():
         try:
             supabase.table('inventory').update(update_data).eq("id", product_id).eq("company_id_text", company_code).execute()
         except Exception as e:
-            print(f"DEBUG: خطأ في تحديث المخزون: {e}")
+            pass
             
     try:
         res = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
@@ -810,7 +785,6 @@ def update_quantity(product_id):
     
     if prod.data:
         current_qty = prod.data.get('quantity', 0)
-        
         if action_type == 'add':
             new_qty = current_qty + amount
         else:
@@ -823,8 +797,10 @@ def update_quantity(product_id):
 @app.route('/delete_product/<int:id>', methods=['POST'])
 @login_required
 def delete_product(id):
-    try: supabase.table("inventory").delete().eq("id", id).execute()
-    except Exception as e: print(f"Delete Error: {e}")
+    try: 
+        supabase.table("inventory").delete().eq("id", id).execute()
+    except Exception as e: 
+        pass
     return redirect(url_for('products'))
 
 @app.route('/delete_order/<int:id>', methods=['POST'])
