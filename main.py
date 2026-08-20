@@ -217,6 +217,55 @@ def souhila_page():
 
     return render_template('souhila.html', phone_number=phone_number, courses=courses, is_admin=is_admin)
 
+# --- مسار لوحة تحكم صوليحة المنفصل (/admin) ---
+@app.route('/admin', methods=['GET', 'POST'])
+@login_required
+def admin_panel():
+    company_code = session.get('company_code', 'default_shop')
+    phone_msg = None
+    course_msg = None
+    
+    if request.method == 'POST':
+        form_type = request.form.get('form_type')
+        
+        if form_type == 'phone_update':
+            new_phone = request.form.get('phone_number', '')
+            try:
+                supabase.table("settings").update({"souhila_phone": new_phone}).eq("company_code", company_code).execute()
+                phone_msg = "Numéro mis à jour avec succès !"
+            except Exception as e:
+                phone_msg = f"Erreur: {e}"
+                
+        elif form_type == 'add_course':
+            course_title = request.form.get('course_title')
+            course_desc = request.form.get('course_desc')
+            file = request.files.get('course_image')
+            
+            encoded_string = ""
+            if file and file.filename != '':
+                encoded_string = f'data:image/jpeg;base64,{base64.b64encode(file.read()).decode("utf-8")}'
+                
+            try:
+                supabase.table("souhila_courses").insert({
+                    "company_code": company_code,
+                    "title": course_title,
+                    "description": course_desc,
+                    "image": encoded_string
+                }).execute()
+                course_msg = "Formation ajoutée avec succès !"
+            except Exception as e:
+                course_msg = f"Erreur: {e}"
+                
+    phone_number = ""
+    try:
+        res = supabase.table("settings").select("souhila_phone").eq("company_code", company_code).execute()
+        if res.data and res.data[0].get('souhila_phone'):
+            phone_number = res.data[0].get('souhila_phone')
+    except:
+        pass
+        
+    return render_template('admin.html', phone_number=phone_number, phone_msg=phone_msg, course_msg=course_msg)
+
 @app.route('/cart')
 def cart_page():
     return render_template('cart.html')
