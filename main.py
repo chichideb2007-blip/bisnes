@@ -152,19 +152,28 @@ def souhila_home():
 @app.route('/admin', methods=['GET', 'POST'])
 def admin_panel():
     msg = None
+    # تحديد كود الشركة الحالي (إذا كان مسجلاً، وإلا نستخدم 'default' أو أول صف)
+    company_code = session.get('company_code', 'default')
 
     if request.method == 'POST':
         form_type = request.form.get('form_type')
         
         try:
-            check_s = supabase.table('settings').select('id').limit(1).execute()
+            # التحقق مما إذا كان السجل الخاص بهذا الكود موجوداً مسبقاً
+            check_s = supabase.table('settings').select('id').eq('company_code', company_code).execute()
             if not check_s.data:
-                supabase.table('settings').insert({'company_code': 'default'}).execute()
+                # إذا لم يكن موجوداً، نقوم بإنشائه
+                supabase.table('settings').insert({'company_code': company_code}).execute()
         except Exception as e:
             pass
 
         try:
-            all_s = supabase.table('settings').select('id').limit(1).execute()
+            # جلب معرف السجل الخاص بالشركة الحالية بدقة
+            all_s = supabase.table('settings').select('id').eq('company_code', company_code).execute()
+            if not all_s.data:
+                # كبديل في حال لم يجد بالـ company_code، يأخذ أول صف
+                all_s = supabase.table('settings').select('id').limit(1).execute()
+                
             if all_s.data:
                 rec_id = all_s.data[0]['id']
                 
@@ -180,6 +189,7 @@ def admin_panel():
                         'souhila_commercial_phone': comm_phone if comm_phone else None
                     }
                     
+                    # التحديث باستخدام المعرف (id) الخاص بالصف المختار بدقة
                     supabase.table('settings').update(update_data).eq('id', rec_id).execute()
                     msg = "Informations de contact mises à jour avec succès !"
 
@@ -199,7 +209,7 @@ def admin_panel():
                         'title': title,
                         'description': desc,
                         'image': image_url,
-                        'company_code': 'default'
+                        'company_code': company_code
                     }).execute()
                     msg = "Formation ajoutée avec succès !"
 
@@ -214,7 +224,11 @@ def admin_panel():
 
     settings_data = {}
     try:
-        settings_res = supabase.table('settings').select('*').limit(1).execute()
+        # جلب البيانات لعرضها في لوحة التحكم لنفس الكود
+        settings_res = supabase.table('settings').select('*').eq('company_code', company_code).execute()
+        if not settings_res.data:
+            settings_res = supabase.table('settings').select('*').limit(1).execute()
+            
         if settings_res.data:
             settings_data = settings_res.data[0]
     except Exception as e:
@@ -915,7 +929,7 @@ def store2_cart():
     return render_template('store2_cart.html')
 
 @app.route('/store2_checkout_page')
-def store2_checkout_page():
+1def store2_checkout_page():
     rates = get_wilayas_from_db()
     return render_template('store2_order.html', rates=rates)
 
