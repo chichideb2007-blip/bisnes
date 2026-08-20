@@ -168,13 +168,13 @@ def admin_panel():
         # 1. تحديث رقم الهاتف
         if form_type == 'phone_update':
             phone = request.form.get('phone_number')
-            supabase.table('settings').upsert({'id': 1, 'souhila_phone': phone}).execute()
+            supabase.table('settings').update({'souhila_phone': phone}).eq('id', 1).execute()
             phone_msg = "Numéro WhatsApp enregistré avec succès !"
 
         # 2. تحديث البريد الإلكتروني الجديد
         elif form_type == 'email_update':
             email = request.form.get('email_address')
-            supabase.table('settings').upsert({'id': 1, 'souhila_email': email}).execute()
+            supabase.table('settings').update({'souhila_email': email}).eq('id', 1).execute()
             email_msg = "Adresse Email enregistrée avec succès !"
 
         # 3. إضافة دورة
