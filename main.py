@@ -141,14 +141,25 @@ def favicon():
 def home():
     return redirect(url_for('login'))
 
-# --- مسار صفحة صوليحة (المحدث) ---
+# --- مسار صفحة صوليحة (المحدث والمصحح) ---
 @app.route('/souhila')
 def souhila_home():
-    settings_res = supabase.table('settings').select('*').eq('id', 1).execute()
-    settings_data = settings_res.data[0] if settings_res.data else {}
-    
-    phone = settings_data.get('souhila_phone', '')
-    email = settings_data.get('souhila_email', '')
+    phone = ""
+    email = ""
+    try:
+        settings_res = supabase.table('settings').select('*').eq('id', 1).execute()
+        if settings_res.data:
+            settings_data = settings_res.data[0]
+            phone = settings_data.get('souhila_phone', '')
+            email = settings_data.get('souhila_email', '')
+        else:
+            all_settings = supabase.table('settings').select('*').limit(1).execute()
+            if all_settings.data:
+                settings_data = all_settings.data[0]
+                phone = settings_data.get('souhila_phone', '')
+                email = settings_data.get('souhila_email', '')
+    except Exception as e:
+        print(f"DEBUG Error fetching souhila settings: {e}")
     
     courses_res = supabase.table('souhila_courses').select('*').execute()
     courses = courses_res.data if courses_res.data else []
@@ -168,13 +179,33 @@ def admin_panel():
         # 1. تحديث رقم الهاتف
         if form_type == 'phone_update':
             phone = request.form.get('phone_number')
-            supabase.table('settings').update({'souhila_phone': phone}).eq('id', 1).execute()
+            try:
+                res = supabase.table('settings').select('id').eq('id', 1).execute()
+                if res.data:
+                    supabase.table('settings').update({'souhila_phone': phone}).eq('id', 1).execute()
+                else:
+                    all_s = supabase.table('settings').select('id').limit(1).execute()
+                    if all_s.data:
+                        rec_id = all_s.data[0]['id']
+                        supabase.table('settings').update({'souhila_phone': phone}).eq('id', rec_id).execute()
+            except Exception as e:
+                print(f"Error updating phone: {e}")
             phone_msg = "Numéro WhatsApp enregistré avec succès !"
 
         # 2. تحديث البريد الإلكتروني الجديد
         elif form_type == 'email_update':
             email = request.form.get('email_address')
-            supabase.table('settings').update({'souhila_email': email}).eq('id', 1).execute()
+            try:
+                res = supabase.table('settings').select('id').eq('id', 1).execute()
+                if res.data:
+                    supabase.table('settings').update({'souhila_email': email}).eq('id', 1).execute()
+                else:
+                    all_s = supabase.table('settings').select('id').limit(1).execute()
+                    if all_s.data:
+                        rec_id = all_s.data[0]['id']
+                        supabase.table('settings').update({'souhila_email': email}).eq('id', rec_id).execute()
+            except Exception as e:
+                print(f"Error updating email: {e}")
             email_msg = "Adresse Email enregistrée avec succès !"
 
         # 3. إضافة دورة
@@ -203,12 +234,23 @@ def admin_panel():
             supabase.table('souhila_courses').delete().eq('id', course_id).execute()
             course_msg = "Formation supprimée avec succès !"
 
-    # جلب البيانات الحالية للعرض
-    settings_res = supabase.table('settings').select('*').eq('id', 1).execute()
-    settings_data = settings_res.data[0] if settings_res.data else {}
-    
-    phone_number = settings_data.get('souhila_phone', '')
-    email_address = settings_data.get('souhila_email', '')
+    # جلب البيانات الحالية للعرض في لوحة التحكم
+    phone_number = ""
+    email_address = ""
+    try:
+        settings_res = supabase.table('settings').select('*').eq('id', 1).execute()
+        if settings_res.data:
+            settings_data = settings_res.data[0]
+            phone_number = settings_data.get('souhila_phone', '')
+            email_address = settings_data.get('souhila_email', '')
+        else:
+            all_settings = supabase.table('settings').select('*').limit(1).execute()
+            if all_settings.data:
+                settings_data = all_settings.data[0]
+                phone_number = settings_data.get('souhila_phone', '')
+                email_address = settings_data.get('souhila_email', '')
+    except Exception as e:
+        print(f"DEBUG Error fetching admin settings: {e}")
 
     courses_res = supabase.table('souhila_courses').select('*').execute()
     courses = courses_res.data if courses_res.data else []
@@ -870,7 +912,7 @@ def orders():
     
     return render_template('orders_dashboard.html', 
                            orders=orders_res.data or [], 
-                           wilayas=wilayas_res.data or [],
+data=wilayas_res.data or [],
                            jordan_rates=jordan_res.data or [])
 
 @app.route('/shop', methods=['GET', 'POST'])
@@ -902,7 +944,8 @@ def store2():
     if shop_name:
         products = get_products_by_shop_name(shop_name)
     
-    return render_template('store2.html', products=products, current_company=shop_name)
+    data = render_template('store2.html', products=products, current_company=shop_name)
+    return data
 
 @app.route('/clear_store2_session')
 def clear_store2_session():
