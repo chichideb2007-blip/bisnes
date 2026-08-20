@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Souhila MERDACI Form Afer - Formations Certifiantes</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
+    <!-- استدعاء مكتبة FontAwesome للأيقونات -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
             --primary-color: #E86F61;
@@ -58,8 +60,33 @@
         
         .contact-link { display: inline-block; margin: 5px; padding: 12px 20px; background: #25d366; color: white; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 15px; box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3); }
         .call-link { background: var(--dark-color); }
+        .email-link { background: #e86f61; }
 
-        .whatsapp-float { position: fixed; bottom: 25px; right: 25px; background: #25d366; color: white; width: 55px; height: 55px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 26px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); text-decoration: none; z-index: 100; }
+        /* تنسيق زر الواتساب العائم الجديد */
+        .whatsapp-float {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            background-color: #25d366;
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            text-align: center;
+            font-size: 32px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        .whatsapp-float:hover {
+            background-color: #20ba5a;
+            transform: scale(1.1);
+            color: white;
+        }
 
         footer { text-align: center; padding: 20px; font-size: 12px; color: #888; background: #fff; border-top: 1px solid #eee; margin-top: 50px; }
 
@@ -96,7 +123,6 @@
         
         <h2 class="section-title">Nos Formations</h2>
         
-        <!-- الدورات المستخرجة من قاعدة البيانات بدون أسعار -->
         <div class="courses-grid">
             {% if courses %}
                 {% for course in courses %}
@@ -129,20 +155,25 @@
             <h2>Contactez-nous</h2>
             <p style="margin-bottom: 15px;">Avez-vous des questions ? Contactez-nous directement pour y répondre.</p>
             
-            {% if phone_number %}
-                <div>
-                    <a href="https://wa.me/{{ phone_number }}" class="contact-link" target="_blank">💬 WhatsApp : {{ phone_number }}</a>
-                    <a href="tel:{{ phone_number }}" class="contact-link call-link">📞 Appeler : {{ phone_number }}</a>
-                </div>
-            {% else %}
-                <p style="color: #777; font-size: 14px;">Contactez-nous bientôt pour plus d'informations.</p>
-            {% endif %}
+            <div>
+                {% if phone_number %}
+                    <a href="https://wa.me/{{ phone_number }}" class="contact-link" target="_blank"><i class="fab fa-whatsapp"></i> WhatsApp : {{ phone_number }}</a>
+                    <a href="tel:{{ phone_number }}" class="contact-link call-link"><i class="fas fa-phone"></i> Appeler : {{ phone_number }}</a>
+                {% endif %}
+                
+                {% if email_address %}
+                    <a href="mailto:{{ email_address }}" class="contact-link email-link"><i class="fas fa-envelope"></i> Email : {{ email_address }}</a>
+                {% endif %}
+            </div>
         </div>
 
     </div>
 
-    {% if phone_number %}
-        <a href="https://wa.me/{{ phone_number }}" class="whatsapp-float" target="_blank">💬</a>
+    <!-- زر الواتساب العائم في زاوية الموقع -->
+    {% if whatsapp_number %}
+    <a href="https://wa.me/{{ whatsapp_number }}" target="_blank" class="whatsapp-float" title="Contactez-nous sur WhatsApp">
+        <i class="fab fa-whatsapp"></i>
+    </a>
     {% endif %}
 
     <footer>
