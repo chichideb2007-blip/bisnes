@@ -158,7 +158,7 @@ def favicon():
 def home():
     return redirect(url_for('login'))
 
-# --- مسار موقع صوليحة المحدث بالكامل (مع دعم الصور والدورات) ---
+# --- مسار صفحة صوليحة المدمج مع قاعدة البيانات (بدون أسعار للدورات) ---
 @app.route('/souhila', methods=['GET', 'POST'])
 def souhila_page():
     company_code = session.get('company_code', 'default_shop')
