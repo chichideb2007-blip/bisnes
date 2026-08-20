@@ -167,19 +167,19 @@
             <h2>Contactez-nous</h2>
             <p style="margin-bottom: 15px;">Avez-vous des questions ? Contactez-nous directement pour y répondre.</p>
             
-            <!-- أزرار الاتصال الجديدة المدمجة -->
+            <!-- أزرار الاتصال الجديدة المدمجة مع التحقق -->
             <div class="contact-buttons-container" style="display: flex; gap: 15px; justify-content: center; margin: 20px 0; flex-wrap: wrap;">
 
-                <!-- خانة / زر الهاتف -->
                 {% if phone_number %}
+                <!-- زر الهاتف يظهر مباشرة عند توفر الرقم -->
                 <a href="tel:{{ phone_number }}" style="display: flex; align-items: center; gap: 10px; background-color: #28a745; color: white; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                     <span style="font-size: 20px;">📞</span>
                     <span>اتصل بالهاتف</span>
                 </a>
                 {% endif %}
 
-                <!-- خانة / زر الواتساب -->
                 {% if whatsapp_number %}
+                <!-- زر الواتساب يظهر مباشرة عند توفر الرقم -->
                 <a href="https://wa.me/{{ whatsapp_number }}" target="_blank" style="display: flex; align-items: center; gap: 10px; background-color: #25D366; color: white; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                     <span style="font-size: 20px;">💬</span>
                     <span>راسلنا واتساب</span>
