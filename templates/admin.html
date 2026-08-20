@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administration - Souhila MERDACI Form Afer</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
+    <!-- مكتبة الأيقونات FontAwesome لإظهار أيقونة الرفع بشكل جميل -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
             --primary-color: #E86F61;
@@ -21,12 +23,14 @@
         h2 { color: var(--dark-color); font-size: 20px; margin-bottom: 20px; }
         .form-group { margin-bottom: 15px; text-align: left; }
         label { display: block; margin-bottom: 6px; color: #333; font-weight: 600; font-size: 13px; }
-        input[type="text"], textarea, input[type="file"] { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; }
+        input[type="text"], textarea { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; }
         textarea { resize: vertical; height: 90px; }
         input[type="text"]:focus, textarea:focus { border-color: var(--dark-color); }
         .btn-admin { background-color: var(--dark-color); color: white; border: none; padding: 12px; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; width: 100%; transition: background-color 0.3s; }
         .btn-admin:hover { background-color: #2c426e; }
         .btn-course { background-color: var(--primary-color); }
+        .btn-danger { background-color: #dc3545; color: white; border: none; padding: 5px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; }
+        .btn-danger:hover { background-color: #bd2130; }
         .success-msg { background: #e1f5fe; color: #01579b; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 13px; text-align: center; }
         .back-link { display: block; text-align: center; margin-top: 20px; color: var(--dark-color); text-decoration: none; font-weight: 600; font-size: 14px; }
         .back-link:hover { text-decoration: underline; }
@@ -35,6 +39,7 @@
 <body>
 
     <div class="admin-container">
+        <!-- بطاقة تعديل رقم الهاتف -->
         <div class="admin-card">
             <h2>لوحة التحكم - تعديل رقم الهاتف</h2>
             {% if phone_msg %}
@@ -50,6 +55,7 @@
             </form>
         </div>
 
+        <!-- بطاقة إضافة دورة تدريبية -->
         <div class="admin-card">
             <h2>إضافة دورة تدريبية جديدة</h2>
             {% if course_msg %}
@@ -57,10 +63,25 @@
             {% endif %}
             <form method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="form_type" value="add_course">
+                
+                <!-- حقل رفع الصورة المطور مع المعاينة -->
                 <div class="form-group">
-                    <label for="course_image">صورة الدورة (أو رابط الصورة):</label>
-                    <input type="text" id="course_image" name="course_image" placeholder="ضع رابط الصورة هنا (مثال: رابط مباشر للصورة)" required>
+                    <label class="form-label font-weight-bold">صورة الدورة:</label>
+                    
+                    <div class="custom-file-upload" style="border: 2px dashed var(--dark-color); padding: 20px; text-align: center; border-radius: 8px; background: #f8f9fa; cursor: pointer;" onclick="document.getElementById('course_image').click();">
+                        <i class="fas fa-cloud-upload-alt fa-2x" style="color: var(--dark-color); margin-bottom: 10px;"></i>
+                        <p id="upload-text" style="margin: 0; color: #555; font-size: 13px;">اضغط هنا لاختيار صورة من جهازك</p>
+                        <input type="file" id="course_image" name="course_image" accept="image/*" style="display: none;" onchange="previewImage(event)">
+                    </div>
+
+                    <!-- معاينة الصورة بعد اختيارها -->
+                    <div id="image-preview-container" style="margin-top: 15px; display: none; text-align: center;">
+                        <img id="image-preview" src="" alt="Preview" style="max-width: 150px; max-height: 150px; border-radius: 8px; box-shadow: 0px 2px 5px rgba(0,0,0,0.2);">
+                        <br>
+                        <button type="button" class="btn-danger" style="margin-top: 8px;" onclick="removeImage()">إزالة الصورة</button>
+                    </div>
                 </div>
+
                 <div class="form-group">
                     <label for="course_title">عنوان الدورة (Titre) :</label>
                     <input type="text" id="course_title" name="course_title" placeholder="Ex: Formation Marketing Digital" required>
@@ -76,5 +97,26 @@
         <a href="/souhila" class="back-link">← العودة إلى الموقع الرئيسي (Souhila)</a>
     </div>
 
+    <!-- سكربت معاينة الصورة -->
+    <script>
+        function previewImage(event) {
+            var reader = new FileReader();
+            reader.onload = function(){
+                var output = document.getElementById('image-preview');
+                output.src = reader.result;
+                document.getElementById('image-preview-container').style.display = 'block';
+                document.getElementById('upload-text').innerText = "تم اختيار الصورة بنجاح (اضغط لتغييرها)";
+            };
+            if(event.target.files && event.target.files[0]) {
+                reader.readAsDataURL(event.target.files[0]);
+            }
+        }
+
+        function removeImage() {
+            document.getElementById('course_image').value = "";
+            document.getElementById('image-preview-container').style.display = 'none';
+            document.getElementById('upload-text').innerText = "اضغط هنا لاختيار صورة من جهازك";
+        }
+    </script>
 </body>
 </html>
