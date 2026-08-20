@@ -168,26 +168,16 @@ def admin_panel():
             if all_s.data:
                 rec_id = all_s.data[0]['id']
                 
-                # 1. تحديث معلومات الاتصال الشاملة (مع المعالجة الذكية للسجل التجاري)
+                # 1. تحديث معلومات الاتصال الشاملة
                 if form_type == 'contact_update':
                     comm_phone = request.form.get('commercial_phone', '').strip()
                     
-                    # نحاول معرفة نوع العمود في قاعدة البيانات أو إرسال القيمة بشكل آمن
-                    # إذا أدخل المستخدم أرقاماً بحتة نرسلها كـ int، وإذا تركها فارغة نرسل None
-                    if comm_phone.isdigit():
-                        comm_phone_value = int(comm_phone)
-                    elif comm_phone == "":
-                        comm_phone_value = None
-                    else:
-                        # لو أدخل حروفاً أو رموزاً نجعلها نصاً (في حال كان العمود من نوع نص text)
-                        comm_phone_value = comm_phone
-
                     update_data = {
                         'souhila_phone': request.form.get('phone_number'),
                         'souhila_whatsapp': request.form.get('whatsapp_number'),
                         'souhila_email': request.form.get('email_address'),
                         'souhila_website': request.form.get('website_url'),
-                        'souhila_commercial_phone': comm_phone_value
+                        'souhila_commercial_phone': comm_phone if comm_phone else None
                     }
                     
                     supabase.table('settings').update(update_data).eq('id', rec_id).execute()
