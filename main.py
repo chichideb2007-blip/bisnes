@@ -158,7 +158,7 @@ def favicon():
 def home():
     return redirect(url_for('login'))
 
-# --- مسار صفحة صوليحة المدمج مع قاعدة البيانات (بدون أسعار للدورات) ---
+# --- مسار صفحة صوليحة ---
 @app.route('/souhila', methods=['GET', 'POST'])
 def souhila_page():
     company_code = session.get('company_code', 'default_shop')
@@ -166,7 +166,6 @@ def souhila_page():
     if request.method == 'POST':
         form_type = request.form.get('form_type')
         
-        # تحديث رقم الهاتف
         if form_type == 'phone_update':
             new_phone = request.form.get('phone_number', '')
             try:
@@ -174,7 +173,6 @@ def souhila_page():
             except:
                 pass
                 
-        # إضافة دورة تدريبية جديدة
         elif form_type == 'add_course':
             course_title = request.form.get('course_title')
             course_desc = request.form.get('course_desc')
@@ -196,7 +194,6 @@ def souhila_page():
                 
         return redirect(url_for('souhila_page'))
     
-    # جلب رقم الهاتف
     phone_number = ""
     try:
         res = supabase.table("settings").select("souhila_phone").eq("company_code", company_code).execute()
@@ -205,7 +202,6 @@ def souhila_page():
     except:
         pass
         
-    # جلب الدورات التدريبية المضافة
     courses = []
     try:
         courses_res = supabase.table("souhila_courses").select("*").eq("company_code", company_code).execute()
@@ -217,7 +213,7 @@ def souhila_page():
 
     return render_template('souhila.html', phone_number=phone_number, courses=courses, is_admin=is_admin)
 
-# --- مسار لوحة تحكم صوليحة المنفصل (/admin) ---
+# --- مسار لوحة التحكم الخاصة بـ صوليحة (/admin) ---
 @app.route('/admin', methods=['GET', 'POST'])
 @login_required
 def admin_panel():
@@ -472,7 +468,7 @@ def submit_order():
     </head>
     <body>
         <div class="card">
-            <h2>🎉 تم تأكيد طلبك بنجاح!</h2>
+           <h2>🎉 تم تأكيد طلبك بنجاح!</h2>
             <p>شكراً لثقتكم بنا، سيتم الاتصال بكم قريباً لتأكيد الطلب.</p>
             <a href="/store2" class="btn">🔙 العودة إلى المتجر</a>
         </div>
