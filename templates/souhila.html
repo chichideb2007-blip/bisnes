@@ -60,8 +60,15 @@
         .call-link { background: var(--dark-color); }
         .email-link { background: #e86f61; }
 
+        /* أزرار الاتصال الإضافية */
+        .phone-btn { display: inline-block; margin: 5px; padding: 12px 20px; background: var(--dark-color); color: white; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 15px; box-shadow: 0 4px 12px rgba(23, 42, 70, 0.3); }
+        .phone-btn:hover { background: #2c426e; color: white; }
+
+        .website-link-display { display: inline-block; margin-top: 15px; color: var(--primary-color); font-weight: bold; text-decoration: none; font-size: 15px; }
+        .website-link-display:hover { text-decoration: underline; }
+
         /* تنسيق زر الواتساب العائم في زاوية الشاشة */
-        .whatsapp-float {
+        .whatsapp-float-btn {
             position: fixed;
             bottom: 25px;
             right: 25px;
@@ -80,13 +87,13 @@
             text-decoration: none;
             transition: all 0.3s ease;
         }
-        .whatsapp-float:hover {
+        .whatsapp-float-btn:hover {
             background-color: #20ba5a;
             transform: scale(1.1);
             color: white;
         }
 
-        footer { text-align: center; padding: 20px; font-size: 12px; color: #888; background: #fff; border-top: 1px solid #eee; margin-top: 50px; }
+        footer { text-align: center; padding: 25px; font-size: 12px; color: #888; background: #fff; border-top: 1px solid #eee; margin-top: 50px; }
 
         @media (max-width: 768px) {
             .course-card { flex-direction: column; align-items: flex-start; }
@@ -131,11 +138,11 @@
                         <p>{{ course.description }}</p>
                     </div>
                     <div class="course-action">
-                        <!-- الخانتان المباشرتان لرقم الهاتف والبريد الإلكتروني من قاعدة البيانات -->
+                        <!-- الخانات المباشرتان لرقم الهاتف والبريد الإلكتروني من قاعدة البيانات -->
                         <div class="contact-buttons" style="display: flex; gap: 8px; flex-direction: column;">
-                            {% if phone_number %}
-                            <a href="https://wa.me/{{ phone_number }}?text=Bonjour,%20je%20souhaite%20m'inscrire%20à%20la%20formation:%20{{ course.title }}" target="_blank" style="background-color: #25D366; color: white; padding: 8px 12px; text-align: left; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 12px; display: flex; align-items: center; justify-content: flex-start; gap: 8px;">
-                                <i class="fab fa-whatsapp" style="font-size: 16px;"></i> {{ phone_number }}
+                            {% if whatsapp_number %}
+                            <a href="https://wa.me/{{ whatsapp_number }}?text=Bonjour,%20je%20souhaite%20m'inscrire%20à%20la%20formation:%20{{ course.title }}" target="_blank" style="background-color: #25D366; color: white; padding: 8px 12px; text-align: left; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 12px; display: flex; align-items: center; justify-content: flex-start; gap: 8px;">
+                                <i class="fab fa-whatsapp" style="font-size: 16px;"></i> {{ whatsapp_number }}
                             </a>
                             {% endif %}
 
@@ -164,26 +171,44 @@
             
             <div>
                 {% if phone_number %}
-                    <a href="https://wa.me/{{ phone_number }}" class="contact-link" target="_blank"><i class="fab fa-whatsapp"></i> WhatsApp : {{ phone_number }}</a>
-                    <a href="tel:{{ phone_number }}" class="contact-link call-link"><i class="fas fa-phone"></i> Appeler : {{ phone_number }}</a>
+                    <a href="tel:{{ phone_number }}" class="phone-btn">
+                        <i class="fas fa-phone"></i> Appelez-nous
+                    </a>
+                {% endif %}
+
+                {% if whatsapp_number %}
+                    <a href="https://wa.me/{{ whatsapp_number }}" class="contact-link" target="_blank"><i class="fab fa-whatsapp"></i> WhatsApp : {{ whatsapp_number }}</a>
                 {% endif %}
                 
                 {% if email_address %}
                     <a href="mailto:{{ email_address }}" class="contact-link email-link"><i class="fas fa-envelope"></i> Email : {{ email_address }}</a>
                 {% endif %}
             </div>
+
+            {% if website_url %}
+            <div style="margin-top: 15px;">
+                <a href="{{ website_url }}" target="_blank" class="website-link-display">
+                    <i class="fas fa-globe"></i> {{ website_url }}
+                </a>
+            </div>
+            {% endif %}
         </div>
 
     </div>
 
     <!-- زر الواتساب العائم في زاوية الموقع -->
-    {% if phone_number %}
-    <a href="https://wa.me/{{ phone_number }}" target="_blank" class="whatsapp-float" title="Contactez-nous sur WhatsApp">
+    {% if whatsapp_number %}
+    <a href="https://wa.me/{{ whatsapp_number }}" target="_blank" class="whatsapp-float-btn" title="Contactez-nous sur WhatsApp">
         <i class="fab fa-whatsapp"></i>
     </a>
     {% endif %}
 
     <footer>
+        {% if commercial_phone %}
+        <div class="footer-legal-info text-center" style="margin-bottom: 10px; font-weight: 600; color: var(--dark-color);">
+            <p>Registre Commercial / Numéro Légal : {{ commercial_phone }}</p>
+        </div>
+        {% endif %}
         <p>Tous droits réservés © 2026 - Souhila MERDACI Form Afer</p>
     </footer>
 
