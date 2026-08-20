@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administration - Souhila MERDACI Form Afer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #E86F61;
+            --dark-color: #172A46;
+            --bg-color: #F7F2EA;
+            --card-bg: #ffffff;
+            --text-color: #2d2d2d;
+            --border-radius: 14px;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Montserrat', sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+        .admin-card { background: var(--card-bg); padding: 40px; border-radius: var(--border-radius); box-shadow: 0 5px 25px rgba(0,0,0,0.05); width: 100%; max-width: 450px; border-top: 6px solid var(--dark-color); }
+        h2 { color: var(--dark-color); font-size: 22px; margin-bottom: 20px; text-align: center; }
+        .form-group { margin-bottom: 20px; text-align: left; }
+        label { display: block; margin-bottom: 8px; color: #333; font-weight: 600; font-size: 14px; }
+        input[type="text"] { width: 100%; padding: 12px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 8px; font-size: 15px; outline: none; transition: border-color 0.3s; }
+        input[type="text"]:focus { border-color: var(--dark-color); }
+        .btn-admin { background-color: var(--dark-color); color: white; border: none; padding: 14px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; transition: background-color 0.3s; }
+        .btn-admin:hover { background-color: #2c426e; }
+        .success-msg { background: #e1f5fe; color: #01579b; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 13px; text-align: center; }
+        .back-link { display: block; text-align: center; margin-top: 20px; color: var(--primary-color); text-decoration: none; font-weight: 600; font-size: 14px; }
+        .back-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+    <div class="admin-card">
+        <h2>لوحة التحكم - Admin Panel</h2>
+        
+        {% if message %}
+            <div class="success-msg">{{ message }}</div>
+        {% endif %}
+
+        <form method="POST">
+            <div class="form-group">
+                <label for="phone_number">Modifier le numéro WhatsApp :</label>
+                <input type="text" id="phone_number" name="phone_number" value="{{ phone_number }}" placeholder="Ex: 213600000000" required>
+            </div>
+            <button type="submit" class="btn-admin">Enregistrer les modifications</button>
+        </form>
+
+        <a href="/souhila" class="back-link">← Retour au site principal</a>
+    </div>
+
+</body>
+</html>
