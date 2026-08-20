@@ -60,7 +60,6 @@
         .call-link { background: var(--dark-color); }
         .email-link { background: #e86f61; }
 
-        /* أزرار الاتصال الإضافية */
         .phone-btn { display: inline-block; margin: 5px; padding: 12px 20px; background: var(--dark-color); color: white; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 15px; box-shadow: 0 4px 12px rgba(23, 42, 70, 0.3); }
         .phone-btn:hover { background: #2c426e; color: white; }
 
@@ -138,7 +137,6 @@
                         <p>{{ course.description }}</p>
                     </div>
                     <div class="course-action">
-                        <!-- الخانات المباشرتان لرقم الهاتف والبريد الإلكتروني من قاعدة البيانات -->
                         <div class="contact-buttons" style="display: flex; gap: 8px; flex-direction: column;">
                             {% if whatsapp_number %}
                             <a href="https://wa.me/{{ whatsapp_number }}?text=Bonjour,%20je%20souhaite%20m'inscrire%20à%20la%20formation:%20{{ course.title }}" target="_blank" style="background-color: #25D366; color: white; padding: 8px 12px; text-align: left; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 12px; display: flex; align-items: center; justify-content: flex-start; gap: 8px;">
@@ -169,17 +167,29 @@
             <h2>Contactez-nous</h2>
             <p style="margin-bottom: 15px;">Avez-vous des questions ? Contactez-nous directement pour y répondre.</p>
             
-            <div>
+            <!-- أزرار الاتصال الجديدة المدمجة -->
+            <div class="contact-buttons-container" style="display: flex; gap: 15px; justify-content: center; margin: 20px 0; flex-wrap: wrap;">
+
+                <!-- خانة / زر الهاتف -->
                 {% if phone_number %}
-                    <a href="tel:{{ phone_number }}" class="phone-btn">
-                        <i class="fas fa-phone"></i> Appelez-nous
-                    </a>
+                <a href="tel:{{ phone_number }}" style="display: flex; align-items: center; gap: 10px; background-color: #28a745; color: white; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <span style="font-size: 20px;">📞</span>
+                    <span>اتصل بالهاتف</span>
+                </a>
                 {% endif %}
 
+                <!-- خانة / زر الواتساب -->
                 {% if whatsapp_number %}
-                    <a href="https://wa.me/{{ whatsapp_number }}" class="contact-link" target="_blank"><i class="fab fa-whatsapp"></i> WhatsApp : {{ whatsapp_number }}</a>
+                <a href="https://wa.me/{{ whatsapp_number }}" target="_blank" style="display: flex; align-items: center; gap: 10px; background-color: #25D366; color: white; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <span style="font-size: 20px;">💬</span>
+                    <span>راسلنا واتساب</span>
+                </a>
                 {% endif %}
-                
+
+            </div>
+
+            <!-- بقية وسائل الاتصال (الإيميل والموقع) -->
+            <div style="margin-top: 15px;">
                 {% if email_address %}
                     <a href="mailto:{{ email_address }}" class="contact-link email-link"><i class="fas fa-envelope"></i> Email : {{ email_address }}</a>
                 {% endif %}
