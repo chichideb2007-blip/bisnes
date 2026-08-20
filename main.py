@@ -158,10 +158,30 @@ def favicon():
 def home():
     return redirect(url_for('login'))
 
-# --- مسار موقع صوليحة الجديد ---
-@app.route('/souhila')
+# --- مسار موقع صوليحة المحدث ---
+@app.route('/souhila', methods=['GET', 'POST'])
 def souhila_page():
-    return render_template('souhila.html')
+    company_code = session.get('company_code', 'default_shop') # أو كود المحل الخاص بك
+    
+    if request.method == 'POST':
+        new_phone = request.form.get('phone_number', '')
+        try:
+            supabase.table("settings").update({"souhila_phone": new_phone}).eq("company_code", company_code).execute()
+        except:
+            pass
+        return redirect(url_for('souhila_page'))
+    
+    phone_number = ""
+    try:
+        res = supabase.table("settings").select("souhila_phone").eq("company_code", company_code).execute()
+        if res.data and res.data[0].get('souhila_phone'):
+            phone_number = res.data[0].get('souhila_phone')
+    except:
+        pass
+    
+    is_admin = 'company_code' in session 
+
+    return render_template('souhila.html', phone_number=phone_number, is_admin=is_admin)
 
 @app.route('/cart')
 def cart_page():
@@ -299,7 +319,6 @@ def submit_order():
     except Exception as e:
         print(f"Error inserting order: {e}")
 
-    # خصم المخزون وإرسال تنبيه تيليجرام لكل منتج في السلة
     for item in cart_data:
         p_id = item.get('id') or item.get('product_id') or item.get('productId')
         p_name = item.get('name')
@@ -323,13 +342,9 @@ def submit_order():
                 
                 new_qty = max(0, current_qty - item_qty)
                 supabase.table("inventory").update({"quantity": new_qty}).eq("id", real_p_id).execute()
-                print(f"DEBUG: تم خصم {item_qty} من المنتج {product_name_db}. المخزون الجديد: {new_qty}")
                 
                 if new_qty <= 0:
                     send_telegram_alert(product_name_db, current_company, company_code)
-            else:
-                print(f"DEBUG: لم يتم العثور على المنتج في قاعدة البيانات لخصم مخزونه: {item}")
-                
         except Exception as ex:
             print(f"DEBUG: خطأ في خصم مخزون المنتج: {ex}")
 
@@ -513,7 +528,7 @@ def settings():
         ("USD", "دولار أمريكي"), ("EUR", "يورو"), ("GBP", "جنيه إسترليني"), ("JPY", "ين ياباني"),
         ("SAR", "ريال سعودي"), ("AED", "درهم إماراتي"), ("DZD", "دينار جزائري"), ("EGP", "جنيه مصري"),
         ("KWD", "دينار كويتي"), ("QAR", "ريال قطري"), ("BHD", "دينار بحريني"), ("OMR", "ريال عماني"),
-      ("JOD", "دينار أردني"), ("LBP", "ليرة لبنانية"), ("LYD", "دينار ليبي"), ("MAD", "درهم مغربي"),
+        ("JOD", "دينار أردني"), ("LBP", "ليرة لبنانية"), ("LYD", "دينار ليبي"), ("MAD", "درهم مغربي"),
         ("TND", "دينار تونسي"), ("IQD", "دينار عراقي"), ("SYP", "ليرة سورية"), ("YER", "ريال يمني"),
         ("TRY", "ليرة تركية"), ("AUD", "دولار أسترالي"), ("CAD", "دولار كندي"), ("CHF", "فرنك سويسري"),
         ("CNY", "يوان صيني"), ("INR", "روبية هندية"), ("RUB", "روبل روسي"), ("SGD", "دولار سنغافوري"),
