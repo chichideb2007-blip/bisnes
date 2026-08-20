@@ -27,13 +27,46 @@
         .brand-text span { color: var(--primary-color); }
         .brand-sub { font-size: 10px; font-weight: 700; color: var(--dark-color); letter-spacing: 2px; display: block; }
 
-        .hero { text-align: center; padding: 70px 20px; background: #fff; border-bottom-left-radius: 35px; border-bottom-right-radius: 35px; box-shadow: 0 5px 15px rgba(0,0,0,0.02); }
-        .hero h1 { font-size: 30px; font-weight: 800; margin-bottom: 15px; color: var(--dark-color); }
+        .hero { text-align: center; padding: 50px 20px 30px 20px; background: #fff; border-bottom-left-radius: 35px; border-bottom-right-radius: 35px; box-shadow: 0 5px 15px rgba(0,0,0,0.02); }
+        .hero h1 { font-size: 28px; font-weight: 800; margin-bottom: 12px; color: var(--dark-color); }
         .hero h1 span { color: var(--primary-color); }
-        .hero p { font-size: 15px; color: #666; max-width: 600px; margin: 0 auto; }
+        .hero p { font-size: 14px; color: #666; max-width: 600px; margin: 0 auto; }
 
-        .container { max-width: 900px; margin: 50px auto; padding: 0 20px; }
-        .section-title { font-size: 24px; font-weight: 800; margin-bottom: 30px; text-align: center; color: var(--dark-color); }
+        /* تنسيق الأزرار الخانات البارزة الجديدة (مثل الصورة) */
+        .action-buttons-container {
+            max-width: 650px;
+            margin: 30px auto 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .custom-action-btn {
+            display: block;
+            width: 100%;
+            padding: 18px 20px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 800;
+            font-size: 16px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            transition: transform 0.2s ease, opacity 0.2s ease;
+        }
+
+        .custom-action-btn:hover {
+            transform: translateY(-2px);
+            opacity: 0.95;
+        }
+
+        /* ألوان الخانات المختلفة */
+        .btn-orange { background-color: #E86F61; color: white; }
+        .btn-dark { background-color: #172A46; color: white; }
+        .btn-peach { background-color: #F8B195; color: #172A46; }
+        .btn-green { background-color: #2ECC71; color: white; }
+
+        .container { max-width: 900px; margin: 40px auto; padding: 0 20px; }
+        .section-title { font-size: 22px; font-weight: 800; margin-bottom: 25px; text-align: center; color: var(--dark-color); }
         
         .courses-grid { display: flex; flex-direction: column; gap: 20px; }
         
@@ -48,7 +81,7 @@
         
         .course-action { text-align: right; min-width: 220px; }
 
-        .trust-section { background: var(--dark-color); color: white; text-align: center; padding: 40px 20px; border-radius: var(--border-radius); margin: 50px 0; }
+        .trust-section { background: var(--dark-color); color: white; text-align: center; padding: 40px 20px; border-radius: var(--border-radius); margin: 40px 0; }
         .trust-section h2 { font-size: 22px; margin-bottom: 8px; font-weight: 700; }
         .trust-section p { color: #bbb; font-size: 13px; }
 
@@ -57,16 +90,12 @@
         .contact-box p { color: #666; font-size: 14px; margin-bottom: 20px; }
         
         .contact-link { display: inline-block; margin: 5px; padding: 12px 20px; background: #25d366; color: white; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 15px; box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3); }
-        .call-link { background: var(--dark-color); }
         .email-link { background: #e86f61; }
-
-        .phone-btn { display: inline-block; margin: 5px; padding: 12px 20px; background: var(--dark-color); color: white; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 15px; box-shadow: 0 4px 12px rgba(23, 42, 70, 0.3); }
-        .phone-btn:hover { background: #2c426e; color: white; }
 
         .website-link-display { display: inline-block; margin-top: 15px; color: var(--primary-color); font-weight: bold; text-decoration: none; font-size: 15px; }
         .website-link-display:hover { text-decoration: underline; }
 
-        /* تنسيق زر الواتساب العائم في زاوية الشاشة */
+        /* زر الواتساب العائم في زاوية الشاشة */
         .whatsapp-float-btn {
             position: fixed;
             bottom: 25px;
@@ -121,6 +150,24 @@
     <section class="hero">
         <h1>Compétences d'aujourd'hui, <span>succès de demain</span></h1>
         <p>Bâtissez votre parcours professionnel en toute confiance avec nos formations certifiées et adaptées au marché du travail.</p>
+        
+        <!-- الخانات والأزرار البارزة الجديدة مطابقة للصورة التي أرسلتِها -->
+        <div class="action-buttons-container">
+            {% if whatsapp_number %}
+            <a href="https://wa.me/{{ whatsapp_number }}?text=Bonjour,%20je%20souhaite%20m'informer%20sur%20nos%20formations." target="_blank" class="custom-action-btn btn-orange">
+                Me former à la Sécurité
+            </a>
+            <a href="https://wa.me/{{ whatsapp_number }}?text=Bonjour,%20je%20souhaite%20m'inscrire%20aux%20examens." target="_blank" class="custom-action-btn btn-dark">
+                Passer mon examen avec un centre partenaire agréé
+            </a>
+            <a href="https://wa.me/{{ whatsapp_number }}?text=Bonjour,%20je%20souhaite%20des%20détails%20sur%20l'Assistance%20de%20Vie." target="_blank" class="custom-action-btn btn-peach">
+                Me former à l'Assistance de Vie aux Familles
+            </a>
+            <a href="https://wa.me/{{ whatsapp_number }}?text=Bonjour,%20je%20souhaite%20plus%20d'informations." target="_blank" class="custom-action-btn btn-green">
+                Passer mon examen civique avec un centre partenaire
+            </a>
+            {% endif %}
+        </div>
     </section>
 
     <div class="container">
@@ -167,11 +214,10 @@
             <h2>Contactez-nous</h2>
             <p style="margin-bottom: 15px;">Avez-vous des questions ? Contactez-nous directement pour y répondre.</p>
             
-            <!-- أزرار الاتصال الجديدة المدمجة مع التحقق -->
+            <!-- أزرار الاتصال المباشر (هاتف + واتساب) -->
             <div class="contact-buttons-container" style="display: flex; gap: 15px; justify-content: center; margin: 20px 0; flex-wrap: wrap;">
 
                 {% if phone_number %}
-                <!-- زر الهاتف يظهر مباشرة عند توفر الرقم -->
                 <a href="tel:{{ phone_number }}" style="display: flex; align-items: center; gap: 10px; background-color: #28a745; color: white; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                     <span style="font-size: 20px;">📞</span>
                     <span>اتصل بالهاتف</span>
@@ -179,7 +225,6 @@
                 {% endif %}
 
                 {% if whatsapp_number %}
-                <!-- زر الواتساب يظهر مباشرة عند توفر الرقم -->
                 <a href="https://wa.me/{{ whatsapp_number }}" target="_blank" style="display: flex; align-items: center; gap: 10px; background-color: #25D366; color: white; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                     <span style="font-size: 20px;">💬</span>
                     <span>راسلنا واتساب</span>
