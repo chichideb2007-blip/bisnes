@@ -124,9 +124,6 @@ def get_products_by_shop_name(shop_name):
         print(f"DEBUG ERROR: {e}")
         return []
 
-def get_delivery_price(wilaya, delivery_type):
-    return 500
-
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -199,9 +196,9 @@ def souhila_page():
 
     return render_template('souhila.html', phone_number=phone_number, courses=courses, is_admin=is_admin)
 
-# --- مسار لوحة تحكم صوليحة المستقلة تماماً (/admin) ---
+# --- مسار لوحة تحكم صوليحة (/admin) المُحدث والمدمج ---
 @app.route('/admin', methods=['GET', 'POST'])
-def admin_panel():
+def admin():
     company_code = session.get('company_code', 'default_shop')
     phone_msg = None
     course_msg = None
@@ -209,7 +206,7 @@ def admin_panel():
     if request.method == 'POST':
         form_type = request.form.get('form_type')
         
-        # --- إضافة حذف الدورة ---
+        # --- حذف الدورة أو الشهادة ---
         if form_type == 'delete_course':
             course_id = request.form.get('course_id')
             try:
@@ -218,6 +215,7 @@ def admin_panel():
             except Exception as e:
                 course_msg = f"Erreur lors de la suppression: {e}"
                 
+        # --- تحديث رقم الهاتف ---
         elif form_type == 'phone_update':
             new_phone = request.form.get('phone_number', '')
             try:
@@ -226,6 +224,7 @@ def admin_panel():
             except Exception as e:
                 phone_msg = f"Erreur: {e}"
                 
+        # --- إضافة دورة أو شهادة جديدة ---
         elif form_type == 'add_course':
             course_title = request.form.get('course_title')
             course_desc = request.form.get('course_desc')
@@ -246,6 +245,7 @@ def admin_panel():
             except Exception as e:
                 course_msg = f"Erreur: {e}"
                 
+    # --- جلب رقم الهاتف المخزن ---
     phone_number = ""
     try:
         res = supabase.table("settings").select("souhila_phone").eq("company_code", company_code).execute()
@@ -254,7 +254,7 @@ def admin_panel():
     except:
         pass
         
-    # --- جلب الدورات الحالية لعرضها في لوحة التحكم ---
+    # --- جلب الدورات/الشهادات الحالية من قاعدة البيانات لكي تظهر دائماً ---
     courses = []
     try:
         courses_res = supabase.table("souhila_courses").select("*").eq("company_code", company_code).execute()
