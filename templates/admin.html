@@ -45,7 +45,7 @@
         
         <!-- نموذج تحديث معلومات الاتصال الشاملة -->
         <div class="admin-card">
-            <h2>لوحة التحكم - تعديل معلومات الاتصال والموقع</h2>
+            <h2>لوحة التحكم - تعديل معلومات الاتصال والموقع الجغرافي</h2>
             {% if msg %}
                 <div class="success-msg">{{ msg }}</div>
             {% endif %}
@@ -54,27 +54,27 @@
                 
                 <div class="mb-3">
                     <label class="form-label">Numéro de Téléphone (Appel):</label>
-                    <input type="text" name="phone_number" class="form-control" value="{{ settings.get('souhila_phone', '') }}" placeholder="Ex: 213600000000">
+                    <input type="text" name="phone_number" class="form-control" value="{{ settings.get('souhila_phone') if settings.get('souhila_phone') and settings.get('souhila_phone') != 'None' else '' }}" placeholder="Ex: 213600000000">
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label">Numéro WhatsApp:</label>
-                    <input type="text" name="whatsapp_number" class="form-control" value="{{ settings.get('souhila_whatsapp', '') }}" placeholder="Ex: 213600000000">
+                    <input type="text" name="whatsapp_number" class="form-control" value="{{ settings.get('souhila_whatsapp') if settings.get('souhila_whatsapp') and settings.get('souhila_whatsapp') != 'None' else '' }}" placeholder="Ex: 213600000000">
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label">Adresse Email:</label>
-                    <input type="email" name="email_address" class="form-control" value="{{ settings.get('souhila_email', '') }}" placeholder="Ex: contact@souhila.com">
+                    <input type="email" name="email_address" class="form-control" value="{{ settings.get('souhila_email') if settings.get('souhila_email') and settings.get('souhila_email') != 'None' else '' }}" placeholder="Ex: contact@souhila.com">
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label">Lien du Site Web (Website URL):</label>
-                    <input type="url" name="website_url" class="form-control" value="{{ settings.get('souhila_website', '') }}" placeholder="https://example.com">
+                    <label class="form-label"><i class="fas fa-map-marker-alt" style="color: var(--primary-color);"></i> Lien Google Maps (Localisation):</label>
+                    <input type="url" name="website_url" class="form-control" value="{{ settings.get('souhila_website') if settings.get('souhila_website') and settings.get('souhila_website') != 'None' else '' }}" placeholder="https://maps.app.goo.gl/...">
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label">Téléphone Registre / Informations Légales:</label>
-                    <input type="text" name="commercial_phone" class="form-control" value="{{ settings.get('souhila_commercial_phone', '') }}" placeholder="Numéro spécial registre commercial">
+                    <input type="text" name="commercial_phone" class="form-control" value="{{ settings.get('souhila_commercial_phone') if settings.get('souhila_commercial_phone') and settings.get('souhila_commercial_phone') != 'None' else '' }}" placeholder="Numéro spécial registre commercial">
                 </div>
 
                 <button type="submit" class="btn-admin">Enregistrer les modifications</button>
