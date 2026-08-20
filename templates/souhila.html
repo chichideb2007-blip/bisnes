@@ -47,7 +47,7 @@
         .course-info p { color: #666; font-size: 13px; }
         
         .course-action { text-align: right; }
-        .btn-main { background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 700; text-decoration: none; display: inline-block; box-shadow: 0 4px 10px rgba(232, 111, 97, 0.3); transition: 0.2s; }
+        .btn-main { background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 700; text-decoration: none; display: inline-block; box-shadow: 0 4px 10px rgba(232, 111, 97, 0.3); transition: 0.2s; cursor: pointer; }
         .btn-main:hover { opacity: 0.9; }
 
         .trust-section { background: var(--dark-color); color: white; text-align: center; padding: 40px 20px; border-radius: var(--border-radius); margin: 50px 0; }
@@ -133,11 +133,10 @@
                         <p>{{ course.description }}</p>
                     </div>
                     <div class="course-action">
-                        {% if phone_number %}
-                            <a href="https://wa.me/{{ phone_number }}?text=Bonjour,%20je%20veux%20m'inscrire%20à%20la%20formation:%20{{ course.title }}" class="btn-main" target="_blank">Pré-inscription</a>
-                        {% else %}
-                            <a href="#" class="btn-main">Pré-inscription</a>
-                        {% endif %}
+                        <!-- زر Pré-inscription المعدل ليعمل عبر الجافاسكريبت -->
+                        <button onclick="openRegistrationOptions('{{ phone_number }}', '{{ email_address }}', '{{ course.title }}')" class="btn-main">
+                            Pré-inscription
+                        </button>
                     </div>
                 </div>
                 {% endfor %}
@@ -179,6 +178,34 @@
     <footer>
         <p>Tous droits réservés © 2026 - Souhila MERDACI Form Afer</p>
     </footer>
+
+    <!-- كود الجافاسكريبت الخاص بخيارات التسجيل (واتساب أو إيميل) -->
+    <script>
+    function openRegistrationOptions(phone, email, courseTitle) {
+        let cleanPhone = phone ? phone.replace(/[^0-9]/g, '') : '';
+        let message = encodeURIComponent(`Bonjour, je souhaite m'inscrire à la formation: "${courseTitle}" et j'aimerais avoir plus de détails.`);
+        
+        let emailSubject = encodeURIComponent(`Pré-inscription à la formation: ${courseTitle}`);
+        let emailBody = encodeURIComponent(`Bonjour Souhila,\n\nJe souhaite m'inscrire à la formation "${courseTitle}". Merci de m'envoyer plus de détails.\n\nCordialement.`);
+
+        // نافذة تخيير المستخدم
+        let choice = confirm("Choisissez le moyen de contact :\n\n- Cliquez sur (OK) pour contacter via WhatsApp.\n- Cliquez sur (Annuler) pour envoyer un Email.");
+
+        if (choice) {
+            if (cleanPhone) {
+                window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank');
+            } else {
+                alert("Désolé, le numéro WhatsApp n'est pas disponible pour le moment.");
+            }
+        } else {
+            if (email) {
+                window.location.href = `mailto:${email}?subject=${emailSubject}&body=${emailBody}`;
+            } else {
+                alert("Désolé, l'adresse email n'est pas disponible pour le moment.");
+            }
+        }
+    }
+    </script>
 
 </body>
 </html>
