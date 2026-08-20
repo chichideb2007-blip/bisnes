@@ -213,9 +213,8 @@ def souhila_page():
 
     return render_template('souhila.html', phone_number=phone_number, courses=courses, is_admin=is_admin)
 
-# --- مسار لوحة التحكم الخاصة بـ صوليحة (/admin) ---
+# --- مسار لوحة تحكم صوليحة المستقلة تماماً (/admin) ---
 @app.route('/admin', methods=['GET', 'POST'])
-@login_required
 def admin_panel():
     company_code = session.get('company_code', 'default_shop')
     phone_msg = None
@@ -468,7 +467,7 @@ def submit_order():
     </head>
     <body>
         <div class="card">
-           <h2>🎉 تم تأكيد طلبك بنجاح!</h2>
+            <h2>🎉 تم تأكيد طلبك بنجاح!</h2>
             <p>شكراً لثقتكم بنا، سيتم الاتصال بكم قريباً لتأكيد الطلب.</p>
             <a href="/store2" class="btn">🔙 العودة إلى المتجر</a>
         </div>
