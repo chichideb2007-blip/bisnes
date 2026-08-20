@@ -3,37 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Page de Souhila</title>
+    <title>French Access - Organisme de Formation</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f7f6;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f5f0;
             margin: 0;
             padding: 0;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
         }
         .card {
             background: #ffffff;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            padding: 40px 30px;
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
             text-align: center;
-            max-width: 400px;
+            max-width: 420px;
             width: 100%;
+            border-top: 5px solid #1b2a4a;
         }
-        .product-image {
+        .logo-img {
             width: 100%;
-            max-height: 250px;
-            object-fit: cover;
-            border-radius: 8px;
+            max-height: 120px;
+            object-fit: contain;
             margin-bottom: 20px;
         }
         h2 {
-            color: #333;
-            margin-bottom: 20px;
+            color: #1b2a4a;
+            font-size: 22px;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #e36442;
+            font-size: 14px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            margin-bottom: 25px;
+            text-transform: uppercase;
         }
         .form-group {
             margin-bottom: 15px;
@@ -41,75 +50,100 @@
         }
         label {
             display: block;
-            margin-bottom: 5px;
-            color: #555;
-            font-weight: bold;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
         }
         input[type="text"] {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             box-sizing: border-box;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        input[type="text"]:focus {
+            border-color: #1b2a4a;
         }
         .btn {
-            background-color: #007bff;
+            background-color: #1b2a4a;
             color: white;
             border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
+            padding: 12px 20px;
+            border-radius: 6px;
             font-size: 16px;
+            font-weight: bold;
             cursor: pointer;
             width: 100%;
             margin-top: 10px;
+            transition: background-color 0.3s;
         }
         .btn:hover {
-            background-color: #0056b3;
+            background-color: #2c426e;
         }
         .contact-box {
-            margin-top: 20px;
-            padding: 15px;
-            background: #e9ecef;
-            border-radius: 5px;
+            margin-top: 25px;
+            padding: 20px;
+            background: #f4f6f9;
+            border-radius: 8px;
         }
         .contact-link {
             display: block;
-            margin-top: 8px;
-            color: #28a745;
+            margin-top: 12px;
+            padding: 10px;
+            background: #25d366;
+            color: white;
+            border-radius: 6px;
             text-decoration: none;
             font-weight: bold;
-            font-size: 16px;
+            font-size: 15px;
+            transition: background 0.3s;
         }
         .contact-link:hover {
-            text-decoration: underline;
+            background: #20ba5a;
+        }
+        .call-link {
+            background: #1b2a4a;
+        }
+        .call-link:hover {
+            background: #2c426e;
         }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2>Espace de Souhila</h2>
+    <!-- شعار الشركة (يمكنك وضع صورة الشعار في مجلد static/images وتسميتها logo.jpg مثلاً) -->
+    <img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="French Access Logo" class="logo-img">
 
-    <!-- مكان الصورة (يمكنك تغيير رابط الصورة أو وضع اسم ملف من مجلد static) -->
-    <img src="{{ url_for('static', filename='images/default.jpg') }}" alt="Image de présentation" class="product-image">
+    <h2>French Access</h2>
+    <div class="subtitle">Organisme de Formation</div>
 
-    <!-- نموذج إدخال رقم الهاتف -->
-    <form method="POST">
-        <div class="form-group">
-            <label for="phone_number">Entrez votre numéro de téléphone :</label>
-            <input type="text" id="phone_number" name="phone_number" value="{{ phone_number }}" placeholder="Ex: 0612345678" required>
-        </div>
-        <button type="submit" class="btn">Enregistrer le numéro</button>
-    </form>
+    <!-- إذا كان المدير مسجل دخول، تظهر له خانة لتعديل رقم الهاتف مرة واحدة -->
+    {% if is_admin %}
+        <form method="POST">
+            <div class="form-group">
+                <label for="phone_number">Modifier le numéro de contact :</label>
+                <input type="text" id="phone_number" name="phone_number" value="{{ phone_number }}" placeholder="Ex: 0612345678" required>
+            </div>
+            <button type="submit" class="btn">Enregistrer le numéro</button>
+        </form>
+    {% endif %}
 
-    <!-- إذا تم إدخال الرقم، يظهر تلقائياً كـ رابط تفاعلي للإرسال أو الاتصال -->
+    <!-- أزرار التفاعل التلقائية للزوار والزبائن برقم الهاتف المخزن -->
     {% if phone_number %}
         <div class="contact-box">
-            <p style="margin: 0; color: #333;">Contactez-moi directement :</p>
+            <p style="margin: 0 0 10px 0; color: #333; font-weight: 600;">Contactez-nous :</p>
             <a href="https://wa.me/{{ phone_number }}" class="contact-link" target="_blank">💬 WhatsApp : {{ phone_number }}</a>
-            <a href="tel:{{ phone_number }}" class="contact-link" style="color: #007bff;">📞 Appeler : {{ phone_number }}</a>
+            <a href="tel:{{ phone_number }}" class="contact-link call-link">📞 Appeler : {{ phone_number }}</a>
         </div>
+    {% else %}
+        {% if not is_admin %}
+            <p style="color: #777; font-size: 14px;">Contactez-nous bientôt pour plus d'informations sur nos formations.</p>
+        {% endif %}
     {% endif %}
 </div>
 
