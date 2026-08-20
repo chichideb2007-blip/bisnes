@@ -158,19 +158,45 @@ def favicon():
 def home():
     return redirect(url_for('login'))
 
-# --- مسار موقع صوليحة المحدث ---
+# --- مسار موقع صوليحة المحدث بالكامل (مع دعم الصور والدورات) ---
 @app.route('/souhila', methods=['GET', 'POST'])
 def souhila_page():
-    company_code = session.get('company_code', 'default_shop') # أو كود المحل الخاص بك
+    company_code = session.get('company_code', 'default_shop')
     
     if request.method == 'POST':
-        new_phone = request.form.get('phone_number', '')
-        try:
-            supabase.table("settings").update({"souhila_phone": new_phone}).eq("company_code", company_code).execute()
-        except:
-            pass
+        form_type = request.form.get('form_type')
+        
+        # تحديث رقم الهاتف
+        if form_type == 'phone_update':
+            new_phone = request.form.get('phone_number', '')
+            try:
+                supabase.table("settings").update({"souhila_phone": new_phone}).eq("company_code", company_code).execute()
+            except:
+                pass
+                
+        # إضافة دورة تدريبية جديدة
+        elif form_type == 'add_course':
+            course_title = request.form.get('course_title')
+            course_desc = request.form.get('course_desc')
+            file = request.files.get('course_image')
+            
+            encoded_string = ""
+            if file and file.filename != '':
+                encoded_string = f'data:image/jpeg;base64,{base64.b64encode(file.read()).decode("utf-8")}'
+                
+            try:
+                supabase.table("souhila_courses").insert({
+                    "company_code": company_code,
+                    "title": course_title,
+                    "description": course_desc,
+                    "image": encoded_string
+                }).execute()
+            except Exception as e:
+                print(f"Error adding course: {e}")
+                
         return redirect(url_for('souhila_page'))
     
+    # جلب رقم الهاتف
     phone_number = ""
     try:
         res = supabase.table("settings").select("souhila_phone").eq("company_code", company_code).execute()
@@ -178,10 +204,18 @@ def souhila_page():
             phone_number = res.data[0].get('souhila_phone')
     except:
         pass
+        
+    # جلب الدورات التدريبية المضافة
+    courses = []
+    try:
+        courses_res = supabase.table("souhila_courses").select("*").eq("company_code", company_code).execute()
+        courses = courses_res.data or []
+    except:
+        pass
     
     is_admin = 'company_code' in session 
 
-    return render_template('souhila.html', phone_number=phone_number, is_admin=is_admin)
+    return render_template('souhila.html', phone_number=phone_number, courses=courses, is_admin=is_admin)
 
 @app.route('/cart')
 def cart_page():
