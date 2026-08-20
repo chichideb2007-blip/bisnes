@@ -127,20 +127,6 @@ def get_products_by_shop_name(shop_name):
 def get_delivery_price(wilaya, delivery_type):
     return 500
 
-def refresh_instagram_token():
-    res = supabase.table("settings").select("company_code, instagram_token").execute()
-    for row in res.data:
-        old_token = row.get('instagram_token')
-        if old_token:
-            url = f"https://graph.facebook.com/v20.0/oauth/access_token?grant_type=fb_exchange_token&client_id={os.environ.get('APP_ID')}&client_secret={os.environ.get('APP_SECRET')}&fb_exchange_token={old_token}"
-            try:
-                response = requests.get(url).json()
-                new_token = response.get('access_token')
-                if new_token:
-                    supabase.table("settings").update({"instagram_token": new_token}).eq("company_code", row['company_code']).execute()
-            except Exception as e:
-                print(f"Token Refresh Error: {e}")
-
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -234,10 +220,11 @@ def admin_panel():
         elif form_type == 'add_course':
             course_title = request.form.get('course_title')
             course_desc = request.form.get('course_desc')
-            file = request.files.get('course_image')
+            file = request.files.get('course_image') # استقبال الملف المرفوع بضغطة زر
             
             encoded_string = ""
             if file and file.filename != '':
+                # تحويل الصورة مباشرة إلى Base64
                 encoded_string = f'data:image/jpeg;base64,{base64.b64encode(file.read()).decode("utf-8")}'
                 
             try:
@@ -511,15 +498,6 @@ def logout():
 @login_required
 def dashboard():
     return render_template('dashboard.html')
-
-@app.route('/check_orphaned_products')
-@login_required
-def check_orphaned_products():
-    try:
-        res = supabase.rpc("get_orphaned_products").execute()
-        return jsonify({"orphaned_products": res.data})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
 
 @app.route('/stats')
 @login_required
