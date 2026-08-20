@@ -141,128 +141,85 @@ def favicon():
 def home():
     return redirect(url_for('login'))
 
-# --- مسار صفحة صوليحة ---
-@app.route('/souhila', methods=['GET', 'POST'])
-def souhila_page():
-    company_code = session.get('company_code', 'default_shop')
+# --- مسار صفحة صوليحة (المحدث) ---
+@app.route('/souhila')
+def souhila_home():
+    settings_res = supabase.table('settings').select('*').eq('id', 1).execute()
+    settings_data = settings_res.data[0] if settings_res.data else {}
     
-    if request.method == 'POST':
-        form_type = request.form.get('form_type')
-        
-        if form_type == 'phone_update':
-            new_phone = request.form.get('phone_number', '')
-            try:
-                supabase.table("settings").update({"souhila_phone": new_phone}).eq("company_code", company_code).execute()
-            except:
-                pass
-                
-        elif form_type == 'add_course':
-            course_title = request.form.get('course_title')
-            course_desc = request.form.get('course_desc')
-            file = request.files.get('course_image')
-            
-            encoded_string = ""
-            if file and file.filename != '':
-                encoded_string = f'data:image/jpeg;base64,{base64.b64encode(file.read()).decode("utf-8")}'
-                
-            try:
-                supabase.table("souhila_courses").insert({
-                    "company_code": company_code,
-                    "title": course_title,
-                    "description": course_desc,
-                    "image": encoded_string
-                }).execute()
-            except Exception as e:
-                print(f"Error adding course: {e}")
-                
-        return redirect(url_for('souhila_page'))
+    phone = settings_data.get('souhila_phone', '')
+    email = settings_data.get('souhila_email', '')
     
-    phone_number = ""
-    try:
-        res = supabase.table("settings").select("souhila_phone").eq("company_code", company_code).execute()
-        if res.data and res.data[0].get('souhila_phone'):
-            phone_number = res.data[0].get('souhila_phone')
-    except:
-        pass
-        
-    courses = []
-    try:
-        courses_res = supabase.table("souhila_courses").select("*").eq("company_code", company_code).execute()
-        courses = courses_res.data or []
-    except:
-        pass
+    courses_res = supabase.table('souhila_courses').select('*').execute()
+    courses = courses_res.data if courses_res.data else []
     
-    is_admin = 'company_code' in session 
+    return render_template('souhila.html', phone_number=phone, whatsapp_number=phone, email_address=email, courses=courses)
 
-    return render_template('souhila.html', phone_number=phone_number, courses=courses, is_admin=is_admin)
-
-# --- مسار لوحة تحكم صوليحة (/admin) المُحدث والمدمج ---
+# --- مسار لوحة تحكم صوليحة (المحدث والمدمج) ---
 @app.route('/admin', methods=['GET', 'POST'])
-def admin():
-    company_code = session.get('company_code', 'default_shop')
+def admin_panel():
     phone_msg = None
+    email_msg = None
     course_msg = None
-    
+
     if request.method == 'POST':
         form_type = request.form.get('form_type')
         
-        # --- حذف الدورة أو الشهادة ---
-        if form_type == 'delete_course':
-            course_id = request.form.get('course_id')
-            try:
-                supabase.table("souhila_courses").delete().eq("id", course_id).eq("company_code", company_code).execute()
-                course_msg = "Formation supprimée avec succès !"
-            except Exception as e:
-                course_msg = f"Erreur lors de la suppression: {e}"
-                
-        # --- تحديث رقم الهاتف ---
-        elif form_type == 'phone_update':
-            new_phone = request.form.get('phone_number', '')
-            try:
-                supabase.table("settings").update({"souhila_phone": new_phone}).eq("company_code", company_code).execute()
-                phone_msg = "Numéro mis à jour avec succès !"
-            except Exception as e:
-                phone_msg = f"Erreur: {e}"
-                
-        # --- إضافة دورة أو شهادة جديدة ---
+        # 1. تحديث رقم الهاتف
+        if form_type == 'phone_update':
+            phone = request.form.get('phone_number')
+            supabase.table('settings').upsert({'id': 1, 'souhila_phone': phone}).execute()
+            phone_msg = "Numéro WhatsApp enregistré avec succès !"
+
+        # 2. تحديث البريد الإلكتروني الجديد
+        elif form_type == 'email_update':
+            email = request.form.get('email_address')
+            supabase.table('settings').upsert({'id': 1, 'souhila_email': email}).execute()
+            email_msg = "Adresse Email enregistrée avec succès !"
+
+        # 3. إضافة دورة
         elif form_type == 'add_course':
-            course_title = request.form.get('course_title')
-            course_desc = request.form.get('course_desc')
-            file = request.files.get('course_image')
+            title = request.form.get('course_title')
+            desc = request.form.get('course_desc')
+            image_file = request.files.get('course_image')
             
-            encoded_string = ""
-            if file and file.filename != '':
-                encoded_string = f'data:image/jpeg;base64,{base64.b64encode(file.read()).decode("utf-8")}'
+            image_url = ""
+            if image_file and image_file.filename != '':
+                img_binary = image_file.read()
+                encoded_img = base64.b64encode(img_binary).decode('utf-8')
+                image_url = f"data:{image_file.content_type};base64,{encoded_img}"
                 
-            try:
-                supabase.table("souhila_courses").insert({
-                    "company_code": company_code,
-                    "title": course_title,
-                    "description": course_desc,
-                    "image": encoded_string
-                }).execute()
-                course_msg = "Formation ajoutée avec succès !"
-            except Exception as e:
-                course_msg = f"Erreur: {e}"
-                
-    # --- جلب رقم الهاتف المخزن ---
-    phone_number = ""
-    try:
-        res = supabase.table("settings").select("souhila_phone").eq("company_code", company_code).execute()
-        if res.data and res.data[0].get('souhila_phone'):
-            phone_number = res.data[0].get('souhila_phone')
-    except:
-        pass
-        
-    # --- جلب الدورات/الشهادات الحالية من قاعدة البيانات لكي تظهر دائماً ---
-    courses = []
-    try:
-        courses_res = supabase.table("souhila_courses").select("*").eq("company_code", company_code).execute()
-        courses = courses_res.data or []
-    except:
-        pass
-        
-    return render_template('admin.html', phone_number=phone_number, phone_msg=phone_msg, course_msg=course_msg, courses=courses)
+            supabase.table('souhila_courses').insert({
+                'title': title,
+                'description': desc,
+                'image': image_url,
+                'company_code': 'default'
+            }).execute()
+            course_msg = "Formation ajoutée avec succès !"
+
+        # 4. حذف دورة
+        elif form_type == 'delete_course':
+            course_id = request.form.get('course_id')
+            supabase.table('souhila_courses').delete().eq('id', course_id).execute()
+            course_msg = "Formation supprimée avec succès !"
+
+    # جلب البيانات الحالية للعرض
+    settings_res = supabase.table('settings').select('*').eq('id', 1).execute()
+    settings_data = settings_res.data[0] if settings_res.data else {}
+    
+    phone_number = settings_data.get('souhila_phone', '')
+    email_address = settings_data.get('souhila_email', '')
+
+    courses_res = supabase.table('souhila_courses').select('*').execute()
+    courses = courses_res.data if courses_res.data else []
+
+    return render_template('admin.html', 
+                           phone_number=phone_number, 
+                           email_address=email_address,
+                           phone_msg=phone_msg, 
+                           email_msg=email_msg,
+                           course_msg=course_msg, 
+                           courses=courses)
 
 @app.route('/cart')
 def cart_page():
@@ -470,7 +427,7 @@ def submit_order():
     </head>
     <body>
         <div class="card">
-             <h2>🎉 تم تأكيد طلبك بنجاح!</h2>
+              <h2>🎉 تم تأكيد طلبك بنجاح!</h2>
             <p>شكراً لثقتكم بنا، سيتم الاتصال بكم قريباً لتأكيد الطلب.</p>
             <a href="/store2" class="btn">🔙 العودة إلى المتجر</a>
         </div>
