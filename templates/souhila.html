@@ -38,27 +38,16 @@
         .course-card { background: var(--card-bg); border-radius: var(--border-radius); padding: 25px; box-shadow: 0 5px 15px rgba(0,0,0,0.03); display: flex; gap: 20px; align-items: center; border: 1px solid #eaeaea; transition: 0.2s; }
         .course-card:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0,0,0,0.06); }
         
-        .course-img { width: 120px; height: 90px; object-fit: cover; border-radius: 8px; border: 1px solid #eee; }
+        .course-img { width: 120px; height: 90px; object-fit: cover; border-radius: 8px; border: 1px solid #eee; background-color: #f0f0f0; }
         
         .course-info { flex-grow: 1; }
         .course-info h3 { font-size: 18px; font-weight: 700; color: var(--dark-color); margin-bottom: 8px; }
         .course-info p { color: #666; font-size: 13px; }
         
         .course-action { text-align: right; }
+        .course-price { font-size: 18px; font-weight: 800; color: var(--primary-color); margin-bottom: 8px; display: block; }
         .btn-main { background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 700; text-decoration: none; display: inline-block; box-shadow: 0 4px 10px rgba(232, 111, 97, 0.3); transition: 0.2s; }
         .btn-main:hover { opacity: 0.9; }
-
-        /* لوحة تحكم المدير */
-        .admin-panel-card { background: #ffffff; padding: 30px; border-radius: var(--border-radius); box-shadow: 0 5px 15px rgba(0,0,0,0.03); margin-bottom: 40px; border-top: 5px solid var(--dark-color); }
-        .admin-panel-card h3 { color: var(--dark-color); font-size: 18px; margin-bottom: 15px; }
-        .form-group { margin-bottom: 15px; text-align: left; }
-        label { display: block; margin-bottom: 6px; color: #333; font-weight: 600; font-size: 13px; }
-        input[type="text"], textarea, input[type="file"] { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; outline: none; }
-        textarea { resize: vertical; height: 80px; }
-        input[type="text"]:focus, textarea:focus { border-color: var(--dark-color); }
-        .btn-admin { background-color: var(--dark-color); color: white; border: none; padding: 12px 20px; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; width: 100%; transition: background-color 0.3s; }
-        .btn-admin:hover { background-color: #2c426e; }
-        .divider { margin: 25px 0; border: 0; border-top: 1px solid #eee; }
 
         .trust-section { background: var(--dark-color); color: white; text-align: center; padding: 40px 20px; border-radius: var(--border-radius); margin: 50px 0; }
         .trust-section h2 { font-size: 22px; margin-bottom: 8px; font-weight: 700; }
@@ -106,65 +95,59 @@
 
     <div class="container">
         
-        {% if is_admin %}
-        <div class="admin-panel-card">
-            <h3>Admin Panel - Dashboard</h3>
-            
-            <form method="POST">
-                <input type="hidden" name="form_type" value="phone_update">
-                <div class="form-group">
-                    <label for="phone_number">Modifier le numéro WhatsApp :</label>
-                    <input type="text" id="phone_number" name="phone_number" value="{{ phone_number }}" placeholder="Ex: 213600000000" required>
-                </div>
-                <button type="submit" class="btn-admin">Enregistrer le numéro</button>
-            </form>
-
-            <hr class="divider">
-
-            <form method="POST" enctype="multipart/form-data">
-                <input type="hidden" name="form_type" value="add_course">
-                <div class="form-group">
-                    <label for="course_image">Sélectionner une image :</label>
-                    <input type="file" id="course_image" name="course_image" accept="image/*" required>
-                </div>
-                <div class="form-group">
-                    <label for="course_title">Titre de la formation :</label>
-                    <input type="text" id="course_title" name="course_title" placeholder="Ex: Marketing Digital" required>
-                </div>
-                <div class="form-group">
-                    <label for="course_desc">Description de la formation :</label>
-                    <textarea id="course_desc" name="course_desc" placeholder="Ex: Formation intensive..." required></textarea>
-                </div>
-                <button type="submit" class="btn-admin" style="background-color: var(--primary-color);">Ajouter la formation</button>
-            </form>
-        </div>
-        {% endif %}
-
         <h2 class="section-title">Nos Formations</h2>
         
+        <!-- الدورات الثابتة -->
         <div class="courses-grid">
-            {% if courses %}
-                {% for course in courses %}
-                <div class="course-card">
-                    {% if course.image %}
-                        <img src="{{ course.image }}" alt="Course Image" class="course-img">
-                    {% endif %}
-                    <div class="course-info">
-                        <h3>{{ course.title }}</h3>
-                        <p>{{ course.description }}</p>
-                    </div>
-                    <div class="course-action">
-                        {% if phone_number %}
-                            <a href="https://wa.me/{{ phone_number }}?text=Bonjour,%20je%20veux%20m'inscrire%20à%20la%20formation:%20{{ course.title }}" class="btn-main" target="_blank">Pré-inscription</a>
-                        {% else %}
-                            <a href="#" class="btn-main">Pré-inscription</a>
-                        {% endif %}
-                    </div>
+            
+            <div class="course-card">
+                <img src="https://via.placeholder.com/120x90" alt="Course Image" class="course-img">
+                <div class="course-info">
+                    <h3>عنوان الدورة التدريبية الأولى</h3>
+                    <p>دورة شاملة تمنحك المفاتيح الأساسية والاحترافية للنجاح الميداني.</p>
                 </div>
-                {% endfor %}
-            {% else %}
-                <p style="text-align: center; color: #777;">Aucune formation disponible pour le moment.</p>
-            {% endif %}
+                <div class="course-action">
+                    <span class="course-price">15,000 دج</span>
+                    {% if phone_number %}
+                        <a href="https://wa.me/{{ phone_number }}?text=Bonjour,%20je%20veux%20m'inscrire%20à%20la%20formation" class="btn-main" target="_blank">Pré-inscription</a>
+                    {% else %}
+                        <a href="#" class="btn-main">Pré-inscription</a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="course-card">
+                <img src="https://via.placeholder.com/120x90" alt="Course Image" class="course-img">
+                <div class="course-info">
+                    <h3>عنوان الدورة التدريبية الثانية</h3>
+                    <p>برنامج تكويني مكثف مصمم لمرافقتك خطوة بخطوة نحو الاحتراف.</p>
+                </div>
+                <div class="course-action">
+                    <span class="course-price">20,000 دج</span>
+                    {% if phone_number %}
+                        <a href="https://wa.me/{{ phone_number }}?text=Bonjour,%20je%20veux%20m'inscrire%20à%20la%20formation" class="btn-main" target="_blank">Pré-inscription</a>
+                    {% else %}
+                        <a href="#" class="btn-main">Pré-inscription</a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="course-card">
+                <img src="https://via.placeholder.com/120x90" alt="Course Image" class="course-img">
+                <div class="course-info">
+                    <h3>عنوان الدورة التدريبية الثالثة</h3>
+                    <p>اكتسبي مهارات جديدة مطلوبة بقوة في السوق مع متابعة شخصية.</p>
+                </div>
+                <div class="course-action">
+                    <span class="course-price">12,000 دج</span>
+                    {% if phone_number %}
+                        <a href="https://wa.me/{{ phone_number }}?text=Bonjour,%20je%20veux%20m'inscrire%20à%20la%20formation" class="btn-main" target="_blank">Pré-inscription</a>
+                    {% else %}
+                        <a href="#" class="btn-main">Pré-inscription</a>
+                    {% endif %}
+                </div>
+            </div>
+
         </div>
 
         <div class="trust-section">
@@ -182,9 +165,7 @@
                     <a href="tel:{{ phone_number }}" class="contact-link call-link">📞 Appeler : {{ phone_number }}</a>
                 </div>
             {% else %}
-                {% if not is_admin %}
-                    <p style="color: #777; font-size: 14px;">Contactez-nous bientôt pour plus d'informations.</p>
-                {% endif %}
+                <p style="color: #777; font-size: 14px;">Contactez-nous bientôt pour plus d'informations.</p>
             {% endif %}
         </div>
 
