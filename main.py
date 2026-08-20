@@ -89,7 +89,7 @@ def send_order_alert(token, chat_id, message, order_id):
             "inline_keyboard": [[
                 {"text": "✅ تم التحضير", "callback_data": f"status_done_{order_id}"},
                 {"text": "❌ لم يتم التحضير", "callback_data": f"status_pending_{order_id}"}
-            ]}
+            ]]
         }
         payload = {
             "chat_id": chat_id, 
@@ -158,7 +158,7 @@ def favicon():
 def home():
     return redirect(url_for('login'))
 
-# --- مسار موقع صوليحة (المحدث ليتصل بـ Supabase لحفظ الهاتف والدورات) ---
+# --- مسار موقع صوليحة المحدث بالكامل (مع دعم الصور والدورات) ---
 @app.route('/souhila', methods=['GET', 'POST'])
 def souhila_page():
     company_code = session.get('company_code', 'default_shop')
@@ -166,24 +166,21 @@ def souhila_page():
     if request.method == 'POST':
         form_type = request.form.get('form_type')
         
-        # تحديث رقم الهاتف في سوبابيس
+        # تحديث رقم الهاتف
         if form_type == 'phone_update':
             new_phone = request.form.get('phone_number', '')
             try:
                 supabase.table("settings").update({"souhila_phone": new_phone}).eq("company_code", company_code).execute()
-            except Exception as e:
-                print(f"Error updating phone: {e}")
+            except:
+                pass
                 
-        # إضافة دورة تدريبية جديدة إلى سوبابيس
+        # إضافة دورة تدريبية جديدة
         elif form_type == 'add_course':
             course_title = request.form.get('course_title')
             course_desc = request.form.get('course_desc')
+            file = request.files.get('course_image')
             
-            # فحص إذا أرسل صورة كملف أو كرابط
-            file = request.files.get('course_image_file')
-            image_url = request.form.get('course_image')
-            
-            encoded_string = image_url if image_url else "https://via.placeholder.com/120x90"
+            encoded_string = ""
             if file and file.filename != '':
                 encoded_string = f'data:image/jpeg;base64,{base64.b64encode(file.read()).decode("utf-8")}'
                 
@@ -199,8 +196,8 @@ def souhila_page():
                 
         return redirect(url_for('souhila_page'))
     
-    # جلب رقم الهاتف من سوبابيس
-    phone_number = "213600000000"
+    # جلب رقم الهاتف
+    phone_number = ""
     try:
         res = supabase.table("settings").select("souhila_phone").eq("company_code", company_code).execute()
         if res.data and res.data[0].get('souhila_phone'):
@@ -208,7 +205,7 @@ def souhila_page():
     except:
         pass
         
-    # جلب الدورات التدريبية من سوبابيس
+    # جلب الدورات التدريبية المضافة
     courses = []
     try:
         courses_res = supabase.table("souhila_courses").select("*").eq("company_code", company_code).execute()
@@ -219,53 +216,6 @@ def souhila_page():
     is_admin = 'company_code' in session 
 
     return render_template('souhila.html', phone_number=phone_number, courses=courses, is_admin=is_admin)
-
-# --- لوحة التحكم الخاصة بالإدارة (Admin Panel) المحدثة بنفس الطريقة ---
-@app.route('/admin', methods=['GET', 'POST'])
-@login_required
-def admin_panel():
-    company_code = session.get('company_code')
-    phone_msg = None
-    course_msg = None
-    
-    if request.method == 'POST':
-        form_type = request.form.get('form_type')
-        
-        if form_type == 'phone_update':
-            new_phone = request.form.get('phone_number')
-            if new_phone:
-                try:
-                    supabase.table("settings").update({"souhila_phone": new_phone}).eq("company_code", company_code).execute()
-                    phone_msg = "Numéro mis à jour avec succès !"
-                except Exception as e:
-                    phone_msg = f"Erreur: {e}"
-                
-        elif form_type == 'add_course':
-            img = request.form.get('course_image')
-            title = request.form.get('course_title')
-            desc = request.form.get('course_desc')
-            if title and desc:
-                try:
-                    supabase.table("souhila_courses").insert({
-                        "company_code": company_code,
-                        "title": title,
-                        "description": desc,
-                        "image": img if img else "https://via.placeholder.com/120x90"
-                    }).execute()
-                    course_msg = "Formation ajoutée avec succès !"
-                except Exception as e:
-                    course_msg = f"Erreur: {e}"
-                    
-    # جلب رقم الهاتف الحالي للعرض في الـ Admin
-    phone_number = "213600000000"
-    try:
-        res = supabase.table("settings").select("souhila_phone").eq("company_code", company_code).execute()
-        if res.data and res.data[0].get('souhila_phone'):
-            phone_number = res.data[0].get('souhila_phone')
-    except:
-        pass
-                
-    return render_template('admin.html', phone_number=phone_number, phone_msg=phone_msg, course_msg=course_msg)
 
 @app.route('/cart')
 def cart_page():
