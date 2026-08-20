@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Souhila MERDACI Form Afer - Formations Certifiantes</title>
-    <!-- استدعاء خط Montserrat الاحترافي -->
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -36,27 +35,30 @@
         
         .courses-grid { display: flex; flex-direction: column; gap: 20px; }
         
-        .course-card { background: var(--card-bg); border-radius: var(--border-radius); padding: 30px; box-shadow: 0 5px 15px rgba(0,0,0,0.03); display: flex; justify-content: space-between; align-items: center; border: 1px solid #eaeaea; transition: 0.2s; }
+        .course-card { background: var(--card-bg); border-radius: var(--border-radius); padding: 25px; box-shadow: 0 5px 15px rgba(0,0,0,0.03); display: flex; gap: 20px; align-items: center; border: 1px solid #eaeaea; transition: 0.2s; }
         .course-card:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0,0,0,0.06); }
         
+        .course-img { width: 120px; height: 90px; object-fit: cover; border-radius: 8px; border: 1px solid #eee; }
+        
+        .course-info { flex-grow: 1; }
         .course-info h3 { font-size: 18px; font-weight: 700; color: var(--dark-color); margin-bottom: 8px; }
-        .course-info p { color: #666; font-size: 13px; max-width: 450px; }
+        .course-info p { color: #666; font-size: 13px; }
         
         .course-action { text-align: right; }
-        .course-price { font-size: 20px; font-weight: 800; color: var(--primary-color); margin-bottom: 10px; display: block; }
-        
         .btn-main { background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 700; text-decoration: none; display: inline-block; box-shadow: 0 4px 10px rgba(232, 111, 97, 0.3); transition: 0.2s; }
         .btn-main:hover { opacity: 0.9; }
 
-        /* تنسيقات لوحة المدير لتعديل رقم الهاتف */
+        /* لوحة تحكم المدير */
         .admin-panel-card { background: #ffffff; padding: 30px; border-radius: var(--border-radius); box-shadow: 0 5px 15px rgba(0,0,0,0.03); margin-bottom: 40px; border-top: 5px solid var(--dark-color); }
         .admin-panel-card h3 { color: var(--dark-color); font-size: 18px; margin-bottom: 15px; }
         .form-group { margin-bottom: 15px; text-align: left; }
-        label { display: block; margin-bottom: 8px; color: #333; font-weight: 600; font-size: 14px; }
-        input[type="text"] { width: 100%; padding: 12px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 6px; font-size: 15px; outline: none; transition: border-color 0.3s; }
-        input[type="text"]:focus { border-color: var(--dark-color); }
+        label { display: block; margin-bottom: 6px; color: #333; font-weight: 600; font-size: 13px; }
+        input[type="text"], textarea, input[type="file"] { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; outline: none; }
+        textarea { resize: vertical; height: 80px; }
+        input[type="text"]:focus, textarea:focus { border-color: var(--dark-color); }
         .btn-admin { background-color: var(--dark-color); color: white; border: none; padding: 12px 20px; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; width: 100%; transition: background-color 0.3s; }
         .btn-admin:hover { background-color: #2c426e; }
+        .divider { margin: 25px 0; border: 0; border-top: 1px solid #eee; }
 
         .trust-section { background: var(--dark-color); color: white; text-align: center; padding: 40px 20px; border-radius: var(--border-radius); margin: 50px 0; }
         .trust-section h2 { font-size: 22px; margin-bottom: 8px; font-weight: 700; }
@@ -66,18 +68,17 @@
         .contact-box h2 { color: var(--dark-color); margin-bottom: 10px; font-size: 22px; }
         .contact-box p { color: #666; font-size: 14px; margin-bottom: 20px; }
         
-        .contact-link { display: inline-block; margin: 5px; padding: 12px 20px; background: #25d366; color: white; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 15px; box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3); transition: 0.2s; }
-        .contact-link:hover { opacity: 0.9; }
-        .call-link { background: var(--dark-color); box-shadow: 0 4px 12px rgba(23, 42, 70, 0.3); }
+        .contact-link { display: inline-block; margin: 5px; padding: 12px 20px; background: #25d366; color: white; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 15px; box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3); }
+        .call-link { background: var(--dark-color); }
 
         .whatsapp-float { position: fixed; bottom: 25px; right: 25px; background: #25d366; color: white; width: 55px; height: 55px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 26px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); text-decoration: none; z-index: 100; }
 
         footer { text-align: center; padding: 20px; font-size: 12px; color: #888; background: #fff; border-top: 1px solid #eee; margin-top: 50px; }
 
         @media (max-width: 768px) {
-            .course-card { flex-direction: column; align-items: flex-start; gap: 15px; }
-            .course-action { text-align: left; width: 100%; display: flex; justify-content: space-between; align-items: center; }
-            .hero h1 { font-size: 24px; }
+            .course-card { flex-direction: column; align-items: flex-start; }
+            .course-img { width: 100%; height: 150px; }
+            .course-action { text-align: left; width: 100%; }
         }
     </style>
 </head>
@@ -100,21 +101,44 @@
 
     <section class="hero">
         <h1>Compétences d'aujourd'hui, <span>succès de demain</span></h1>
-        <p>بني مسارك المهني بثقة واحصلي على دورات تكوينية معتمدة وموجهة خصيصاً لسوق العمل.</p>
+        <p>Bâtissez votre parcours professionnel en toute confiance avec nos formations certifiées et adaptées au marché du travail.</p>
     </section>
 
     <div class="container">
         
-        <!-- خانة تحكم المدير لتعديل رقم الهاتف (تظهر فقط للمدير المسجل دخول) -->
+        <!-- لوحة تحكم المدير لإضافة الدورات وتعديل رقم الهاتف (تظهر فقط للمدير) -->
         {% if is_admin %}
         <div class="admin-panel-card">
-            <h3>لوحة تحكم المدير - تعديل رقم التواصل</h3>
+            <h3>Admin Panel - Dashboard</h3>
+            
+            <!-- نموذج تعديل الهاتف -->
             <form method="POST">
+                <input type="hidden" name="form_type" value="phone_update">
                 <div class="form-group">
-                    <label for="phone_number">Modifier le numéro de contact :</label>
+                    <label for="phone_number">Modifier le numéro WhatsApp :</label>
                     <input type="text" id="phone_number" name="phone_number" value="{{ phone_number }}" placeholder="Ex: 213600000000" required>
                 </div>
                 <button type="submit" class="btn-admin">Enregistrer le numéro</button>
+            </form>
+
+            <hr class="divider">
+
+            <!-- نموذج إضافة دورة جديدة (صورة، عنوان، وصف) -->
+            <form method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="form_type" value="add_course">
+                <div class="form-group">
+                    <label for="course_image">Sélectionner une image :</label>
+                    <input type="file" id="course_image" name="course_image" accept="image/*" required>
+                </div>
+                <div class="form-group">
+                    <label for="course_title">Titre de la formation :</label>
+                    <input type="text" id="course_title" name="course_title" placeholder="Ex: Marketing Digital" required>
+                </div>
+                <div class="form-group">
+                    <label for="course_desc">Description de la formation :</label>
+                    <textarea id="course_desc" name="course_desc" placeholder="Ex: Formation intensive..." required></textarea>
+                </div>
+                <button type="submit" class="btn-admin" style="background-color: var(--primary-color);">Ajouter la formation</button>
             </form>
         </div>
         {% endif %}
@@ -122,61 +146,38 @@
         <h2 class="section-title">Nos Formations</h2>
         
         <div class="courses-grid">
-            <div class="course-card">
-                <div class="course-info">
-                    <h3>عنوان الدورة التدريبية الأولى</h3>
-                    <p>دورة شاملة تمنحك المفاتيح الأساسية والاحترافية للنجاح الميداني.</p>
-                </div>
-                <div class="course-action">
-                    <span class="course-price">15,000 دج</span>
-                    {% if phone_number %}
-                        <a href="https://wa.me/{{ phone_number }}" class="btn-main" target="_blank">Pré-inscription</a>
-                    {% else %}
-                        <a href="#" class="btn-main">Pré-inscription</a>
+            {% if courses %}
+                {% for course in courses %}
+                <div class="course-card">
+                    {% if course.image %}
+                        <img src="{{ course.image }}" alt="Course Image" class="course-img">
                     {% endif %}
+                    <div class="course-info">
+                        <h3>{{ course.title }}</h3>
+                        <p>{{ course.description }}</p>
+                    </div>
+                    <div class="course-action">
+                        {% if phone_number %}
+                            <a href="https://wa.me/{{ phone_number }}?text=Bonjour,%20je%20veux%20m'inscrire%20à%20la%20formation:%20{{ course.title }}" class="btn-main" target="_blank">Pré-inscription</a>
+                        {% else %}
+                            <a href="#" class="btn-main">Pré-inscription</a>
+                        {% endif %}
+                    </div>
                 </div>
-            </div>
-
-            <div class="course-card">
-                <div class="course-info">
-                    <h3>عنوان الدورة التدريبية الثانية</h3>
-                    <p>برنامج تكويني مكثف مصمم لمرافقتك خطوة بخطوة نحو الاحتراف.</p>
-                </div>
-                <div class="course-action">
-                    <span class="course-price">20,000 دج</span>
-                    {% if phone_number %}
-                        <a href="https://wa.me/{{ phone_number }}" class="btn-main" target="_blank">Pré-inscription</a>
-                    {% else %}
-                        <a href="#" class="btn-main">Pré-inscription</a>
-                    {% endif %}
-                </div>
-            </div>
-
-            <div class="course-card">
-                <div class="course-info">
-                    <h3>عنوان الدورة التدريبية الثالثة</h3>
-                    <p>اكتسبي مهارات جديدة مطلوبة بقوة في السوق مع متابعة شخصية.</p>
-                </div>
-                <div class="course-action">
-                    <span class="course-price">12,000 دج</span>
-                    {% if phone_number %}
-                        <a href="https://wa.me/{{ phone_number }}" class="btn-main" target="_blank">Pré-inscription</a>
-                    {% else %}
-                        <a href="#" class="btn-main">Pré-inscription</a>
-                    {% endif %}
-                </div>
-            </div>
+                {% endfor %}
+            {% else %}
+                <p style="text-align: center; color: #777;">Aucune formation disponible pour le moment.</p>
+            {% endif %}
         </div>
 
         <div class="trust-section">
             <h2>Formation Certifiante</h2>
-            <p>دورات بشهادات معتمدة تضمن لك تكويناً عالي الجودة لتعزيز فرصك المهنية.</p>
+            <p>Des formations avec des certificats reconnus garantissant une qualité supérieure pour booster votre carrière.</p>
         </div>
 
-        <!-- قسم التواصل الذي يظهر أزرار الواتساب والاتصال بالرقم المخزن للزوار -->
         <div class="contact-box" id="contact">
             <h2>Contactez-nous</h2>
-            <p>هل لديك أي استفسار؟ تواصلي معنا مباشرة للإجابة على كل تساؤلاتك.</p>
+            <p style="margin-bottom: 15px;">Avez-vous des questions ? Contactez-nous directement pour y répondre.</p>
             
             {% if phone_number %}
                 <div>
@@ -185,14 +186,14 @@
                 </div>
             {% else %}
                 {% if not is_admin %}
-                    <p style="color: #777; font-size: 14px;">Contactez-nous bientôt pour plus d'informations sur nos formations.</p>
+                    <p style="color: #777; font-size: 14px;">Contactez-nous bientôt pour plus d'informations.</p>
                 {% endif %}
             {% endif %}
         </div>
 
     </div>
 
-    <!-- زر الواتساب العائم الثابت في الزاوية -->
+    <!-- زر الواتساب العائم -->
     {% if phone_number %}
         <a href="https://wa.me/{{ phone_number }}" class="whatsapp-float" target="_blank">💬</a>
     {% endif %}
