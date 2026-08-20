@@ -44,7 +44,7 @@
 
     <div class="admin-container">
         
-        <!-- تعديل رقم الهاتف -->
+        <!-- تعديل رقم الهاتف (واتساب) -->
         <div class="admin-card">
             <h2>لوحة التحكم - تعديل رقم الهاتف</h2>
             {% if phone_msg %}
@@ -63,21 +63,21 @@
             </form>
         </div>
 
-        <!-- تعديل البريد الإلكتروني -->
+        <!-- تعديل البريد الإلكتروني (المدمج بشكل صحيح ومطابق لبقية الحقول) -->
         <div class="admin-card">
             <h2>لوحة التحكم - تعديل البريد الإلكتروني</h2>
             {% if email_msg %}
                 <div class="success-msg">{{ email_msg }}</div>
             {% endif %}
-            <form method="POST">
+            <form method="POST" action="/admin">
                 <input type="hidden" name="form_type" value="email_update">
                 <div class="form-group">
                     <label for="email_address">Adresse Email :</label>
                     <input type="email" id="email_address" name="email_address" value="{{ email_address }}" placeholder="Ex: contact@souhila.com" required {% if email_address %}readonly{% endif %}>
                 </div>
                 <div>
-                    <button type="submit" id="save-email-btn" class="btn-admin" {% if email_address %}style="display:none;"{% endif %}>Enregistrer l'email</button>
-                    <button type="button" id="edit-email-btn" class="btn-admin btn-edit" onclick="enableEmailEdit()" {% if not email_address %}style="display:none;"{% endif %}>Modifier l'email</button>
+                    <button type="submit" id="save-email-btn" class="btn-admin" {% if email_address %}style="display:none;"{% endif %}>Enregistrer l'Email</button>
+                    <button type="button" id="edit-email-btn" class="btn-admin btn-edit" onclick="enableEmailEdit()" {% if not email_address %}style="display:none;"{% endif %}>Modifier l'Email</button>
                 </div>
             </form>
         </div>
