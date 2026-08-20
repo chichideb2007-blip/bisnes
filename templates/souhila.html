@@ -106,12 +106,10 @@
 
     <div class="container">
         
-        <!-- لوحة تحكم المدير لإضافة الدورات وتعديل رقم الهاتف (تظهر فقط للمدير) -->
         {% if is_admin %}
         <div class="admin-panel-card">
             <h3>Admin Panel - Dashboard</h3>
             
-            <!-- نموذج تعديل الهاتف -->
             <form method="POST">
                 <input type="hidden" name="form_type" value="phone_update">
                 <div class="form-group">
@@ -123,7 +121,6 @@
 
             <hr class="divider">
 
-            <!-- نموذج إضافة دورة جديدة (صورة، عنوان، وصف) -->
             <form method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="form_type" value="add_course">
                 <div class="form-group">
@@ -193,7 +190,6 @@
 
     </div>
 
-    <!-- زر الواتساب العائم -->
     {% if phone_number %}
         <a href="https://wa.me/{{ phone_number }}" class="whatsapp-float" target="_blank">💬</a>
     {% endif %}
