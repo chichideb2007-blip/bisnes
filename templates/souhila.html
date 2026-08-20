@@ -1,150 +1,117 @@
 <!DOCTYPE html>
-<html lang="fr" dir="ltr">
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Souhila MERDACI Form Afer - Formations Certifiantes</title>
-    <!-- استدعاء خط Montserrat الاحترافي -->
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
+    <title>Page de Souhila</title>
     <style>
-        :root {
-            --primary-color: #E86F61;
-            --dark-color: #172A46;
-            --bg-color: #F7F2EA;
-            --card-bg: #ffffff;
-            --text-color: #2d2d2d;
-            --border-radius: 14px;
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
         }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Montserrat', sans-serif; }
-        body { background-color: var(--bg-color); color: var(--text-color); line-height: 1.6; }
-
-        header { background: #fff; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.03); position: sticky; top: 0; z-index: 1000; }
-        .logo-container { display: flex; align-items: center; gap: 12px; text-decoration: none; }
-        
-        .brand-text { font-size: 16px; font-weight: 800; color: var(--dark-color); line-height: 1.2; }
-        .brand-text span { color: var(--primary-color); }
-        .brand-sub { font-size: 10px; font-weight: 700; color: var(--dark-color); letter-spacing: 2px; display: block; }
-
-        .hero { text-align: center; padding: 70px 20px; background: #fff; border-bottom-left-radius: 35px; border-bottom-right-radius: 35px; box-shadow: 0 5px 15px rgba(0,0,0,0.02); }
-        .hero h1 { font-size: 30px; font-weight: 800; margin-bottom: 15px; color: var(--dark-color); }
-        .hero h1 span { color: var(--primary-color); }
-        .hero p { font-size: 15px; color: #666; max-width: 600px; margin: 0 auto; }
-
-        .container { max-width: 900px; margin: 50px auto; padding: 0 20px; }
-        .section-title { font-size: 24px; font-weight: 800; margin-bottom: 30px; text-align: center; color: var(--dark-color); }
-        
-        .courses-grid { display: flex; flex-direction: column; gap: 20px; }
-        
-        .course-card { background: var(--card-bg); border-radius: var(--border-radius); padding: 30px; box-shadow: 0 5px 15px rgba(0,0,0,0.03); display: flex; justify-content: space-between; align-items: center; border: 1px solid #eaeaea; transition: 0.2s; }
-        .course-card:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0,0,0,0.06); }
-        
-        .course-info h3 { font-size: 18px; font-weight: 700; color: var(--dark-color); margin-bottom: 8px; }
-        .course-info p { color: #666; font-size: 13px; max-width: 450px; }
-        
-        .course-action { text-align: right; }
-        .course-price { font-size: 20px; font-weight: 800; color: var(--primary-color); margin-bottom: 10px; display: block; }
-        
-        .btn-main { background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 700; text-decoration: none; display: inline-block; box-shadow: 0 4px 10px rgba(232, 111, 97, 0.3); transition: 0.2s; }
-        .btn-main:hover { opacity: 0.9; }
-
-        .trust-section { background: var(--dark-color); color: white; text-align: center; padding: 40px 20px; border-radius: var(--border-radius); margin: 50px 20px; }
-        .trust-section h2 { font-size: 22px; margin-bottom: 8px; font-weight: 700; }
-        .trust-section p { color: #bbb; font-size: 13px; }
-
-        .contact-box { background: #fff; padding: 50px 20px; text-align: center; border-top: 1px solid #eaeaea; }
-        .contact-box h2 { color: var(--dark-color); margin-bottom: 10px; font-size: 22px; }
-        .contact-box p { color: #666; font-size: 14px; margin-bottom: 20px; }
-        
-        .whatsapp-btn { background: #25d366; color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block; box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3); }
-        .whatsapp-float { position: fixed; bottom: 25px; right: 25px; background: #25d366; color: white; width: 55px; height: 55px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 26px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); text-decoration: none; z-index: 100; }
-
-        footer { text-align: center; padding: 20px; font-size: 12px; color: #888; background: #fff; border-top: 1px solid #eee; }
-
-        @media (max-width: 768px) {
-            .course-card { flex-direction: column; align-items: flex-start; gap: 15px; }
-            .course-action { text-align: left; width: 100%; display: flex; justify-content: space-between; align-items: center; }
-            .hero h1 { font-size: 24px; }
+        .card {
+            background: #ffffff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+        .product-image {
+            width: 100%;
+            max-height: 250px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: bold;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        .btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .contact-box {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e9ecef;
+            border-radius: 5px;
+        }
+        .contact-link {
+            display: block;
+            margin-top: 8px;
+            color: #28a745;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .contact-link:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
 <body>
 
-    <header>
-        <div class="logo-container">
-            <svg width="35" height="40" viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M50 10L42 100H58L50 10Z" fill="#172A46"/>
-                <path d="M35 70H65V78H35V70Z" fill="#172A46"/>
-                <path d="M38 45H62V53H38V45Z" fill="#172A46"/>
-                <path d="M25 85L55 45M55 45H42M55 45V58" stroke="#E86F61" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <div class="brand-text">
-                SOUHILA MERDACI
-                <span class="brand-sub">FORM AFER</span>
-            </div>
+<div class="card">
+    <h2>Espace de Souhila</h2>
+
+    <!-- مكان الصورة (يمكنك تغيير رابط الصورة أو وضع اسم ملف من مجلد static) -->
+    <img src="{{ url_for('static', filename='images/default.jpg') }}" alt="Image de présentation" class="product-image">
+
+    <!-- نموذج إدخال رقم الهاتف -->
+    <form method="POST">
+        <div class="form-group">
+            <label for="phone_number">Entrez votre numéro de téléphone :</label>
+            <input type="text" id="phone_number" name="phone_number" value="{{ phone_number }}" placeholder="Ex: 0612345678" required>
         </div>
-    </header>
+        <button type="submit" class="btn">Enregistrer le numéro</button>
+    </form>
 
-    <section class="hero">
-        <h1>Compétences d'aujourd'hui, <span>succès de demain</span></h1>
-        <p>بني مسارك المهني بثقة واحصلي على دورات تكوينية معتمدة وموجهة خصيصاً لسوق العمل.</p>
-    </section>
-
-    <div class="container">
-        <h2 class="section-title">Nos Formations</h2>
-        
-        <div class="courses-grid">
-            <div class="course-card">
-                <div class="course-info">
-                    <h3>عنوان الدورة التدريبية الأولى</h3>
-                    <p>دورة شاملة تمنحك المفاتيح الأساسية والاحترافية للنجاح الميداني.</p>
-                </div>
-                <div class="course-action">
-                    <span class="course-price">15,000 دج</span>
-                    <a href="https://wa.me/213000000000" class="btn-main">Pré-inscription</a>
-                </div>
-            </div>
-
-            <div class="course-card">
-                <div class="course-info">
-                    <h3>عنوان الدورة التدريبية الثانية</h3>
-                    <p>برنامج تكويني مكثف مصمم لمرافقتك خطوة بخطوة نحو الاحتراف.</p>
-                </div>
-                <div class="course-action">
-                    <span class="course-price">20,000 دج</span>
-                    <a href="https://wa.me/213000000000" class="btn-main">Pré-inscription</a>
-                </div>
-            </div>
-
-            <div class="course-card">
-                <div class="course-info">
-                    <h3>عنوان الدورة التدريبية الثالثة</h3>
-                    <p>اكتسبي مهارات جديدة مطلوبة بقوة في السوق مع متابعة شخصية.</p>
-                </div>
-                <div class="course-action">
-                    <span class="course-price">12,000 دج</span>
-                    <a href="https://wa.me/213000000000" class="btn-main">Pré-inscription</a>
-                </div>
-            </div>
+    <!-- إذا تم إدخال الرقم، يظهر تلقائياً كـ رابط تفاعلي للإرسال أو الاتصال -->
+    {% if phone_number %}
+        <div class="contact-box">
+            <p style="margin: 0; color: #333;">Contactez-moi directement :</p>
+            <a href="https://wa.me/{{ phone_number }}" class="contact-link" target="_blank">💬 WhatsApp : {{ phone_number }}</a>
+            <a href="tel:{{ phone_number }}" class="contact-link" style="color: #007bff;">📞 Appeler : {{ phone_number }}</a>
         </div>
-    </div>
-
-    <div class="trust-section">
-        <h2>Formation Certifiante</h2>
-        <p>دورات بشهادات معتمدة تضمن لك تكويناً عالي الجودة لتعزيز فرصك المهنية.</p>
-    </div>
-
-    <div class="contact-box" id="contact">
-        <h2>Contactez-nous</h2>
-        <p>هل لديك أي استفسار؟ تواصلي معنا مباشرة للإجابة على كل تساؤلاتك.</p>
-        <a href="https://wa.me/213000000000" class="whatsapp-btn">تواصل عبر واتساب 💬</a>
-    </div>
-
-    <a href="https://wa.me/213000000000" class="whatsapp-float">💬</a>
-
-    <footer>
-        <p>Tous droits réservés © 2026 - Souhila MERDACI Form Afer</p>
-    </footer>
+    {% endif %}
+</div>
 
 </body>
 </html>
