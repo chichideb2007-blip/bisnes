@@ -22,9 +22,9 @@
         h2 { color: var(--dark-color); font-size: 20px; margin-bottom: 20px; }
         .form-group { margin-bottom: 15px; text-align: left; }
         label { display: block; margin-bottom: 6px; color: #333; font-weight: 600; font-size: 13px; }
-        input[type="text"], textarea { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; }
+        input[type="text"], input[type="email"], textarea { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; }
         textarea { resize: vertical; height: 90px; }
-        input[type="text"]:focus, textarea:focus { border-color: var(--dark-color); }
+        input[type="text"]:focus, input[type="email"]:focus, textarea:focus { border-color: var(--dark-color); }
         
         .btn-admin { background-color: var(--dark-color); color: white; border: none; padding: 12px; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; width: 100%; transition: background-color 0.3s; }
         .btn-admin:hover { background-color: #2c426e; }
@@ -37,8 +37,6 @@
         .success-msg { background: #e1f5fe; color: #01579b; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 13px; text-align: center; }
         .back-link { display: block; text-align: center; margin-top: 20px; color: var(--dark-color); text-decoration: none; font-weight: 600; font-size: 14px; }
         .back-link:hover { text-decoration: underline; }
-        
-        /* تصميم مصغرات الصور في الجدول */
         .course-thumb { width: 45px; height: 45px; object-fit: cover; border-radius: 6px; border: 1px solid #ddd; }
     </style>
 </head>
@@ -46,7 +44,7 @@
 
     <div class="admin-container">
         
-        <!-- بطاقة تعديل رقم الهاتف (مع أزرار الحفظ والتعديل التلقائية) -->
+        <!-- تعديل رقم الهاتف -->
         <div class="admin-card">
             <h2>لوحة التحكم - تعديل رقم الهاتف</h2>
             {% if phone_msg %}
@@ -58,7 +56,6 @@
                     <label for="phone_number">Numéro WhatsApp :</label>
                     <input type="text" id="phone_number" name="phone_number" value="{{ phone_number }}" placeholder="Ex: 213600000000" required {% if phone_number %}readonly{% endif %}>
                 </div>
-                
                 <div>
                     <button type="submit" id="save-btn" class="btn-admin" {% if phone_number %}style="display:none;"{% endif %}>Enregistrer le numéro</button>
                     <button type="button" id="edit-btn" class="btn-admin btn-edit" onclick="enableEdit()" {% if not phone_number %}style="display:none;"{% endif %}>Modifier le numéro</button>
@@ -66,7 +63,26 @@
             </form>
         </div>
 
-        <!-- بطاقة إضافة دورة تدريبية جديدة مع رفع ومعاينة الصورة -->
+        <!-- تعديل البريد الإلكتروني -->
+        <div class="admin-card">
+            <h2>لوحة التحكم - تعديل البريد الإلكتروني</h2>
+            {% if email_msg %}
+                <div class="success-msg">{{ email_msg }}</div>
+            {% endif %}
+            <form method="POST">
+                <input type="hidden" name="form_type" value="email_update">
+                <div class="form-group">
+                    <label for="email_address">Adresse Email :</label>
+                    <input type="email" id="email_address" name="email_address" value="{{ email_address }}" placeholder="Ex: contact@souhila.com" required {% if email_address %}readonly{% endif %}>
+                </div>
+                <div>
+                    <button type="submit" id="save-email-btn" class="btn-admin" {% if email_address %}style="display:none;"{% endif %}>Enregistrer l'email</button>
+                    <button type="button" id="edit-email-btn" class="btn-admin btn-edit" onclick="enableEmailEdit()" {% if not email_address %}style="display:none;"{% endif %}>Modifier l'email</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- إضافة دورة تدريبية جديدة -->
         <div class="admin-card">
             <h2>إضافة دورة تدريبية جديدة</h2>
             {% if course_msg %}
@@ -74,7 +90,6 @@
             {% endif %}
             <form method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="form_type" value="add_course">
-                
                 <div class="form-group">
                     <label class="form-label font-weight-bold">صورة الدورة:</label>
                     <div class="custom-file-upload" style="border: 2px dashed var(--dark-color); padding: 20px; text-align: center; border-radius: 8px; background: #f8f9fa; cursor: pointer;" onclick="document.getElementById('course_image').click();">
@@ -82,14 +97,12 @@
                         <p id="upload-text" style="margin: 0; color: #555; font-size: 13px;">اضغط هنا لاختيار صورة من جهازك</p>
                         <input type="file" id="course_image" name="course_image" accept="image/*" style="display: none;" onchange="previewImage(event)">
                     </div>
-
                     <div id="image-preview-container" style="margin-top: 15px; display: none; text-align: center;">
                         <img id="image-preview" src="" alt="Preview" style="max-width: 150px; max-height: 150px; border-radius: 8px; box-shadow: 0px 2px 5px rgba(0,0,0,0.2);">
                         <br>
                         <button type="button" class="btn-danger" style="margin-top: 8px;" onclick="removeImage()">إزالة الصورة</button>
                     </div>
                 </div>
-
                 <div class="form-group">
                     <label for="course_title">عنوان الدورة (Titre) :</label>
                     <input type="text" id="course_title" name="course_title" placeholder="Ex: Formation Marketing Digital" required>
@@ -102,7 +115,7 @@
             </form>
         </div>
 
-        <!-- بطاقة إدارة وعرض الدورات المحفوظة في جدول منظم -->
+        <!-- قائمة الدورات المحفوظة -->
         <div class="admin-card">
             <h2>قائمة الدورات المحفوظة في موقع Souhila</h2>
             {% if courses %}
@@ -149,20 +162,26 @@
     </div>
 
     <script>
-        // دالة تفعيل حقل الرقم وإظهار زر الحفظ وإخفاء زر التعديل
         function enableEdit() {
             const phoneInput = document.getElementById('phone_number');
             const saveBtn = document.getElementById('save-btn');
             const editBtn = document.getElementById('edit-btn');
-
             phoneInput.removeAttribute('readonly');
             phoneInput.focus();
-
             saveBtn.style.display = 'block';
             editBtn.style.display = 'none';
         }
 
-        // دالة معاينة الصورة عند اختيارها
+        function enableEmailEdit() {
+            const emailInput = document.getElementById('email_address');
+            const saveBtn = document.getElementById('save-email-btn');
+            const editBtn = document.getElementById('edit-email-btn');
+            emailInput.removeAttribute('readonly');
+            emailInput.focus();
+            saveBtn.style.display = 'block';
+            editBtn.style.display = 'none';
+        }
+
         function previewImage(event) {
             var reader = new FileReader();
             reader.onload = function(){
@@ -176,7 +195,6 @@
             }
         }
 
-        // دالة إزالة الصورة المختارة
         function removeImage() {
             document.getElementById('course_image').value = "";
             document.getElementById('image-preview-container').style.display = 'none';
