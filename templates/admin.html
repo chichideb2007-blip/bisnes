@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administration - Souhila MERDACI Form Afer</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
-    <!-- مكتبة الأيقونات FontAwesome لإظهار أيقونة الرفع بشكل جميل -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -26,20 +25,31 @@
         input[type="text"], textarea { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; }
         textarea { resize: vertical; height: 90px; }
         input[type="text"]:focus, textarea:focus { border-color: var(--dark-color); }
+        
         .btn-admin { background-color: var(--dark-color); color: white; border: none; padding: 12px; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; width: 100%; transition: background-color 0.3s; }
         .btn-admin:hover { background-color: #2c426e; }
         .btn-course { background-color: var(--primary-color); }
-        .btn-danger { background-color: #dc3545; color: white; border: none; padding: 5px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; }
+        .btn-edit { background-color: #ffc107; color: #333; width: 100%; }
+        .btn-edit:hover { background-color: #e0a800; }
+        .btn-danger { background-color: #dc3545; color: white; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; transition: background-color 0.3s; }
         .btn-danger:hover { background-color: #bd2130; }
+        
         .success-msg { background: #e1f5fe; color: #01579b; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 13px; text-align: center; }
         .back-link { display: block; text-align: center; margin-top: 20px; color: var(--dark-color); text-decoration: none; font-weight: 600; font-size: 14px; }
         .back-link:hover { text-decoration: underline; }
+        
+        /* تصميم قائمة الدورات الحالية */
+        .course-item { display: flex; align-items: center; justify-content: space-between; background: #fdfbf7; border: 1px solid #eee; padding: 12px; border-radius: 8px; margin-bottom: 10px; }
+        .course-info { display: flex; align-items: center; gap: 12px; }
+        .course-thumb { width: 50px; height: 50px; object-fit: cover; border-radius: 6px; border: 1px solid #ddd; }
+        .course-title-text { font-size: 14px; font-weight: 700; color: var(--dark-color); }
     </style>
 </head>
 <body>
 
     <div class="admin-container">
-        <!-- بطاقة تعديل رقم الهاتف -->
+        
+        <!-- بطاقة تعديل رقم الهاتف (مع أزرار الحفظ والتعديل التلقائية) -->
         <div class="admin-card">
             <h2>لوحة التحكم - تعديل رقم الهاتف</h2>
             {% if phone_msg %}
@@ -49,13 +59,17 @@
                 <input type="hidden" name="form_type" value="phone_update">
                 <div class="form-group">
                     <label for="phone_number">Numéro WhatsApp :</label>
-                    <input type="text" id="phone_number" name="phone_number" value="{{ phone_number }}" placeholder="Ex: 213600000000" required>
+                    <input type="text" id="phone_number" name="phone_number" value="{{ phone_number }}" placeholder="Ex: 213600000000" required {% if phone_number %}readonly{% endif %}>
                 </div>
-                <button type="submit" class="btn-admin">Enregistrer le numéro</button>
+                
+                <div>
+                    <button type="submit" id="save-btn" class="btn-admin" {% if phone_number %}style="display:none;"{% endif %}>Enregistrer le numéro</button>
+                    <button type="button" id="edit-btn" class="btn-admin btn-edit" onclick="enableEdit()" {% if not phone_number %}style="display:none;"{% endif %}>Modifier le numéro</button>
+                </div>
             </form>
         </div>
 
-        <!-- بطاقة إضافة دورة تدريبية -->
+        <!-- بطاقة إضافة دورة تدريبية جديدة مع رفع ومعاينة الصورة -->
         <div class="admin-card">
             <h2>إضافة دورة تدريبية جديدة</h2>
             {% if course_msg %}
@@ -64,17 +78,14 @@
             <form method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="form_type" value="add_course">
                 
-                <!-- حقل رفع الصورة المطور مع المعاينة -->
                 <div class="form-group">
                     <label class="form-label font-weight-bold">صورة الدورة:</label>
-                    
                     <div class="custom-file-upload" style="border: 2px dashed var(--dark-color); padding: 20px; text-align: center; border-radius: 8px; background: #f8f9fa; cursor: pointer;" onclick="document.getElementById('course_image').click();">
                         <i class="fas fa-cloud-upload-alt fa-2x" style="color: var(--dark-color); margin-bottom: 10px;"></i>
                         <p id="upload-text" style="margin: 0; color: #555; font-size: 13px;">اضغط هنا لاختيار صورة من جهازك</p>
                         <input type="file" id="course_image" name="course_image" accept="image/*" style="display: none;" onchange="previewImage(event)">
                     </div>
 
-                    <!-- معاينة الصورة بعد اختيارها -->
                     <div id="image-preview-container" style="margin-top: 15px; display: none; text-align: center;">
                         <img id="image-preview" src="" alt="Preview" style="max-width: 150px; max-height: 150px; border-radius: 8px; box-shadow: 0px 2px 5px rgba(0,0,0,0.2);">
                         <br>
@@ -94,11 +105,52 @@
             </form>
         </div>
 
+        <!-- بطاقة إدارة وحذف الدورات الحالية -->
+        <div class="admin-card">
+            <h2>إدارة الدورات الحالية (حذف دورة)</h2>
+            {% if courses %}
+                <div style="max-height: 300px; overflow-y: auto;">
+                    {% for course in courses %}
+                    <div class="course-item">
+                        <div class="course-info">
+                            {% if course.image %}
+                                <img src="{{ course.image }}" class="course-thumb" alt="Course">
+                            {% else %}
+                                <div style="width: 50px; height: 50px; background: #ddd; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 10px;">No Pic</div>
+                            {% endif %}
+                            <span class="course-title-text">{{ course.title }}</span>
+                        </div>
+                        <form method="POST" onsubmit="return confirm('هل أنت متأكد من حذف هذه الدورة؟');" style="margin: 0;">
+                            <input type="hidden" name="form_type" value="delete_course">
+                            <input type="hidden" name="course_id" value="{{ course.id }}">
+                            <button type="submit" class="btn-danger">Supprimer</button>
+                        </form>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p style="text-align: center; color: #777; font-size: 13px;">لا توجد أي دورات مضافة حالياً.</p>
+            {% endif %}
+        </div>
+
         <a href="/souhila" class="back-link">← العودة إلى الموقع الرئيسي (Souhila)</a>
     </div>
 
-    <!-- سكربت معاينة الصورة -->
     <script>
+        // دالة تفعيل حقل الرقم وإظهار زر الحفظ وإخفاء زر التعديل
+        function enableEdit() {
+            const phoneInput = document.getElementById('phone_number');
+            const saveBtn = document.getElementById('save-btn');
+            const editBtn = document.getElementById('edit-btn');
+
+            phoneInput.removeAttribute('readonly');
+            phoneInput.focus();
+
+            saveBtn.style.display = 'block';
+            editBtn.style.display = 'none';
+        }
+
+        // دالة معاينة الصورة عند اختيارها
         function previewImage(event) {
             var reader = new FileReader();
             reader.onload = function(){
@@ -112,6 +164,7 @@
             }
         }
 
+        // دالة إزالة الصورة المختارة
         function removeImage() {
             document.getElementById('course_image').value = "";
             document.getElementById('image-preview-container').style.display = 'none';
