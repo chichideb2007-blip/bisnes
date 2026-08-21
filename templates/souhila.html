@@ -147,15 +147,7 @@
                         <h3>{{ course.title }}</h3>
                         <p>{{ course.description }}</p>
                     </div>
-                    <div class="course-action">
-                        <div class="contact-buttons" style="display: flex; gap: 8px; flex-direction: column;">
-                            {% if settings.get('whatsapp') %}
-                            <a href="https://wa.me/{{ settings.get('whatsapp') }}?text=Bonjour,%20je%20souhaite%20m'inscrire%20à%20la%20formation:%20{{ course.title }}" target="_blank" style="background-color: #25D366; color: white; padding: 10px 15px; text-align: center; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                                <i class="fab fa-whatsapp" style="font-size: 16px;"></i> {{ settings.get('whatsapp') }}
-                            </a>
-                            {% endif %}
-                        </div>
-                    </div>
+                    <!-- تم حذف زر الواتساب من هنا تماماً -->
                 </div>
                 {% endfor %}
             {% else %}
@@ -172,7 +164,15 @@
             <h2>Contactez-nous</h2>
             <p style="margin-bottom: 15px;">Avez-vous des questions ? Contactez-nous directement pour y répondre.</p>
             
+            <!-- أزرار الاتصال في الأسفل (هاتف، واتساب، إيميل، والخريطة) -->
             <div class="contact-buttons-container" style="display: flex; gap: 12px; justify-content: center; margin: 20px 0; flex-wrap: wrap;">
+
+                {% if settings.get('phone') %}
+                <a href="tel:{{ settings.get('phone') }}" style="display: flex; align-items: center; gap: 8px; background-color: #007bff; color: white; padding: 12px 18px; border-radius: 8px; text-decoration: none; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <i class="fas fa-phone-alt" style="font-size: 16px;"></i>
+                    <span>اتصل بالهاتف</span>
+                </a>
+                {% endif %}
 
                 {% if settings.get('whatsapp') %}
                 <a href="https://wa.me/{{ settings.get('whatsapp') }}" target="_blank" style="display: flex; align-items: center; gap: 8px; background-color: #25D366; color: white; padding: 12px 18px; border-radius: 8px; text-decoration: none; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
@@ -188,8 +188,8 @@
                 </a>
                 {% endif %}
 
-                {% if settings.get('map_url') or settings.get('address') %}
-                <a href="{{ settings.get('map_url') if settings.get('map_url') else 'https://maps.google.com/?q=' ~ settings.get('address', '') }}" target="_blank" style="display: flex; align-items: center; gap: 8px; background-color: #FF5722; color: white; padding: 12px 18px; border-radius: 8px; text-decoration: none; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                {% if settings.get('map_url') %}
+                <a href="{{ settings.get('map_url') }}" target="_blank" style="display: flex; align-items: center; gap: 8px; background-color: #FF5722; color: white; padding: 12px 18px; border-radius: 8px; text-decoration: none; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                     <i class="fas fa-map-marker-alt" style="font-size: 16px;"></i>
                     <span>موقعنا على الخريطة</span>
                 </a>
@@ -200,15 +200,7 @@
 
     </div>
 
-    <div class="quick-contact-buttons" style="position: fixed; bottom: 20px; left: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px;">
-        
-        {% if settings.get('whatsapp') %}
-        <a href="https://wa.me/{{ settings.get('whatsapp') }}" target="_blank" title="تواصل عبر واتساب" style="background-color: #25d366; color: white; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; text-decoration: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3); font-size: 24px;">
-            <i class="fab fa-whatsapp"></i>
-        </a>
-        {% endif %}
-        
-    </div>
+    <!-- تم حذف زر الواتساب العائم من الزاوية تماماً -->
 
     <footer>
         <p>Tous droits réservés © 2026 - Souhila MERDACI Form Afer</p>
