@@ -139,6 +139,8 @@ def souhila_home():
 @app.route('/admin', methods=['GET', 'POST'])
 def admin():
     msg = None
+    company_code = session.get('company_code', 'DEFAULT_CODE')
+    
     if request.method == 'POST':
         form_type = request.form.get('form_type')
         
@@ -168,15 +170,12 @@ def admin():
                     img_binary = image_file.read()
                     encoded_img = base64.b64encode(img_binary).decode('utf-8')
                     image_url = f"data:{image_file.content_type};base64,{encoded_img}"
-                
-                # استخراج كود الشركة من الجلسة أو تعبئته بقيمة افتراضية إن لم يكن متوفراً
-                company_code = session.get('company_code', 'DEFAULT_CODE') 
 
-                res = supabase.table('souhila_courses').insert({
+                supabase.table('souhila_courses').insert({
                     'title': title,
                     'description': desc,
                     'image': image_url,
-                    'company_code': company_code  # إضافة الحقل الإلزامي هنا
+                    'company_code': company_code
                 }).execute()
                 
                 msg = "Formation ajoutée avec succès !"
@@ -190,16 +189,22 @@ def admin():
             print(f"CRITICAL ERROR in admin POST: {e}")
             msg = f"Erreur de sauvegarde: {str(e)}"
 
+    # جلب إعدادات موقع سهيلة الخاصة (site_settings)
     settings_response = supabase.table('site_settings').select('*').execute()
     settings = {}
     if settings_response.data:
         for item in settings_response.data:
             settings[item.get('key')] = item.get('value')
 
+    # جلب الدورات التدريبية الخاصة بسهيلة
     courses_response = supabase.table('souhila_courses').select('*').execute()
     courses = courses_response.data if courses_response.data else []
 
-    return render_template('admin.html', settings=settings, courses=courses, msg=msg)
+    # جلب الطلبيات المسجلة لموقع سهيلة
+    orders_response = supabase.table('orders').select('*').order('id', desc=True).execute()
+    orders = orders_response.data if orders_response.data else []
+
+    return render_template('admin.html', settings=settings, courses=courses, orders=orders, msg=msg)
 
 @app.route('/cart')
 def cart_page():
@@ -900,6 +905,7 @@ def store2_checkout(product_id):
         return "المنتج غير موجود", 404
     rates = get_wilayas_from_db()
     return render_template('store2_checkout.html', product=product, rates=rates)
+
 
 if __name__ == '__main__':
     app.run(debug=True)
