@@ -32,13 +32,15 @@
         .btn-course:hover { background-color: #d45b4e; }
         .btn-danger { background-color: #dc3545; color: white; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; transition: background-color 0.3s; }
         .btn-danger:hover { background-color: #bd2130; }
+        .btn-success { background-color: #28a745; color: white; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; transition: background-color 0.3s; }
+        .btn-success:hover { background-color: #218838; }
         
         .success-msg { background: #e1f5fe; color: #01579b; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 13px; text-align: center; }
         .back-link { display: block; text-align: center; margin-top: 20px; color: var(--dark-color); text-decoration: none; font-weight: 600; font-size: 14px; }
         .back-link:hover { text-decoration: underline; }
         .course-thumb { width: 45px; height: 45px; object-fit: cover; border-radius: 6px; border: 1px solid #ddd; }
         
-        /* تنسيقات الجدول الجديد للتوافق مع التصميم العام */
+        /* تنسيقات الجداول المتوافقة مع التصميم */
         .table-responsive { width: 100%; overflow-x: auto; }
         .table { width: 100%; border-collapse: collapse; margin-top: 10px; text-align: right; direction: rtl; }
         .table th, .table td { padding: 12px 10px; border: 1px solid #eee; font-size: 13px; }
@@ -52,7 +54,7 @@
 
     <div class="admin-container">
         
-        <!-- جدول الطلبيات المسجلة الجديد -->
+        <!-- جدول الطلبيات المسجلة -->
         <div class="admin-card">
             <h3>الطلبيات المسجلة</h3>
             <div class="table-responsive">
@@ -97,6 +99,45 @@
             </div>
         </div>
 
+        <!-- جدول إدارة أسعار التوصيل لجميع ولايات الجزائر الجديد -->
+        <div class="admin-card">
+            <h3>إدارة أسعار التوصيل لجميع ولايات الجزائر</h3>
+            <div class="table-responsive">
+                <table class="table" id="shippingTable">
+                    <thead>
+                        <tr>
+                            <th>الولاية</th>
+                            <th>توصيل للمكتب (دج)</th>
+                            <th>توصيل للمنزل (دج)</th>
+                            <th>إجراء</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if rates %}
+                            {% for rate in rates %}
+                            <tr>
+                                <td>{{ rate.id }} - {{ rate.wilaya_name }}</td>
+                                <td>
+                                    <input type="number" class="form-control office-price-input" data-id="{{ rate.id }}" value="{{ rate.office_price }}">
+                                </td>
+                                <td>
+                                    <input type="number" class="form-control home-price-input" data-id="{{ rate.id }}" value="{{ rate.home_price }}">
+                                </td>
+                                <td style="text-align: center;">
+                                    <button type="button" class="btn-success save-rate-btn" data-id="{{ rate.id }}">حفظ</button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="4" style="text-align: center; color: #777; padding: 15px;">لا توجد ولايات مسجلة.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <!-- نموذج تحديث معلومات الموقع والاتصال وإعدادات البوت -->
         <div class="admin-card">
             {% if msg %}
@@ -130,7 +171,7 @@
                     <input type="url" id="map_url" name="map_url" value="{{ settings.get('map_url', '') }}" placeholder="ضع رابط خرائط جوجل هنا..." style="direction: ltr;">
                 </div>
 
-                <!-- إعدادات تليجرام المضافة -->
+                <!-- إعدادات تليجرام -->
                 <div class="mb-3">
                     <label class="form-label">Telegram Bot Token (توكن البوت)</label>
                     <input type="text" class="form-control" name="telegram_token" value="{{ settings.get('telegram_token', '') }}" placeholder="أدخل توكن بوت التليجرام..." style="direction: ltr;">
@@ -169,7 +210,6 @@
                     <input type="text" id="course_title" name="course_title" placeholder="Ex: Formation Marketing Digital" required>
                 </div>
 
-                <!-- سعر الدورة المضاف -->
                 <div class="mb-3">
                     <label class="form-label">سعر الدورة (Prix)</label>
                     <input type="number" step="0.01" class="form-control" name="course_price" placeholder="أدخل سعر الدورة..." required>
@@ -249,6 +289,44 @@
             document.getElementById('image-preview-container').style.display = 'none';
             document.getElementById('upload-text').innerText = "اضغط هنا لاختيار صورة من جهازك";
         }
+
+        // كود حفظ أسعار التوصيل الفردية لكل ولاية عبر AJAX
+        document.addEventListener("DOMContentLoaded", function() {
+            const saveButtons = document.querySelectorAll(".save-rate-btn");
+            
+            saveButtons.forEach(button => {
+                button.addEventListener("click", function() {
+                    const rowId = this.getAttribute("data-id");
+                    const row = this.closest("tr");
+                    const officePrice = row.querySelector(".office-price-input").value;
+                    const homePrice = row.querySelector(".home-price-input").value;
+                    
+                    fetch('/update_delivery_price', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            id: rowId,
+                            office_price: officePrice,
+                            home_price: homePrice
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            alert("تم حفظ سعر التوصيل بنجاح!");
+                        } else {
+                            alert("حدث خطأ أثناء الحفظ: " + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert("حدث خطأ في الاتصال.");
+                    });
+                });
+            });
+        });
     </script>
 </body>
 </html>
