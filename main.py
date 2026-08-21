@@ -120,11 +120,12 @@ def home():
 
 @app.route('/souhila')
 def souhila_home():
-    settings_data = {}
+    settings = {}
     try:
-        settings_res = supabase.table('souhila_settings').select('*').limit(1).execute()
-        if settings_res.data:
-            settings_data = settings_res.data[0]
+        settings_response = supabase.table('site_settings').select('*').execute()
+        if settings_response.data:
+            for item in settings_response.data:
+                settings[item.get('key')] = item.get('value')
     except Exception as e:
         pass
     
@@ -132,7 +133,7 @@ def souhila_home():
     courses = courses_res.data if courses_res.data else []
     
     return render_template('souhila.html', 
-                           settings=settings_data,
+                           settings=settings,
                            courses=courses)
 
 @app.route('/admin', methods=['GET', 'POST'])
@@ -141,29 +142,53 @@ def admin():
     if request.method == 'POST':
         form_type = request.form.get('form_type')
         
-        # عندما يكون نوع الفورم هو تحديث الإعدادات
-        if form_type == 'settings_update':
-            phone = request.form.get('phone')
-            whatsapp = request.form.get('whatsapp')
-            email = request.form.get('email')
-            
-            # الحفظ والتحديث المباشر في جدول site_settings بناءً على الـ key
-            supabase.table('site_settings').upsert([
-                {'key': 'phone', 'value': phone},
-                {'key': 'whatsapp', 'value': whatsapp},
-                {'key': 'email', 'value': email}
-            ], on_conflict='key').execute()
-            
-            msg = "تم حفظ التعديلات بنجاح!"
+        try:
+            if form_type == 'settings_update':
+                phone = request.form.get('phone')
+                whatsapp = request.form.get('whatsapp')
+                email = request.form.get('email')
+                
+                supabase.table('site_settings').upsert([
+                    {'key': 'phone', 'value': phone},
+                    {'key': 'whatsapp', 'value': whatsapp},
+                    {'key': 'email', 'value': email}
+                ], on_conflict='key').execute()
+                
+                msg = "تم حفظ التعديلات بنجاح!"
 
-    # جلب البيانات من جدول site_settings وتحويلها إلى Dictionary لتسهيل قراءتها في HTML
+            elif form_type == 'add_course':
+                title = request.form.get('course_title')
+                desc = request.form.get('course_desc')
+                image_file = request.files.get('course_image')
+                
+                image_url = ""
+                if image_file and image_file.filename != '':
+                    img_binary = image_file.read()
+                    encoded_img = base64.b64encode(img_binary).decode('utf-8')
+                    image_url = f"data:{image_file.content_type};base64,{encoded_img}"
+                    
+                supabase.table('souhila_courses').insert({
+                    'title': title,
+                    'description': desc,
+                    'image': image_url
+                }).execute()
+                msg = "Formation ajoutée avec succès !"
+
+            elif form_type == 'delete_course':
+                course_id = request.form.get('course_id')
+                supabase.table('souhila_courses').delete().eq('id', course_id).execute()
+                msg = "Formation supprimée avec succès !"
+                
+        except Exception as e:
+            print(f"Error in admin POST: {e}")
+            msg = f"Erreur: {e}"
+
     settings_response = supabase.table('site_settings').select('*').execute()
     settings = {}
     if settings_response.data:
         for item in settings_response.data:
             settings[item.get('key')] = item.get('value')
 
-    # جلب الدورات التدريبية من جدول souhila_courses
     courses_response = supabase.table('souhila_courses').select('*').execute()
     courses = courses_response.data if courses_response.data else []
 
@@ -339,7 +364,7 @@ def submit_order():
             product_names_str = ", ".join([f"{item.get('name', 'منتج')} (x{item.get('quantity', 1)})" for item in cart_data])
             if token and chat_id:
                 delivery_text = "توصيل للمنزل" if delivery_type == "home" else "توصيل للمكتب"
-                msg = (
+                msg_text = (
                     f"🛒 طلبية جديدة!\n"
                     f"👤 الاسم: {full_name}\n"
                     f"📞 الهاتف: {phone}\n"
@@ -351,9 +376,9 @@ def submit_order():
                     f"💰 المجموع الكلي: {total_price} دج"
                 )
                 if inserted_order_id:
-                    send_order_alert(token, chat_id, msg, inserted_order_id)
+                    send_order_alert(token, chat_id, msg_text, inserted_order_id)
                 else:
-                    send_telegram_alert_by_token(token, chat_id, msg)
+                    send_telegram_alert_by_token(token, chat_id, msg_text)
 
     return """
     <!DOCTYPE html>
@@ -797,11 +822,11 @@ def orders():
             token = s.get('telegram_token')
             chat_id = s.get('telegram_chat_id')
             if token and chat_id:
-                msg = f"🛒 طلبية جديدة من لوحة التحكم!\nالعميل: {customer_name}\nالمنتج: {product_name}\nالكمية: {requested_qty}\nالولاية: {state}"
+                msg_text = f"🛒 طلبية جديدة من لوحة التحكم!\nالعميل: {customer_name}\nالمنتج: {product_name}\nالكمية: {requested_qty}\nالولاية: {state}"
                 if inserted_order_id:
-                    send_order_alert(token, chat_id, msg, inserted_order_id)
+                    send_order_alert(token, chat_id, msg_text, inserted_order_id)
                 else:
-                    send_telegram_alert_by_token(token, chat_id, msg)
+                    send_telegram_alert_by_token(token, chat_id, msg_text)
         
         return redirect(url_for('orders'))
 
