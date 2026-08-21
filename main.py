@@ -120,20 +120,20 @@ def home():
 
 @app.route('/souhila')
 def souhila_home():
-    phone = ""
-    whatsapp = ""
-    email = ""
-    website = ""
+    phone_number = ""
+    whatsapp_number = ""
+    email_address = ""
+    website_url = ""
     commercial_phone = ""
     
     try:
         settings_res = supabase.table('settings').select('*').limit(1).execute()
         if settings_res.data:
             s_data = settings_res.data[0]
-            phone = s_data.get('souhila_phone', '')
-            whatsapp = s_data.get('souhila_whatsapp', '')
-            email = s_data.get('souhila_email', '')
-            website = s_data.get('souhila_website', '')
+            phone_number = s_data.get('souhila_phone', '')
+            whatsapp_number = s_data.get('souhila_whatsapp', '')
+            email_address = s_data.get('souhila_email', '')
+            website_url = s_data.get('souhila_website', '')
             commercial_phone = s_data.get('souhila_commercial_phone', '')
     except Exception as e:
         pass
@@ -142,10 +142,10 @@ def souhila_home():
     courses = courses_res.data if courses_res.data else []
     
     return render_template('souhila.html', 
-                           phone_number=phone, 
-                           whatsapp_number=whatsapp, 
-                           email_address=email, 
-                           website_url=website,
+                           phone_number=phone_number, 
+                           whatsapp_number=whatsapp_number, 
+                           email_address=email_address, 
+                           website_url=website_url,
                            commercial_phone=commercial_phone,
                            courses=courses)
 
@@ -929,7 +929,7 @@ def store2_cart():
     return render_template('store2_cart.html')
 
 @app.route('/store2_checkout_page')
-1def store2_checkout_page():
+def store2_checkout_page():
     rates = get_wilayas_from_db()
     return render_template('store2_order.html', rates=rates)
 
