@@ -147,11 +147,13 @@ def admin():
                 phone = request.form.get('phone')
                 whatsapp = request.form.get('whatsapp')
                 email = request.form.get('email')
+                map_url = request.form.get('map_url') # تم إضافة استقبال رابط الخريطة
                 
                 supabase.table('site_settings').upsert([
                     {'key': 'phone', 'value': phone},
                     {'key': 'whatsapp', 'value': whatsapp},
-                    {'key': 'email', 'value': email}
+                    {'key': 'email', 'value': email},
+                    {'key': 'map_url', 'value': map_url} # حفظ رابط الخريطة في قاعدة البيانات
                 ], on_conflict='key').execute()
                 
                 msg = "تم حفظ التعديلات بنجاح!"
