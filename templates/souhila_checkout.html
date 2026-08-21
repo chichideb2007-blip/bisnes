@@ -1,53 +1,85 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="fr" dir="ltr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تأكيد الطلب - موقع سهيلة</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/rtl.min.css">
+    <title>Validation de la commande - Souhila MERDACI Form Afer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { background-color: #f8f9fa; font-family: Tahoma, sans-serif; }
-        .checkout-container { max-width: 600px; margin: 40px auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
-        .btn-primary { background-color: #e83e8c; border: none; }
-        .btn-primary:hover { background-color: #d91a72; }
+        :root {
+            --primary-color: #E86F61;
+            --dark-color: #172A46;
+            --bg-color: #F7F2EA;
+            --card-bg: #ffffff;
+            --text-color: #2d2d2d;
+            --border-radius: 14px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Montserrat', sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); line-height: 1.6; padding: 20px; }
+
+        .checkout-container { max-width: 650px; margin: 30px auto; background: var(--card-bg); padding: 30px; border-radius: var(--border-radius); box-shadow: 0 5px 20px rgba(0,0,0,0.05); }
+        h1 { font-size: 24px; color: var(--dark-color); margin-bottom: 20px; text-align: center; font-weight: 800; }
+        h1 span { color: var(--primary-color); }
+
+        .form-group { margin-bottom: 20px; }
+        label { display: block; font-weight: 700; margin-bottom: 8px; color: var(--dark-color); font-size: 14px; }
+        input, select, textarea { width: 100%; padding: 12px 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; background: #fafafa; }
+        input:focus, select:focus { border-color: var(--primary-color); outline: none; background: #fff; }
+
+        .delivery-options { display: flex; gap: 15px; margin-bottom: 20px; }
+        .delivery-card { flex: 1; border: 2px solid #eee; padding: 15px; border-radius: 8px; cursor: pointer; text-align: center; transition: 0.2s; background: #fafafa; }
+        .delivery-card.active { border-color: var(--primary-color); background: #fff5f4; }
+        .delivery-card input { display: none; }
+
+        .summary-box { background: #fdf8f6; border: 1px dashed var(--primary-color); padding: 20px; border-radius: 8px; margin-bottom: 25px; }
+        .summary-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 15px; }
+        .summary-row.total { font-weight: 800; font-size: 18px; color: var(--dark-color); border-top: 1px solid #ddd; padding-top: 10px; margin-top: 10px; }
+        .summary-row.total span:last-child { color: var(--primary-color); }
+
+        .btn-submit { display: block; width: 100%; background: var(--primary-color); color: white; padding: 15px; border: none; border-radius: 8px; font-size: 16px; font-weight: 800; cursor: pointer; transition: 0.2s; text-align: center; }
+        .btn-submit:hover { background: #d45b4e; }
+        
+        .back-link { display: block; text-align: center; margin-top: 15px; color: var(--dark-color); text-decoration: none; font-size: 14px; font-weight: 600; }
+        .back-link:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
 
     <div class="checkout-container">
-        <h3 class="text-center mb-4 text-secondary">إتمام حجز الدورة / الطلب</h3>
+        <h1>Validation de votre <span>Inscription</span></h1>
         
-        <form action="/submit-order" method="POST">
-            <!-- تحديد أن الطلب يخص موقع سهيلة -->
-            <input type="hidden" name="is_souhila" value="true">
-            
-            <div class="mb-3">
-                <label class="form-label fw-bold">الاسم الكامل</label>
-                <input type="text" class="form-control" name="customer_name" required placeholder="أدخل اسمك الكامل">
-            </div>
+        <form action="/submit-order" method="POST" id="checkoutForm">
+            <!-- بيانات مخفية لتحديد أن الطلب يخص موقع سهيلة -->
+            <input type="hidden" name="country" value="algeria">
+            <input type="hidden" name="delivery_type" id="delivery_type_input" value="home">
+            <input type="hidden" name="delivery_price" id="delivery_price_input" value="0">
+            <input type="hidden" name="cart_data" id="cart_data_input" value="">
 
-            <div class="mb-3">
-                <label class="form-label fw-bold">رقم الهاتف</label>
-                <input type="tel" class="form-control" name="phone" required placeholder="05 / 06 / 07 ...">
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label fw-bold">اختر الدورة / الخدمة المطلوبة</label>
-                <select class="form-control" name="cart_data_json" id="courseSelect" required>
+            <div class="form-group">
+                <label>اختر الدورة التدريبية المطلوبة:</label>
+                <select name="product_id" id="courseSelect" required onchange="updateCoursePrice()">
                     <option value="" disabled selected>-- اختر الدورة --</option>
                     {% for course in courses %}
-                    <option value='[{"name": "{{ course.title }}", "price": "{{ course.price }}", "quantity": 1}]'>
-                        {{ course.title }} - {{ course.price }} دج
-                    </option>
+                    <option value="{{ course.id }}" data-price="{{ course.price }}">{{ course.title }} - {{ course.price }} DA</option>
                     {% endfor %}
                 </select>
-                <!-- حقل مخفي يرسل البيانات بالصيغة التي يتوقعها سيرفر المعالجة المشترك -->
-                <input type="hidden" name="cart_data" id="cartDataInput">
             </div>
 
-            <div class="mb-3">
-                <label class="form-label fw-bold">الولاية</label>
-                <select class="form-control" name="wilaya" id="wilayaSelect" required>
+            <div class="form-group">
+                <label>الاسم الكامل:</label>
+                <input type="text" name="customer_name" required placeholder="أدخل اسمك الكامل">
+            </div>
+
+            <div class="form-group">
+                <label>رقم الهاتف:</label>
+                <input type="tel" name="phone" required placeholder="05XXXXXXXX">
+            </div>
+
+            <div class="form-group">
+                <label>الولاية (جدول أسعار التوصيل الخاص بسهيلة):</label>
+                <select name="wilaya" id="wilayaSelect" required onchange="updateDeliveryRate()">
                     <option value="" disabled selected>-- اختر ولايتك --</option>
                     {% for rate in rates %}
                     <option value="{{ rate.id }}" data-home="{{ rate.home_price }}" data-office="{{ rate.office_price }}">
@@ -57,64 +89,112 @@
                 </select>
             </div>
 
-            <div class="mb-3">
-                <label class="form-label fw-bold">البلدية</label>
-                <input type="text" class="form-control" name="baladiya" required placeholder="أدخل اسم البلدية">
+            <div class="form-group">
+                <label>البلدية:</label>
+                <input type="text" name="baladiya" required placeholder="أدخل بلدتك أو مكان إقامتك">
             </div>
 
-            <div class="mb-3">
-                <label class="form-label fw-bold">طريقة الاستلام / التوصيل</label>
-                <select class="form-control" name="delivery_type" id="deliveryType" required>
-                    <option value="home">توصيل للمنزل</option>
-                    <option value="office">توصيل للمكتب (شركة التوصيل)</option>
-                </select>
+            <div class="form-group">
+                <label>طريقة التوصيل الخاصة بسهيلة:</label>
+                <div class="delivery-options">
+                    <div class="delivery-card active" onclick="setDeliveryType('home')">
+                        <i class="fas fa-home fa-2x" style="color: var(--primary-color); margin-bottom: 5px;"></i>
+                        <div><strong>توصيل للمنزل</strong></div>
+                        <div id="homePriceDisplay" style="font-size: 12px; color: #666;">0 DA</div>
+                    </div>
+                    <div class="delivery-card" onclick="setDeliveryType('office')">
+                        <i class="fas fa-building fa-2x" style="color: var(--dark-color); margin-bottom: 5px;"></i>
+                        <div><strong>توصيل للمكتب (Stop Desk)</strong></div>
+                        <div id="officePriceDisplay" style="font-size: 12px; color: #666;">0 DA</div>
+                    </div>
+                </div>
             </div>
 
-            <div class="mb-3">
-                <label class="form-label fw-bold">سعر التوصيل:</label>
-                <span id="deliveryPriceDisplay" class="text-success fw-bold">0</span> دج
-                <input type="hidden" name="delivery_price" id="deliveryPriceInput" value="0">
+            <div class="summary-box">
+                <div class="summary-row">
+                    <span>سعر الدورة:</span>
+                    <span id="coursePriceText">0 DA</span>
+                </div>
+                <div class="summary-row">
+                    <span>سعر التوصيل (خاص بسهيلة):</span>
+                    <span id="deliveryPriceText">0 DA</span>
+                </div>
+                <div class="summary-row total">
+                    <span>المجموع الكلي:</span>
+                    <span id="totalPriceText">0 DA</span>
+                </div>
             </div>
 
-            <hr>
-
-            <button type="submit" class="btn btn-primary w-100 py-2 fw-bold fs-5">تأكيد الطلب والحجز</button>
+            <button type="submit" class="btn-submit">تأكيد الحجز الآن</button>
+            <a href="/souhila" class="back-link">العودة إلى الرئيسية</a>
         </form>
     </div>
 
     <script>
-        const wilayaSelect = document.getElementById('wilayaSelect');
-        const deliveryType = document.getElementById('deliveryType');
-        const deliveryPriceDisplay = document.getElementById('deliveryPriceDisplay');
-        const deliveryPriceInput = document.getElementById('deliveryPriceInput');
-        const courseSelect = document.getElementById('courseSelect');
-        const cartDataInput = document.getElementById('cartDataInput');
+        let currentDeliveryType = 'home';
+        let baseCoursePrice = 0;
+        let currentDeliveryPrice = 0;
 
-        function updateDeliveryPrice() {
-            const selectedOption = wilayaSelect.options[wilayaSelect.selectedIndex];
-            if (!selectedOption.value) return;
-
-            let price = 0;
-            if (deliveryType.value === 'home') {
-                price = selectedOption.getAttribute('data-home') || 0;
+        function setDeliveryType(type) {
+            currentDeliveryType = type;
+            document.getElementById('delivery_type_input').value = type;
+            
+            const cards = document.querySelectorAll('.delivery-card');
+            cards.forEach(c => c.classList.remove('active'));
+            
+            if(type === 'home') {
+                cards[0].classList.add('active');
             } else {
-                price = selectedOption.getAttribute('data-office') || 0;
+                cards[1].classList.add('active');
             }
-
-            deliveryPriceDisplay.textContent = price;
-            deliveryPriceInput.value = price;
+            updateDeliveryRate();
         }
 
-        wilayaSelect.addEventListener('change', updateDeliveryPrice);
-        deliveryType.addEventListener('change', updateDeliveryPrice);
+        function updateCoursePrice() {
+            const select = document.getElementById('courseSelect');
+            const selectedOption = select.options[select.selectedIndex];
+            baseCoursePrice = parseFloat(selectedOption.getAttribute('data-price')) || 0;
+            
+            // تحديث بيانات السلة الوهمية ليتوافق مع مسار الاستقبال في بايثون
+            const courseName = selectedOption.text.split(' - ')[0];
+            const cartItem = [{
+                id: select.value,
+                name: courseName,
+                price: baseCoursePrice,
+                quantity: 1
+            }];
+            document.getElementById('cart_data_input').value = JSON.stringify(cartItem);
 
-        courseSelect.addEventListener('change', function() {
-            cartDataInput.value = this.value;
-        });
-        
-        // تعيين القيمة أولياً إن وجدت
-        if(courseSelect.value) {
-            cartDataInput.value = courseSelect.value;
+            calculateTotal();
+        }
+
+        function updateDeliveryRate() {
+            const select = document.getElementById('wilayaSelect');
+            const selectedOption = select.options[select.selectedIndex];
+            
+            if(selectedOption && selectedOption.value) {
+                const homePrice = parseFloat(selectedOption.getAttribute('data-home')) || 0;
+                const officePrice = parseFloat(selectedOption.getAttribute('data-office')) || 0;
+                
+                document.getElementById('homePriceDisplay').innerText = homePrice + ' DA';
+                document.getElementById('officePriceDisplay').innerText = officePrice + ' DA';
+
+                currentDeliveryPrice = (currentDeliveryType === 'home') ? homePrice : officePrice;
+            } else {
+                currentDeliveryPrice = 0;
+            }
+
+            document.getElementById('delivery_price_input').value = currentDeliveryPrice;
+            calculateTotal();
+        }
+
+        function calculateTotal() {
+            document.getElementById('coursePriceText').innerText = baseCoursePrice + ' DA';
+            document.getElementById('delivery_price_input').value = currentDeliveryPrice;
+            document.getElementById('deliveryPriceText').innerText = currentDeliveryPrice + ' DA';
+            
+            const total = baseCoursePrice + currentDeliveryPrice;
+            document.getElementById('totalPriceText').innerText = total + ' DA';
         }
     </script>
 </body>
