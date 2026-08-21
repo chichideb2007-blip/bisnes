@@ -177,16 +177,11 @@ def admin_panel():
             if all_s.data:
                 rec_id = all_s.data[0]['id']
                 
-                # 1. تحديث معلومات الاتصال الشاملة
+                # 1. تحديث معلومات الاتصال (الهاتف والواتساب فقط)
                 if form_type == 'contact_update':
-                    comm_phone = request.form.get('commercial_phone', '').strip()
-                    
                     update_data = {
                         'souhila_phone': request.form.get('phone_number'),
-                        'souhila_whatsapp': request.form.get('whatsapp_number'),
-                        'souhila_email': request.form.get('email_address'),
-                        'souhila_website': request.form.get('website_url'),
-                        'souhila_commercial_phone': comm_phone if comm_phone else None
+                        'souhila_whatsapp': request.form.get('whatsapp_number')
                     }
                     
                     # التحديث باستخدام المعرف (id) الخاص بالصف المختار بدقة
