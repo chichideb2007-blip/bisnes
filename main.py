@@ -120,21 +120,11 @@ def home():
 
 @app.route('/souhila')
 def souhila_home():
-    phone_number = ""
-    whatsapp_number = ""
-    email_address = ""
-    website_url = ""
-    commercial_phone = ""
-    
+    settings_data = {}
     try:
-        settings_res = supabase.table('settings').select('*').limit(1).execute()
+        settings_res = supabase.table('souhila_settings').select('*').limit(1).execute()
         if settings_res.data:
-            s_data = settings_res.data[0]
-            phone_number = s_data.get('souhila_phone', '')
-            whatsapp_number = s_data.get('souhila_whatsapp', '')
-            email_address = s_data.get('souhila_email', '')
-            website_url = s_data.get('souhila_website', '')
-            commercial_phone = s_data.get('souhila_commercial_phone', '')
+            settings_data = settings_res.data[0]
     except Exception as e:
         pass
     
@@ -142,88 +132,68 @@ def souhila_home():
     courses = courses_res.data if courses_res.data else []
     
     return render_template('souhila.html', 
-                           phone_number=phone_number, 
-                           whatsapp_number=whatsapp_number, 
-                           email_address=email_address, 
-                           website_url=website_url,
-                           commercial_phone=commercial_phone,
+                           settings=settings_data,
                            courses=courses)
 
 @app.route('/admin', methods=['GET', 'POST'])
 def admin_panel():
     msg = None
-    # تحديد كود الشركة الحالي (إذا كان مسجلاً، وإلا نستخدم 'default' أو أول صف)
-    company_code = session.get('company_code', 'default')
-
+    
     if request.method == 'POST':
         form_type = request.form.get('form_type')
         
         try:
-            # التحقق مما إذا كان السجل الخاص بهذا الكود موجوداً مسبقاً
-            check_s = supabase.table('settings').select('id').eq('company_code', company_code).execute()
-            if not check_s.data:
-                # إذا لم يكن موجوداً، نقوم بإنشائه
-                supabase.table('settings').insert({'company_code': company_code}).execute()
-        except Exception as e:
-            pass
-
-        try:
-            # جلب معرف السجل الخاص بالشركة الحالية بدقة
-            all_s = supabase.table('settings').select('id').eq('company_code', company_code).execute()
-            if not all_s.data:
-                # كبديل في حال لم يجد بالـ company_code، يأخذ أول صف
-                all_s = supabase.table('settings').select('id').limit(1).execute()
+            # 1. تحديث معلومات الاتصال في جدول souhila_settings
+            if form_type == 'contact_update':
+                phone_number = request.form.get('phone_number', '')
+                whatsapp_number = request.form.get('whatsapp_number', '')
                 
-            if all_s.data:
-                rec_id = all_s.data[0]['id']
-                
-                # 1. تحديث معلومات الاتصال (الهاتف والواتساب فقط)
-                if form_type == 'contact_update':
-                    update_data = {
-                        'souhila_phone': request.form.get('phone_number'),
-                        'souhila_whatsapp': request.form.get('whatsapp_number')
-                    }
-                    
-                    # التحديث باستخدام المعرف (id) الخاص بالصف المختار بدقة
-                    supabase.table('settings').update(update_data).eq('id', rec_id).execute()
-                    msg = "Informations de contact mises à jour avec succès !"
-
-                # 2. إضافة دورة
-                elif form_type == 'add_course':
-                    title = request.form.get('course_title')
-                    desc = request.form.get('course_desc')
-                    image_file = request.files.get('course_image')
-                    
-                    image_url = ""
-                    if image_file and image_file.filename != '':
-                        img_binary = image_file.read()
-                        encoded_img = base64.b64encode(img_binary).decode('utf-8')
-                        image_url = f"data:{image_file.content_type};base64,{encoded_img}"
-                        
-                    supabase.table('souhila_courses').insert({
-                        'title': title,
-                        'description': desc,
-                        'image': image_url,
-                        'company_code': company_code
+                all_s = supabase.table('souhila_settings').select('id').limit(1).execute()
+                if all_s.data:
+                    rec_id = all_s.data[0]['id']
+                    supabase.table('souhila_settings').update({
+                        'souhila_phone': phone_number,
+                        'souhila_whatsapp': whatsapp_number
+                    }).eq('id', rec_id).execute()
+                else:
+                    supabase.table('souhila_settings').insert({
+                        'souhila_phone': phone_number,
+                        'souhila_whatsapp': whatsapp_number
                     }).execute()
-                    msg = "Formation ajoutée avec succès !"
+                msg = "Informations de contact mises à jour avec succès !"
 
-                # 3. حذف دورة
-                elif form_type == 'delete_course':
-                    course_id = request.form.get('course_id')
-                    supabase.table('souhila_courses').delete().eq('id', course_id).execute()
-                    msg = "Formation supprimée avec succès !"
+            # 2. إضافة دورة تدريبية
+            elif form_type == 'add_course':
+                title = request.form.get('course_title')
+                desc = request.form.get('course_desc')
+                image_file = request.files.get('course_image')
+                
+                image_url = ""
+                if image_file and image_file.filename != '':
+                    img_binary = image_file.read()
+                    encoded_img = base64.b64encode(img_binary).decode('utf-8')
+                    image_url = f"data:{image_file.content_type};base64,{encoded_img}"
+                    
+                supabase.table('souhila_courses').insert({
+                    'title': title,
+                    'description': desc,
+                    'image': image_url
+                }).execute()
+                msg = "Formation ajoutée avec succès !"
+
+            # 3. حذف دورة تدريبية
+            elif form_type == 'delete_course':
+                course_id = request.form.get('course_id')
+                supabase.table('souhila_courses').delete().eq('id', course_id).execute()
+                msg = "Formation supprimée avec succès !"
+                
         except Exception as e:
             print(f"Error in admin POST: {e}")
-            msg = f"Erreur lors de la mise à jour: {e}"
+            msg = f"Erreur: {e}"
 
     settings_data = {}
     try:
-        # جلب البيانات لعرضها في لوحة التحكم لنفس الكود
-        settings_res = supabase.table('settings').select('*').eq('company_code', company_code).execute()
-        if not settings_res.data:
-            settings_res = supabase.table('settings').select('*').limit(1).execute()
-            
+        settings_res = supabase.table('souhila_settings').select('*').limit(1).execute()
         if settings_res.data:
             settings_data = settings_res.data[0]
     except Exception as e:
