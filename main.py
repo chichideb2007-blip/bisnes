@@ -169,10 +169,14 @@ def admin():
                     encoded_img = base64.b64encode(img_binary).decode('utf-8')
                     image_url = f"data:{image_file.content_type};base64,{encoded_img}"
                 
+                # استخراج كود الشركة من الجلسة أو تعبئته بقيمة افتراضية إن لم يكن متوفراً
+                company_code = session.get('company_code', 'DEFAULT_CODE') 
+
                 res = supabase.table('souhila_courses').insert({
                     'title': title,
                     'description': desc,
-                    'image': image_url
+                    'image': image_url,
+                    'company_code': company_code  # إضافة الحقل الإلزامي هنا
                 }).execute()
                 
                 msg = "Formation ajoutée avec succès !"
