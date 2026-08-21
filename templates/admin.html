@@ -17,7 +17,7 @@
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Montserrat', sans-serif; }
         body { background-color: var(--bg-color); color: var(--text-color); padding: 40px 20px; display: flex; justify-content: center; min-height: 100vh; }
-        .admin-container { width: 100%; max-width: 600px; }
+        .admin-container { width: 100%; max-width: 800px; }
         .admin-card { background: var(--card-bg); padding: 30px; border-radius: var(--border-radius); box-shadow: 0 5px 25px rgba(0,0,0,0.05); margin-bottom: 25px; border-top: 6px solid var(--dark-color); }
         h2, h3 { color: var(--dark-color); font-size: 20px; margin-bottom: 20px; }
         .form-group, .mb-3 { margin-bottom: 15px; text-align: left; }
@@ -37,12 +37,66 @@
         .back-link { display: block; text-align: center; margin-top: 20px; color: var(--dark-color); text-decoration: none; font-weight: 600; font-size: 14px; }
         .back-link:hover { text-decoration: underline; }
         .course-thumb { width: 45px; height: 45px; object-fit: cover; border-radius: 6px; border: 1px solid #ddd; }
+        
+        /* تنسيقات الجدول الجديد للتوافق مع التصميم العام */
+        .table-responsive { width: 100%; overflow-x: auto; }
+        .table { width: 100%; border-collapse: collapse; margin-top: 10px; text-align: right; direction: rtl; }
+        .table th, .table td { padding: 12px 10px; border: 1px solid #eee; font-size: 13px; }
+        .table th { background: #f1ede4; color: var(--dark-color); font-weight: 700; }
+        .badge { padding: 5px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; display: inline-block; }
+        .bg-success { background-color: #d4edda; color: #155724; }
+        .bg-info { background-color: #d1ecf1; color: #0c5460; }
     </style>
 </head>
 <body>
 
     <div class="admin-container">
         
+        <!-- جدول الطلبيات المسجلة الجديد -->
+        <div class="admin-card">
+            <h3>الطلبيات المسجلة</h3>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>الاسم واللقب</th>
+                            <th>رقم الهاتف</th>
+                            <th>الولاية</th>
+                            <th>البلدية</th>
+                            <th>طريقة التوصيل</th>
+                            <th>سعر التوصيل</th>
+                            <th>السعر الإجمالي</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if orders %}
+                            {% for order in orders %}
+                            <tr>
+                                <td>{{ order.customer_name }}</td>
+                                <td>{{ order.customer_phone }}</td>
+                                <td>{{ order.state }}</td>
+                                <td>{{ order.baladiya }}</td>
+                                <td>
+                                    {% if order.delivery_type == 'home' %}
+                                        <span class="badge bg-success">توصيل للمنزل</span>
+                                    {% else %}
+                                        <span class="badge bg-info">توصيل لمكتب</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ order.delivery_price }} دج</td>
+                                <td><strong>{{ order.total_price }} دج</strong></td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="7" style="text-align: center; color: #777; padding: 15px;">لا توجد طلبيات مسجلة حتى الآن.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <!-- نموذج تحديث معلومات الموقع والاتصال -->
         <div class="admin-card">
             {% if msg %}
@@ -54,30 +108,29 @@
                 
                 <h3>لوحة التحكم - تعديل معلومات الموقع</h3>
 
-                <div class="form-group" style="margin-bottom: 15px; text-align: left;">
-                    <label style="display: block; font-weight: bold; margin-bottom: 5px;">رقم الهاتف (Phone):</label>
-                    <input type="text" name="phone" value="{{ settings.get('phone', '') }}" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px;" placeholder="أدخل رقم الهاتف...">
+                <div class="form-group">
+                    <label>رقم الهاتف (Phone):</label>
+                    <input type="text" name="phone" value="{{ settings.get('phone', '') }}" placeholder="أدخل رقم الهاتف...">
                 </div>
 
-                <div class="form-group" style="margin-bottom: 15px; text-align: left;">
-                    <label style="display: block; font-weight: bold; margin-bottom: 5px;">رقم الواتساب (WhatsApp):</label>
-                    <input type="text" name="whatsapp" value="{{ settings.get('whatsapp', '') }}" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px;" placeholder="أدخل رقم الواتساب...">
+                <div class="form-group">
+                    <label>رقم الواتساب (WhatsApp):</label>
+                    <input type="text" name="whatsapp" value="{{ settings.get('whatsapp', '') }}" placeholder="أدخل رقم الواتساب...">
                 </div>
 
-                <div class="form-group" style="margin-bottom: 15px; text-align: left;">
-                    <label style="display: block; font-weight: bold; margin-bottom: 5px;">البريد الإلكتروني (Email):</label>
-                    <input type="email" name="email" value="{{ settings.get('email', '') }}" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px;" placeholder="أدخل الإيميل...">
+                <div class="form-group">
+                    <label>البريد الإلكتروني (Email):</label>
+                    <input type="email" name="email" value="{{ settings.get('email', '') }}" placeholder="أدخل الإيميل...">
                 </div>
 
-                <!-- خانة رابط الخريطة الجديدة -->
-                <div class="form-group" style="margin-bottom: 20px; text-align: left;">
-                    <label for="map_url" style="display: block; font-weight: bold; margin-bottom: 5px; color: var(--dark-color);">
+                <div class="form-group">
+                    <label for="map_url" style="color: var(--dark-color);">
                         📍 رابط موقعنا على الخريطة (Google Maps URL):
                     </label>
-                    <input type="url" id="map_url" name="map_url" value="{{ settings.get('map_url', '') }}" placeholder="ضع رابط خرائط جوجل هنا..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; direction: ltr;">
+                    <input type="url" id="map_url" name="map_url" value="{{ settings.get('map_url', '') }}" placeholder="ضع رابط خرائط جوجل هنا..." style="direction: ltr;">
                 </div>
 
-                <button type="submit" style="background: #172A46; color: white; padding: 12px; width: 100%; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">حفظ التعديلات</button>
+                <button type="submit" class="btn-admin" style="margin-top: 5px;">حفظ التعديلات</button>
             </form>
         </div>
 
@@ -116,25 +169,25 @@
             <h2>قائمة الدورات المحفوظة في موقع Souhila</h2>
             {% if courses %}
                 <div style="overflow-x: auto; max-height: 350px; overflow-y: auto;">
-                    <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                    <table class="table" style="text-align: right; direction: ltr;">
                         <thead>
-                            <tr style="background: #f1ede4; border-bottom: 2px solid #ddd;">
-                                <th style="padding: 10px; text-align: right; font-size: 13px; color: var(--dark-color);">الصورة</th>
-                                <th style="padding: 10px; text-align: right; font-size: 13px; color: var(--dark-color);">عنوان الدورة</th>
-                                <th style="padding: 10px; text-align: center; font-size: 13px; color: var(--dark-color);">الإجراء</th>
+                            <tr style="border-bottom: 2px solid #ddd;">
+                                <th style="text-align: left;">الصورة</th>
+                                <th style="text-align: left;">عنوان الدورة</th>
+                                <th style="text-align: center;">الإجراء</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for course in courses %}
                             <tr style="border-bottom: 1px solid #eee;">
-                                <td style="padding: 10px;">
+                                <td style="padding: 10px; text-align: left;">
                                     {% if course.image %}
                                         <img src="{{ course.image }}" class="course-thumb" alt="Course">
                                     {% else %}
                                         <div style="width: 45px; height: 45px; background: #ddd; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #555;">لا توجد</div>
                                     {% endif %}
                                 </td>
-                                <td style="padding: 10px; font-size: 14px; font-weight: 600; color: var(--dark-color);">
+                                <td style="padding: 10px; text-align: left; font-size: 14px; font-weight: 600; color: var(--dark-color);">
                                     {{ course.title }}
                                 </td>
                                 <td style="padding: 10px; text-align: center;">
