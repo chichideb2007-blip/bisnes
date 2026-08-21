@@ -439,6 +439,7 @@ def logout():
 def dashboard():
     return render_template('dashboard.html')
 
+
 @app.route('/stats')
 @login_required
 def stats():
