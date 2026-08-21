@@ -139,7 +139,6 @@ def souhila_home():
 @app.route('/admin', methods=['GET', 'POST'])
 def admin():
     msg = None
-    company_code = session.get('company_code', 'DEFAULT_CODE')
     
     if request.method == 'POST':
         form_type = request.form.get('form_type')
@@ -171,11 +170,11 @@ def admin():
                     encoded_img = base64.b64encode(img_binary).decode('utf-8')
                     image_url = f"data:{image_file.content_type};base64,{encoded_img}"
 
+                # إضافة الدورة بدون الحاجة لـ company_code
                 supabase.table('souhila_courses').insert({
                     'title': title,
                     'description': desc,
-                    'image': image_url,
-                    'company_code': company_code
+                    'image': image_url
                 }).execute()
                 
                 msg = "Formation ajoutée avec succès !"
@@ -200,7 +199,7 @@ def admin():
     courses_response = supabase.table('souhila_courses').select('*').execute()
     courses = courses_response.data if courses_response.data else []
 
-    # جلب الطلبيات المسجلة لموقع سهيلة
+    # جلب الطلبيات مباشرة بدون قيود الشركات
     orders_response = supabase.table('orders').select('*').order('id', desc=True).execute()
     orders = orders_response.data if orders_response.data else []
 
@@ -450,6 +449,7 @@ def logout():
 @login_required
 def dashboard():
     return render_template('dashboard.html')
+
 
 
 @app.route('/stats')
