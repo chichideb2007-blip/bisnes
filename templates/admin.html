@@ -69,6 +69,14 @@
                     <input type="email" name="email" value="{{ settings.get('email', '') }}" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px;" placeholder="أدخل الإيميل...">
                 </div>
 
+                <!-- خانة رابط الخريطة الجديدة -->
+                <div class="form-group" style="margin-bottom: 20px; text-align: left;">
+                    <label for="map_url" style="display: block; font-weight: bold; margin-bottom: 5px; color: var(--dark-color);">
+                        📍 رابط موقعنا على الخريطة (Google Maps URL):
+                    </label>
+                    <input type="url" id="map_url" name="map_url" value="{{ settings.get('map_url', '') }}" placeholder="ضع رابط خرائط جوجل هنا..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; direction: ltr;">
+                </div>
+
                 <button type="submit" style="background: #172A46; color: white; padding: 12px; width: 100%; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">حفظ التعديلات</button>
             </form>
         </div>
