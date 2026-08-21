@@ -89,38 +89,6 @@
         .contact-box h2 { color: var(--dark-color); margin-bottom: 10px; font-size: 22px; }
         .contact-box p { color: #666; font-size: 14px; margin-bottom: 20px; }
         
-        .contact-link { display: inline-block; margin: 5px; padding: 12px 20px; background: #25d366; color: white; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 15px; box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3); }
-        .email-link { background: #e86f61; }
-
-        .website-link-display { display: inline-block; margin-top: 15px; color: var(--primary-color); font-weight: bold; text-decoration: none; font-size: 15px; }
-        .website-link-display:hover { text-decoration: underline; }
-
-        /* زر الواتساب العائم في زاوية الشاشة */
-        .whatsapp-float-btn {
-            position: fixed;
-            bottom: 25px;
-            right: 25px;
-            background-color: #25d366;
-            color: white;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            text-align: center;
-            font-size: 32px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.25);
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-decoration: none;
-            transition: all 0.3s ease;
-        }
-        .whatsapp-float-btn:hover {
-            background-color: #20ba5a;
-            transform: scale(1.1);
-            color: white;
-        }
-
         footer { text-align: center; padding: 25px; font-size: 12px; color: #888; background: #fff; border-top: 1px solid #eee; margin-top: 50px; }
 
         @media (max-width: 768px) {
@@ -230,12 +198,22 @@
 
     </div>
 
-    <!-- زر الواتساب العائم في زاوية الموقع الديناميكي -->
-    {% if settings.get('souhila_whatsapp') %}
-    <a href="https://wa.me/{{ settings.get('souhila_whatsapp') }}" target="_blank" class="whatsapp-float-btn" title="Contactez-nous sur WhatsApp">
-        <i class="fab fa-whatsapp"></i>
-    </a>
-    {% endif %}
+    <!-- أزرار التواصل السريع العائمة (واتساب + هاتف) في زاوية الشاشة -->
+    <div class="quick-contact-buttons" style="position: fixed; bottom: 20px; left: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px;">
+        
+        {% if settings.get('souhila_whatsapp') %}
+        <a href="https://wa.me/{{ settings.get('souhila_whatsapp') }}" target="_blank" title="تواصل عبر واتساب" style="background-color: #25d366; color: white; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; text-decoration: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3); font-size: 24px;">
+            <i class="fab fa-whatsapp"></i>
+        </a>
+        {% endif %}
+        
+        {% if settings.get('souhila_phone') %}
+        <a href="tel:{{ settings.get('souhila_phone') }}" title="اتصل بنا" style="background-color: #007bff; color: white; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; text-decoration: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3); font-size: 20px;">
+            <i class="fas fa-phone-alt"></i>
+        </a>
+        {% endif %}
+        
+    </div>
 
     <footer>
         <p>Tous droits réservés © 2026 - Souhila MERDACI Form Afer</p>
