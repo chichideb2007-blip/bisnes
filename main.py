@@ -170,7 +170,6 @@ def admin():
                     encoded_img = base64.b64encode(img_binary).decode('utf-8')
                     image_url = f"data:{image_file.content_type};base64,{encoded_img}"
 
-                # إضافة الدورة بدون الحاجة لـ company_code
                 supabase.table('souhila_courses').insert({
                     'title': title,
                     'description': desc,
@@ -199,8 +198,8 @@ def admin():
     courses_response = supabase.table('souhila_courses').select('*').execute()
     courses = courses_response.data if courses_response.data else []
 
-    # جلب الطلبيات مباشرة بدون قيود الشركات
-    orders_response = supabase.table('orders').select('*').order('id', desc=True).execute()
+    # جلب الطلبيات الخاصة بسهيلة من جدول orders_souhila حصرياً
+    orders_response = supabase.table('orders_souhila').select('*').order('id', desc=True).execute()
     orders = orders_response.data if orders_response.data else []
 
     return render_template('admin.html', settings=settings, courses=courses, orders=orders, msg=msg)
@@ -315,13 +314,15 @@ def submit_order():
 
     main_product_id = cart_data[0].get('id') if cart_data else (int(product_id) if product_id else None)
 
+    # التحقق هل الطلب يخص موقع سهيلة أم باقي المتاجر العادية
+    is_souhila_order = (request.path == '/submit-souhila-order') or ('souhila' in request.referrer if request.referrer else False)
+    
     order_data = {
         "customer_name": full_name,
         "customer_phone": phone,
         "product_name": ", ".join([f"{item.get('name', 'منتج')} (x{item.get('quantity', 1)})" for item in cart_data]), 
         "quantity": quantity_ordered,
         "total_price": total_price,
-        "company_code": company_code,
         "status": "قيد الانتظار",
         "state": region_name,
         "baladiya": baladiya,
@@ -330,9 +331,16 @@ def submit_order():
         "product_id": main_product_id
     }
     
+    # إذا كان طلب خاص بسهيلة لا نضيف company_code ونحفظه في orders_souhila
+    target_table = "orders"
+    if is_souhila_order:
+        target_table = "orders_souhila"
+    else:
+        order_data["company_code"] = company_code
+
     inserted_order_id = None
     try:
-        res_insert = supabase.table("orders").insert(order_data).execute()
+        res_insert = supabase.table(target_table).insert(order_data).execute()
         if res_insert.data and len(res_insert.data) > 0:
             inserted_order_id = res_insert.data[0].get('id')
     except Exception as e:
@@ -449,7 +457,6 @@ def logout():
 @login_required
 def dashboard():
     return render_template('dashboard.html')
-
 
 
 @app.route('/stats')
