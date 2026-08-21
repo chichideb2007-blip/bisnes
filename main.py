@@ -149,12 +149,16 @@ def admin():
                 whatsapp = request.form.get('whatsapp')
                 email = request.form.get('email')
                 map_url = request.form.get('map_url')
+                telegram_token = request.form.get('telegram_token')
+                telegram_chat_id = request.form.get('telegram_chat_id')
                 
                 supabase.table('site_settings').upsert([
                     {'key': 'phone', 'value': phone},
                     {'key': 'whatsapp', 'value': whatsapp},
                     {'key': 'email', 'value': email},
-                    {'key': 'map_url', 'value': map_url}
+                    {'key': 'map_url', 'value': map_url},
+                    {'key': 'telegram_token', 'value': telegram_token},
+                    {'key': 'telegram_chat_id', 'value': telegram_chat_id}
                 ], on_conflict='key').execute()
                 
                 msg = "تم حفظ التعديلات بنجاح!"
@@ -162,6 +166,7 @@ def admin():
             elif form_type == 'add_course':
                 title = request.form.get('course_title')
                 desc = request.form.get('course_desc')
+                price = request.form.get('course_price')
                 image_file = request.files.get('course_image')
                 
                 image_url = ""
@@ -173,6 +178,7 @@ def admin():
                 supabase.table('souhila_courses').insert({
                     'title': title,
                     'description': desc,
+                    'price': price,
                     'image': image_url
                 }).execute()
                 
@@ -187,22 +193,23 @@ def admin():
             print(f"CRITICAL ERROR in admin POST: {e}")
             msg = f"Erreur de sauvegarde: {str(e)}"
 
-    # جلب إعدادات موقع سهيلة الخاصة (site_settings)
     settings_response = supabase.table('site_settings').select('*').execute()
     settings = {}
     if settings_response.data:
         for item in settings_response.data:
             settings[item.get('key')] = item.get('value')
 
-    # جلب الدورات التدريبية الخاصة بسهيلة
     courses_response = supabase.table('souhila_courses').select('*').execute()
     courses = courses_response.data if courses_response.data else []
 
-    # جلب الطلبيات الخاصة بسهيلة من جدول orders_souhila حصرياً
     orders_response = supabase.table('orders_souhila').select('*').order('id', desc=True).execute()
     orders = orders_response.data if orders_response.data else []
 
-    return render_template('admin.html', settings=settings, courses=courses, orders=orders, msg=msg)
+    # جلب أسعار الشحن للولايات وإرسالها للقالب
+    rates_res = supabase.table("shipping_rates").select("*").order("id").execute()
+    rates = rates_res.data if rates_res.data else []
+
+    return render_template('admin.html', settings=settings, courses=courses, orders=orders, rates=rates, msg=msg)
 
 @app.route('/cart')
 def cart_page():
@@ -314,7 +321,6 @@ def submit_order():
 
     main_product_id = cart_data[0].get('id') if cart_data else (int(product_id) if product_id else None)
 
-    # التحقق هل الطلب يخص موقع سهيلة أم باقي المتاجر العادية
     is_souhila_order = (request.path == '/submit-souhila-order') or ('souhila' in request.referrer if request.referrer else False)
     
     order_data = {
@@ -331,7 +337,6 @@ def submit_order():
         "product_id": main_product_id
     }
     
-    # إذا كان طلب خاص بسهيلة لا نضيف company_code ونحفظه في orders_souhila
     target_table = "orders"
     if is_souhila_order:
         target_table = "orders_souhila"
@@ -345,6 +350,27 @@ def submit_order():
             inserted_order_id = res_insert.data[0].get('id')
     except Exception as e:
         print(f"Error inserting order: {e}")
+
+    if is_souhila_order:
+        try:
+            t_res = supabase.table('site_settings').select('*').in_('key', ['telegram_token', 'telegram_chat_id']).execute()
+            s_map = {item['key']: item['value'] for item in t_res.data} if t_res.data else {}
+            t_token = s_map.get('telegram_token')
+            t_chat_id = s_map.get('telegram_chat_id')
+            if t_token and t_chat_id:
+                product_names_str = ", ".join([f"{item.get('name', 'منتج')} (x{item.get('quantity', 1)})" for item in cart_data])
+                msg_text = (
+                    f"🛒 طلبية جديدة (موقع سهيلة)!\n"
+                    f"👤 الاسم: {full_name}\n"
+                    f"📞 الهاتف: {phone}\n"
+                    f"📦 الدورات/المنتجات: {product_names_str}\n"
+                    f"📍 المنطقة/الولاية: {region_name}\n"
+                    f"🏘️ البلدية: {baladiya}\n"
+                    f"💰 المجموع الكلي: {total_price} دج"
+                )
+                send_telegram_alert_by_token(t_token, t_chat_id, msg_text)
+        except Exception as err:
+            print("Telegram souhila alert error:", err)
 
     for item in cart_data:
         p_id = item.get('id') or item.get('product_id') or item.get('productId')
@@ -375,7 +401,7 @@ def submit_order():
         except Exception as ex:
             pass
 
-    if company_code:
+    if company_code and not is_souhila_order:
         res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
         if res_settings.data:
             s = res_settings.data[0]
@@ -415,7 +441,7 @@ def submit_order():
     <body>
         <div class="card">
              <p>شكراً لثقتكم بنا، سيتم الاتصال بكم قريباً لتأكيد الطلب.</p>
-            <a href="/store2" class="btn">🔙 العودة إلى المتجر</a>
+            <a href="/souhila" class="btn">🔙 العودة إلى الموقع</a>
         </div>
     </body>
     </html>
@@ -457,7 +483,6 @@ def logout():
 @login_required
 def dashboard():
     return render_template('dashboard.html')
-
 
 @app.route('/stats')
 @login_required
@@ -581,7 +606,6 @@ def get_delivery_prices():
     return jsonify(data.data)
 
 @app.route('/update_delivery_price', methods=['POST'])
-@login_required
 def update_delivery_price():
     data = request.json
     row_id = data.get('id')
@@ -590,8 +614,8 @@ def update_delivery_price():
     
     try:
         supabase.table("shipping_rates").update({
-            "office_price": new_office,
-            "home_price": new_home
+            "office_price": float(new_office or 0),
+            "home_price": float(new_home or 0)
         }).eq("id", row_id).execute()
         return jsonify({"status": "success"})
     except Exception as e:
