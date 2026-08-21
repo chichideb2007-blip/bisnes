@@ -151,19 +151,19 @@
         <h1>Compétences d'aujourd'hui, <span>succès de demain</span></h1>
         <p>Bâtissez votre parcours professionnel en toute confiance avec nos formations certifiées et adaptées au marché du travail.</p>
         
-        <!-- الخانات والأزرار البارزة الجديدة مطابقة للصورة التي أرسلتِها -->
+        <!-- الأزرار البارزة المرتبطة برقم الواتساب الديناميكي -->
         <div class="action-buttons-container">
-            {% if whatsapp_number %}
-            <a href="https://wa.me/{{ whatsapp_number }}?text=Bonjour,%20je%20souhaite%20m'informer%20sur%20nos%20formations." target="_blank" class="custom-action-btn btn-orange">
+            {% if settings.get('souhila_whatsapp') %}
+            <a href="https://wa.me/{{ settings.get('souhila_whatsapp') }}?text=Bonjour,%20je%20souhaite%20m'informer%20sur%20nos%20formations." target="_blank" class="custom-action-btn btn-orange">
                 Me former à la Sécurité
             </a>
-            <a href="https://wa.me/{{ whatsapp_number }}?text=Bonjour,%20je%20souhaite%20m'inscrire%20aux%20examens." target="_blank" class="custom-action-btn btn-dark">
+            <a href="https://wa.me/{{ settings.get('souhila_whatsapp') }}?text=Bonjour,%20je%20souhaite%20m'inscrire%20aux%20examens." target="_blank" class="custom-action-btn btn-dark">
                 Passer mon examen avec un centre partenaire agréé
             </a>
-            <a href="https://wa.me/{{ whatsapp_number }}?text=Bonjour,%20je%20souhaite%20des%20détails%20sur%20l'Assistance%20de%20Vie." target="_blank" class="custom-action-btn btn-peach">
+            <a href="https://wa.me/{{ settings.get('souhila_whatsapp') }}?text=Bonjour,%20je%20souhaite%20des%20détails%20sur%20l'Assistance%20de%20Vie." target="_blank" class="custom-action-btn btn-peach">
                 Me former à l'Assistance de Vie aux Familles
             </a>
-            <a href="https://wa.me/{{ whatsapp_number }}?text=Bonjour,%20je%20souhaite%20plus%20d'informations." target="_blank" class="custom-action-btn btn-green">
+            <a href="https://wa.me/{{ settings.get('souhila_whatsapp') }}?text=Bonjour,%20je%20souhaite%20plus%20d'informations." target="_blank" class="custom-action-btn btn-green">
                 Passer mon examen civique avec un centre partenaire
             </a>
             {% endif %}
@@ -185,15 +185,9 @@
                     </div>
                     <div class="course-action">
                         <div class="contact-buttons" style="display: flex; gap: 8px; flex-direction: column;">
-                            {% if whatsapp_number %}
-                            <a href="https://wa.me/{{ whatsapp_number }}?text=Bonjour,%20je%20souhaite%20m'inscrire%20à%20la%20formation:%20{{ course.title }}" target="_blank" style="background-color: #25D366; color: white; padding: 8px 12px; text-align: left; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 12px; display: flex; align-items: center; justify-content: flex-start; gap: 8px;">
-                                <i class="fab fa-whatsapp" style="font-size: 16px;"></i> {{ whatsapp_number }}
-                            </a>
-                            {% endif %}
-
-                            {% if email_address %}
-                            <a href="mailto:{{ email_address }}?subject=Pré-inscription%20à%20la%20formation:%20{{ course.title }}&body=Bonjour%20Souhila,%0A%0AJe%20souhaite%20m'inscrire%20à%20la%20formation%20'{{ course.title }}'.%20Merci%20de%20m'envoyer%20plus%20de%20détails." style="background-color: #E86F61; color: white; padding: 8px 12px; text-align: left; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 12px; display: flex; align-items: center; justify-content: flex-start; gap: 8px; word-break: break-all;">
-                                <i class="fas fa-envelope" style="font-size: 14px;"></i> {{ email_address }}
+                            {% if settings.get('souhila_whatsapp') %}
+                            <a href="https://wa.me/{{ settings.get('souhila_whatsapp') }}?text=Bonjour,%20je%20souhaite%20m'inscrire%20à%20la%20formation:%20{{ course.title }}" target="_blank" style="background-color: #25D366; color: white; padding: 8px 12px; text-align: left; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 12px; display: flex; align-items: center; justify-content: flex-start; gap: 8px;">
+                                <i class="fab fa-whatsapp" style="font-size: 16px;"></i> {{ settings.get('souhila_whatsapp') }}
                             </a>
                             {% endif %}
                         </div>
@@ -214,56 +208,36 @@
             <h2>Contactez-nous</h2>
             <p style="margin-bottom: 15px;">Avez-vous des questions ? Contactez-nous directement pour y répondre.</p>
             
-            <!-- أزرار الاتصال المباشر (هاتف + واتساب) -->
+            <!-- أزرار الاتصال المباشر (هاتف + واتساب) الديناميكية -->
             <div class="contact-buttons-container" style="display: flex; gap: 15px; justify-content: center; margin: 20px 0; flex-wrap: wrap;">
 
-                {% if phone_number %}
-                <a href="tel:{{ phone_number }}" style="display: flex; align-items: center; gap: 10px; background-color: #28a745; color: white; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                {% if settings.get('souhila_phone') %}
+                <a href="tel:{{ settings.get('souhila_phone') }}" style="display: flex; align-items: center; gap: 10px; background-color: #28a745; color: white; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                     <span style="font-size: 20px;">📞</span>
                     <span>اتصل بالهاتف</span>
                 </a>
                 {% endif %}
 
-                {% if whatsapp_number %}
-                <a href="https://wa.me/{{ whatsapp_number }}" target="_blank" style="display: flex; align-items: center; gap: 10px; background-color: #25D366; color: white; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                {% if settings.get('souhila_whatsapp') %}
+                <a href="https://wa.me/{{ settings.get('souhila_whatsapp') }}" target="_blank" style="display: flex; align-items: center; gap: 10px; background-color: #25D366; color: white; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                     <span style="font-size: 20px;">💬</span>
                     <span>راسلنا واتساب</span>
                 </a>
                 {% endif %}
 
             </div>
-
-            <!-- بقية وسائل الاتصال (الإيميل والموقع) -->
-            <div style="margin-top: 15px;">
-                {% if email_address %}
-                    <a href="mailto:{{ email_address }}" class="contact-link email-link"><i class="fas fa-envelope"></i> Email : {{ email_address }}</a>
-                {% endif %}
-            </div>
-
-            {% if website_url %}
-            <div style="margin-top: 15px;">
-                <a href="{{ website_url }}" target="_blank" class="website-link-display">
-                    <i class="fas fa-globe"></i> {{ website_url }}
-                </a>
-            </div>
-            {% endif %}
         </div>
 
     </div>
 
-    <!-- زر الواتساب العائم في زاوية الموقع -->
-    {% if whatsapp_number %}
-    <a href="https://wa.me/{{ whatsapp_number }}" target="_blank" class="whatsapp-float-btn" title="Contactez-nous sur WhatsApp">
+    <!-- زر الواتساب العائم في زاوية الموقع الديناميكي -->
+    {% if settings.get('souhila_whatsapp') %}
+    <a href="https://wa.me/{{ settings.get('souhila_whatsapp') }}" target="_blank" class="whatsapp-float-btn" title="Contactez-nous sur WhatsApp">
         <i class="fab fa-whatsapp"></i>
     </a>
     {% endif %}
 
     <footer>
-        {% if commercial_phone %}
-        <div class="footer-legal-info text-center" style="margin-bottom: 10px; font-weight: 600; color: var(--dark-color);">
-            <p>Registre Commercial / Numéro Légal : {{ commercial_phone }}</p>
-        </div>
-        {% endif %}
         <p>Tous droits réservés © 2026 - Souhila MERDACI Form Afer</p>
     </footer>
 
