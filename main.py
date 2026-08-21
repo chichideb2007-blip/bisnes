@@ -138,9 +138,7 @@ def souhila_home():
 
 @app.route('/souhila-checkout/<int:course_id>')
 def souhila_checkout(course_id):
-    rates = get_wilayas_from_db() # أسعار الشحن الخاصة بولايات الجزائر
-    
-    # جلب الدورة المحددة بناءً على الـ ID القادم من الرابط
+    rates = get_wilayas_from_db()
     course_res = supabase.table('souhila_courses').select('*').eq('id', course_id).single().execute()
     selected_course = course_res.data if course_res.data else None
     
@@ -385,6 +383,59 @@ def submit_order():
         except Exception as err:
             print("Telegram souhila alert error:", err)
 
+    for item in cart_data:
+        p_id = item.get('id') or item.get('product_id') or item.get('productId')
+        p_name = item.get('name')
+        item_qty = int(item.get('quantity', 1))
+        
+        try:
+            prod_info = None
+            if p_id:
+                prod_res = supabase.table("inventory").select("id, name, quantity").eq("id", p_id).execute()
+                if prod_res.data and len(prod_res.data) > 0:
+                    prod_info = prod_res.data[0]
+            elif p_name:
+                prod_res = supabase.table("inventory").select("id, name, quantity").eq("name", p_name).eq("company_id_text", company_code).execute()
+                if prod_res.data and len(prod_res.data) > 0:
+                    prod_info = prod_res.data[0]
+
+            if prod_info:
+                real_p_id = prod_info.get('id')
+                current_qty = int(prod_info.get('quantity', 0))
+                product_name_db = prod_info.get('name', 'منتج')
+                
+                new_qty = max(0, current_qty - item_qty)
+                supabase.table("inventory").update({"quantity": new_qty}).eq("id", real_p_id).execute()
+                
+                if new_qty <= 0:
+                    send_telegram_alert(product_name_db, current_company, company_code)
+        except Exception as ex:
+            pass
+
+    if company_code and not is_souhila_order:
+        res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
+        if res_settings.data:
+            s = res_settings.data[0]
+            token, chat_id = s.get('telegram_token'), s.get('telegram_chat_id')
+            product_names_str = ", ".join([f"{item.get('name', item.get('title', 'منتج'))} (x{item.get('quantity', 1)})" for item in cart_data])
+            if token and chat_id:
+                delivery_text = "توصيل للمنزل" if delivery_type == "home" else "توصيل للمكتب"
+                msg_text = (
+                    f"🛒 طلبية جديدة!\n"
+                    f"👤 الاسم: {full_name}\n"
+                    f"📞 الهاتف: {phone}\n"
+                    f"📦 المنتجات: {product_names_str}\n"
+                    f"📍 المنطقة/الولاية: {region_name}\n"
+                    f"🏘️ البلدية: {baladiya}\n"
+                    f"🏠 العنوان: {address}\n"
+                    f"🚚 التوصيل: {delivery_text} ({delivery_price} دج)\n"
+                    f"💰 المجموع الكلي: {total_price} دج"
+                )
+                if inserted_order_id:
+                    send_order_alert(token, chat_id, msg_text, inserted_order_id)
+                else:
+                    send_telegram_alert_by_token(token, chat_id, msg_text)
+
     return """
     <!DOCTYPE html>
     <html lang="ar" dir="rtl">
@@ -443,7 +494,6 @@ def logout():
 @login_required
 def dashboard():
     return render_template('dashboard.html')
-
 
 @app.route('/stats')
 @login_required
@@ -558,6 +608,291 @@ def settings():
 @login_required
 def shipping_settings():
     return render_template('shipping_settings.html')
+
+@app.route('/get_delivery_prices', methods=['GET'])
+@login_required
+def get_delivery_prices():
+    company_code = session.get('company_code')
+    data = supabase.table("delivery_prices").select("*").eq("company_code", company_code).execute()
+    return jsonify(data.data)
+
+@app.route('/update_delivery_price', methods=['POST'])
+def update_delivery_price():
+    data = request.json
+    row_id = data.get('id')
+    new_office = data.get('office_price')
+    new_home = data.get('home_price')
+    
+    try:
+        supabase.table("shipping_rates").update({
+            "office_price": float(new_office or 0),
+            "home_price": float(new_home or 0)
+        }).eq("id", row_id).execute()
+        return jsonify({"status": "success"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/get_shipping_rates')
+def get_shipping_rates():
+    company_code = request.args.get('company_code')
+    delivery_type = request.args.get('type') 
+    
+    try:
+        res = supabase.table("delivery_prices") \
+            .select("home_price, office_price") \
+            .eq("company_code", company_code) \
+            .single().execute()
+        if res.data:
+            price = res.data.get('home_price') if delivery_type == 'home' else res.data.get('office_price')
+            return jsonify({"price": float(price or 0)})
+    except Exception as e:
+        pass
+    return jsonify({"price": 0})
+
+@app.route('/get_all_shipping_rates', methods=['GET'])
+@login_required
+def get_all_shipping_rates():
+    res = supabase.table("shipping_rates").select("*").order("id").execute()
+    return jsonify(res.data)
+
+@app.route('/update_delivery_settings', methods=['POST'])
+@login_required
+def update_delivery_settings():
+    data = request.json
+    company_code = session.get('company_code')
+    supabase.table("company_settings").update({
+        "delivery_office_price": data.get('office_price'),
+        "delivery_home_price": data.get('home_price')
+    }).eq("company_code", company_code).execute()
+    return jsonify({"status": "success"})
+
+@app.route('/admin/jordan-shipping')
+@login_required
+def admin_jordan_shipping():
+    res = supabase.table("jordan_rates").select("*").order("id").execute()
+    jordan_rates = res.data if res.data else []
+    return render_template('admin_jordan.html', jordan_rates=jordan_rates)
+
+@app.route('/admin/update-jordan-rate/<int:id>', methods=['POST'])
+@login_required
+def update_jordan_rate(id):
+    try:
+        if request.is_json:
+            data = request.json
+            home_price = data.get('home_price')
+            office_price = data.get('office_price')
+        else:
+            home_price = request.form.get('home_price')
+            office_price = request.form.get('office_price')
+
+        supabase.table("jordan_rates").update({
+            "home_price": float(home_price or 0),
+            "office_price": float(office_price or 0)
+        }).eq("id", id).execute()
+
+        if request.is_json:
+            return jsonify({"status": "success"})
+        return redirect(url_for('orders'))
+    except Exception as e:
+        if request.is_json:
+            return jsonify({"status": "error", "message": str(e)}), 500
+        return f"حدث خطأ: {e}", 500
+
+@app.route('/products', methods=['GET', 'POST'])
+@login_required
+def products():
+    company_code = session.get('company_code')
+    
+    if request.method == 'POST':
+        file = request.files.get('product_image')
+        encoded_string = ""
+        if file and file.filename != '':
+            encoded_string = f'data:image/jpeg;base64,{base64.b64encode(file.read()).decode("utf-8")}'
+
+        data = {
+            'name': request.form.get('name'),
+            'quantity': int(request.form.get('quantity', 0)),
+            'price': float(request.form.get('price', 0.0)),
+            'company_id_text': company_code,
+            'product-images': encoded_string
+        }
+        try:
+            supabase.table('inventory').insert(data).execute()
+            return redirect(url_for('products'))
+        except Exception as e:
+            return f"خطأ في قاعدة البيانات: {str(e)}", 500
+
+    res = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
+    return render_template('products.html', products=res.data or [])
+
+@app.route('/inventory_management', methods=['GET', 'POST'])
+@login_required
+def inventory_management():
+    company_code = session.get('company_code')
+    
+    if request.method == 'POST':
+        product_id = request.form.get('product_id')
+        new_quantity = request.form.get('quantity')
+        file = request.files.get('product_image')
+        
+        update_data = {"quantity": int(new_quantity)}
+        
+        if file and file.filename != '':
+            filename = f"{company_code}/{int(time.time())}_{file.filename}"
+            supabase.storage.from_("products").upload(
+                path=filename,
+                file=file.read(),
+                file_options={"content-type": file.content_type}
+            )
+            public_url = supabase.storage.from_("products").get_public_url(filename)
+            update_data["product-images"] = public_url
+        
+        try:
+            supabase.table('inventory').update(update_data).eq("id", product_id).eq("company_id_text", company_code).execute()
+        except Exception as e:
+            pass
+            
+    try:
+        res = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
+        inventory_data = res.data or []
+    except Exception as e:
+        inventory_data = []
+        
+    return render_template('inventory_management.html', inventory=inventory_data)
+
+@app.route('/edit_product/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit_product(id):
+    company_code = session.get('company_code')
+    res = supabase.table("inventory").select("*").eq("id", id).eq("company_id_text", company_code).execute()
+    product = res.data[0] if res.data else None
+    
+    if not product:
+        return "المنتج غير موجود", 404
+
+    if request.method == 'POST':
+        new_name = request.form.get('name')
+        new_quantity = request.form.get('quantity')
+        new_price = request.form.get('price')
+        
+        supabase.table("inventory").update({
+            "name": new_name,
+            "quantity": int(new_quantity),
+            "price": float(new_price)
+        }).eq("id", id).execute()
+        
+        return redirect(url_for('products'))
+        
+    return render_template('edit_product.html', product=product)
+
+@app.route('/update_quantity/<int:product_id>', methods=['POST'])
+@login_required
+def update_quantity(product_id):
+    company_code = session.get('company_code')
+    action_type = request.form.get('action_type')
+    amount = int(request.form.get('amount', 0))
+    
+    prod = supabase.table("inventory").select("quantity").eq("id", product_id).eq("company_id_text", company_code).single().execute()
+    
+    if prod.data:
+        current_qty = prod.data.get('quantity', 0)
+        if action_type == 'add':
+            new_qty = current_qty + amount
+        else:
+            new_qty = amount
+            
+        supabase.table("inventory").update({"quantity": new_qty}).eq("id", product_id).execute()
+        
+    return redirect(url_for('products'))
+
+@app.route('/delete_product/<int:id>', methods=['POST'])
+@login_required
+def delete_product(id):
+    try: 
+        supabase.table("inventory").delete().eq("id", id).execute()
+    except Exception as e: 
+        pass
+    return redirect(url_for('products'))
+
+@app.route('/delete_order/<int:id>', methods=['POST'])
+@login_required
+def delete_order(id):
+    supabase.table("orders").delete().eq("id", id).execute()
+    return redirect(url_for('orders'))
+
+@app.route('/update_status/<int:order_id>', methods=['POST'])
+@login_required
+def update_status(order_id):
+    new_status = request.form.get('status')
+    if new_status:
+        supabase.table("orders").update({"status": new_status}).eq("id", order_id).execute()
+    return redirect(url_for('orders'))
+
+@app.route('/orders', methods=['GET', 'POST'])
+@login_required
+def orders():
+    company_code = session.get('company_code')
+    
+    if request.method == 'POST':
+        product_name = request.form.get('product_name')
+        requested_qty = int(request.form.get('quantity', 1))
+        customer_name = request.form.get('customer_name')
+        customer_phone = request.form.get('customer_phone')
+        state = request.form.get('state')
+        delivery_type = request.form.get('delivery_type')
+        delivery_price = float(request.form.get('delivery_price', 0.0))
+        base_price = float(request.form.get('price', 0.0))
+        total_price = base_price + delivery_price
+
+        product_res = supabase.table("inventory").select("id, quantity").eq("name", product_name).eq("company_id_text", company_code).execute()
+        
+        prod_id = None
+        if product_res.data:
+            product = product_res.data[0]
+            prod_id = product['id']
+            current_qty = product['quantity']
+            new_qty = max(0, current_qty - requested_qty)
+            supabase.table("inventory").update({"quantity": new_qty}).eq("id", prod_id).execute()
+
+        order_data = {
+            "customer_name": customer_name,
+            "customer_phone": customer_phone,
+            "product_name": product_name,
+            "quantity": requested_qty,
+            "total_price": total_price,
+            "company_code": company_code,
+            "status": "قيد الانتظار",
+            "state": state,
+            "delivery_type": delivery_type,
+            "delivery_price": delivery_price,
+            "product_id": prod_id
+        }
+        
+        res_insert = supabase.table("orders").insert(order_data).execute()
+        inserted_order_id = res_insert.data[0].get('id') if res_insert.data else None
+        
+        res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
+        if res_settings.data:
+            s = res_settings.data[0]
+            token = s.get('telegram_token')
+            chat_id = s.get('telegram_chat_id')
+            if token and chat_id:
+                msg_text = f"🛒 طلبية جديدة من لوحة التحكم!\nالعميل: {customer_name}\nالمنتج: {product_name}\nالكمية: {requested_qty}\nالولاية: {state}"
+                if inserted_order_id:
+                    send_order_alert(token, chat_id, msg_text, inserted_order_id)
+                else:
+                    send_telegram_alert_by_token(token, chat_id, msg_text)
+        
+        return redirect(url_for('orders'))
+
+    orders_res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
+    wilayas_res = supabase.table("shipping_rates").select("*").order("id").execute()
+    jordan_res = supabase.table("jordan_rates").select("*").order("id").execute()
+    
+    return render_template('orders_dashboard.html', 
+                           orders=orders_res.data or [], 
+                           data=wilayas_res.data or [],
+                           jordan_rates=jordan_res.data or [])
 
 @app.route('/shop', methods=['GET', 'POST'])
 def shop():
