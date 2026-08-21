@@ -43,6 +43,10 @@
         
         .back-link { display: block; text-align: center; margin-top: 15px; color: var(--dark-color); text-decoration: none; font-size: 14px; font-weight: 600; }
         .back-link:hover { text-decoration: underline; }
+
+        @media (max-width: 768px) {
+            .delivery-options { flex-direction: column; }
+        }
     </style>
 </head>
 <body>
@@ -51,20 +55,17 @@
         <h1>Validation de votre <span>Inscription</span></h1>
         
         <form action="/submit-order" method="POST" id="checkoutForm">
-            <!-- بيانات مخفية لتحديد أن الطلب يخص موقع سهيلة -->
+            <!-- بيانات مخفية لإرسال معلومات الدورة والطلب -->
             <input type="hidden" name="country" value="algeria">
             <input type="hidden" name="delivery_type" id="delivery_type_input" value="home">
             <input type="hidden" name="delivery_price" id="delivery_price_input" value="0">
-            <input type="hidden" name="cart_data" id="cart_data_input" value="">
+            <input type="hidden" name="product_id" value="{{ course.id }}">
+            <input type="hidden" name="cart_data" id="cart_data_input" value='[{"id": "{{ course.id }}", "name": "{{ course.title }}", "price": {{ course.price }}, "quantity": 1}]'>
 
-            <div class="form-group">
-                <label>اختر الدورة التدريبية المطلوبة:</label>
-                <select name="product_id" id="courseSelect" required onchange="updateCoursePrice()">
-                    <option value="" disabled selected>-- اختر الدورة --</option>
-                    {% for course in courses %}
-                    <option value="{{ course.id }}" data-price="{{ course.price }}">{{ course.title }} - {{ course.price }} DA</option>
-                    {% endfor %}
-                </select>
+            <div class="form-group" style="background: #faf4ef; padding: 15px; border-radius: 8px; border: 1px solid #ebd5cb;">
+                <label style="color: var(--primary-color); margin-bottom: 5px;">الدورة التدريبية المختارة:</label>
+                <div style="font-size: 16px; font-weight: 800; color: var(--dark-color);">{{ course.title }}</div>
+                <div style="font-size: 14px; color: #666; margin-top: 5px;">السعر: <strong>{{ course.price }} DA</strong></div>
             </div>
 
             <div class="form-group">
@@ -113,7 +114,7 @@
             <div class="summary-box">
                 <div class="summary-row">
                     <span>سعر الدورة:</span>
-                    <span id="coursePriceText">0 DA</span>
+                    <span>{{ course.price }} DA</span>
                 </div>
                 <div class="summary-row">
                     <span>سعر التوصيل (خاص بسهيلة):</span>
@@ -121,7 +122,7 @@
                 </div>
                 <div class="summary-row total">
                     <span>المجموع الكلي:</span>
-                    <span id="totalPriceText">0 DA</span>
+                    <span id="totalPriceText">{{ course.price }} DA</span>
                 </div>
             </div>
 
@@ -132,7 +133,7 @@
 
     <script>
         let currentDeliveryType = 'home';
-        let baseCoursePrice = 0;
+        let baseCoursePrice = {{ course.price }};
         let currentDeliveryPrice = 0;
 
         function setDeliveryType(type) {
@@ -140,32 +141,22 @@
             document.getElementById('delivery_type_input').value = type;
             
             const cards = document.querySelectorAll('.delivery-card');
-            cards.forEach(c => c.classList.remove('active'));
+            cards.forEach(c => {
+                c.style.borderColor = '#eee';
+                c.style.background = '#fafafa';
+                c.classList.remove('active');
+            });
             
             if(type === 'home') {
+                cards[0].style.borderColor = 'var(--primary-color)';
+                cards[0].style.background = '#fff5f4';
                 cards[0].classList.add('active');
             } else {
+                cards[1].style.borderColor = 'var(--primary-color)';
+                cards[1].style.background = '#fff5f4';
                 cards[1].classList.add('active');
             }
             updateDeliveryRate();
-        }
-
-        function updateCoursePrice() {
-            const select = document.getElementById('courseSelect');
-            const selectedOption = select.options[select.selectedIndex];
-            baseCoursePrice = parseFloat(selectedOption.getAttribute('data-price')) || 0;
-            
-            // تحديث بيانات السلة الوهمية ليتوافق مع مسار الاستقبال في بايثون
-            const courseName = selectedOption.text.split(' - ')[0];
-            const cartItem = [{
-                id: select.value,
-                name: courseName,
-                price: baseCoursePrice,
-                quantity: 1
-            }];
-            document.getElementById('cart_data_input').value = JSON.stringify(cartItem);
-
-            calculateTotal();
         }
 
         function updateDeliveryRate() {
@@ -189,10 +180,7 @@
         }
 
         function calculateTotal() {
-            document.getElementById('coursePriceText').innerText = baseCoursePrice + ' DA';
-            document.getElementById('delivery_price_input').value = currentDeliveryPrice;
             document.getElementById('deliveryPriceText').innerText = currentDeliveryPrice + ' DA';
-            
             const total = baseCoursePrice + currentDeliveryPrice;
             document.getElementById('totalPriceText').innerText = total + ' DA';
         }
