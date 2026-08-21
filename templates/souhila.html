@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Souhila MERDACI Form Afer - Formations Certifiantes</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
-    <!-- استدعاء مكتبة FontAwesome للأيقونات -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -32,7 +31,6 @@
         .hero h1 span { color: var(--primary-color); }
         .hero p { font-size: 14px; color: #666; max-width: 600px; margin: 0 auto; }
 
-        /* تنسيق الأزرار الخانات البارزة الجديدة (مثل الصورة) */
         .action-buttons-container {
             max-width: 650px;
             margin: 30px auto 0 auto;
@@ -59,7 +57,6 @@
             opacity: 0.95;
         }
 
-        /* ألوان الخانات المختلفة */
         .btn-orange { background-color: #E86F61; color: white; }
         .btn-dark { background-color: #172A46; color: white; }
         .btn-peach { background-color: #F8B195; color: #172A46; }
@@ -119,19 +116,18 @@
         <h1>Compétences d'aujourd'hui, <span>succès de demain</span></h1>
         <p>Bâtissez votre parcours professionnel en toute confiance avec nos formations certifiées et adaptées au marché du travail.</p>
         
-        <!-- الأزرار البارزة المرتبطة برقم الواتساب الديناميكي -->
         <div class="action-buttons-container">
-            {% if settings.get('souhila_whatsapp') %}
-            <a href="https://wa.me/{{ settings.get('souhila_whatsapp') }}?text=Bonjour,%20je%20souhaite%20m'informer%20sur%20nos%20formations." target="_blank" class="custom-action-btn btn-orange">
+            {% if settings.get('whatsapp') %}
+            <a href="https://wa.me/{{ settings.get('whatsapp') }}?text=Bonjour,%20je%20souhaite%20m'informer%20sur%20nos%20formations." target="_blank" class="custom-action-btn btn-orange">
                 Me former à la Sécurité
             </a>
-            <a href="https://wa.me/{{ settings.get('souhila_whatsapp') }}?text=Bonjour,%20je%20souhaite%20m'inscrire%20aux%20examens." target="_blank" class="custom-action-btn btn-dark">
+            <a href="https://wa.me/{{ settings.get('whatsapp') }}?text=Bonjour,%20je%20souhaite%20m'inscrire%20aux%20examens." target="_blank" class="custom-action-btn btn-dark">
                 Passer mon examen avec un centre partenaire agréé
             </a>
-            <a href="https://wa.me/{{ settings.get('souhila_whatsapp') }}?text=Bonjour,%20je%20souhaite%20des%20détails%20sur%20l'Assistance%20de%20Vie." target="_blank" class="custom-action-btn btn-peach">
+            <a href="https://wa.me/{{ settings.get('whatsapp') }}?text=Bonjour,%20je%20souhaite%20des%20détails%20sur%20l'Assistance%20de%20Vie." target="_blank" class="custom-action-btn btn-peach">
                 Me former à l'Assistance de Vie aux Familles
             </a>
-            <a href="https://wa.me/{{ settings.get('souhila_whatsapp') }}?text=Bonjour,%20je%20souhaite%20plus%20d'informations." target="_blank" class="custom-action-btn btn-green">
+            <a href="https://wa.me/{{ settings.get('whatsapp') }}?text=Bonjour,%20je%20souhaite%20plus%20d'informations." target="_blank" class="custom-action-btn btn-green">
                 Passer mon examen civique avec un centre partenaire
             </a>
             {% endif %}
@@ -153,9 +149,9 @@
                     </div>
                     <div class="course-action">
                         <div class="contact-buttons" style="display: flex; gap: 8px; flex-direction: column;">
-                            {% if settings.get('souhila_whatsapp') %}
-                            <a href="https://wa.me/{{ settings.get('souhila_whatsapp') }}?text=Bonjour,%20je%20souhaite%20m'inscrire%20à%20la%20formation:%20{{ course.title }}" target="_blank" style="background-color: #25D366; color: white; padding: 8px 12px; text-align: left; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 12px; display: flex; align-items: center; justify-content: flex-start; gap: 8px;">
-                                <i class="fab fa-whatsapp" style="font-size: 16px;"></i> {{ settings.get('souhila_whatsapp') }}
+                            {% if settings.get('whatsapp') %}
+                            <a href="https://wa.me/{{ settings.get('whatsapp') }}?text=Bonjour,%20je%20souhaite%20m'inscrire%20à%20la%20formation:%20{{ course.title }}" target="_blank" style="background-color: #25D366; color: white; padding: 8px 12px; text-align: left; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 12px; display: flex; align-items: center; justify-content: flex-start; gap: 8px;">
+                                <i class="fab fa-whatsapp" style="font-size: 16px;"></i> {{ settings.get('whatsapp') }}
                             </a>
                             {% endif %}
                         </div>
@@ -176,18 +172,17 @@
             <h2>Contactez-nous</h2>
             <p style="margin-bottom: 15px;">Avez-vous des questions ? Contactez-nous directement pour y répondre.</p>
             
-            <!-- أزرار الاتصال المباشر (هاتف + واتساب) الديناميكية -->
             <div class="contact-buttons-container" style="display: flex; gap: 15px; justify-content: center; margin: 20px 0; flex-wrap: wrap;">
 
-                {% if settings.get('souhila_phone') %}
-                <a href="tel:{{ settings.get('souhila_phone') }}" style="display: flex; align-items: center; gap: 10px; background-color: #28a745; color: white; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                {% if settings.get('phone') %}
+                <a href="tel:{{ settings.get('phone') }}" style="display: flex; align-items: center; gap: 10px; background-color: #28a745; color: white; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                     <span style="font-size: 20px;">📞</span>
                     <span>اتصل بالهاتف</span>
                 </a>
                 {% endif %}
 
-                {% if settings.get('souhila_whatsapp') %}
-                <a href="https://wa.me/{{ settings.get('souhila_whatsapp') }}" target="_blank" style="display: flex; align-items: center; gap: 10px; background-color: #25D366; color: white; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                {% if settings.get('whatsapp') %}
+                <a href="https://wa.me/{{ settings.get('whatsapp') }}" target="_blank" style="display: flex; align-items: center; gap: 10px; background-color: #25D366; color: white; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                     <span style="font-size: 20px;">💬</span>
                     <span>راسلنا واتساب</span>
                 </a>
@@ -198,17 +193,16 @@
 
     </div>
 
-    <!-- أزرار التواصل السريع العائمة (واتساب + هاتف) في زاوية الشاشة -->
     <div class="quick-contact-buttons" style="position: fixed; bottom: 20px; left: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px;">
         
-        {% if settings.get('souhila_whatsapp') %}
-        <a href="https://wa.me/{{ settings.get('souhila_whatsapp') }}" target="_blank" title="تواصل عبر واتساب" style="background-color: #25d366; color: white; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; text-decoration: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3); font-size: 24px;">
+        {% if settings.get('whatsapp') %}
+        <a href="https://wa.me/{{ settings.get('whatsapp') }}" target="_blank" title="تواصل عبر واتساب" style="background-color: #25d366; color: white; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; text-decoration: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3); font-size: 24px;">
             <i class="fab fa-whatsapp"></i>
         </a>
         {% endif %}
         
-        {% if settings.get('souhila_phone') %}
-        <a href="tel:{{ settings.get('souhila_phone') }}" title="اتصل بنا" style="background-color: #007bff; color: white; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; text-decoration: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3); font-size: 20px;">
+        {% if settings.get('phone') %}
+        <a href="tel:{{ settings.get('phone') }}" title="اتصل بنا" style="background-color: #007bff; color: white; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; text-decoration: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3); font-size: 20px;">
             <i class="fas fa-phone-alt"></i>
         </a>
         {% endif %}
