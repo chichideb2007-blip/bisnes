@@ -147,13 +147,13 @@ def admin():
                 phone = request.form.get('phone')
                 whatsapp = request.form.get('whatsapp')
                 email = request.form.get('email')
-                map_url = request.form.get('map_url') # تم إضافة استقبال رابط الخريطة
+                map_url = request.form.get('map_url')
                 
                 supabase.table('site_settings').upsert([
                     {'key': 'phone', 'value': phone},
                     {'key': 'whatsapp', 'value': whatsapp},
                     {'key': 'email', 'value': email},
-                    {'key': 'map_url', 'value': map_url} # حفظ رابط الخريطة في قاعدة البيانات
+                    {'key': 'map_url', 'value': map_url}
                 ], on_conflict='key').execute()
                 
                 msg = "تم حفظ التعديلات بنجاح!"
@@ -168,12 +168,13 @@ def admin():
                     img_binary = image_file.read()
                     encoded_img = base64.b64encode(img_binary).decode('utf-8')
                     image_url = f"data:{image_file.content_type};base64,{encoded_img}"
-                    
-                supabase.table('souhila_courses').insert({
+                
+                res = supabase.table('souhila_courses').insert({
                     'title': title,
                     'description': desc,
                     'image': image_url
                 }).execute()
+                
                 msg = "Formation ajoutée avec succès !"
 
             elif form_type == 'delete_course':
@@ -182,8 +183,8 @@ def admin():
                 msg = "Formation supprimée avec succès !"
                 
         except Exception as e:
-            print(f"Error in admin POST: {e}")
-            msg = f"Erreur: {e}"
+            print(f"CRITICAL ERROR in admin POST: {e}")
+            msg = f"Erreur de sauvegarde: {str(e)}"
 
     settings_response = supabase.table('site_settings').select('*').execute()
     settings = {}
