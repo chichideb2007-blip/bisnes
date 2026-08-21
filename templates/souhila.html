@@ -147,7 +147,6 @@
                         <h3>{{ course.title }}</h3>
                         <p>{{ course.description }}</p>
                     </div>
-                    <!-- تم حذف زر الواتساب من هنا تماماً -->
                 </div>
                 {% endfor %}
             {% else %}
@@ -164,7 +163,6 @@
             <h2>Contactez-nous</h2>
             <p style="margin-bottom: 15px;">Avez-vous des questions ? Contactez-nous directement pour y répondre.</p>
             
-            <!-- أزرار الاتصال في الأسفل (هاتف، واتساب، إيميل، والخريطة) -->
             <div class="contact-buttons-container" style="display: flex; gap: 12px; justify-content: center; margin: 20px 0; flex-wrap: wrap;">
 
                 {% if settings.get('phone') %}
@@ -188,23 +186,63 @@
                 </a>
                 {% endif %}
 
-                {% if settings.get('map_url') %}
-                <a href="{{ settings.get('map_url') }}" target="_blank" style="display: flex; align-items: center; gap: 8px; background-color: #FF5722; color: white; padding: 12px 18px; border-radius: 8px; text-decoration: none; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <a id="mapButton" href="#" target="_blank" style="display: none; align-items: center; gap: 8px; background-color: #FF5722; color: white; padding: 12px 18px; border-radius: 8px; text-decoration: none; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                     <i class="fas fa-map-marker-alt" style="font-size: 16px;"></i>
                     <span>موقعنا على الخريطة</span>
                 </a>
-                {% endif %}
 
+            </div>
+
+            <div style="margin-top: 30px; padding: 20px; background: #f9f6f0; border-radius: 10px; border: 1px dashed #ccc; text-align: right;">
+                <label for="mapInput" style="display: block; font-size: 13px; font-weight: bold; margin-bottom: 8px; color: var(--dark-color);">
+                    📍 أدخل رابط موقعك على خرائط جوجل (Google Maps) هنا وسيحفظ تلقائياً:
+                </label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="mapInput" placeholder="https://maps.google.com/..." style="flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; direction: ltr;">
+                    <button id="saveMapBtn" style="background-color: var(--dark-color); color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer;">حفظ</button>
+                </div>
+                <span id="saveStatus" style="font-size: 11px; color: green; display: block; margin-top: 5px; font-weight: bold;"></span>
             </div>
         </div>
 
     </div>
 
-    <!-- تم حذف زر الواتساب العائم من الزاوية تماماً -->
-
     <footer>
         <p>Tous droits réservés © 2026 - Souhila MERDACI Form Afer</p>
     </footer>
+
+    <script>
+        // كود للحفظ التلقائي وعرض الزر مباشرة بمجرد إدخال الرابط
+        const mapInput = document.getElementById('mapInput');
+        const saveMapBtn = document.getElementById('saveMapBtn');
+        const mapButton = document.getElementById('mapButton');
+        const saveStatus = document.getElementById('saveStatus');
+
+        // أول ما يفتح الموقع، نتحقق إذا كان هناك رابط مخزن مسبقاً
+        const savedMapUrl = localStorage.getItem('user_map_url');
+        if (savedMapUrl) {
+            mapInput.value = savedMapUrl;
+            mapButton.href = savedMapUrl;
+            mapButton.style.display = 'flex';
+        }
+
+        // عند الضغط على حفظ أو التعديل
+        saveMapBtn.addEventListener('click', function() {
+            const url = mapInput.value.trim();
+            if (url) {
+                localStorage.setItem('user_map_url', url);
+                mapButton.href = url;
+                mapButton.style.display = 'flex';
+                saveStatus.textContent = 'تم حفظ الرابط بنجاح! ظهور زر الخريطة مفعل الآن.';
+                setTimeout(() => { saveStatus.textContent = ''; }, 3000);
+            } else {
+                localStorage.removeItem('user_map_url');
+                mapButton.style.display = 'none';
+                saveStatus.textContent = 'تم إزالة الرابط.';
+                setTimeout(() => { saveStatus.textContent = ''; }, 3000);
+            }
+        });
+    </script>
 
 </body>
 </html>
