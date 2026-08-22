@@ -969,25 +969,6 @@ def clear_store2_session():
     session.pop('current_store2_name', None)
     return redirect(url_for('store2'))
 
-@app.route('/store2', methods=['GET', 'POST'])
-def store2():
-    if request.method == 'POST' and 'company_name' in request.form:
-        session['current_store2_name']  = request.form.get('company_name')
-        return redirect(url_for('store2'))
-
-    shop_name = session.get('current_store2_name')
-    products = []
-    if shop_name:
-        products = get_products_by_shop_name(shop_name)
-    
-    data = render_template('store2.html', products=products, current_company=shop_name)
-    return data
-
-@app.route('/clear_store2_session')
-def clear_store2_session():
-    session.pop('current_store2_name', None)
-    return redirect(url_for('store2'))
-
 @app.route('/store2_cart')
 def store2_cart():
     return render_template('store2_cart.html')
