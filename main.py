@@ -38,7 +38,7 @@ def get_product_from_db(product_id):
     res = supabase.table("inventory").select("*").eq("id", product_id).single().execute()
     return res.data if res.data else None
 
-# --- دالة خاصة بجلب ولايات موقع سهيلة (من جدول algeria_wilayas) ---
+# --- دالة خاصة حصرياً بولايات موقع سهيلة (من جدول algeria_wilayas) ---
 def get_souhila_wilayas_from_db():
     try:
         res = supabase.table("algeria_wilayas").select("*").order("id").execute()
@@ -47,7 +47,7 @@ def get_souhila_wilayas_from_db():
         print("Error fetching souhila wilayas:", e)
         return []
 
-# --- دالة خاصة بجلب أسعار الشحن الخاصة بلوحة التحكم (من جدول shipping_rates) ---
+# --- دالة أسعار الشحن الخاصة بلوحة التحكم والتجار (من جدول shipping_rates) ---
 def get_wilayas_from_db():
     try:
         res = supabase.table("shipping_rates").select("*").order("id").execute()
@@ -152,7 +152,7 @@ def souhila_home():
 
 @app.route('/souhila-checkout/<int:course_id>')
 def souhila_checkout(course_id):
-    # استخدام جدول الولايات الخاص بموقع سهيلة هنا
+    # تم تحديثه هنا لِيأخذ البيانات من جدول algeria_wilayas الخاص بسهيلة حصرياً
     rates = get_souhila_wilayas_from_db()
     course_res = supabase.table('souhila_courses').select('*').eq('id', course_id).single().execute()
     selected_course = course_res.data if course_res.data else None
@@ -326,11 +326,15 @@ def submit_order():
             current_company = s_res.data[0].get('company_name', "متجر")
 
     region_name = ""
+    is_souhila_order = (request.path == '/submit-souhila-order') or ('souhila' in request.referrer if request.referrer else False)
+
     if country == 'algeria':
         wilaya = request.form.get('wilaya')
         region_name = wilaya
         try:
-            w_res = supabase.table("shipping_rates").select("wilaya_name").eq("id", wilaya).single().execute()
+            # التحقق ديناميكياً من الجدول المناسب حسب الطلب (سهيلة أو اللوحة العادية)
+            table_to_query = "algeria_wilayas" if is_souhila_order else "shipping_rates"
+            w_res = supabase.table(table_to_query).select("wilaya_name").eq("id", wilaya).single().execute()
             if w_res.data and w_res.data.get('wilaya_name'):
                 region_name = w_res.data.get('wilaya_name')
         except:
@@ -346,8 +350,6 @@ def submit_order():
             pass
 
     main_product_id = cart_data[0].get('id') if cart_data else (int(product_id) if product_id else None)
-
-    is_souhila_order = (request.path == '/submit-souhila-order') or ('souhila' in request.referrer if request.referrer else False)
     
     order_data = {
         "customer_name": full_name,
@@ -930,7 +932,7 @@ def clear_session():
 @app.route('/store2', methods=['GET', 'POST'])
 def store2():
     if request.method == 'POST' and 'company_name' in request.form:
-        session['current_store2_name'] = request.form.get('company_name')
+        session['current_store2_name']  = request.form.get('company_name')
         return redirect(url_for('store2'))
 
     shop_name = session.get('current_store2_name')
