@@ -198,16 +198,18 @@ def admin():
             elif form_type == 'add_course':
                 title = request.form.get('course_title')
                 desc = request.form.get('course_desc')
-                price = request.form.get('course_price')
-                image_file = request.files.get('course_image')
+                raw_price = request.form.get('course_price', '0')
+                price = float(raw_price) if raw_price else 0.0
                 
+                image_file = request.files.get('course_image')
                 image_url = ""
+                
                 if image_file and image_file.filename != '':
                     img_binary = image_file.read()
                     encoded_img = base64.b64encode(img_binary).decode('utf-8')
                     image_url = f"data:{image_file.content_type};base64,{encoded_img}"
 
-                supabase.table('souhila_courses').insert({
+                insert_res = supabase.table('souhila_courses').insert({
                     'title': title,
                     'description': desc,
                     'price': price,
@@ -244,18 +246,23 @@ def admin():
 
 @app.route('/update_souhila_delivery_price', methods=['POST'])
 def update_souhila_delivery_price():
-    data = request.json
+    # استقبال البيانات سواء كانت JSON أو Form Data
+    data = request.json if request.is_json else request.form
     row_id = data.get('id')
     new_office = data.get('office_price')
     new_home = data.get('home_price')
     
+    if not row_id:
+        return jsonify({"status": "error", "message": "ID missing"}), 400
+        
     try:
         supabase.table("algeria_wilayas").update({
             "souhila_office_price": float(new_office or 0),
             "souhila_home_price": float(new_home or 0)
-        }).eq("id", row_id).execute()
+        }).eq("id", int(row_id)).execute()
         return jsonify({"status": "success"})
     except Exception as e:
+        print(f"Error updating souhila delivery price: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route('/cart')
