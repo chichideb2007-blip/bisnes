@@ -38,11 +38,18 @@ def get_product_from_db(product_id):
     res = supabase.table("inventory").select("*").eq("id", product_id).single().execute()
     return res.data if res.data else None
 
-# --- دالة خاصة حصرياً بولايات موقع سهيلة (من جدول algeria_wilayas) ---
+# --- دالة خاصة حصرياً بولايات موقع سهيلة (من جدول algeria_wilayas) بدون لخبطة ---
 def get_souhila_wilayas_from_db():
     try:
         res = supabase.table("algeria_wilayas").select("*").order("id").execute()
-        return res.data if res.data else []
+        wilayas = res.data if res.data else []
+        
+        # ربط الأعمدة الخاصة بسهيلة لتتوافق مع الواجهة بسلاسة
+        for w in wilayas:
+            w['home_price'] = w.get('souhila_home_price', 0)
+            w['office_price'] = w.get('souhila_office_price', 0)
+            
+        return wilayas
     except Exception as e:
         print("Error fetching souhila wilayas:", e)
         return []
@@ -152,7 +159,6 @@ def souhila_home():
 
 @app.route('/souhila-checkout/<int:course_id>')
 def souhila_checkout(course_id):
-    # تم تحديثه هنا لِيأخذ البيانات من جدول algeria_wilayas الخاص بسهيلة حصرياً
     rates = get_souhila_wilayas_from_db()
     course_res = supabase.table('souhila_courses').select('*').eq('id', course_id).single().execute()
     selected_course = course_res.data if course_res.data else None
@@ -231,10 +237,26 @@ def admin():
     orders_response = supabase.table('orders_souhila').select('*').order('id', desc=True).execute()
     orders = orders_response.data if orders_response.data else []
 
-    rates_res = supabase.table("shipping_rates").select("*").order("id").execute()
-    rates = rates_res.data if rates_res.data else []
+    # جلب ولايات سهيلة مع الأسعار المخصصة لعرضها وتعديلها في لوحة الـ Admin الخاصة بسهيلة
+    rates = get_souhila_wilayas_from_db()
 
     return render_template('admin.html', settings=settings, courses=courses, orders=orders, rates=rates, msg=msg)
+
+@app.route('/update_souhila_delivery_price', methods=['POST'])
+def update_souhila_delivery_price():
+    data = request.json
+    row_id = data.get('id')
+    new_office = data.get('office_price')
+    new_home = data.get('home_price')
+    
+    try:
+        supabase.table("algeria_wilayas").update({
+            "souhila_office_price": float(new_office or 0),
+            "souhila_home_price": float(new_home or 0)
+        }).eq("id", row_id).execute()
+        return jsonify({"status": "success"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route('/cart')
 def cart_page():
@@ -332,7 +354,6 @@ def submit_order():
         wilaya = request.form.get('wilaya')
         region_name = wilaya
         try:
-            # التحقق ديناميكياً من الجدول المناسب حسب الطلب (سهيلة أو اللوحة العادية)
             table_to_query = "algeria_wilayas" if is_souhila_order else "shipping_rates"
             w_res = supabase.table(table_to_query).select("wilaya_name").eq("id", wilaya).single().execute()
             if w_res.data and w_res.data.get('wilaya_name'):
@@ -928,6 +949,25 @@ def shop():
 def clear_session():
     session.pop('current_shop_name', None)
     return redirect(url_for('shop'))
+
+@app.route('/store2', methods=['GET', 'POST'])
+def store2():
+    if request.method == 'POST' and 'company_name' in request.form:
+        session['current_store2_name']  = request.form.get('company_name')
+        return redirect(url_for('store2'))
+
+    shop_name = session.get('current_store2_name')
+    products = []
+    if shop_name:
+        products = get_products_by_shop_name(shop_name)
+    
+    data = render_template('store2.html', products=products, current_company=shop_name)
+    return data
+
+@app.route('/clear_store2_session')
+def clear_store2_session():
+    session.pop('current_store2_name', None)
+    return redirect(url_for('store2'))
 
 @app.route('/store2', methods=['GET', 'POST'])
 def store2():
