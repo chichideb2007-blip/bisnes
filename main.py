@@ -209,11 +209,13 @@ def admin():
                     encoded_img = base64.b64encode(img_binary).decode('utf-8')
                     image_url = f"data:{image_file.content_type};base64,{encoded_img}"
 
+                # تم إضافة 'company_code': 'souhila' لتجنب خطأ قاعدة البيانات
                 insert_res = supabase.table('souhila_courses').insert({
                     'title': title,
                     'description': desc,
                     'price': price,
-                    'image': image_url
+                    'image': image_url,
+                    'company_code': 'souhila'
                 }).execute()
                 
                 msg = "Formation ajoutée avec succès !"
@@ -475,8 +477,7 @@ def submit_order():
                     f"🏠 العنوان: {address}\n"
                     f"🚚 التوصيل: {delivery_text} ({delivery_price} دج)\n"
                     f"💰 المجموع الكلي: {total_price} دج"
-                )
-                if inserted_order_id:
+ if inserted_order_id:
                     send_order_alert(token, chat_id, msg_text, inserted_order_id)
                 else:
                     send_telegram_alert_by_token(token, chat_id, msg_text)
