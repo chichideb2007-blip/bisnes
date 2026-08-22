@@ -38,9 +38,23 @@ def get_product_from_db(product_id):
     res = supabase.table("inventory").select("*").eq("id", product_id).single().execute()
     return res.data if res.data else None
 
+# --- دالة خاصة بجلب ولايات موقع سهيلة (من جدول algeria_wilayas) ---
+def get_souhila_wilayas_from_db():
+    try:
+        res = supabase.table("algeria_wilayas").select("*").order("id").execute()
+        return res.data if res.data else []
+    except Exception as e:
+        print("Error fetching souhila wilayas:", e)
+        return []
+
+# --- دالة خاصة بجلب أسعار الشحن الخاصة بلوحة التحكم (من جدول shipping_rates) ---
 def get_wilayas_from_db():
-    res = supabase.table("shipping_rates").select("*").order("id").execute()
-    return res.data if res.data else []
+    try:
+        res = supabase.table("shipping_rates").select("*").order("id").execute()
+        return res.data if res.data else []
+    except Exception as e:
+        print("Error fetching shipping rates:", e)
+        return []
 
 def send_telegram_alert(product_name, company_name, company_code=""):
     try:
@@ -138,7 +152,8 @@ def souhila_home():
 
 @app.route('/souhila-checkout/<int:course_id>')
 def souhila_checkout(course_id):
-    rates = get_wilayas_from_db()
+    # استخدام جدول الولايات الخاص بموقع سهيلة هنا
+    rates = get_souhila_wilayas_from_db()
     course_res = supabase.table('souhila_courses').select('*').eq('id', course_id).single().execute()
     selected_course = course_res.data if course_res.data else None
     
