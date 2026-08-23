@@ -38,13 +38,12 @@ def get_product_from_db(product_id):
     res = supabase.table("inventory").select("*").eq("id", product_id).single().execute()
     return res.data if res.data else None
 
-# --- دالة خاصة حصرياً بولايات موقع سهيلة (من جدول algeria_wilayas) بدون لخبطة ---
+# --- دالة خاصة حصرياً بولايات موقع سهيلة (من جدول algeria_wilayas) ---
 def get_souhila_wilayas_from_db():
     try:
         res = supabase.table("algeria_wilayas").select("*").order("id").execute()
         wilayas = res.data if res.data else []
         
-        # ربط الأعمدة الخاصة بسهيلة لتتوافق مع الواجهة بسلاسة
         for w in wilayas:
             w['home_price'] = w.get('souhila_home_price', 0)
             w['office_price'] = w.get('souhila_office_price', 0)
@@ -129,7 +128,7 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# --- المسارات ---
+# --- المسارات الأساسية ---
 
 @app.route('/favicon.ico')
 def favicon():
@@ -153,9 +152,7 @@ def souhila_home():
     courses_res = supabase.table('souhila_courses').select('*').execute()
     courses = courses_res.data if courses_res.data else []
     
-    return render_template('souhila.html', 
-                           settings=settings,
-                           courses=courses)
+    return render_template('souhila.html', settings=settings, courses=courses)
 
 @app.route('/souhila-checkout/<int:course_id>')
 def souhila_checkout(course_id):
@@ -209,7 +206,7 @@ def admin():
                     encoded_img = base64.b64encode(img_binary).decode('utf-8')
                     image_url = f"data:{image_file.content_type};base64,{encoded_img}"
 
-                insert_res = supabase.table('souhila_courses').insert({
+                supabase.table('souhila_courses').insert({
                     'title': title,
                     'description': desc,
                     'price': price,
@@ -229,10 +226,7 @@ def admin():
             msg = f"Erreur de sauvegarde: {str(e)}"
 
     settings_response = supabase.table('site_settings').select('*').execute()
-    settings = {}
-    if settings_response.data:
-        for item in settings_response.data:
-            settings[item.get('key')] = item.get('value')
+    settings = {item.get('key'): item.get('value') for item in settings_response.data} if settings_response.data else {}
 
     courses_response = supabase.table('souhila_courses').select('*').execute()
     courses = courses_response.data if courses_response.data else []
@@ -261,7 +255,6 @@ def update_souhila_delivery_price():
         }).eq("id", int(row_id)).execute()
         return jsonify({"status": "success"})
     except Exception as e:
-        print(f"Error updating souhila delivery price: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route('/cart')
@@ -913,7 +906,7 @@ def orders():
     
     return render_template('orders_dashboard.html', 
                            orders=orders_res.data or [], 
-                           data=wilayas_res.data or [],
+                           wilayas=wilayas_res.data or [],  
                            jordan_rates=jordan_res.data or [])
 
 @app.route('/shop', methods=['GET', 'POST'])
@@ -945,8 +938,7 @@ def store2():
     if shop_name:
         products = get_products_by_shop_name(shop_name)
     
-    data = render_template('store2.html', products=products, current_company=shop_name)
-    return data
+    return render_template('store2.html', products=products, current_company=shop_name)
 
 @app.route('/clear_store2_session')
 def clear_store2_session():
@@ -970,11 +962,9 @@ def store2_checkout(product_id):
     rates = get_wilayas_from_db()
     return render_template('store2_checkout.html', product=product, rates=rates)
 
-# --- المسارات المدمجة الجديدة الخاصة بأسعار الشحن القديمة (shipping_rates) ---
 @app.route('/get_all_shipping_rates', methods=['GET'])
 @login_required
 def get_all_shipping_rates():
-    # جلب أسماء الولايات والأسعار من جدول shipping_rates مرتبة حسب الـ id
     res = supabase.table("shipping_rates").select("*").order("id").execute()
     return jsonify(res.data)
 
