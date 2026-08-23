@@ -215,7 +215,7 @@ def admin():
                     'description': desc,
                     'price': price,
                     'image': image_url,
-                    'company_code': 'souhila'
+                    'company_code': 'souhila' 
                 }).execute()
                 
                 msg = "Formation ajoutée avec succès !"
@@ -248,7 +248,6 @@ def admin():
 
 @app.route('/update_souhila_delivery_price', methods=['POST'])
 def update_souhila_delivery_price():
-    # استقبال البيانات سواء كانت JSON أو Form Data
     data = request.json if request.is_json else request.form
     row_id = data.get('id')
     new_office = data.get('office_price')
@@ -477,7 +476,8 @@ def submit_order():
                     f"🏠 العنوان: {address}\n"
                     f"🚚 التوصيل: {delivery_text} ({delivery_price} دج)\n"
                     f"💰 المجموع الكلي: {total_price} دج"
- if inserted_order_id:
+                )
+                if inserted_order_id:
                     send_order_alert(token, chat_id, msg_text, inserted_order_id)
                 else:
                     send_telegram_alert_by_token(token, chat_id, msg_text)
