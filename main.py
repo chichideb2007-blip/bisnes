@@ -209,7 +209,6 @@ def admin():
                     encoded_img = base64.b64encode(img_binary).decode('utf-8')
                     image_url = f"data:{image_file.content_type};base64,{encoded_img}"
 
-                # تم إضافة 'company_code': 'souhila' لتجنب خطأ قاعدة البيانات
                 insert_res = supabase.table('souhila_courses').insert({
                     'title': title,
                     'description': desc,
@@ -241,7 +240,6 @@ def admin():
     orders_response = supabase.table('orders_souhila').select('*').order('id', desc=True).execute()
     orders = orders_response.data if orders_response.data else []
 
-    # جلب ولايات سهيلة مع الأسعار المخصصة لعرضها وتعديلها في لوحة الـ Admin الخاصة بسهيلة
     rates = get_souhila_wilayas_from_db()
 
     return render_template('admin.html', settings=settings, courses=courses, orders=orders, rates=rates, msg=msg)
@@ -662,22 +660,6 @@ def get_delivery_prices():
     data = supabase.table("delivery_prices").select("*").eq("company_code", company_code).execute()
     return jsonify(data.data)
 
-@app.route('/update_delivery_price', methods=['POST'])
-def update_delivery_price():
-    data = request.json
-    row_id = data.get('id')
-    new_office = data.get('office_price')
-    new_home = data.get('home_price')
-    
-    try:
-        supabase.table("shipping_rates").update({
-            "office_price": float(new_office or 0),
-            "home_price": float(new_home or 0)
-        }).eq("id", row_id).execute()
-        return jsonify({"status": "success"})
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
-
 @app.route('/get_shipping_rates')
 def get_shipping_rates():
     company_code = request.args.get('company_code')
@@ -694,12 +676,6 @@ def get_shipping_rates():
     except Exception as e:
         pass
     return jsonify({"price": 0})
-
-@app.route('/get_all_shipping_rates', methods=['GET'])
-@login_required
-def get_all_shipping_rates():
-    res = supabase.table("shipping_rates").select("*").order("id").execute()
-    return jsonify(res.data)
 
 @app.route('/update_delivery_settings', methods=['POST'])
 @login_required
@@ -993,6 +969,33 @@ def store2_checkout(product_id):
         return "المنتج غير موجود", 404
     rates = get_wilayas_from_db()
     return render_template('store2_checkout.html', product=product, rates=rates)
+
+# --- المسارات المدمجة الجديدة الخاصة بأسعار الشحن القديمة (shipping_rates) ---
+@app.route('/get_all_shipping_rates', methods=['GET'])
+@login_required
+def get_all_shipping_rates():
+    # جلب أسماء الولايات والأسعار من جدول shipping_rates مرتبة حسب الـ id
+    res = supabase.table("shipping_rates").select("*").order("id").execute()
+    return jsonify(res.data)
+
+@app.route('/update_delivery_price', methods=['POST'])
+def update_delivery_price():
+    data = request.json if request.is_json else request.form
+    row_id = data.get('id')
+    new_office = data.get('office_price')
+    new_home = data.get('home_price')
+    
+    if not row_id:
+        return jsonify({"status": "error", "message": "ID missing"}), 400
+        
+    try:
+        supabase.table("shipping_rates").update({
+            "office_price": float(new_office or 0),
+            "home_price": float(new_home or 0)
+        }).eq("id", int(row_id)).execute()
+        return jsonify({"status": "success"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 
 if __name__ == '__main__':
