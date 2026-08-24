@@ -43,12 +43,7 @@
 
     <script>
         function loadCart() {
-            // إذا أراد أحدهم الدخول لصفحة السلة مباشرة ولم يختار مطعماً (أو تم تفريغ الجلسة)، نفرغ السلة احترازياً
-            let currentCompanyInStorage = "{{ current_company }}";
-            if (!currentCompanyInStorage || currentCompanyInStorage.trim() === "") {
-                localStorage.removeItem('store2_cart');
-            }
-
+            // جلب الوجبات مباشرة من الذاكرة المحلية للمتجر دون حذفها بالخطأ
             let cart = JSON.parse(localStorage.getItem('store2_cart')) || [];
             let container = document.getElementById('cart-items-container');
             let summary = document.getElementById('cart-summary');
