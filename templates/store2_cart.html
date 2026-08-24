@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>سلة الطلبات</title>
+    <title>سلة طلبات المطعم</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
@@ -14,7 +14,7 @@
             <h1 class="text-lg font-black text-gray-900 flex items-center gap-2">
                 <i class="fas fa-shopping-bag text-amber-600"></i> سلة طلبات المطعم
             </h1>
-            <a href="/shop" class="text-sm font-bold text-amber-700 bg-amber-50 px-4 py-2 rounded-full border border-amber-200 hover:bg-amber-100 transition-colors">العودة لقائمة الطعام</a>
+            <a href="/store2" class="text-sm font-bold text-amber-700 bg-amber-50 px-4 py-2 rounded-full border border-amber-200 hover:bg-amber-100 transition-colors">العودة لقائمة الطعام</a>
         </div>
     </header>
 
@@ -37,13 +37,14 @@
             </div>
             <h3 class="text-lg font-bold text-gray-800 mb-1">سلة الطلبات فارغة حالياً</h3>
             <p class="text-gray-500 text-sm mb-4">لم تقم بإضافة أي وجبات أو مشروبات إلى السلة بعد</p>
-            <a href="/shop" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm inline-block shadow-md shadow-amber-600/20 transition-colors">تصفح قائمة الطعام</a>
+            <a href="/store2" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm inline-block shadow-md shadow-amber-600/20 transition-colors">تصفح قائمة الطعام</a>
         </div>
     </main>
 
     <script>
         function loadCart() {
-            let cart = JSON.parse(localStorage.getItem('cart')) || [];
+            // استخدام المفتاح الصحيح الخاص بالمطعم store2_cart بدلاً من cart
+            let cart = JSON.parse(localStorage.getItem('store2_cart')) || [];
             let container = document.getElementById('cart-items-container');
             let summary = document.getElementById('cart-summary');
             let emptyMsg = document.getElementById('empty-cart-msg');
@@ -66,7 +67,6 @@
                 let itemTotal = itemPrice * itemQty;
                 total += itemTotal;
 
-                // توافق تام مع مفتاح الصور المرسل من المتجر
                 let imgSrc = item['product-images'] || item.image || 'https://via.placeholder.com/80';
 
                 container.innerHTML += `
@@ -96,24 +96,24 @@
         }
 
         function changeQuantity(index, delta) {
-            let cart = JSON.parse(localStorage.getItem('cart')) || [];
+            let cart = JSON.parse(localStorage.getItem('store2_cart')) || [];
             if (cart[index]) {
                 cart[index].quantity = (parseInt(cart[index].quantity) || 1) + delta;
                 if (cart[index].quantity < 1) cart[index].quantity = 1;
-                localStorage.setItem('cart', JSON.stringify(cart));
+                localStorage.setItem('store2_cart', JSON.stringify(cart));
                 loadCart();
             }
         }
 
         function removeItem(index) {
-            let cart = JSON.parse(localStorage.getItem('cart')) || [];
+            let cart = JSON.parse(localStorage.getItem('store2_cart')) || [];
             cart.splice(index, 1);
-            localStorage.setItem('cart', JSON.stringify(cart));
+            localStorage.setItem('store2_cart', JSON.stringify(cart));
             loadCart();
         }
 
         function proceedToCheckout() {
-            window.location.href = "/checkout_cart";
+            window.location.href = "/checkout_store2"; // أو المسار الخاص بإتمام طلبات المتجر الثاني
         }
 
         loadCart();
