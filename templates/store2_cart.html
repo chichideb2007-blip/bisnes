@@ -43,7 +43,12 @@
 
     <script>
         function loadCart() {
-            // استخدام المفتاح الصحيح الخاص بالمطعم store2_cart بدلاً من cart
+            // إذا أراد أحدهم الدخول لصفحة السلة مباشرة ولم يختار مطعماً (أو تم تفريغ الجلسة)، نفرغ السلة احترازياً
+            let currentCompanyInStorage = "{{ current_company }}";
+            if (!currentCompanyInStorage || currentCompanyInStorage.trim() === "") {
+                localStorage.removeItem('store2_cart');
+            }
+
             let cart = JSON.parse(localStorage.getItem('store2_cart')) || [];
             let container = document.getElementById('cart-items-container');
             let summary = document.getElementById('cart-summary');
@@ -113,7 +118,7 @@
         }
 
         function proceedToCheckout() {
-            window.location.href = "/checkout_store2"; // أو المسار الخاص بإتمام طلبات المتجر الثاني
+            window.location.href = "/checkout_store2";
         }
 
         loadCart();
