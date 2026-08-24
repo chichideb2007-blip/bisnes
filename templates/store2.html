@@ -88,6 +88,18 @@
     </main>
 
     <script>
+        // تفريغ السلة تلقائياً إذا كانت تخص زبوناً سابقاً أو تم تغيير المطعم
+        window.addEventListener('DOMContentLoaded', (event) => {
+            const currentCompany = "{{ current_company }}";
+            
+            // إذا لم يكن هناك مطعم مختار (في صفحة إدخال اسم المطعم)، نفرغ السلة القديمة تلقائياً لزبون جديد
+            if (!currentCompany) {
+                localStorage.removeItem('store2_cart');
+                let countEl = document.getElementById('cart-count');
+                if(countEl) countEl.innerText = '0';
+            }
+        });
+
         // دالة تحديث عداد سلة المطعم
         function updateCartCount() {
             let cart = JSON.parse(localStorage.getItem('store2_cart')) || [];
@@ -157,7 +169,9 @@
         }
 
         // تحديث العداد فور التحميل
-        window.onload = updateCartCount;
+        window.onload = function() {
+            updateCartCount();
+        };
     </script>
 </body>
 </html>
