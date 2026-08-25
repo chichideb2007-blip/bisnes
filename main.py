@@ -323,28 +323,55 @@ def submit_order():
     base_price = sum(float(item.get('price', 0)) * int(item.get('quantity', 1)) for item in cart_data)
     total_price = base_price + delivery_price
 
+    # --- استخراج كود الشركة بطريقة شاملة لكل المواقع ---
     company_code = ""
-    if cart_data:
-        first_item = cart_data[0]
-        company_code = first_item.get('company_id_text') or first_item.get('company_code') or ""
     
-    if not company_code and 'current_shop_name' in session:
-        shop_name = session.get('current_shop_name')
-        settings_res = supabase.table("settings").select("company_code").ilike("company_name", shop_name).execute()
-        if settings_res.data:
-            company_code = settings_res.data[0]['company_code']
+    # 1. البحث في السلة (Cart Data)
+    if cart_data:
+        for item in cart_data:
+            company_code = item.get('company_id_text') or item.get('company_code') or ""
+            if company_code:
+                break
 
-    if not company_code and 'current_store2_name' in session:
-        shop_name = session.get('current_store2_name')
-        settings_res = supabase.table("settings").select("company_code").ilike("company_name", shop_name).execute()
-        if settings_res.data:
-            company_code = settings_res.data[0]['company_code']
+    # 2. البحث عبر متجر الوجبات (store2)
+    if not company_code and session.get('current_store2_name'):
+        shop_name = session.get('current_store2_name').strip()
+        try:
+            settings_res = supabase.table("settings").select("company_code").ilike("company_name", shop_name).execute()
+            if settings_res.data:
+                company_code = settings_res.data[0]['company_code']
+        except Exception as e:
+            print("Error store2 code:", e)
+
+    # 3. البحث عبر المتجر العادي (shop)
+    if not company_code and session.get('current_shop_name'):
+        shop_name = session.get('current_shop_name').strip()
+        try:
+            settings_res = supabase.table("settings").select("company_code").ilike("company_name", shop_name).execute()
+            if settings_res.data:
+                company_code = settings_res.data[0]['company_code']
+        except Exception as e:
+            print("Error shop code:", e)
+
+    # 4. الحل الاحتياطي عبر رقم المنتج (Product ID)
+    if not company_code and cart_data:
+        try:
+            first_p_id = cart_data[0].get('id') or cart_data[0].get('product_id') or cart_data[0].get('productId')
+            if first_p_id:
+                p_res = supabase.table("inventory").select("company_id_text").eq("id", first_p_id).single().execute()
+                if p_res.data:
+                    company_code = p_res.data.get('company_id_text', '')
+        except Exception as e:
+            print("Error fallback product code:", e)
 
     current_company = session.get('current_shop_name') or session.get('current_store2_name') or "متجر غير معروف"
     if not current_company and company_code:
-        s_res = supabase.table("settings").select("company_name").eq("company_code", company_code).execute()
-        if s_res.data:
-            current_company = s_res.data[0].get('company_name', "متجر")
+        try:
+            s_res = supabase.table("settings").select("company_name").eq("company_code", company_code).single().execute()
+            if s_res.data:
+                current_company = s_res.data.get('company_name', "متجر")
+        except:
+            pass
 
     region_name = ""
     is_souhila_order = (request.path == '/submit-souhila-order') or ('souhila' in request.referrer if request.referrer else False)
@@ -399,6 +426,7 @@ def submit_order():
     except Exception as e:
         print(f"Error inserting order: {e}")
 
+    # --- إرسال التنبيه لموقع سهيلة ---
     if is_souhila_order:
         try:
             t_res = supabase.table('site_settings').select('*').in_('key', ['telegram_token', 'telegram_chat_id']).execute()
@@ -420,6 +448,7 @@ def submit_order():
         except Exception as err:
             print("Telegram souhila alert error:", err)
 
+    # --- تحديث المخزون ---
     for item in cart_data:
         p_id = item.get('id') or item.get('product_id') or item.get('productId')
         p_name = item.get('name')
@@ -431,7 +460,7 @@ def submit_order():
                 prod_res = supabase.table("inventory").select("id, name, quantity").eq("id", p_id).execute()
                 if prod_res.data and len(prod_res.data) > 0:
                     prod_info = prod_res.data[0]
-            elif p_name:
+            elif p_name and company_code:
                 prod_res = supabase.table("inventory").select("id, name, quantity").eq("name", p_name).eq("company_id_text", company_code).execute()
                 if prod_res.data and len(prod_res.data) > 0:
                     prod_info = prod_res.data[0]
@@ -449,29 +478,33 @@ def submit_order():
         except Exception as ex:
             pass
 
+    # --- إرسال تنبيه الطلب عبر التليجرام للمتاجر (shop & store2) ---
     if company_code and not is_souhila_order:
-        res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
-        if res_settings.data:
-            s = res_settings.data[0]
-            token, chat_id = s.get('telegram_token'), s.get('telegram_chat_id')
-            product_names_str = ", ".join([f"{item.get('name', item.get('title', 'منتج'))} (x{item.get('quantity', 1)})" for item in cart_data])
-            if token and chat_id:
-                delivery_text = "توصيل للمنزل" if delivery_type == "home" else "توصيل للمكتب"
-                msg_text = (
-                    f"🛒 طلبية جديدة!\n"
-                    f"👤 الاسم: {full_name}\n"
-                    f"📞 الهاتف: {phone}\n"
-                    f"📦 المنتجات: {product_names_str}\n"
-                    f"📍 المنطقة/الولاية: {region_name}\n"
-                    f"🏘️ البلدية: {baladiya}\n"
-                    f"🏠 العنوان: {address}\n"
-                    f"🚚 التوصيل: {delivery_text} ({delivery_price} دج)\n"
-                    f"💰 المجموع الكلي: {total_price} دج"
-                )
-                if inserted_order_id:
-                    send_order_alert(token, chat_id, msg_text, inserted_order_id)
-                else:
-                    send_telegram_alert_by_token(token, chat_id, msg_text)
+        try:
+            res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
+            if res_settings.data:
+                s = res_settings.data[0]
+                token, chat_id = s.get('telegram_token'), s.get('telegram_chat_id')
+                product_names_str = ", ".join([f"{item.get('name', item.get('title', 'منتج'))} (x{item.get('quantity', 1)})" for item in cart_data])
+                if token and chat_id:
+                    delivery_text = "توصيل للمنزل" if delivery_type == "home" else "توصيل للمكتب"
+                    msg_text = (
+                        f"🛒 طلبية جديدة من ({current_company})!\n"
+                        f"👤 الاسم: {full_name}\n"
+                        f"📞 الهاتف: {phone}\n"
+                        f"📦 المنتجات: {product_names_str}\n"
+                        f"📍 المنطقة/الولاية: {region_name}\n"
+                        f"🏘️ البلدية: {baladiya}\n"
+                        f"🏠 العنوان: {address}\n"
+                        f"🚚 التوصيل: {delivery_text} ({delivery_price} دج)\n"
+                        f"💰 المجموع الكلي: {total_price} دج"
+                    )
+                    if inserted_order_id:
+                        send_order_alert(token, chat_id, msg_text, inserted_order_id)
+                    else:
+                        send_telegram_alert_by_token(token, chat_id, msg_text)
+        except Exception as telegram_err:
+            print("Telegram shop alert error:", telegram_err)
 
     return """
     <!DOCTYPE html>
@@ -952,7 +985,7 @@ def store2_cart():
 @app.route('/store2_checkout_page')
 def store2_checkout_page():
     rates = get_wilayas_from_db()
-    return render_template('store2_order.html', rates=rates)
+    return render_template('store2_checkout.html', rates=rates)
 
 @app.route('/store2_checkout/<int:product_id>')
 def store2_checkout(product_id):
