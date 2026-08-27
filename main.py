@@ -478,7 +478,7 @@ def submit_order():
         except Exception as ex:
             pass
 
-    ---
+    # --- إرسال تنبيه الطلب عبر التليجرام للمتاجر (shop & store2) ---
     if company_code and not is_souhila_order:
         try:
             res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
