@@ -185,22 +185,23 @@ function googleTranslateElementInit() {
 <script>
     let isCartOrder = "{{ 'true' if is_cart else 'false' }}" === "true";
     let basePrice = 0;
+    let cartItems = [];
 
     window.addEventListener('DOMContentLoaded', () => {
         if (isCartOrder) {
-            let cart = JSON.parse(localStorage.getItem('cart')) || [];
+            cartItems = JSON.parse(localStorage.getItem('cart')) || [];
             let summaryContainer = document.getElementById('cart_items_summary');
             let priceSpan = document.getElementById('product_unit_price');
             let quantityContainer = document.getElementById('quantity_container');
             
             if(quantityContainer) quantityContainer.style.display = 'none';
             
-            if (cart.length > 0) {
+            if (cartItems.length > 0) {
                 let htmlList = "<ul class='mb-0 ps-3'>";
                 let cartTotal = 0;
                 
-                cart.forEach(item => {
-                    let itemTotal = item.price * (item.quantity || 1);
+                cartItems.forEach(item => {
+                    let itemTotal = parseFloat(item.price) * parseInt(item.quantity || 1);
                     cartTotal += itemTotal;
                     htmlList += `<li>${item.name} (الكمية: ${item.quantity || 1}) - ${itemTotal} دج</li>`;
                 });
