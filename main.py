@@ -478,7 +478,7 @@ def submit_order():
         except Exception as ex:
             pass
 
-    # --- إرسال تنبيه الطلب عبر التليجرام للمتاجر (shop & store2) ---
+        # --- إرسال تنبيه الطلب عبر التليجرام للمتاجر (shop & store2) ---
     if company_code and not is_souhila_order:
         try:
             res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
@@ -985,7 +985,7 @@ def store2_cart():
 @app.route('/store2_checkout_page')
 def store2_checkout_page():
     rates = get_wilayas_from_db()
-    return render_template('store2_checkout.html', rates=rates)
+    return render_template('store2_checkout.html', rates=rates, product=None)
 
 @app.route('/store2_checkout/<int:product_id>')
 def store2_checkout(product_id):
