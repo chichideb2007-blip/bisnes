@@ -54,18 +54,24 @@
 
             <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                 {% for product in products %}
+                    {% set images = product['product-images'].split(',') if product['product-images'] is string else product['product-images'] %}
+                    {% set first_image = images[0].strip() if images and images[0] else '' %}
+                    
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col justify-between product-card">
                         <div>
-                            <div class="w-full h-36 bg-gray-100 rounded-xl overflow-hidden mb-3">
-                                {% if product['product-images'] %}
-                                    <img src="{{ product['product-images'] }}" class="w-full h-full object-cover product-img" alt="{{ product.name }}">
+                            <!-- رابط العرض لصفحة تفاصيل المنتج أو الضغط على الصورة -->
+                            <a href="/product/{{ product.id }}" class="block w-full h-36 bg-gray-100 rounded-xl overflow-hidden mb-3">
+                                {% if first_image %}
+                                    <img src="{{ first_image }}" class="w-full h-full object-cover product-img" alt="{{ product.name }}">
                                 {% else %}
                                     <div class="w-full h-full flex items-center justify-center text-gray-400">
                                         <i class="fas fa-image text-2xl"></i>
                                     </div>
                                 {% endif %}
-                            </div>
-                            <h3 class="font-bold text-gray-800 text-sm mb-1 line-clamp-1 product-name">{{ product.name }}</h3>
+                            </a>
+                            <h3 class="font-bold text-gray-800 text-sm mb-1 line-clamp-1 product-name">
+                                <a href="/product/{{ product.id }}">{{ product.name }}</a>
+                            </h3>
                             <p class="text-indigo-600 font-black text-base mb-3"><span class="product-price">{{ product.price }}</span> دج</p>
                         </div>
 
@@ -74,7 +80,7 @@
                                     data-id="{{ product.id }}" 
                                     data-name="{{ product.name }}" 
                                     data-price="{{ product.price }}" 
-                                    data-image="{{ product['product-images'] if product['product-images'] else '' }}" 
+                                    data-image="{{ first_image }}" 
                                     class="add-to-cart-btn w-full bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold py-2.5 rounded-xl transition-all text-xs flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/20 cursor-pointer">
                                 <i class="fas fa-cart-plus"></i> إضافة للسلة
                             </button>
