@@ -52,13 +52,13 @@
                 <h5 class="fw-bold text-gray-800"><i class="fas fa-shopping-bag text-amber-custom"></i> الطلب: <span class="text-amber-custom">سلة طلبات المأكولات</span></h5>
                 <div id="cart_items_summary" class="mt-2 text-muted small"></div>
             {% else %}
-                <h5 class="fw-bold text-gray-800"><i class="fas fa-utensils text-amber-custom"></i> الوجبة: <span class="text-amber-custom" id="product_name_text">{{ product.name if product else 'وجبة' }}</span></h5>
-                <p class="mb-0 text-muted small">سعر الوجبة الواحدة: <span id="unit_price_display">{{ product.price if product else 0 }}</span> دج</p>
+                <h5 class="fw-bold text-gray-800"><i class="fas fa-utensils text-amber-custom"></i> الوجبة: <span class="text-amber-custom">{{ product.name }}</span></h5>
+                <p class="mb-0 text-danger fw-bold">سعر الوحدة: <span id="product_unit_price">{{ product.price }}</span> دج</p>
             {% endif %}
         </div>
 
         <form action="/submit-order" method="POST" onsubmit="prepareCartData()">
-            {% if not is_cart and product %}
+            {% if not is_cart %}
                 <input type="hidden" name="product_id" value="{{ product.id }}">
             {% endif %}
             
@@ -191,17 +191,17 @@ function googleTranslateElementInit() {
 
     window.addEventListener('DOMContentLoaded', () => {
         if (isCartOrder) {
-            let cartItems = JSON.parse(localStorage.getItem('cart')) || [];
+            let cart = JSON.parse(localStorage.getItem('cart')) || [];
             let summaryContainer = document.getElementById('cart_items_summary');
             let quantityContainer = document.getElementById('quantity_container');
             
             if(quantityContainer) quantityContainer.style.display = 'none';
             
-            if (cartItems.length > 0) {
+            if (cart.length > 0) {
                 let htmlList = "<ul class='mb-0 ps-3'>";
                 let cartTotal = 0;
                 
-                cartItems.forEach(item => {
+                cart.forEach(item => {
                     let itemTotal = parseFloat(item.price) * parseInt(item.quantity || 1);
                     cartTotal += itemTotal;
                     htmlList += `<li>${item.name} (الكمية: ${item.quantity || 1}) - ${itemTotal} دج</li>`;
@@ -215,9 +215,8 @@ function googleTranslateElementInit() {
                 basePrice = 0;
             }
         } else {
-            // جلب السعر مباشرة من عنصر HTML الذي يضع فيه بايثون السعر
-            let unitDisplay = document.getElementById('unit_price_display');
-            basePrice = unitDisplay ? parseFloat(unitDisplay.innerText) || 0 : 0;
+            let unitPriceSpan = document.getElementById('product_unit_price');
+            basePrice = unitPriceSpan ? parseFloat(unitPriceSpan.innerText) || 0 : 0;
         }
         calculateTotal();
     });
@@ -267,14 +266,13 @@ function googleTranslateElementInit() {
         const totalDisplay = document.getElementById('total_display');
         const deliveryPriceInput = document.getElementById('delivery_price_input');
         
-        let productsTotal = 0;
-        
-        if (isCartOrder) {
-            productsTotal = basePrice;
-        } else {
-            let quantity = parseInt(document.getElementById('quantity').value) || 1;
-            productsTotal = basePrice * quantity;
+        let quantity = 1;
+        if (!isCartOrder) {
+            quantity = parseInt(document.getElementById('quantity').value) || 1;
         }
+
+        // حساب إجمالي الوجبات (سعر الوحدة × الكمية، أو إجمالي السلة)
+        let productsTotal = isCartOrder ? basePrice : (basePrice * quantity);
 
         let shippingPrice = 0;
 
@@ -296,6 +294,7 @@ function googleTranslateElementInit() {
             }
         }
         
+        // المجموع الكلي = إجمالي الوجبات + سعر التوصيل
         let finalTotal = productsTotal + shippingPrice;
 
         if (mealsTotalDisplay) mealsTotalDisplay.innerText = productsTotal;
