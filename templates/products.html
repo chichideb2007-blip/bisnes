@@ -33,21 +33,14 @@
         <div class="product-card">
             <h4 class="mb-3">إضافة منتج جديد</h4>
             <form action="{{ url_for('products') }}" method="POST" enctype="multipart/form-data" class="row g-3">
-                <div class="col-md-3">
-                    <input type="text" name="name" class="form-control" placeholder="اسم المنتج" required>
-                </div>
-                <div class="col-md-2">
-                    <input type="number" name="quantity" class="form-control" placeholder="الكمية" required>
-                </div>
-                <div class="col-md-2">
-                    <input type="number" step="0.01" name="price" class="form-control" placeholder="السعر ({{ currency }})" required>
-                </div>
-                <div class="col-md-3">
-                    <input type="file" name="product_images" class="form-control" multiple accept="image/*" required>
-                </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-success w-100">حفظ المنتج</button>
-                </div>
+                <div class="col-md-3"><input type="text" name="name" class="form-control" placeholder="اسم المنتج" required></div>
+                <div class="col-md-2"><input type="number" name="quantity" class="form-control" placeholder="الكمية" required></div>
+                <div class="col-md-2"><input type="number" step="0.01" name="price" class="form-control" placeholder="السعر ({{ currency }})" required></div>
+                
+                <!-- تم ترك حقل الصور كما أرسلته تماماً ليدعم رفع عدة صور -->
+                <div class="col-md-3"><input type="file" name="product_image" class="form-control" multiple accept="image/*"></div>
+                
+                <div class="col-md-2"><button type="submit" class="btn btn-success w-100">حفظ المنتج</button></div>
             </form>
         </div>
 
@@ -76,13 +69,13 @@
                         {% for p in products %}
                         <tr>
                             <td>
-                                {% set raw_img = p['product-images'] | string if 'product-images' in p else '' %}
+                                {% set raw_img = p['product-images'] | string if 'product-images' in p else (p['product_image'] | string if 'product_image' in p else '') %}
                                 {% set clean_img = raw_img.replace('[', '').replace(']', '').replace("'", "").replace('"', "").strip() %}
                                 {% set images = clean_img.split(',') if clean_img else [] %}
-                                {% set first_image = images[0].strip() if images and images[0] else '' %}
-                                
-                                {% if first_image %}
-                                    <img src="{{ first_image }}" alt="صورة">
+                                {% set first_img = images[0].strip() if images and images[0] else '' %}
+
+                                {% if first_img %}
+                                    <img src="{{ first_img }}" alt="صورة">
                                 {% else %}
                                     <span class="text-muted">لا توجد</span>
                                 {% endif %}
