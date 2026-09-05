@@ -54,7 +54,8 @@
 
             <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                 {% for product in products %}
-                    {% set images = product['product-images'].split(',') if product['product-images'] is string else product['product-images'] %}
+                    {% set raw_img = product['product-images'] if 'product-images' in product else '' %}
+                    {% set images = raw_img.split(',') if raw_img is string else raw_img %}
                     {% set first_image = images[0].strip() if images and images[0] else '' %}
                     
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col justify-between product-card">
