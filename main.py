@@ -282,6 +282,14 @@ def checkout(product_id):
                 
     return render_template('checkout.html', product=product, rates=rates, jordan_rates=jordan_rates)
 
+# --- مسار تفاصيل المنتج الجديد لمنع خطأ Not Found ---
+@app.route('/product/<int:product_id>')
+def product_detail(product_id):
+    product = get_product_from_db(product_id)
+    if not product:
+        return "المنتج غير موجود", 404
+    return render_template('product_view.html', product=product)
+
 @app.route('/submit-order', methods=['POST'])
 @app.route('/submit-souhila-order', methods=['POST'])
 def submit_order():
@@ -323,7 +331,6 @@ def submit_order():
     base_price = sum(float(item.get('price', 0)) * int(item.get('quantity', 1)) for item in cart_data)
     total_price = base_price + delivery_price
 
-    # --- استخراج كود الشركة بطريقة شاملة لكل المواقع ---
     company_code = ""
     
     if cart_data:
@@ -739,27 +746,23 @@ def update_jordan_rate(id):
             return jsonify({"status": "error", "message": str(e)}), 500
         return f"حدث خطأ: {e}", 500
 
-# --- مسار المنتجات المحدث (يدعم الصور المتعددة وتخزينها كـ JSON) ---
 @app.route('/products', methods=['GET', 'POST'])
 @login_required
 def products():
     company_code = session.get('company_code')
     
     if request.method == 'POST':
-        files = request.files.getlist('product_images')
-        encoded_images = []
-        
-        for file in files:
-            if file and file.filename != '':
-                img_base64 = f'data:{file.content_type};base64,{base64.b64encode(file.read()).decode("utf-8")}'
-                encoded_images.append(img_base64)
+        file = request.files.get('product_image')
+        encoded_string = ""
+        if file and file.filename != '':
+            encoded_string = f'data:image/jpeg;base64,{base64.b64encode(file.read()).decode("utf-8")}'
 
         data = {
             'name': request.form.get('name'),
             'quantity': int(request.form.get('quantity', 0)),
             'price': float(request.form.get('price', 0.0)),
             'company_id_text': company_code,
-            'product-images': json.dumps(encoded_images)
+            'product-images': encoded_string
         }
         try:
             supabase.table('inventory').insert(data).execute()
