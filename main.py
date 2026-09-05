@@ -326,14 +326,12 @@ def submit_order():
     # --- استخراج كود الشركة بطريقة شاملة لكل المواقع ---
     company_code = ""
     
-    # 1. البحث في السلة (Cart Data)
     if cart_data:
         for item in cart_data:
             company_code = item.get('company_id_text') or item.get('company_code') or ""
             if company_code:
                 break
 
-    # 2. البحث عبر متجر الوجبات (store2)
     if not company_code and session.get('current_store2_name'):
         shop_name = session.get('current_store2_name').strip()
         try:
@@ -343,7 +341,6 @@ def submit_order():
         except Exception as e:
             print("Error store2 code:", e)
 
-    # 3. البحث عبر المتجر العادي (shop)
     if not company_code and session.get('current_shop_name'):
         shop_name = session.get('current_shop_name').strip()
         try:
@@ -353,7 +350,6 @@ def submit_order():
         except Exception as e:
             print("Error shop code:", e)
 
-    # 4. الحل الاحتياطي عبر رقم المنتج (Product ID)
     if not company_code and cart_data:
         try:
             first_p_id = cart_data[0].get('id') or cart_data[0].get('product_id') or cart_data[0].get('productId')
@@ -426,7 +422,6 @@ def submit_order():
     except Exception as e:
         print(f"Error inserting order: {e}")
 
-    # --- إرسال التنبيه لموقع سهيلة ---
     if is_souhila_order:
         try:
             t_res = supabase.table('site_settings').select('*').in_('key', ['telegram_token', 'telegram_chat_id']).execute()
@@ -448,7 +443,6 @@ def submit_order():
         except Exception as err:
             print("Telegram souhila alert error:", err)
 
-    # --- تحديث المخزون ---
     for item in cart_data:
         p_id = item.get('id') or item.get('product_id') or item.get('productId')
         p_name = item.get('name')
@@ -478,7 +472,6 @@ def submit_order():
         except Exception as ex:
             pass
 
-        # --- إرسال تنبيه الطلب عبر التليجرام للمتاجر (shop & store2) ---
     if company_code and not is_souhila_order:
         try:
             res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
@@ -746,13 +739,13 @@ def update_jordan_rate(id):
             return jsonify({"status": "error", "message": str(e)}), 500
         return f"حدث خطأ: {e}", 500
 
+# --- مسار المنتجات المحدث (يدعم الصور المتعددة وتخزينها كـ JSON) ---
 @app.route('/products', methods=['GET', 'POST'])
 @login_required
 def products():
     company_code = session.get('company_code')
     
     if request.method == 'POST':
-        # استقبال أكثر من ملف عبر getlist
         files = request.files.getlist('product_images')
         encoded_images = []
         
@@ -766,7 +759,7 @@ def products():
             'quantity': int(request.form.get('quantity', 0)),
             'price': float(request.form.get('price', 0.0)),
             'company_id_text': company_code,
-            'product-images': json.dumps(encoded_images) # تخزين كقائمة نصية بصيغة JSON
+            'product-images': json.dumps(encoded_images)
         }
         try:
             supabase.table('inventory').insert(data).execute()
