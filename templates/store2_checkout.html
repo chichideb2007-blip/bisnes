@@ -39,7 +39,7 @@
     <div class="checkout-card">
         <h3 class="text-center mb-4">معلومات طلب الوجبة</h3>
         
-        <!-- صندوق معلومات المنتج أو السلة -->
+        <!-- صندوق معلومات الوجبة أو السلة -->
         <div class="card p-3 mb-3 border-0 bg-light" id="product_info_box">
             {% if is_cart %}
                 <h5>الطلب: <span class="text-indigo">سلة المأكولات</span></h5>
@@ -85,7 +85,7 @@
                 </select>
             </div>
 
-            <!-- خانة الكمية (تختفي أو تصبح غير مفعلة تلقائياً إذا كان الطلب سلة لأن السلة تحوي كمياتها مسبقاً) -->
+            <!-- خانة الكمية -->
             <div class="mb-3" id="quantity_container">
                 <label for="quantity" class="form-label">الكمية</label>
                 <input type="number" id="quantity" name="quantity" class="form-control" value="1" min="1" oninput="calculateTotal()" required>
@@ -129,14 +129,14 @@
             </div>
 
             <div class="mb-3">
-                <label class="form-label">العنوان بالتفصيل (لتوصيل الوجبة ساخنة)</label>
+                <label class="form-label">العنوان بالتفصيل</label>
                 <input type="text" name="address" class="form-control" placeholder="الحي أو الشارع" required>
             </div>
 
             <div class="mb-3" id="delivery_type_box">
                 <label class="form-label">طريقة التوصيل</label>
                 <select id="delivery_type" name="delivery_type" class="form-select" onchange="calculateTotal()" required>
-                    <option value="home">توصيل للمنزل (دليفري)</option>
+                    <option value="home">توصيل للمنزل</option>
                     <option value="office">استلام من المطعم</option>
                 </select>
             </div>
@@ -171,7 +171,7 @@ function googleTranslateElementInit() {
     let isCartOrder = "{{ 'true' if is_cart else 'false' }}" === "true";
     let basePrice = 0;
 
-    // عند تحميل الصفحة، نتحقق هل هي سلة أم منتج منفرد
+    // عند تحميل الصفحة، نتحقق هل هي سلة أم وجبة منفردة
     window.addEventListener('DOMContentLoaded', () => {
         if (isCartOrder) {
             let cart = JSON.parse(localStorage.getItem('cart')) || [];
@@ -179,7 +179,7 @@ function googleTranslateElementInit() {
             let priceSpan = document.getElementById('product_unit_price');
             let quantityContainer = document.getElementById('quantity_container');
             
-            // إخفاء حقل الكمية العادي لأن السلة تحتوي عدة منتجات
+            // إخفاء حقل الكمية العادي لأن السلة تحتوي عدة وجبات
             if(quantityContainer) quantityContainer.style.display = 'none';
             
             if (cart.length > 0) {
