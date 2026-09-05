@@ -76,12 +76,13 @@
                         {% for p in products %}
                         <tr>
                             <td>
-                                {% set raw_img = p['product-images'] if 'product-images' in p else '' %}
-                                {% set images = raw_img.split(',') if raw_img is string else raw_img %}
-                                {% set first_img = images[0].strip() if images and images[0] else '' %}
+                                {% set raw_img = p['product-images'] | string if 'product-images' in p else '' %}
+                                {% set clean_img = raw_img.replace('[', '').replace(']', '').replace("'", "").replace('"', "").strip() %}
+                                {% set images = clean_img.split(',') if clean_img else [] %}
+                                {% set first_image = images[0].strip() if images and images[0] else '' %}
                                 
-                                {% if first_img %}
-                                    <img src="{{ first_img }}" alt="صورة">
+                                {% if first_image %}
+                                    <img src="{{ first_image }}" alt="صورة">
                                 {% else %}
                                     <span class="text-muted">لا توجد</span>
                                 {% endif %}
