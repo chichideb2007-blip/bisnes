@@ -76,8 +76,12 @@
                         {% for p in products %}
                         <tr>
                             <td>
-                                {% if p['product-images'] %}
-                                    <img src="{{ p['product-images'] }}" alt="صورة">
+                                {% set raw_img = p['product-images'] if 'product-images' in p else '' %}
+                                {% set images = raw_img.split(',') if raw_img is string else raw_img %}
+                                {% set first_img = images[0].strip() if images and images[0] else '' %}
+                                
+                                {% if first_img %}
+                                    <img src="{{ first_img }}" alt="صورة">
                                 {% else %}
                                     <span class="text-muted">لا توجد</span>
                                 {% endif %}
