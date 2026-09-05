@@ -7,17 +7,12 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        body { background-color: #fffbeb; font-family: 'Segoe UI', sans-serif; padding: 20px; color: #1f2937; }
-        .checkout-card { background: white; border-radius: 24px; padding: 30px; box-shadow: 0 10px 25px rgba(217, 119, 6, 0.08); max-width: 600px; margin: auto; border: 1px solid #fef3c7; }
-        .form-label { font-weight: bold; color: #374151; font-size: 0.9rem; }
-        .price-box { background: #fffbeb; border: 1px solid #fde68a; padding: 20px; border-radius: 16px; margin: 20px 0; }
-        .btn-confirm { background-color: #d97706; color: white; padding: 14px; font-weight: bold; border: none; border-radius: 14px; flex-grow: 1; transition: background-color 0.2s; box-shadow: 0 4px 12px rgba(217, 119, 6, 0.2); }
-        .btn-confirm:hover { background-color: #b45309; }
-        .btn-back { background-color: #f3f4f6; color: #4b5563; padding: 14px; font-weight: bold; border: none; border-radius: 14px; text-decoration: none; text-align: center; transition: background-color 0.2s; }
-        .btn-back:hover { background-color: #e5e7eb; color: #1f2937; }
-        .form-control, .form-select { border-radius: 12px; padding: 12px; border-color: #e5e7eb; }
-        .form-control:focus, .form-select:focus { border-color: #d97706; box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.15); }
-        .text-amber-custom { color: #d97706 !important; }
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', sans-serif; padding: 20px; }
+        .checkout-card { background: white; border-radius: 15px; padding: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 600px; margin: auto; }
+        .form-label { font-weight: bold; color: #333; }
+        .price-box { background: #e9ecef; padding: 15px; border-radius: 10px; margin: 20px 0; }
+        .btn-confirm { background-color: #198754; color: white; padding: 12px; font-weight: bold; border: none; border-radius: 8px; flex-grow: 1; }
+        .btn-back { background-color: #6c757d; color: white; padding: 12px; font-weight: bold; border: none; border-radius: 8px; text-decoration: none; text-align: center; }
 
         .goog-te-banner-frame.skiptranslate { display: none !important; }
         body { top: 0px !important; }
@@ -42,18 +37,16 @@
 
 <div class="container mt-2">
     <div class="checkout-card">
-        <h3 class="text-center mb-4 fw-black flex items-center justify-center gap-2">
-            <i class="fas fa-clipboard-list text-amber-custom"></i> إتمام طلب المطعم
-        </h3>
+        <h3 class="text-center mb-4">معلومات طلب الوجبة</h3>
         
         <!-- صندوق معلومات المنتج أو السلة -->
-        <div class="card p-3 mb-3 border-0 bg-amber-50/50" id="product_info_box">
+        <div class="card p-3 mb-3 border-0 bg-light" id="product_info_box">
             {% if is_cart %}
-                <h5>الطلب: <span class="text-amber-custom">سلة طلبات المأكولات</span></h5>
+                <h5>الطلب: <span class="text-indigo">سلة المأكولات</span></h5>
                 <div id="cart_items_summary" class="mt-2 text-muted small"></div>
                 <p class="mb-0 text-danger fw-bold mt-2">مجموع الوجبات: <span id="product_unit_price">0</span> دج</p>
             {% else %}
-                <h5>الوجبة: <span class="text-amber-custom">{{ product.name }}</span></h5>
+                <h5>الوجبة: <span class="text-indigo">{{ product.name }}</span></h5>
                 <p class="mb-0 text-danger fw-bold">سعر الوجبة للقطعة: <span id="product_unit_price">{{ product.price }}</span> دج</p>
             {% endif %}
         </div>
@@ -69,11 +62,11 @@
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">الاسم</label>
-                    <input type="text" name="customer_name" class="form-control" required placeholder="أدخل الاسم">
+                    <input type="text" name="customer_name" class="form-control" required placeholder="الاسم">
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">اللقب</label>
-                    <input type="text" name="customer_last_name" class="form-control" required placeholder="أدخل اللقب">
+                    <input type="text" name="customer_last_name" class="form-control" required placeholder="اللقب">
                 </div>
             </div>
 
@@ -92,7 +85,7 @@
                 </select>
             </div>
 
-            <!-- خانة الكمية -->
+            <!-- خانة الكمية (تختفي أو تصبح غير مفعلة تلقائياً إذا كان الطلب سلة لأن السلة تحوي كمياتها مسبقاً) -->
             <div class="mb-3" id="quantity_container">
                 <label for="quantity" class="form-label">الكمية</label>
                 <input type="number" id="quantity" name="quantity" class="form-control" value="1" min="1" oninput="calculateTotal()" required>
@@ -100,7 +93,7 @@
 
             <!-- خانة ولايات الجزائر -->
             <div class="mb-3" id="algeria_section">
-                <label class="form-label">الولاية / المدينة</label>
+                <label class="form-label">الولاية</label>
                 <select id="wilaya" name="wilaya" class="form-select" onchange="calculateTotal()">
                     <option value="">-- اختر الولاية --</option>
                     {% for wilaya in rates %}
@@ -137,14 +130,14 @@
 
             <div class="mb-3">
                 <label class="form-label">العنوان بالتفصيل (لتوصيل الوجبة ساخنة)</label>
-                <input type="text" name="address" class="form-control" placeholder="رقم الحي، الشارع، أو علامة مميزة" required>
+                <input type="text" name="address" class="form-control" placeholder="الحي أو الشارع" required>
             </div>
 
             <div class="mb-3" id="delivery_type_box">
-                <label class="form-label">طريقة الاستلام</label>
+                <label class="form-label">طريقة التوصيل</label>
                 <select id="delivery_type" name="delivery_type" class="form-select" onchange="calculateTotal()" required>
                     <option value="home">توصيل للمنزل (دليفري)</option>
-                    <option value="office">استلام من المطعم / المكتب</option>
+                    <option value="office">استلام من المطعم</option>
                 </select>
             </div>
 
@@ -152,12 +145,12 @@
 
             <div class="price-box">
                 <h5>سعر التوصيل: <span id="shipping_display">0</span> دج</h5>
-                <h4 class="text-amber-custom mt-2">المجموع الكلي: <span id="total_display">0</span> دج</h4>
+                <h4 class="text-primary mt-2">المجموع الكلي: <span id="total_display">0</span> دج</h4>
             </div>
 
             <div class="d-flex gap-2">
-                <button type="submit" class="btn-confirm">تأكيد الطلب الآن</button>
-                <a href="/shop" class="btn-back">رجوع للقائمة</a>
+                <button type="submit" class="btn-confirm">تأكيد طلب الوجبة</button>
+                <a href="/shop" class="btn-back">رجوع</a>
             </div>
         </form>
     </div>
@@ -178,6 +171,7 @@ function googleTranslateElementInit() {
     let isCartOrder = "{{ 'true' if is_cart else 'false' }}" === "true";
     let basePrice = 0;
 
+    // عند تحميل الصفحة، نتحقق هل هي سلة أم منتج منفرد
     window.addEventListener('DOMContentLoaded', () => {
         if (isCartOrder) {
             let cart = JSON.parse(localStorage.getItem('cart')) || [];
@@ -185,6 +179,7 @@ function googleTranslateElementInit() {
             let priceSpan = document.getElementById('product_unit_price');
             let quantityContainer = document.getElementById('quantity_container');
             
+            // إخفاء حقل الكمية العادي لأن السلة تحتوي عدة منتجات
             if(quantityContainer) quantityContainer.style.display = 'none';
             
             if (cart.length > 0) {
@@ -288,6 +283,7 @@ function googleTranslateElementInit() {
         deliveryPriceInput.value = shippingPrice;
     }
 
+    // دالة لتجهيز وإرسال بيانات السلة عبر الحقل المخفي وتفريغها بعد التأكيد
     function prepareCartData() {
         if (isCartOrder) {
             let cart = localStorage.getItem('cart') || '[]';
