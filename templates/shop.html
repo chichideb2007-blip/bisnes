@@ -54,9 +54,8 @@
 
             <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                 {% for product in products %}
-                    {% set raw_img = product['product-images'] | string if 'product-images' in product else '' %}
-                    {% set clean_img = raw_img.replace('[', '').replace(']', '').replace("'", "").replace('"', "").strip() %}
-                    {% set images = clean_img.split(',') if clean_img else [] %}
+                    {% set raw_img = product['product-images'] if 'product-images' in product else '' %}
+                    {% set images = raw_img.split(',') if raw_img is string else raw_img %}
                     {% set first_image = images[0].strip() if images and images[0] else '' %}
                     
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col justify-between product-card">
@@ -96,7 +95,6 @@
     </main>
 
     <script>
-        // دالة تحديث عداد السلة
         function updateCartCount() {
             let cart = JSON.parse(localStorage.getItem('cart')) || [];
             let totalCount = cart.reduce((sum, item) => sum + (parseInt(item.quantity) || 1), 0);
@@ -106,7 +104,6 @@
             }
         }
 
-        // دالة البحث الفوري بين المنتجات
         function searchProducts() {
             let input = document.getElementById('product-search').value.toLowerCase();
             let cards = document.querySelectorAll('.product-card');
@@ -116,7 +113,6 @@
             });
         }
 
-        // الاستماع لأزرار الإضافة للسلة بأمان تام
         document.addEventListener('click', function(event) {
             let btn = event.target.closest('.add-to-cart-btn');
             if (!btn) return;
@@ -146,7 +142,6 @@
             showToast("تمت إضافة المنتج إلى السلة بنجاح! 🛒");
         });
 
-        // رسالة إشعار منبثقة
         function showToast(message) {
             let existingToast = document.getElementById('toast-notification');
             if (existingToast) existingToast.remove();
@@ -163,7 +158,6 @@
             }, 2000);
         }
 
-        // تحديث العداد فور تحميل الصفحة
         window.onload = updateCartCount;
     </script>
 </body>
