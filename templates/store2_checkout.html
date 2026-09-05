@@ -54,7 +54,8 @@
                 <p class="mb-0 text-danger fw-bold mt-2">مجموع الوجبات: <span id="product_unit_price">0</span> دج</p>
             {% else %}
                 <h5 class="fw-bold text-gray-800"><i class="fas fa-utensils text-amber-custom"></i> الوجبة: <span class="text-amber-custom">{{ product.name }}</span></h5>
-                <p class="mb-0 text-danger fw-bold">سعر الوجبة: <span id="product_unit_price">{{ product.price }}</span> دج</p>
+                <p class="mb-0 text-danger fw-bold">سعر الوجبة الواحدة: <span id="unit_price_display">{{ product.price }}</span> دج</p>
+                <p class="mb-0 text-danger fw-bold mt-1">إجمالي الوجبات: <span id="product_unit_price">{{ product.price }}</span> دج</p>
             {% endif %}
         </div>
 
@@ -185,11 +186,10 @@ function googleTranslateElementInit() {
 <script>
     let isCartOrder = "{{ 'true' if is_cart else 'false' }}" === "true";
     let basePrice = 0;
-    let cartItems = [];
 
     window.addEventListener('DOMContentLoaded', () => {
         if (isCartOrder) {
-            cartItems = JSON.parse(localStorage.getItem('cart')) || [];
+            let cartItems = JSON.parse(localStorage.getItem('cart')) || [];
             let summaryContainer = document.getElementById('cart_items_summary');
             let priceSpan = document.getElementById('product_unit_price');
             let quantityContainer = document.getElementById('quantity_container');
@@ -263,10 +263,18 @@ function googleTranslateElementInit() {
         const shippingDisplay = document.getElementById('shipping_display');
         const totalDisplay = document.getElementById('total_display');
         const deliveryPriceInput = document.getElementById('delivery_price_input');
+        const productUnitPriceSpan = document.getElementById('product_unit_price');
         
-        let quantity = 1;
-        if (!isCartOrder) {
-            quantity = parseInt(document.getElementById('quantity').value) || 1;
+        let productsTotal = 0;
+        
+        if (isCartOrder) {
+            productsTotal = basePrice;
+        } else {
+            let quantity = parseInt(document.getElementById('quantity').value) || 1;
+            productsTotal = basePrice * quantity;
+            if (productUnitPriceSpan) {
+                productUnitPriceSpan.innerText = productsTotal;
+            }
         }
 
         let shippingPrice = 0;
@@ -289,7 +297,6 @@ function googleTranslateElementInit() {
             }
         }
         
-        let productsTotal = isCartOrder ? basePrice : (basePrice * quantity);
         let finalTotal = productsTotal + shippingPrice;
 
         shippingDisplay.innerText = shippingPrice;
