@@ -14,7 +14,10 @@
         <div class="mb-6">
             <h3 class="font-bold mb-3 text-lg">صور المنتج:</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {% set images = product['product-images'].split(',') if product['product-images'] is string else product['product-images'] %}
+                {% set raw_img = product['product-images'] | string if 'product-images' in product else '' %}
+                {% set clean_img = raw_img.replace('[', '').replace(']', '').replace("'", "").replace('"', "").strip() %}
+                {% set images = clean_img.split(',') if clean_img else [] %}
+                
                 {% if images %}
                     {% for img in images %}
                         {% if img.strip() %}
