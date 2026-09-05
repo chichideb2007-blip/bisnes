@@ -46,16 +46,13 @@
             <i class="fas fa-clipboard-list text-amber-custom"></i> إتمام طلب المطعم
         </h3>
         
-        <!-- صندوق معلومات المنتج أو السلة -->
         <div class="card p-3 mb-3 border-0 bg-amber-50/50" id="product_info_box">
             {% if is_cart %}
                 <h5 class="fw-bold text-gray-800"><i class="fas fa-shopping-bag text-amber-custom"></i> الطلب: <span class="text-amber-custom">سلة طلبات المأكولات</span></h5>
                 <div id="cart_items_summary" class="mt-2 text-muted small"></div>
-                <p class="mb-0 text-danger fw-bold mt-2">مجموع الوجبات: <span id="product_unit_price">0</span> دج</p>
             {% else %}
                 <h5 class="fw-bold text-gray-800"><i class="fas fa-utensils text-amber-custom"></i> الوجبة: <span class="text-amber-custom">{{ product.name }}</span></h5>
-                <p class="mb-0 text-danger fw-bold">سعر الوجبة الواحدة: <span id="unit_price_display">{{ product.price }}</span> دج</p>
-                <p class="mb-0 text-danger fw-bold mt-1">إجمالي الوجبات: <span id="product_unit_price">{{ product.price }}</span> دج</p>
+                <p class="mb-0 text-muted small">سعر الوجبة الواحدة: <span id="unit_price_display">{{ product.price }}</span> دج</p>
             {% endif %}
         </div>
 
@@ -64,7 +61,6 @@
                 <input type="hidden" name="product_id" value="{{ product.id }}">
             {% endif %}
             
-            <!-- حقل مخفي لحمل بيانات السلة كاملة إذا كان الطلب عبارة عن سلة -->
             <input type="hidden" name="cart_data" id="cart_data_input">
 
             <div class="row">
@@ -83,7 +79,6 @@
                 <input type="tel" name="phone" class="form-control" required placeholder="0XXXXXXXXX">
             </div>
 
-            <!-- خانة البلد -->
             <div class="mb-3">
                 <label for="country" class="form-label">البلد</label>
                 <select id="country" name="country" class="form-select" onchange="toggleCountryFields()" required>
@@ -93,13 +88,11 @@
                 </select>
             </div>
 
-            <!-- خانة الكمية -->
             <div class="mb-3" id="quantity_container">
                 <label for="quantity" class="form-label">الكمية</label>
                 <input type="number" id="quantity" name="quantity" class="form-control" value="1" min="1" oninput="calculateTotal()" required>
             </div>
 
-            <!-- خانة ولايات الجزائر -->
             <div class="mb-3" id="algeria_section">
                 <label class="form-label">الولاية / المدينة</label>
                 <select id="wilaya" name="wilaya" class="form-select" onchange="calculateTotal()">
@@ -114,7 +107,6 @@
                 </select>
             </div>
 
-            <!-- خانة محافظات الأردن -->
             <div class="mb-3 d-none" id="jordan_section">
                 <label for="jordan_region" class="form-label">المحافظة والمنطقة (الأردن)</label>
                 <select id="jordan_region" name="jordan_region" class="form-select" onchange="calculateTotal()" style="color: #000 !important; background-color: #fff !important;" required>
@@ -130,7 +122,6 @@
                 </select>
             </div>
 
-            <!-- حاوية خانة البلدية -->
             <div class="mb-3" id="baladiya_container">
                 <label class="form-label">البلدية</label>
                 <input type="text" name="baladia" id="baladiya_input" class="form-control" placeholder="أدخل اسم البلدية">
@@ -152,6 +143,10 @@
             <input type="hidden" name="delivery_price" id="delivery_price_input" value="0">
 
             <div class="price-box">
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-gray-600 font-bold">إجمالي سعر الوجبات:</span>
+                    <span class="font-bold text-gray-800"><span id="meals_total_display">0</span> دج</span>
+                </div>
                 <div class="d-flex justify-content-between mb-1">
                     <span class="text-gray-600 font-bold">سعر التوصيل:</span>
                     <span class="font-bold text-gray-800"><span id="shipping_display">0</span> دج</span>
@@ -191,7 +186,6 @@ function googleTranslateElementInit() {
         if (isCartOrder) {
             let cartItems = JSON.parse(localStorage.getItem('cart')) || [];
             let summaryContainer = document.getElementById('cart_items_summary');
-            let priceSpan = document.getElementById('product_unit_price');
             let quantityContainer = document.getElementById('quantity_container');
             
             if(quantityContainer) quantityContainer.style.display = 'none';
@@ -209,7 +203,6 @@ function googleTranslateElementInit() {
                 
                 if(summaryContainer) summaryContainer.innerHTML = htmlList;
                 basePrice = cartTotal;
-                if(priceSpan) priceSpan.innerText = cartTotal;
             } else {
                 if(summaryContainer) summaryContainer.innerHTML = "سلة المأكولات فارغة!";
                 basePrice = 0;
@@ -261,9 +254,9 @@ function googleTranslateElementInit() {
     function calculateTotal() {
         const country = document.getElementById('country').value;
         const shippingDisplay = document.getElementById('shipping_display');
+        const mealsTotalDisplay = document.getElementById('meals_total_display');
         const totalDisplay = document.getElementById('total_display');
         const deliveryPriceInput = document.getElementById('delivery_price_input');
-        const productUnitPriceSpan = document.getElementById('product_unit_price');
         
         let productsTotal = 0;
         
@@ -272,9 +265,6 @@ function googleTranslateElementInit() {
         } else {
             let quantity = parseInt(document.getElementById('quantity').value) || 1;
             productsTotal = basePrice * quantity;
-            if (productUnitPriceSpan) {
-                productUnitPriceSpan.innerText = productsTotal;
-            }
         }
 
         let shippingPrice = 0;
@@ -299,9 +289,10 @@ function googleTranslateElementInit() {
         
         let finalTotal = productsTotal + shippingPrice;
 
-        shippingDisplay.innerText = shippingPrice;
-        totalDisplay.innerText = finalTotal;
-        deliveryPriceInput.value = shippingPrice;
+        if (mealsTotalDisplay) mealsTotalDisplay.innerText = productsTotal;
+        if (shippingDisplay) shippingDisplay.innerText = shippingPrice;
+        if (totalDisplay) totalDisplay.innerText = finalTotal;
+        if (deliveryPriceInput) deliveryPriceInput.value = shippingPrice;
     }
 
     function prepareCartData() {
