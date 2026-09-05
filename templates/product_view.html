@@ -11,27 +11,33 @@
 
     <div class="max-w-2xl mx-auto bg-white rounded-2xl shadow-lg overflow-hidden p-6">
         
+        <!-- صور المنتج (تدعم صورة واحدة أو عدة صور) -->
         <div class="mb-6">
             <h3 class="font-bold mb-3 text-lg">صور المنتج:</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {% set raw_img = product['product-images'] | string if 'product-images' in product else '' %}
-                {% set clean_img = raw_img.replace('[', '').replace(']', '').replace("'", "").replace('"', "").strip() %}
-                {% set images = clean_img.split(',') if clean_img else [] %}
-                
-                {% if images %}
+            
+            {% set raw_img = product['product-images'] | string if 'product-images' in product else (product['product_image'] | string if 'product_image' in product else '') %}
+            {% set clean_img = raw_img.replace('[', '').replace(']', '').replace("'", "").replace('"', "").strip() %}
+            {% set images = clean_img.split(',') if clean_img else [] %}
+            
+            {% if images and images[0].strip() %}
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {% for img in images %}
                         {% if img.strip() %}
-                            <div class="h-64 bg-gray-200 rounded-xl overflow-hidden shadow">
+                            <div class="h-64 bg-gray-200 rounded-xl overflow-hidden shadow-sm">
                                 <img src="{{ img.strip() }}" alt="{{ product.name }}" class="w-full h-full object-cover">
                             </div>
                         {% endif %}
                     {% endfor %}
-                {% else %}
-                    <p class="text-gray-500">لا توجد صور متاحة</p>
-                {% endif %}
-            </div>
+                </div>
+            {% else %}
+                <div class="h-64 bg-gray-100 rounded-xl flex items-center justify-center text-gray-400">
+                    <i class="fas fa-image text-3xl"></i>
+                    <span class="mr-2">لا توجد صور متاحة</span>
+                </div>
+            {% endif %}
         </div>
 
+        <!-- تفاصيل المنتج -->
         <div class="border-t pt-4">
             <h1 class="text-3xl font-bold mb-2">{{ product.name }}</h1>
             <p class="text-2xl text-indigo-600 font-bold mb-4">{{ product.price }} {{ currency or 'د.ج' }}</p>
@@ -45,6 +51,7 @@
                 {% endif %}
             </div>
 
+            <!-- زر العودة -->
             <div class="mt-8">
                 <a href="/shop" class="block w-full text-center bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-3 rounded-xl transition">
                     العودة للمتجر
