@@ -37,16 +37,15 @@
 
 <div class="container mt-2">
     <div class="checkout-card">
-        <h3 class="text-center mb-4">معلومات طلب الوجبة</h3>
+        <h3 class="text-center mb-4">إتمام طلب المطعم</h3>
         
         <div class="card p-3 mb-3 border-0 bg-light" id="product_info_box">
             {% if is_cart %}
                 <h5>الطلب: <span class="text-indigo">سلة المأكولات</span></h5>
                 <div id="cart_items_summary" class="mt-2 text-muted small"></div>
-                <p class="mb-0 text-danger fw-bold mt-2">مجموع الوجبات: <span id="product_unit_price">0</span> دج</p>
             {% else %}
                 <h5>الوجبة: <span class="text-indigo">{{ product.name }}</span></h5>
-                <p class="mb-0 text-danger fw-bold">سعر الوجبة للقطعة: <span id="product_unit_price">{{ product.price }}</span> دج</p>
+                <p class="mb-0 text-danger fw-bold">سعر الوجبة الواحدة: <span id="product_unit_price">{{ product.price }}</span> دج</p>
             {% endif %}
         </div>
 
@@ -60,11 +59,11 @@
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">الاسم</label>
-                    <input type="text" name="customer_name" class="form-control" required placeholder="الاسم">
+                    <input type="text" name="customer_name" class="form-control" required placeholder="أدخل الاسم">
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">اللقب</label>
-                    <input type="text" name="customer_last_name" class="form-control" required placeholder="اللقب">
+                    <input type="text" name="customer_last_name" class="form-control" required placeholder="أدخل اللقب">
                 </div>
             </div>
 
@@ -88,7 +87,7 @@
             </div>
 
             <div class="mb-3" id="algeria_section">
-                <label class="form-label">الولاية</label>
+                <label class="form-label">الولاية / المدينة</label>
                 <select id="wilaya" name="wilaya" class="form-select" onchange="calculateTotal()">
                     <option value="">-- اختر الولاية --</option>
                     {% for wilaya in rates %}
@@ -122,28 +121,29 @@
             </div>
 
             <div class="mb-3">
-                <label class="form-label">العنوان بالتفصيل</label>
-                <input type="text" name="address" class="form-control" placeholder="الحي أو الشارع" required>
+                <label class="form-label">العنوان بالتفصيل (توصيل الوجبة ساخنة)</label>
+                <input type="text" name="address" class="form-control" placeholder="رقم الحي، الشارع، أو علامة مميزة" required>
             </div>
 
             <div class="mb-3" id="delivery_type_box">
-                <label class="form-label">طريقة التوصيل</label>
+                <label class="form-label">طريقة الاستلام</label>
                 <select id="delivery_type" name="delivery_type" class="form-select" onchange="calculateTotal()" required>
-                    <option value="home">توصيل للمنزل</option>
-                    <option value="office">استلام من المطعم</option>
+                    <option value="home">توصيل للمنزل (دليفري)</option>
+                    <option value="office">استلام من المطعم / المكتب</option>
                 </select>
             </div>
 
             <input type="hidden" name="delivery_price" id="delivery_price_input" value="0">
 
             <div class="price-box">
+                <h5>إجمالي سعر الوجبات: <span id="products_total_display">0</span> دج</h5>
                 <h5>سعر التوصيل: <span id="shipping_display">0</span> دج</h5>
                 <h4 class="text-primary mt-2">المجموع الكلي: <span id="total_display">0</span> دج</h4>
             </div>
 
             <div class="d-flex gap-2">
-                <button type="submit" class="btn-confirm">تأكيد طلب الوجبة</button>
-                <a href="/shop" class="btn-back">رجوع</a>
+                <button type="submit" class="btn-confirm">تأكيد الطلب الآن</button>
+                <a href="/shop" class="btn-back">رجوع للقائمة</a>
             </div>
         </form>
     </div>
@@ -169,7 +169,6 @@ function googleTranslateElementInit() {
         if (isCartOrder) {
             let cart = JSON.parse(localStorage.getItem('cart')) || [];
             let summaryContainer = document.getElementById('cart_items_summary');
-            let priceSpan = document.getElementById('product_unit_price');
             let quantityContainer = document.getElementById('quantity_container');
             
             // إخفاء حقل الكمية العادي لأن السلة تحتوي عدة وجبات
@@ -188,13 +187,12 @@ function googleTranslateElementInit() {
                 
                 if(summaryContainer) summaryContainer.innerHTML = htmlList;
                 basePrice = cartTotal;
-                if(priceSpan) priceSpan.innerText = cartTotal;
             } else {
                 if(summaryContainer) summaryContainer.innerHTML = "سلة المأكولات فارغة!";
                 basePrice = 0;
             }
         } else {
-            // جلب سعر الوجبة المفردة بشكل صحيح من الـ Template
+            // جلب سعر الوجبة المفردة بدقة
             basePrice = parseFloat("{{ product.price if product else 0 }}") || 0;
         }
         calculateTotal();
@@ -240,6 +238,7 @@ function googleTranslateElementInit() {
 
     function calculateTotal() {
         const country = document.getElementById('country').value;
+        const productsTotalDisplay = document.getElementById('products_total_display');
         const shippingDisplay = document.getElementById('shipping_display');
         const totalDisplay = document.getElementById('total_display');
         const deliveryPriceInput = document.getElementById('delivery_price_input');
@@ -269,10 +268,11 @@ function googleTranslateElementInit() {
             }
         }
         
-        // حساب مجموع الوجبات (سعر الوجبة × الكمية، أو السعر الكلي إذا كانت سلة)
+        // حساب إجمالي سعر الوجبات (سعر الوجبة × الكمية للمنتج الفردي، أو مجموع السلة)
         let productsTotal = isCartOrder ? basePrice : (basePrice * quantity);
         let finalTotal = productsTotal + shippingPrice;
 
+        productsTotalDisplay.innerText = productsTotal;
         shippingDisplay.innerText = shippingPrice;
         totalDisplay.innerText = finalTotal;
         deliveryPriceInput.value = shippingPrice;
