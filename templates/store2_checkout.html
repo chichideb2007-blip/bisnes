@@ -52,13 +52,13 @@
                 <h5 class="fw-bold text-gray-800"><i class="fas fa-shopping-bag text-amber-custom"></i> الطلب: <span class="text-amber-custom">سلة طلبات المأكولات</span></h5>
                 <div id="cart_items_summary" class="mt-2 text-muted small"></div>
             {% else %}
-                <h5 class="fw-bold text-gray-800"><i class="fas fa-utensils text-amber-custom"></i> الوجبة: <span class="text-amber-custom">{{ product.name }}</span></h5>
-                <p class="mb-0 text-muted small">سعر الوجبة الواحدة: <span id="unit_price_display">{{ product.price }}</span> دج</p>
+                <h5 class="fw-bold text-gray-800"><i class="fas fa-utensils text-amber-custom"></i> الوجبة: <span class="text-amber-custom" id="product_name_text">{{ product.name if product else 'وجبة' }}</span></h5>
+                <p class="mb-0 text-muted small">سعر الوجبة الواحدة: <span id="unit_price_display">{{ product.price if product else 0 }}</span> دج</p>
             {% endif %}
         </div>
 
         <form action="/submit-order" method="POST" onsubmit="prepareCartData()">
-            {% if not is_cart %}
+            {% if not is_cart and product %}
                 <input type="hidden" name="product_id" value="{{ product.id }}">
             {% endif %}
             
@@ -215,13 +215,9 @@ function googleTranslateElementInit() {
                 basePrice = 0;
             }
         } else {
-            let serverPrice = parseFloat("{{ product.price if product is defined and product and product.price else 0 }}");
-            if (serverPrice > 0) {
-                basePrice = serverPrice;
-            } else {
-                let unitDisplay = document.getElementById('unit_price_display');
-                basePrice = unitDisplay ? parseFloat(unitDisplay.innerText) || 0 : 0;
-            }
+            // جلب السعر مباشرة من عنصر HTML الذي يضع فيه بايثون السعر
+            let unitDisplay = document.getElementById('unit_price_display');
+            basePrice = unitDisplay ? parseFloat(unitDisplay.innerText) || 0 : 0;
         }
         calculateTotal();
     });
