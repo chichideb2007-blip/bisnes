@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>إتمام طلب المطعم</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         body { background-color: #fffbeb; font-family: 'Segoe UI', sans-serif; padding: 20px; color: #1f2937; }
         .checkout-card { background: white; border-radius: 24px; padding: 30px; box-shadow: 0 10px 25px rgba(217, 119, 6, 0.08); max-width: 600px; margin: auto; border: 1px solid #fef3c7; }
@@ -49,11 +49,12 @@
         <!-- صندوق معلومات المنتج أو السلة -->
         <div class="card p-3 mb-3 border-0 bg-amber-50/50" id="product_info_box">
             {% if is_cart %}
-                <h5 class="fw-bold text-gray-800"><i class="fas fa-shopping-bag text-amber-custom"></i> الطلب: <span class="text-amber-custom">سلة طلبات المأكولات</span></h5>
+                <h5>الطلب: <span class="text-amber-custom">سلة طلبات المأكولات</span></h5>
                 <div id="cart_items_summary" class="mt-2 text-muted small"></div>
+                <p class="mb-0 text-danger fw-bold mt-2">مجموع الوجبات: <span id="product_unit_price">0</span> دج</p>
             {% else %}
-                <h5 class="fw-bold text-gray-800"><i class="fas fa-utensils text-amber-custom"></i> الوجبة: <span class="text-amber-custom">{{ product.name }}</span></h5>
-                <p class="mb-0 text-danger fw-bold">سعر الوحدة: <span id="product_unit_price">{{ product.price }}</span> دج</p>
+                <h5>الوجبة: <span class="text-amber-custom">{{ product.name }}</span></h5>
+                <p class="mb-0 text-danger fw-bold">سعر الوجبة للقطعة: <span id="product_unit_price">{{ product.price }}</span> دج</p>
             {% endif %}
         </div>
 
@@ -150,24 +151,12 @@
             <input type="hidden" name="delivery_price" id="delivery_price_input" value="0">
 
             <div class="price-box">
-                <div class="d-flex justify-content-between mb-1">
-                    <span class="text-gray-600 font-bold">إجمالي سعر الوجبات:</span>
-                    <span class="font-bold text-gray-800"><span id="meals_total_display">0</span> دج</span>
-                </div>
-                <div class="d-flex justify-content-between mb-1">
-                    <span class="text-gray-600 font-bold">سعر التوصيل:</span>
-                    <span class="font-bold text-gray-800"><span id="shipping_display">0</span> دج</span>
-                </div>
-                <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top border-amber-200">
-                    <span class="text-gray-800 fw-bold fs-5">المجموع الكلي:</span>
-                    <span class="text-amber-custom fw-black fs-4"><span id="total_display">0</span> دج</span>
-                </div>
+                <h5>سعر التوصيل: <span id="shipping_display">0</span> دج</h5>
+                <h4 class="text-amber-custom mt-2">المجموع الكلي: <span id="total_display">0</span> دج</h4>
             </div>
 
             <div class="d-flex gap-2">
-                <button type="submit" class="btn-confirm">
-                    <i class="fas fa-check-circle me-1"></i> تأكيد الطلب الآن
-                </button>
+                <button type="submit" class="btn-confirm">تأكيد الطلب الآن</button>
                 <a href="/shop" class="btn-back">رجوع للقائمة</a>
             </div>
         </form>
@@ -193,6 +182,7 @@ function googleTranslateElementInit() {
         if (isCartOrder) {
             let cart = JSON.parse(localStorage.getItem('cart')) || [];
             let summaryContainer = document.getElementById('cart_items_summary');
+            let priceSpan = document.getElementById('product_unit_price');
             let quantityContainer = document.getElementById('quantity_container');
             
             if(quantityContainer) quantityContainer.style.display = 'none';
@@ -202,7 +192,7 @@ function googleTranslateElementInit() {
                 let cartTotal = 0;
                 
                 cart.forEach(item => {
-                    let itemTotal = parseFloat(item.price) * parseInt(item.quantity || 1);
+                    let itemTotal = item.price * (item.quantity || 1);
                     cartTotal += itemTotal;
                     htmlList += `<li>${item.name} (الكمية: ${item.quantity || 1}) - ${itemTotal} دج</li>`;
                 });
@@ -210,13 +200,13 @@ function googleTranslateElementInit() {
                 
                 if(summaryContainer) summaryContainer.innerHTML = htmlList;
                 basePrice = cartTotal;
+                if(priceSpan) priceSpan.innerText = cartTotal;
             } else {
                 if(summaryContainer) summaryContainer.innerHTML = "سلة المأكولات فارغة!";
                 basePrice = 0;
             }
         } else {
-            let unitPriceSpan = document.getElementById('product_unit_price');
-            basePrice = unitPriceSpan ? parseFloat(unitPriceSpan.innerText) || 0 : 0;
+            basePrice = parseFloat("{{ product.price if product else 0 }}");
         }
         calculateTotal();
     });
@@ -262,7 +252,6 @@ function googleTranslateElementInit() {
     function calculateTotal() {
         const country = document.getElementById('country').value;
         const shippingDisplay = document.getElementById('shipping_display');
-        const mealsTotalDisplay = document.getElementById('meals_total_display');
         const totalDisplay = document.getElementById('total_display');
         const deliveryPriceInput = document.getElementById('delivery_price_input');
         
@@ -270,9 +259,6 @@ function googleTranslateElementInit() {
         if (!isCartOrder) {
             quantity = parseInt(document.getElementById('quantity').value) || 1;
         }
-
-        // حساب إجمالي الوجبات (سعر الوحدة × الكمية، أو إجمالي السلة)
-        let productsTotal = isCartOrder ? basePrice : (basePrice * quantity);
 
         let shippingPrice = 0;
 
@@ -294,13 +280,12 @@ function googleTranslateElementInit() {
             }
         }
         
-        // المجموع الكلي = إجمالي الوجبات + سعر التوصيل
+        let productsTotal = isCartOrder ? basePrice : (basePrice * quantity);
         let finalTotal = productsTotal + shippingPrice;
 
-        if (mealsTotalDisplay) mealsTotalDisplay.innerText = productsTotal;
-        if (shippingDisplay) shippingDisplay.innerText = shippingPrice;
-        if (totalDisplay) totalDisplay.innerText = finalTotal;
-        if (deliveryPriceInput) deliveryPriceInput.value = shippingPrice;
+        shippingDisplay.innerText = shippingPrice;
+        totalDisplay.innerText = finalTotal;
+        deliveryPriceInput.value = shippingPrice;
     }
 
     function prepareCartData() {
