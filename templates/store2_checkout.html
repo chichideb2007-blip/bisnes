@@ -37,11 +37,11 @@
 
 <div class="container mt-2">
     <div class="checkout-card">
-        <h3 class="text-center mb-4">إتمام طلب سلة المأكولات</h3>
+        <h3 class="text-center mb-4">إتمام طلب سلة وجبات</h3>
         
         <!-- صندوق معلومات السلة -->
         <div class="card p-3 mb-3 border-0 bg-light" id="product_info_box">
-            <h5>الطلب: <span class="text-indigo">سلة المأكولات</span></h5>
+            <h5>الطلب: <span class="text-indigo">سلة وجبات</span></h5>
             <div id="cart_items_summary" class="mt-2 text-muted small">جاري تحميل الوجبات...</div>
         </div>
 
@@ -93,13 +93,12 @@
             <!-- خانة محافظات الأردن -->
             <div class="mb-3 d-none" id="jordan_section">
                 <label for="jordan_region" class="form-label">المحافظة والمنطقة (الأردن)</label>
-                <select id="jordan_region" name="jordan_region" class="form-select" onchange="calculateTotal()" style="color: #000 !important; background-color: #fff !important;" required>
-                    <option value="" disabled selected style="color: #000;">-- اختر المحافظة والمنطقة --</option>
+                <select id="jordan_region" name="jordan_region" class="form-select" onchange="calculateTotal()" required>
+                    <option value="" disabled selected>-- اختر المحافظة والمنطقة --</option>
                     {% for rate in jordan_rates %}
                         <option value="{{ rate.id }}" 
                                 data-home="{{ rate.home_price }}" 
-                                data-office="{{ rate.office_price }}"
-                                style="color: #000 !important; background-color: #fff !important;">
+                                data-office="{{ rate.office_price }}">
                             {{ rate.governorate_name }}
                         </option>
                     {% endfor %}
@@ -175,7 +174,7 @@ function googleTranslateElementInit() {
             if(summaryContainer) summaryContainer.innerHTML = htmlList;
             cartTotalBase = calculatedCartTotal;
         } else {
-            if(summaryContainer) summaryContainer.innerHTML = "سلة المأكولات فارغة!";
+            if(summaryContainer) summaryContainer.innerHTML = "سلة وجبات فارغة!";
             cartTotalBase = 0;
         }
         calculateTotal();
