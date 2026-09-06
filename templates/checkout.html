@@ -59,6 +59,36 @@
             <!-- حقل مخفي لحمل بيانات السلة كاملة إذا كان الطلب عبارة عن سلة -->
             <input type="hidden" name="cart_data" id="cart_data_input">
 
+            <!-- قسم الألوان (يظهر للمنتج الفردي فقط إذا كانت متوفرة) -->
+            {% if not is_cart and product and product.colors %}
+            <div class="mb-3">
+                <label class="fw-bold">اختر اللون:</label>
+                <div class="d-flex gap-2 mt-1">
+                    {% for color in product.colors.split(',') %}
+                        <button type="button" class="btn btn-outline-dark btn-sm color-btn" onclick="selectColor('{{ color.strip() }}', this)">
+                            {{ color.strip() }}
+                        </button>
+                    {% endfor %}
+                </div>
+                <input type="hidden" name="selected_color" id="selected_color">
+            </div>
+            {% endif %}
+
+            <!-- قسم المقاسات (يظهر للمنتج الفردي فقط إذا كانت متوفرة) -->
+            {% if not is_cart and product and product.sizes %}
+            <div class="mb-3">
+                <label class="fw-bold">اختر المقاس:</label>
+                <div class="d-flex gap-2 mt-1">
+                    {% for size in product.sizes.split(',') %}
+                        <button type="button" class="btn btn-outline-secondary btn-sm size-btn" onclick="selectSize('{{ size.strip() }}', this)">
+                            {{ size.strip() }}
+                        </button>
+                    {% endfor %}
+                </div>
+                <input type="hidden" name="selected_size" id="selected_size">
+            </div>
+            {% endif %}
+
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">الاسم</label>
@@ -85,7 +115,7 @@
                 </select>
             </div>
 
-            <!-- خانة الكمية (تختفي أو تصبح غير مفعلة تلقائياً إذا كان الطلب سلة لأن السلة تحوي كمياتها مسبقاً) -->
+            <!-- خانة الكمية -->
             <div class="mb-3" id="quantity_container">
                 <label for="quantity" class="form-label">الكمية</label>
                 <input type="number" id="quantity" name="quantity" class="form-control" value="1" min="1" oninput="calculateTotal()" required>
@@ -281,6 +311,23 @@ function googleTranslateElementInit() {
         shippingDisplay.innerText = shippingPrice;
         totalDisplay.innerText = finalTotal;
         deliveryPriceInput.value = shippingPrice;
+    }
+
+    // دوال اختيار الألوان والمقاسات
+    function selectColor(color, btn) {
+        document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active', 'btn-dark'));
+        document.querySelectorAll('.color-btn').forEach(b => b.classList.add('btn-outline-dark'));
+        btn.classList.remove('btn-outline-dark');
+        btn.classList.add('active', 'btn-dark');
+        document.getElementById('selected_color').value = color;
+    }
+
+    function selectSize(size, btn) {
+        document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active', 'btn-secondary'));
+        document.querySelectorAll('.size-btn').forEach(b => b.classList.add('btn-outline-secondary'));
+        btn.classList.remove('btn-outline-secondary');
+        btn.classList.add('active', 'btn-secondary');
+        document.getElementById('selected_size').value = size;
     }
 
     // دالة لتجهيز وإرسال بيانات السلة عبر الحقل المخفي وتفريغها بعد التأكيد
