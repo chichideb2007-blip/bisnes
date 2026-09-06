@@ -25,7 +25,6 @@
                 </a>
 
                 {% if current_company %}
-                    <!-- تم تغيير زر تغيير المطعم إلى تغيير المتجر -->
                     <a href="/clear_store2_session" onclick="localStorage.removeItem('store2_cart');" class="text-sm font-medium text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-4 py-2 rounded-full transition-colors border border-rose-100 flex items-center gap-1.5">
                         <i class="fas fa-exchange-alt"></i> تغيير المتجر
                     </a>
@@ -57,13 +56,12 @@
                 {% for product in products %}
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col justify-between product-card">
                         <div>
-                            <div class="w-full h-36 bg-gray-100 rounded-xl overflow-hidden mb-3">
-                                {% if product.get('product-images') %}
-                                    <img src="{{ product['product-images'] }}" class="w-full h-full object-cover product-img" alt="{{ product.name }}">
-                                {% elif product.get('image') %}
-                                    <img src="{{ product['image'] }}" class="w-full h-full object-cover product-img" alt="{{ product.name }}">
+                            <div class="w-full h-36 bg-gray-100 rounded-xl overflow-hidden mb-3 flex items-center justify-center">
+                                {% set img_url = product.get('product-images') if product.get('product-images') else product.get('image', '') %}
+                                {% if img_url and img_url|trim != '' %}
+                                    <img src="{{ img_url }}" class="w-full h-full object-cover product-img" alt="{{ product.name }}" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\'text-gray-400\'><i class=\'fas fa-box text-2xl\'></i></div>';">
                                 {% else %}
-                                    <div class="w-full h-full flex items-center justify-center text-gray-400">
+                                    <div class="text-gray-400">
                                         <i class="fas fa-box text-2xl"></i>
                                     </div>
                                 {% endif %}
@@ -77,7 +75,7 @@
                                     data-id="{{ product.id }}" 
                                     data-name="{{ product.name }}" 
                                     data-price="{{ product.price }}" 
-                                    data-image="{{ product.get('product-images') if product.get('product-images') else product.get('image', '') }}" 
+                                    data-image="{{ img_url }}" 
                                     class="add-to-cart-btn w-full bg-orange-600 hover:bg-orange-700 active:scale-95 text-white font-bold py-2.5 rounded-xl transition-all text-xs flex items-center justify-center gap-1.5 shadow-md shadow-orange-600/20 cursor-pointer">
                                 <i class="fas fa-cart-plus"></i> إضافة إلى السلة
                             </button>
@@ -91,7 +89,6 @@
     </main>
 
     <script>
-        // تفريغ السلة تلقائياً عند ظهور حقل إدخال اسم المتجر (تغيير المتجر أو زبون جديد)
         window.addEventListener('DOMContentLoaded', (event) => {
             let companyInput = document.getElementById('company-input-field');
             if (companyInput) {
@@ -101,7 +98,6 @@
             }
         });
 
-        // دالة تحديث عداد سلة المشتريات
         function updateCartCount() {
             let cart = JSON.parse(localStorage.getItem('store2_cart')) || [];
             let totalCount = cart.reduce((sum, item) => sum + (parseInt(item.quantity) || 1), 0);
@@ -111,7 +107,6 @@
             }
         }
 
-        // البحث الفوري بين المنتجات
         function searchProducts() {
             let input = document.getElementById('product-search').value.toLowerCase();
             let cards = document.querySelectorAll('.product-card');
@@ -121,7 +116,6 @@
             });
         }
 
-        // الاستماع لأزرار الإضافة وتحديث سلة المشتريات
         document.addEventListener('click', function(event) {
             let btn = event.target.closest('.add-to-cart-btn');
             if (!btn) return;
@@ -152,7 +146,6 @@
             showToast("تمت إضافة المنتج إلى السلة بنجاح! 🛍️");
         });
 
-        // رسالة إشعار منبثقة
         function showToast(message) {
             let existingToast = document.getElementById('toast-notification');
             if (existingToast) existingToast.remove();
@@ -169,7 +162,6 @@
             }, 2000);
         }
 
-        // تحديث العداد فور التحميل
         window.onload = function() {
             updateCartCount();
         };
