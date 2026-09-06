@@ -1,8 +1,10 @@
 <div class="w-full h-36 bg-gray-100 rounded-xl overflow-hidden mb-3">
     {% if product['product-images'] %}
-        {# تنظيف النص من الأقواس المربعة وعلامات التنصيص إذا وجدت #}
+        {# تحويل البيانات إلى نص وتنظيفها من الأقواس أو علامات التنصيص الزائدة #}
         {% set raw_images = product['product-images'] | string %}
         {% set clean_images = raw_images.replace('[', '').replace(']', '').replace("'", "").replace('"', '').strip() %}
+        
+        {# تقسيم الروابط عبر الفاصلة #}
         {% set images = clean_images.split(',') %}
         
         <div class="flex h-full overflow-x-auto gap-1 p-1">
