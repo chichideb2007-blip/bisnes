@@ -752,17 +752,24 @@ def products():
     company_code = session.get('company_code')
     
     if request.method == 'POST':
-        file = request.files.get('product_image')
-        encoded_string = ""
-        if file and file.filename != '':
-            encoded_string = f'data:image/jpeg;base64,{base64.b64encode(file.read()).decode("utf-8")}'
+        # استقبال عدة صور دفعة واحدة للمنتج
+        images = request.files.getlist('product_images') 
+        encoded_images = []
+        
+        for file in images:
+            if file and file.filename != '':
+                encoded_str = f'data:{file.content_type};base64,{base64.b64encode(file.read()).decode("utf-8")}'
+                encoded_images.append(encoded_str)
+                
+        # ربط الصور بفاصلة (Comma-separated) لتخزينها في قاعدة البيانات كحزمة واحدة
+        images_string = ",".join(encoded_images) if encoded_images else ""
 
         data = {
             'name': request.form.get('name'),
             'quantity': int(request.form.get('quantity', 0)),
             'price': float(request.form.get('price', 0.0)),
             'company_id_text': company_code,
-            'product-images': encoded_string
+            'product-images': images_string
         }
         try:
             supabase.table('inventory').insert(data).execute()
@@ -781,19 +788,17 @@ def inventory_management():
     if request.method == 'POST':
         product_id = request.form.get('product_id')
         new_quantity = request.form.get('quantity')
-        file = request.files.get('product_image')
+        images = request.files.getlist('product_images')
         
         update_data = {"quantity": int(new_quantity)}
         
-        if file and file.filename != '':
-            filename = f"{company_code}/{int(time.time())}_{file.filename}"
-            supabase.storage.from_("products").upload(
-                path=filename,
-                file=file.read(),
-                file_options={"content-type": file.content_type}
-            )
-            public_url = supabase.storage.from_("products").get_public_url(filename)
-            update_data["product-images"] = public_url
+        if images and any(f.filename != '' for f in images):
+            encoded_images = []
+            for file in images:
+                if file and file.filename != '':
+                    encoded_str = f'data:{file.content_type};base64,{base64.b64encode(file.read()).decode("utf-8")}'
+                    encoded_images.append(encoded_str)
+            update_data["product-images"] = ",".join(encoded_images)
         
         try:
             supabase.table('inventory').update(update_data).eq("id", product_id).eq("company_id_text", company_code).execute()
