@@ -29,43 +29,15 @@
     <div class="container mt-4">
         <h2 class="mb-4 text-center fw-bold">📦 إدارة المنتجات والمخزون</h2>
         
-        <!-- نموذج إضافة منتج جديد مع دعم رفع صور متعددة والمعاينة -->
+        <!-- نموذج إضافة منتج -->
         <div class="product-card">
             <h4 class="mb-3">إضافة منتج جديد</h4>
-            <form action="{{ url_for('products') }}" method="POST" enctype="multipart/form-data">
-                
-                <div class="row g-3 mb-3">
-                    <!-- اسم المنتج -->
-                    <div class="col-md-4">
-                        <label class="form-label fw-bold">اسم المنتج:</label>
-                        <input type="text" name="name" class="form-control" placeholder="اسم المنتج" required>
-                    </div>
-
-                    <!-- الكمية -->
-                    <div class="col-md-4">
-                        <label class="form-label fw-bold">الكمية:</label>
-                        <input type="number" name="quantity" class="form-control" placeholder="الكمية" min="0" required>
-                    </div>
-
-                    <!-- السعر -->
-                    <div class="col-md-4">
-                        <label class="form-label fw-bold">السعر ({{ currency }}):</label>
-                        <input type="number" step="0.01" name="price" class="form-control" placeholder="السعر" min="0" required>
-                    </div>
-                </div>
-
-                <!-- رفع صور متعددة -->
-                <div class="mb-3">
-                    <label class="form-label fw-bold">صور المنتج (يمكنك اختيار أكثر من صورة):</label>
-                    <input type="file" name="product_images" id="product_images_input" accept="image/*" multiple class="form-control">
-                    <div class="form-text text-muted">اضغط على زر Ctrl أو Shift لاختيار عدة صور دفعة واحدة.</div>
-                </div>
-
-                <!-- حاوية معاينة الصور المختارة -->
-                <div id="image_preview_container" class="d-flex flex-wrap gap-2 mb-3"></div>
-
-                <!-- زر الحفظ -->
-                <button type="submit" class="btn btn-success w-100 py-2 fw-bold">حفظ المنتج</button>
+            <form action="{{ url_for('products') }}" method="POST" enctype="multipart/form-data" class="row g-3">
+                <div class="col-md-3"><input type="text" name="name" class="form-control" placeholder="اسم المنتج" required></div>
+                <div class="col-md-2"><input type="number" name="quantity" class="form-control" placeholder="الكمية" required></div>
+                <div class="col-md-2"><input type="number" step="0.01" name="price" class="form-control" placeholder="السعر ({{ currency }})" required></div>
+                <div class="col-md-3"><input type="file" name="product_image" class="form-control" accept="image/*"></div>
+                <div class="col-md-2"><button type="submit" class="btn btn-success w-100">حفظ المنتج</button></div>
             </form>
         </div>
 
@@ -124,34 +96,5 @@
         </div>
     </div>
 
-    <!-- JavaScript لمعاينة الصور قبل رفعها -->
-    <script>
-        document.getElementById('product_images_input').addEventListener('change', function(event) {
-            const previewContainer = document.getElementById('image_preview_container');
-            previewContainer.innerHTML = ''; // تفريغ المعاينة القديمة
-            
-            const files = event.target.files;
-            if (files) {
-                Array.from(files).forEach(file => {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        const imgWrapper = document.createElement('div');
-                        imgWrapper.className = 'position-relative border rounded overflow-hidden shadow-sm';
-                        imgWrapper.style.width = '80px';
-                        imgWrapper.style.height = '80px';
-                        
-                        const img = document.createElement('img');
-                        img.src = e.target.result;
-                        img.className = 'w-100 h-100';
-                        img.style.objectFit = 'cover';
-                        
-                        imgWrapper.appendChild(img);
-                        previewContainer.appendChild(imgWrapper);
-                    }
-                    reader.readAsDataURL(file);
-                });
-            }
-        });
-    </script>
 </body>
 </html>
