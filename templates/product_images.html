@@ -1,9 +1,15 @@
 <div class="w-full h-36 bg-gray-100 rounded-xl overflow-hidden mb-3">
-    {% if images_string %}
-        {% set images = images_string.split(',') %}
+    {% if product['product-images'] %}
+        {# تنظيف النص من الأقواس المربعة وعلامات التنصيص إذا وجدت #}
+        {% set raw_images = product['product-images'] | string %}
+        {% set clean_images = raw_images.replace('[', '').replace(']', '').replace("'", "").replace('"', '').strip() %}
+        {% set images = clean_images.split(',') %}
+        
         <div class="flex h-full overflow-x-auto gap-1 p-1">
             {% for img in images %}
-                <img src="{{ img }}" class="h-full w-24 object-cover rounded-lg shrink-0 product-img" alt="صورة المنتج">
+                {% if img.strip() %}
+                    <img src="{{ img.strip() }}" class="h-full w-24 object-cover rounded-lg shrink-0 product-img" alt="صورة المنتج">
+                {% endif %}
             {% endfor %}
         </div>
     {% else %}
