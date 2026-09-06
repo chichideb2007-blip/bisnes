@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ current_company if current_company else 'المتجر الإلكتروني' }}</title>
+    <title>{{ current_company if current_company else 'متجرنا الإلكتروني' }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -16,16 +16,16 @@
     <header class="bg-white shadow-sm sticky top-0 z-50 border-b border-gray-100">
         <div class="max-w-7xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-4">
             <h1 class="text-lg font-extrabold text-gray-900">
-                {{ current_company if current_company else 'متجرنا' }}
+                🛍️ {{ current_company if current_company else 'متجرنا' }}
             </h1>
             
             <div class="flex items-center gap-3">
-                <a href="/cart" class="text-sm font-bold text-indigo-600 bg-indigo-50 px-4 py-2 rounded-full border border-indigo-100 flex items-center gap-2">
-                    <i class="fas fa-shopping-cart"></i> السلة (<span id="cart-count">0</span>)
+                <a href="/store2_cart" class="text-sm font-bold text-orange-600 bg-orange-50 px-4 py-2 rounded-full border border-orange-100 flex items-center gap-2">
+                    <i class="fas fa-shopping-cart"></i> سلة المنتجات (<span id="cart-count">0</span>)
                 </a>
 
                 {% if current_company %}
-                    <a href="/clear_session" class="text-sm font-medium text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-4 py-2 rounded-full transition-colors border border-rose-100 flex items-center gap-1.5">
+                    <a href="/clear_store2_session" onclick="localStorage.removeItem('store2_cart');" class="text-sm font-medium text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-4 py-2 rounded-full transition-colors border border-rose-100 flex items-center gap-1.5">
                         <i class="fas fa-exchange-alt"></i> تغيير المتجر
                     </a>
                 {% endif %}
@@ -36,49 +36,39 @@
     <main class="max-w-7xl mx-auto px-4 py-8 flex-grow w-full">
         {% if not current_company %}
         <div class="max-w-xl mx-auto bg-white p-8 rounded-3xl shadow-xl border border-gray-100 text-center mb-12">
-            <h2 class="text-xl font-black text-gray-900 mb-2">أهلاً بك في منصة التسوق</h2>
-            <p class="text-gray-500 text-sm mb-6">أدخل اسم المتجر الذي تود التسوق منه لمشاهدة أحدث المنتجات</p>
+            <h2 class="text-xl font-black text-gray-900 mb-2">أهلاً بك في منصة المتاجر</h2>
+            <p class="text-gray-500 text-sm mb-6">أدخل اسم المتجر الذي تود التسوق منه لعرض المنتجات</p>
             
-            <form action="/shop" method="POST" class="flex flex-col sm:flex-row gap-3 justify-center">
-                <input type="text" name="company_name" class="px-5 py-3 rounded-2xl border border-gray-200 bg-gray-50 outline-none w-full text-sm font-medium" placeholder="اكتب اسم المتجر هنا..." required>
-                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-2xl font-bold text-sm shrink-0">دخول</button>
+            <form action="/store2" method="POST" class="flex flex-col sm:flex-row gap-3 justify-center">
+                <input type="text" id="company-input-field" name="company_name" class="px-5 py-3 rounded-2xl border border-gray-200 bg-gray-50 outline-none w-full text-sm font-medium" placeholder="اكتب اسم المتجر هنا..." required>
+                <button type="submit" class="bg-orange-600 hover:bg-orange-700 text-white px-8 py-3 rounded-2xl font-bold text-sm shrink-0">دخول للمتجر</button>
             </form>
         </div>
         {% endif %}
 
         {% if products %}
+            <!-- خانة البحث عن المنتجات -->
             <div class="mb-6 max-w-md mx-auto">
-                <input type="text" id="product-search" onkeyup="searchProducts()" placeholder="ابحث عن منتجك المفضلة..." class="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-white outline-none text-sm shadow-sm focus:border-indigo-500">
+                <input type="text" id="product-search" onkeyup="searchMeals()" placeholder="ابحث عن منتجك المفضلة..." class="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-white outline-none text-sm shadow-sm focus:border-orange-500">
             </div>
 
             <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                 {% for product in products %}
-                    {% set raw_img = product['product-images'] | string if 'product-images' in product else '' %}
-                    {% set clean_img = raw_img.replace('[', '').replace(']', '').replace("'", "").replace('"', "").strip() %}
-                    {% set images = clean_img.split(',') if clean_img else [] %}
-                    {% set first_image = images[0].strip() if images and images[0] else '' %}
-                    
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col justify-between product-card">
                         <div>
-                            <a href="/product/{{ product.id }}" class="block w-full h-36 bg-gray-100 rounded-xl overflow-hidden mb-3 relative group">
-                                {% if first_image %}
-                                    <img src="{{ first_image }}" class="w-full h-full object-cover product-img" alt="{{ product.name }}">
-                                    
-                                    {% if images | length > 1 %}
-                                        <div class="absolute top-2 left-2 bg-black/60 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 backdrop-blur-sm">
-                                            <i class="fas fa-images"></i> {{ images | length }}
-                                        </div>
-                                    {% endif %}
+                            <div class="w-full h-36 bg-gray-100 rounded-xl overflow-hidden mb-3">
+                                {% if product.get('product-images') %}
+                                    <img src="{{ product['product-images'] }}" class="w-full h-full object-cover product-img" alt="{{ product.name }}">
+                                {% elif product.get('image') %}
+                                    <img src="{{ product['image'] }}" class="w-full h-full object-cover product-img" alt="{{ product.name }}">
                                 {% else %}
                                     <div class="w-full h-full flex items-center justify-center text-gray-400">
-                                        <i class="fas fa-image text-2xl"></i>
+                                        <i class="fas fa-box text-2xl"></i>
                                     </div>
                                 {% endif %}
-                            </a>
-                            <h3 class="font-bold text-gray-800 text-sm mb-1 line-clamp-1 product-name">
-                                <a href="/product/{{ product.id }}">{{ product.name }}</a>
-                            </h3>
-                            <p class="text-indigo-600 font-black text-base mb-3"><span class="product-price">{{ product.price }}</span> دج</p>
+                            </div>
+                            <h3 class="font-bold text-gray-800 text-sm mb-1 line-clamp-1 product-name">{{ product.name }}</h3>
+                            <p class="text-orange-600 font-black text-base mb-3"><span class="product-price">{{ product.price }}</span> دج</p>
                         </div>
 
                         <div>
@@ -86,9 +76,9 @@
                                     data-id="{{ product.id }}" 
                                     data-name="{{ product.name }}" 
                                     data-price="{{ product.price }}" 
-                                    data-image="{{ first_image }}" 
-                                    class="add-to-cart-btn w-full bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold py-2.5 rounded-xl transition-all text-xs flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/20 cursor-pointer">
-                                <i class="fas fa-cart-plus"></i> إضافة للسلة
+                                    data-image="{{ product.get('product-images') if product.get('product-images') else product.get('image', '') }}" 
+                                    class="add-to-cart-btn w-full bg-orange-600 hover:bg-orange-700 active:scale-95 text-white font-bold py-2.5 rounded-xl transition-all text-xs flex items-center justify-center gap-1.5 shadow-md shadow-orange-600/20 cursor-pointer">
+                                <i class="fas fa-cart-plus"></i> إضافة إلى السلة
                             </button>
                         </div>
                     </div>
@@ -100,8 +90,17 @@
     </main>
 
     <script>
+        window.addEventListener('DOMContentLoaded', (event) => {
+            let companyInput = document.getElementById('company-input-field');
+            if (companyInput) {
+                localStorage.removeItem('store2_cart');
+                let countEl = document.getElementById('cart-count');
+                if(countEl) countEl.innerText = '0';
+            }
+        });
+
         function updateCartCount() {
-            let cart = JSON.parse(localStorage.getItem('cart')) || [];
+            let cart = JSON.parse(localStorage.getItem('store2_cart')) || [];
             let totalCount = cart.reduce((sum, item) => sum + (parseInt(item.quantity) || 1), 0);
             let countEl = document.getElementById('cart-count');
             if (countEl) {
@@ -109,7 +108,7 @@
             }
         }
 
-        function searchProducts() {
+        function searchMeals() {
             let input = document.getElementById('product-search').value.toLowerCase();
             let cards = document.querySelectorAll('.product-card');
             cards.forEach(card => {
@@ -127,7 +126,7 @@
             let price = parseFloat(btn.getAttribute('data-price')) || 0;
             let image = btn.getAttribute('data-image');
 
-            let cart = JSON.parse(localStorage.getItem('cart')) || [];
+            let cart = JSON.parse(localStorage.getItem('store2_cart')) || [];
             let existingItem = cart.find(item => item.id == id);
 
             if (existingItem) {
@@ -142,9 +141,10 @@
                 });
             }
 
-            localStorage.setItem('cart', JSON.stringify(cart));
+            localStorage.setItem('store2_cart', JSON.stringify(cart));
             updateCartCount();
-            showToast("تمت إضافة المنتج إلى السلة بنجاح! 🛒");
+            
+            showToast("تمت إضافة المنتج إلى السلة بنجاح! 🛍️");
         });
 
         function showToast(message) {
@@ -163,7 +163,9 @@
             }, 2000);
         }
 
-        window.onload = updateCartCount;
+        window.onload = function() {
+            updateCartCount();
+        };
     </script>
 </body>
 </html>
