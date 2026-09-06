@@ -282,7 +282,6 @@ def checkout(product_id):
                 
     return render_template('checkout.html', product=product, rates=rates, jordan_rates=jordan_rates)
 
-# --- مسار تفاصيل المنتج الجديد لمنع خطأ Not Found ---
 @app.route('/product/<int:product_id>')
 def product_detail(product_id):
     product = get_product_from_db(product_id)
@@ -752,30 +751,34 @@ def products():
     company_code = session.get('company_code')
     
     if request.method == 'POST':
-        # استقبال عدة صور دفعة واحدة للمنتج
-        images = request.files.getlist('product_images') 
+        # استقبال كل الصور المرفوعة دفعة واحدة وتشفيرها
+        images = request.files.getlist('product_images')
         encoded_images = []
-        
-        for file in images:
-            if file and file.filename != '':
-                encoded_str = f'data:{file.content_type};base64,{base64.b64encode(file.read()).decode("utf-8")}'
-                encoded_images.append(encoded_str)
-                
-        # ربط الصور بفاصلة (Comma-separated) لتخزينها في قاعدة البيانات كحزمة واحدة
-        images_string = ",".join(encoded_images) if encoded_images else ""
 
+        for img in images:
+            if img and img.filename != '':
+                img_binary = img.read()
+                encoded = base64.b64encode(img_binary).decode('utf-8')
+                encoded_images.append(f'data:{img.content_type};base64,{encoded}')
+
+        # دمج الروابط بفاصلة لتخزينها بشكل سليم في جدول قاعدة البيانات
+        images_string = ", ".join(encoded_images) if encoded_images else ""
+        
         data = {
             'name': request.form.get('name'),
             'quantity': int(request.form.get('quantity', 0)),
             'price': float(request.form.get('price', 0.0)),
             'company_id_text': company_code,
-            'product-images': images_string
+            'product-images': images_string  # تخزين جميع الصور المرفوعة
         }
+        
         try:
             supabase.table('inventory').insert(data).execute()
             return redirect(url_for('products'))
         except Exception as e:
-            return f"خطأ في قاعدة البيانات: {str(e)}", 500
+            print(f"خطأ في قاعدة البيانات: {str(e)}")
+            res = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
+            return render_template('products.html', products=res.data or [])
 
     res = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
     return render_template('products.html', products=res.data or [])
@@ -798,7 +801,7 @@ def inventory_management():
                 if file and file.filename != '':
                     encoded_str = f'data:{file.content_type};base64,{base64.b64encode(file.read()).decode("utf-8")}'
                     encoded_images.append(encoded_str)
-            update_data["product-images"] = ",".join(encoded_images)
+            update_data["product-images"] = ", ".join(encoded_images)
         
         try:
             supabase.table('inventory').update(update_data).eq("id", product_id).eq("company_id_text", company_code).execute()
