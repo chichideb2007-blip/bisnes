@@ -56,15 +56,9 @@
                 {% for product in products %}
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col justify-between product-card">
                         <div>
-                            <!-- قسم عرض الصور المتعددة -->
-                            <div class="w-full h-36 bg-gray-100 rounded-xl overflow-hidden mb-3 flex items-center overflow-x-auto gap-1 p-1">
+                            <div class="w-full h-36 bg-gray-100 rounded-xl overflow-hidden mb-3">
                                 {% if product['product-images'] %}
-                                    {% set images = product['product-images'].split(',') if product['product-images'] is string else [product['product-images']] %}
-                                    {% for img in images %}
-                                        {% if img.strip() %}
-                                            <img src="{{ img.strip() }}" class="w-full h-full object-cover product-img shrink-0 rounded-lg" alt="{{ product.name }}">
-                                        {% endif %}
-                                    {% endfor %}
+                                    <img src="{{ product['product-images'] }}" class="w-full h-full object-cover product-img" alt="{{ product.name }}">
                                 {% else %}
                                     <div class="w-full h-full flex items-center justify-center text-gray-400">
                                         <i class="fas fa-image text-2xl"></i>
@@ -140,7 +134,7 @@
             }
 
             localStorage.setItem('cart', JSON.stringify(cart));
-            updateCardCount();
+            updateCartCount();
             showToast("تمت إضافة المنتج إلى السلة بنجاح! 🛒");
         });
 
@@ -166,3 +160,4 @@
     </script>
 </body>
 </html>
+
