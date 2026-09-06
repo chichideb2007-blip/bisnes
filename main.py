@@ -764,12 +764,18 @@ def products():
         # دمج الروابط بفاصلة لتخزينها بشكل سليم في جدول قاعدة البيانات
         images_string = ", ".join(encoded_images) if encoded_images else ""
         
+        # استقبال حقول الألوان والمقاسات الاختيارية الجديدة
+        colors_input = request.form.get('colors', '').strip()
+        sizes_input = request.form.get('sizes', '').strip()
+        
         data = {
             'name': request.form.get('name'),
             'quantity': int(request.form.get('quantity', 0)),
             'price': float(request.form.get('price', 0.0)),
             'company_id_text': company_code,
-            'product-images': images_string  # تخزين جميع الصور المرفوعة
+            'product-images': images_string,  # تخزين جميع الصور المرفوعة
+            'colors': colors_input,           # تخزين الألوان الاختيارية
+            'sizes': sizes_input              # تخزين المقاسات الاختيارية
         }
         
         try:
@@ -830,11 +836,15 @@ def edit_product(id):
         new_name = request.form.get('name')
         new_quantity = request.form.get('quantity')
         new_price = request.form.get('price')
+        new_colors = request.form.get('colors', '').strip()
+        new_sizes = request.form.get('sizes', '').strip()
         
         supabase.table("inventory").update({
             "name": new_name,
             "quantity": int(new_quantity),
-            "price": float(new_price)
+            "price": float(new_price),
+            "colors": new_colors,
+            "sizes": new_sizes
         }).eq("id", id).execute()
         
         return redirect(url_for('products'))
