@@ -282,13 +282,6 @@ def checkout(product_id):
                 
     return render_template('checkout.html', product=product, rates=rates, jordan_rates=jordan_rates)
 
-@app.route('/product/<int:product_id>')
-def product_detail(product_id):
-    product = get_product_from_db(product_id)
-    if not product:
-        return "المنتج غير موجود", 404
-    return render_template('product_view.html', product=product)
-
 @app.route('/submit-order', methods=['POST'])
 @app.route('/submit-souhila-order', methods=['POST'])
 def submit_order():
@@ -330,14 +323,17 @@ def submit_order():
     base_price = sum(float(item.get('price', 0)) * int(item.get('quantity', 1)) for item in cart_data)
     total_price = base_price + delivery_price
 
+    # --- استخراج كود الشركة بطريقة شاملة لكل المواقع ---
     company_code = ""
     
+    # 1. البحث في السلة (Cart Data)
     if cart_data:
         for item in cart_data:
             company_code = item.get('company_id_text') or item.get('company_code') or ""
             if company_code:
                 break
 
+    # 2. البحث عبر متجر الوجبات (store2)
     if not company_code and session.get('current_store2_name'):
         shop_name = session.get('current_store2_name').strip()
         try:
@@ -347,6 +343,7 @@ def submit_order():
         except Exception as e:
             print("Error store2 code:", e)
 
+    # 3. البحث عبر المتجر العادي (shop)
     if not company_code and session.get('current_shop_name'):
         shop_name = session.get('current_shop_name').strip()
         try:
@@ -356,6 +353,7 @@ def submit_order():
         except Exception as e:
             print("Error shop code:", e)
 
+    # 4. الحل الاحتياطي عبر رقم المنتج (Product ID)
     if not company_code and cart_data:
         try:
             first_p_id = cart_data[0].get('id') or cart_data[0].get('product_id') or cart_data[0].get('productId')
@@ -428,6 +426,7 @@ def submit_order():
     except Exception as e:
         print(f"Error inserting order: {e}")
 
+    # --- إرسال التنبيه لموقع سهيلة ---
     if is_souhila_order:
         try:
             t_res = supabase.table('site_settings').select('*').in_('key', ['telegram_token', 'telegram_chat_id']).execute()
@@ -437,7 +436,7 @@ def submit_order():
             if t_token and t_chat_id:
                 product_names_str = ", ".join([f"{item.get('name', item.get('title', 'منتج'))} (x{item.get('quantity', 1)})" for item in cart_data])
                 msg_text = (
-                    f"🛒 طلبية جديدة (موقع سهيلة)!\n"
+                   f"🛒 طلبية جديدة (موقع سهيلة)!\n"
                     f"👤 الاسم: {full_name}\n"
                     f"📞 الهاتف: {phone}\n"
                     f"📦 الدورات/المنتجات: {product_names_str}\n"
@@ -449,6 +448,7 @@ def submit_order():
         except Exception as err:
             print("Telegram souhila alert error:", err)
 
+    # --- تحديث المخزون ---
     for item in cart_data:
         p_id = item.get('id') or item.get('product_id') or item.get('productId')
         p_name = item.get('name')
@@ -478,6 +478,7 @@ def submit_order():
         except Exception as ex:
             pass
 
+    # --- إرسال تنبيه الطلب عبر التليجرام للمتاجر (shop & store2) ---
     if company_code and not is_souhila_order:
         try:
             res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
@@ -751,40 +752,29 @@ def products():
     company_code = session.get('company_code')
     
     if request.method == 'POST':
-        # استقبال كل الصور المرفوعة دفعة واحدة وتشفيرها
-        images = request.files.getlist('product_images')
-        encoded_images = []
+        file = request.files.get('product_image')
+        encoded_string = ""
+        if file and file.filename != '':
+            encoded_string = f'data:image/jpeg;base64,{base64.b64encode(file.read()).decode("utf-8")}'
 
-        for img in images:
-            if img and img.filename != '':
-                img_binary = img.read()
-                encoded = base64.b64encode(img_binary).decode('utf-8')
-                encoded_images.append(f'data:{img.content_type};base64,{encoded}')
-
-        # دمج الروابط بفاصلة لتخزينها بشكل سليم في جدول قاعدة البيانات
-        images_string = ", ".join(encoded_images) if encoded_images else ""
-        
-        # استقبال حقول الألوان والمقاسات الاختيارية الجديدة
+        # استقبال الألوان والمقاسات الاختيارية
         colors_input = request.form.get('colors', '').strip()
         sizes_input = request.form.get('sizes', '').strip()
-        
+
         data = {
             'name': request.form.get('name'),
             'quantity': int(request.form.get('quantity', 0)),
             'price': float(request.form.get('price', 0.0)),
             'company_id_text': company_code,
-            'product-images': images_string,  # تخزين جميع الصور المرفوعة
-            'colors': colors_input,           # تخزين الألوان الاختيارية
-            'sizes': sizes_input              # تخزين المقاسات الاختيارية
+            'product-images': encoded_string,
+            'colors': colors_input,  # حفظ الألوان إذا وجدت
+            'sizes': sizes_input     # حفظ المقاسات إذا وجدت
         }
-        
         try:
             supabase.table('inventory').insert(data).execute()
             return redirect(url_for('products'))
         except Exception as e:
-            print(f"خطأ في قاعدة البيانات: {str(e)}")
-            res = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
-            return render_template('products.html', products=res.data or [])
+            return f"خطأ في قاعدة البيانات: {str(e)}", 500
 
     res = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
     return render_template('products.html', products=res.data or [])
@@ -797,17 +787,19 @@ def inventory_management():
     if request.method == 'POST':
         product_id = request.form.get('product_id')
         new_quantity = request.form.get('quantity')
-        images = request.files.getlist('product_images')
+        file = request.files.get('product_image')
         
         update_data = {"quantity": int(new_quantity)}
         
-        if images and any(f.filename != '' for f in images):
-            encoded_images = []
-            for file in images:
-                if file and file.filename != '':
-                    encoded_str = f'data:{file.content_type};base64,{base64.b64encode(file.read()).decode("utf-8")}'
-                    encoded_images.append(encoded_str)
-            update_data["product-images"] = ", ".join(encoded_images)
+        if file and file.filename != '':
+            filename = f"{company_code}/{int(time.time())}_{file.filename}"
+            supabase.storage.from_("products").upload(
+                path=filename,
+                file=file.read(),
+                file_options={"content-type": file.content_type}
+            )
+            public_url = supabase.storage.from_("products").get_public_url(filename)
+            update_data["product-images"] = public_url
         
         try:
             supabase.table('inventory').update(update_data).eq("id", product_id).eq("company_id_text", company_code).execute()
@@ -836,15 +828,15 @@ def edit_product(id):
         new_name = request.form.get('name')
         new_quantity = request.form.get('quantity')
         new_price = request.form.get('price')
-        new_colors = request.form.get('colors', '').strip()
-        new_sizes = request.form.get('sizes', '').strip()
+        colors_input = request.form.get('colors', '').strip()
+        sizes_input = request.form.get('sizes', '').strip()
         
         supabase.table("inventory").update({
             "name": new_name,
             "quantity": int(new_quantity),
             "price": float(new_price),
-            "colors": new_colors,
-            "sizes": new_sizes
+            "colors": colors_input,
+            "sizes": sizes_input
         }).eq("id", id).execute()
         
         return redirect(url_for('products'))
