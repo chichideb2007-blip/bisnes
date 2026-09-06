@@ -33,32 +33,11 @@
         <div class="product-card">
             <h4 class="mb-3">إضافة منتج جديد</h4>
             <form action="{{ url_for('products') }}" method="POST" enctype="multipart/form-data" class="row g-3">
-                <div class="col-md-3">
-                    <input type="text" name="name" class="form-control" placeholder="اسم المنتج" required>
-                </div>
-                <div class="col-md-2">
-                    <input type="number" name="quantity" class="form-control" placeholder="الكمية" required>
-                </div>
-                <div class="col-md-2">
-                    <input type="number" step="0.01" name="price" class="form-control" placeholder="السعر ({{ currency }})" required>
-                </div>
-                <div class="col-md-3">
-                    <input type="file" name="product_image" class="form-control" accept="image/*">
-                </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-success w-100">حفظ المنتج</button>
-                </div>
-
-                <!-- حقول الألوان والمقاسات الجديدة المدمجة -->
-                <div class="col-md-6">
-                    <label class="form-label">الألوان المتاحة (اختياري - يفصل بينها بفواصل)</label>
-                    <input type="text" name="colors" class="form-control" placeholder="مثال: أحمر, أزرق, أسود">
-                </div>
-
-                <div class="col-md-6">
-                    <label class="form-label">المقاسات المتاحة (اختياري - يفصل بينها بفواصل)</label>
-                    <input type="text" name="sizes" class="form-control" placeholder="مثال: S, M, L, XL">
-                </div>
+                <div class="col-md-3"><input type="text" name="name" class="form-control" placeholder="اسم المنتج" required></div>
+                <div class="col-md-2"><input type="number" name="quantity" class="form-control" placeholder="الكمية" required></div>
+                <div class="col-md-2"><input type="number" step="0.01" name="price" class="form-control" placeholder="السعر ({{ currency }})" required></div>
+                <div class="col-md-3"><input type="file" name="product_image" class="form-control" accept="image/*"></div>
+                <div class="col-md-2"><button type="submit" class="btn btn-success w-100">حفظ المنتج</button></div>
             </form>
         </div>
 
@@ -119,3 +98,4 @@
 
 </body>
 </html>
+
