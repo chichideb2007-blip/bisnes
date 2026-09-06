@@ -56,15 +56,9 @@
                 {% for product in products %}
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col justify-between product-card">
                         <div>
-                            <div class="w-full h-36 bg-gray-100 rounded-xl overflow-hidden mb-3">
-                                {% if product['product-images'] %}
-                                    <img src="{{ product['product-images'] }}" class="w-full h-full object-cover product-img" alt="{{ product.name }}">
-                                {% else %}
-                                    <div class="w-full h-full flex items-center justify-center text-gray-400">
-                                        <i class="fas fa-image text-2xl"></i>
-                                    </div>
-                                {% endif %}
-                            </div>
+                            <!-- استدعاء مكون عرض الصور المستقل وإعطاؤه صور المنتج الحالي -->
+                            {% include 'product_images.html' with context %}
+                            
                             <h3 class="font-bold text-gray-800 text-sm mb-1 line-clamp-1 product-name">{{ product.name }}</h3>
                             <p class="text-indigo-600 font-black text-base mb-3"><span class="product-price">{{ product.price }}</span> دج</p>
                         </div>
