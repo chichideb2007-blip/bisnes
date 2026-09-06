@@ -56,11 +56,17 @@
                 {% for product in products %}
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col justify-between product-card">
                         <div>
-                            <div class="w-full h-36 bg-gray-100 rounded-xl overflow-hidden mb-3">
+                            <!-- معرض صور المنتج -->
+                            <div class="w-full bg-gray-100 rounded-xl overflow-hidden mb-3 p-2">
                                 {% if product['product-images'] %}
-                                    <img src="{{ product['product-images'] }}" class="w-full h-full object-cover product-img" alt="{{ product.name }}">
+                                    {% set images = product['product-images'].split(',') %}
+                                    <div class="flex flex-wrap gap-2 justify-center">
+                                        {% for img in images %}
+                                            <img src="{{ img }}" alt="{{ product.name }}" class="w-20 h-20 object-cover rounded-lg border product-img shadow-sm">
+                                        {% endfor %}
+                                    </div>
                                 {% else %}
-                                    <div class="w-full h-full flex items-center justify-center text-gray-400">
+                                    <div class="w-full h-36 flex items-center justify-center text-gray-400">
                                         <i class="fas fa-image text-2xl"></i>
                                     </div>
                                 {% endif %}
@@ -160,4 +166,3 @@
     </script>
 </body>
 </html>
-
