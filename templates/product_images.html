@@ -1,0 +1,14 @@
+<div class="w-full h-36 bg-gray-100 rounded-xl overflow-hidden mb-3">
+    {% if images_string %}
+        {% set images = images_string.split(',') %}
+        <div class="flex h-full overflow-x-auto gap-1 p-1">
+            {% for img in images %}
+                <img src="{{ img }}" class="h-full w-24 object-cover rounded-lg shrink-0 product-img" alt="صورة المنتج">
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="w-full h-full flex items-center justify-center text-gray-400">
+            <i class="fas fa-image text-2xl"></i>
+        </div>
+    {% endif %}
+</div>
