@@ -43,19 +43,21 @@
                     <input type="number" step="0.01" name="price" class="form-control" placeholder="السعر ({{ currency }})" required>
                 </div>
                 <div class="col-md-3">
-                    <input type="file" name="product_images" class="form-control" accept="image/*" multiple>
+                    <input type="file" name="product_image" class="form-control" accept="image/*">
                 </div>
-                
-                <!-- خانات الألوان والمقاسات الاختيارية الجديدة -->
-                <div class="col-md-6">
-                    <input type="text" name="colors" class="form-control" placeholder="الألوان المتاحة (اختياري، تفصل بـ ,)">
-                </div>
-                <div class="col-md-6">
-                    <input type="text" name="sizes" class="form-control" placeholder="المقاسات المتاحة (اختياري، تفصل بـ ,)">
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-success w-100">حفظ المنتج</button>
                 </div>
 
-                <div class="col-md-12">
-                    <button type="submit" class="btn btn-success w-100">حفظ المنتج</button>
+                <!-- حقول الألوان والمقاسات الجديدة المدمجة -->
+                <div class="col-md-6">
+                    <label class="form-label">الألوان المتاحة (اختياري - يفصل بينها بفواصل)</label>
+                    <input type="text" name="colors" class="form-control" placeholder="مثال: أحمر, أزرق, أسود">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">المقاسات المتاحة (اختياري - يفصل بينها بفواصل)</label>
+                    <input type="text" name="sizes" class="form-control" placeholder="مثال: S, M, L, XL">
                 </div>
             </form>
         </div>
@@ -76,7 +78,6 @@
                         <tr>
                             <th>الصورة</th>
                             <th>اسم المنتج</th>
-                            <th>الخصائص (ألوان/مقاسات)</th>
                             <th>الكمية والتحديث</th>
                             <th>السعر</th>
                             <th>الإجراءات</th>
@@ -87,16 +88,12 @@
                         <tr>
                             <td>
                                 {% if p['product-images'] %}
-                                    <img src="{{ p['product-images'].split(',')[0].strip() }}" alt="صورة">
+                                    <img src="{{ p['product-images'] }}" alt="صورة">
                                 {% else %}
                                     <span class="text-muted">لا توجد</span>
                                 {% endif %}
                             </td>
                             <td>{{ p.name }}</td>
-                            <td>
-                                <small class="text-muted d-block">ألوان: {{ p.colors if p.colors else '-' }}</small>
-                                <small class="text-muted d-block">مقاسات: {{ p.sizes if p.sizes else '-' }}</small>
-                            </td>
                             <td>
                                 <!-- نموذج تحديث الكمية المدمج -->
                                 <form action="/update_quantity/{{ p.id }}" method="POST" class="d-inline-flex gap-1 align-items-center justify-content-center">
