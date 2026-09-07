@@ -422,7 +422,7 @@ def submit_order():
     delivery_price = float(request.form.get('delivery_price', 0))
     quantity_ordered = int(request.form.get('quantity', 1))
     
-    # التقاط اللون والمقاس لـ shop
+    # 🔴 التقاط اللون والمقاس لـ shop بدقة
     selected_color = request.form.get('selected_color', '')
     selected_size = request.form.get('selected_size', '')
     
@@ -486,6 +486,7 @@ def submit_order():
 
     main_product_id = cart_data[0].get('id') if cart_data else (int(product_id) if product_id else None)
     
+    # 🔴 إدراج اللون والمقاس في جدول orders
     order_data = {
         "customer_name": full_name,
         "customer_phone": phone,
@@ -550,6 +551,7 @@ def submit_order():
                 product_names_str = ", ".join([f"{item.get('name', item.get('title', 'منتج'))} (x{item.get('quantity', 1)})" for item in cart_data])
                 if token and chat_id:
                     delivery_text = "توصيل للمنزل" if delivery_type == "home" else "توصيل للمكتب"
+                    # 🔴 إظهار اللون والمقاس في تنبيه التليجرام الخاص بالمتجر
                     msg_text = (
                         f"🛒 طلبية جديدة من ({current_company})!\n"
                         f"👤 الاسم: {full_name}\n"
