@@ -201,6 +201,48 @@ function googleTranslateElementInit() {
     let isCartOrder = "{{ 'true' if is_cart else 'false' }}" === "true";
     let basePrice = 0;
 
+    // دالة تحويل نص الألوان/المقاسات (مفصولة بفاصلة) إلى أزرار اختيار تفاعلية
+    function generateOptionsHtml(optionsStr, type, itemIndex) {
+        if (!optionsStr || optionsStr.trim() === "") return '';
+        let options = optionsStr.split(',');
+        let html = `<div class="mt-2"><label class="fw-bold small text-secondary">اختر ${type === 'color' ? 'اللون' : 'المقاس'}:</label><div class="d-flex gap-1 mt-1 flex-wrap">`;
+        
+        options.forEach((opt, idx) => {
+            let val = opt.trim();
+            // جعل الخيار الأول مختاراً افتراضياً لتسهيل الأمر على الزبون
+            let isChecked = idx === 0 ? 'active btn-dark text-white' : 'btn-outline-dark';
+            if(type === 'size') {
+                isChecked = idx === 0 ? 'active btn-secondary text-white' : 'btn-outline-secondary';
+            }
+            
+            html += `<button type="button" class="btn btn-sm ${isChecked} ${type}-btn-${itemIndex}" 
+                        onclick="updateItemOption(${itemIndex}, '${type}', '${val}', this)">
+                        ${val}
+                     </button>`;
+        });
+        html += `</div></div>`;
+        return html;
+    }
+
+    // تحديث خيار اللون أو المقاس في بيانات السلة المحفوظة محلياً عند الضغط عليه
+    window.updateItemOption = function(index, type, value, btn) {
+        let cart = JSON.parse(localStorage.getItem('cart')) || [];
+        if (cart[index]) {
+            cart[index][type] = value;
+            localStorage.setItem('cart', JSON.stringify(cart));
+        }
+        // تحديث تنسيق الأزرار بصرياً
+        let container = btn.parentElement;
+        container.querySelectorAll('button').forEach(b => {
+            b.classList.remove('active', 'btn-dark', 'btn-secondary', 'text-white');
+            if(type === 'color') b.classList.add('btn-outline-dark');
+            else b.classList.add('btn-outline-secondary');
+        });
+        btn.classList.remove(type === 'color' ? 'btn-outline-dark' : 'btn-outline-secondary');
+        if(type === 'color') btn.classList.add('active', 'btn-dark', 'text-white');
+        else btn.classList.add('active', 'btn-secondary', 'text-white');
+    }
+
     // عند تحميل الصفحة، نتحقق هل هي سلة أم منتج منفرد
     window.addEventListener('DOMContentLoaded', () => {
         if (isCartOrder) {
@@ -209,20 +251,45 @@ function googleTranslateElementInit() {
             let priceSpan = document.getElementById('product_unit_price');
             let quantityContainer = document.getElementById('quantity_container');
             
-            // إخفاء حقل الكمية العادي لأن السلة تحتوي عدة منتجات
             if(quantityContainer) quantityContainer.style.display = 'none';
             
             if (cart.length > 0) {
-                let htmlList = "<ul class='mb-0 ps-3'>";
+                let htmlList = "<div class='d-flex flex-column gap-3'>";
                 let cartTotal = 0;
                 
-                cart.forEach(item => {
+                cart.forEach((item, index) => {
                     let itemTotal = item.price * (item.quantity || 1);
                     cartTotal += itemTotal;
-                    htmlList += `<li>${item.name} (الكمية: ${item.quantity || 1}) - ${itemTotal} دج</li>`;
+
+                    // تعيين القيمة الافتراضية أولية إذا لم تكن محدودة مسبقاً وكان المنتج يحتوي على ألوان/مقاسات
+                    if (item.colors && !item.color) {
+                        item.color = item.colors.split(',')[0].trim();
+                    }
+                    if (item.sizes && !item.size) {
+                        item.size = item.sizes.split(',')[0].trim();
+                    }
+
+                    htmlList += `
+                        <div class="p-2 border rounded bg-white">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="fw-bold">${item.name}</span>
+                                <span class="text-danger">${itemTotal} دج</span>
+                            </div>
+                            <span class="text-muted small">الكمية: ${item.quantity || 1}</span>
+                            
+                            <!-- خانة الألوان تظهر فقط إذا كانت متوفرة في المنتج -->
+                            ${generateOptionsHtml(item.colors, 'color', index)}
+                            
+                            <!-- خانة المقاسات تظهر فقط إذا كانت متوفرة في المنتج -->
+                            ${generateOptionsHtml(item.sizes, 'size', index)}
+                        </div>
+                    `;
                 });
-                htmlList += "</ul>";
+                htmlList += "</div>";
                 
+                // حفظ التحديثات الأولية في الـ localStorage
+                localStorage.setItem('cart', JSON.stringify(cart));
+
                 if(summaryContainer) summaryContainer.innerHTML = htmlList;
                 basePrice = cartTotal;
                 if(priceSpan) priceSpan.innerText = cartTotal;
@@ -313,20 +380,20 @@ function googleTranslateElementInit() {
         deliveryPriceInput.value = shippingPrice;
     }
 
-    // دوال اختيار الألوان والمقاسات الجديدة المدمجة
+    // دوال اختيار الألوان والمقاسات للمنتج الفردي
     function selectColor(color, btn) {
-        document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active', 'btn-dark'));
+        document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active', 'btn-dark', 'text-white'));
         document.querySelectorAll('.color-btn').forEach(b => b.classList.add('btn-outline-dark'));
         btn.classList.remove('btn-outline-dark');
-        btn.classList.add('active', 'btn-dark');
+        btn.classList.add('active', 'btn-dark', 'text-white');
         document.getElementById('selected_color').value = color;
     }
 
     function selectSize(size, btn) {
-        document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active', 'btn-secondary'));
+        document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active', 'btn-secondary', 'text-white'));
         document.querySelectorAll('.size-btn').forEach(b => b.classList.add('btn-outline-secondary'));
         btn.classList.remove('btn-outline-secondary');
-        btn.classList.add('active', 'btn-secondary');
+        btn.classList.add('active', 'btn-secondary', 'text-white');
         document.getElementById('selected_size').value = size;
     }
 
