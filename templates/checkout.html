@@ -39,7 +39,6 @@
     <div class="checkout-card">
         <h3 class="text-center mb-4">معلومات الطلب</h3>
         
-        <!-- صندوق معلومات المنتج أو السلة -->
         <div class="card p-3 mb-3 border-0 bg-light" id="product_info_box">
             {% if is_cart %}
                 <h5>الطلب: <span class="text-indigo">سلة المشتريات</span></h5>
@@ -56,36 +55,29 @@
                 <input type="hidden" name="product_id" value="{{ product.id }}">
             {% endif %}
             
-            <!-- حقل مخفي لحمل بيانات السلة كاملة إذا كان الطلب عبارة عن سلة -->
             <input type="hidden" name="cart_data" id="cart_data_input">
 
-            <!-- قسم الألوان (يظهر للمنتج الفردي فقط إذا كانت متوفرة) -->
             {% if not is_cart and product and product.colors %}
             <div class="mb-3">
-                <label class="fw-bold">اختر اللون:</label>
-                <div class="d-flex gap-2 mt-1">
+                <label for="single_selected_color" class="form-label">اللون</label>
+                <select name="selected_color" id="single_selected_color" class="form-select" required>
+                    <option value="" disabled selected>-- اختر اللون --</option>
                     {% for color in product.colors.split(',') %}
-                        <button type="button" class="btn btn-outline-dark btn-sm color-btn" onclick="selectColor('{{ color.strip() }}', this)">
-                            {{ color.strip() }}
-                        </button>
+                        <option value="{{ color.strip() }}">{{ color.strip() }}</option>
                     {% endfor %}
-                </div>
-                <input type="hidden" name="selected_color" id="selected_color">
+                </select>
             </div>
             {% endif %}
 
-            <!-- قسم المقاسات (يظهر للمنتج الفردي فقط إذا كانت متوفرة) -->
             {% if not is_cart and product and product.sizes %}
             <div class="mb-3">
-                <label class="fw-bold">اختر المقاس:</label>
-                <div class="d-flex gap-2 mt-1">
+                <label for="single_selected_size" class="form-label">المقاس</label>
+                <select name="selected_size" id="single_selected_size" class="form-select" required>
+                    <option value="" disabled selected>-- اختر المقاس --</option>
                     {% for size in product.sizes.split(',') %}
-                        <button type="button" class="btn btn-outline-secondary btn-sm size-btn" onclick="selectSize('{{ size.strip() }}', this)">
-                            {{ size.strip() }}
-                        </button>
+                        <option value="{{ size.strip() }}">{{ size.strip() }}</option>
                     {% endfor %}
-                </div>
-                <input type="hidden" name="selected_size" id="selected_size">
+                </select>
             </div>
             {% endif %}
 
@@ -105,7 +97,6 @@
                 <input type="tel" name="phone" class="form-control" required placeholder="0XXXXXXXXX">
             </div>
 
-            <!-- خانة البلد -->
             <div class="mb-3">
                 <label for="country" class="form-label">البلد</label>
                 <select id="country" name="country" class="form-select" onchange="toggleCountryFields()" required>
@@ -115,13 +106,11 @@
                 </select>
             </div>
 
-            <!-- خانة الكمية -->
             <div class="mb-3" id="quantity_container">
                 <label for="quantity" class="form-label">الكمية</label>
                 <input type="number" id="quantity" name="quantity" class="form-control" value="1" min="1" oninput="calculateTotal()" required>
             </div>
 
-            <!-- خانة ولايات الجزائر -->
             <div class="mb-3" id="algeria_section">
                 <label class="form-label">الولاية</label>
                 <select id="wilaya" name="wilaya" class="form-select" onchange="calculateTotal()">
@@ -136,7 +125,6 @@
                 </select>
             </div>
 
-            <!-- خانة محافظات الأردن -->
             <div class="mb-3 d-none" id="jordan_section">
                 <label for="jordan_region" class="form-label">المحافظة والمنطقة (الأردن)</label>
                 <select id="jordan_region" name="jordan_region" class="form-select" onchange="calculateTotal()" style="color: #000 !important; background-color: #fff !important;" required>
@@ -152,7 +140,6 @@
                 </select>
             </div>
 
-            <!-- حاوية خانة البلدية -->
             <div class="mb-3" id="baladiya_container">
                 <label class="form-label">البلدية</label>
                 <input type="text" name="baladia" id="baladiya_input" class="form-control" placeholder="أدخل اسم البلدية">
@@ -201,46 +188,33 @@ function googleTranslateElementInit() {
     let isCartOrder = "{{ 'true' if is_cart else 'false' }}" === "true";
     let basePrice = 0;
 
-    // دالة تحويل نص الألوان/المقاسات (مفصولة بفاصلة) إلى أزرار اختيار تفاعلية
-    function generateOptionsHtml(optionsStr, type, itemIndex) {
+    // دالة توليد قوائم اختيار الألوان أو المقاسات للمنتجات الموجودة في السلة بشكل ديناميكي
+    function generateSelectHtml(optionsStr, type, itemIndex) {
         if (!optionsStr || optionsStr.trim() === "") return '';
         let options = optionsStr.split(',');
-        let html = `<div class="mt-2"><label class="fw-bold small text-secondary">اختر ${type === 'color' ? 'اللون' : 'المقاس'}:</label><div class="d-flex gap-1 mt-1 flex-wrap">`;
+        let labelName = type === 'color' ? 'اللون' : 'المقاس';
         
-        options.forEach((opt, idx) => {
+        let html = `<div class="mt-2">
+            <label class="form-label small mb-1">${labelName}</label>
+            <select class="form-select form-select-sm" onchange="updateItemOption(${itemIndex}, '${type}', this.value)" required>
+                <option value="" disabled selected>-- اختر ${labelName} --</option>`;
+        
+        options.forEach(opt => {
             let val = opt.trim();
-            // جعل الخيار الأول مختاراً افتراضياً لتسهيل الأمر على الزبون
-            let isChecked = idx === 0 ? 'active btn-dark text-white' : 'btn-outline-dark';
-            if(type === 'size') {
-                isChecked = idx === 0 ? 'active btn-secondary text-white' : 'btn-outline-secondary';
-            }
-            
-            html += `<button type="button" class="btn btn-sm ${isChecked} ${type}-btn-${itemIndex}" 
-                        onclick="updateItemOption(${itemIndex}, '${type}', '${val}', this)">
-                        ${val}
-                     </button>`;
+            html += `<option value="${val}">${val}</option>`;
         });
-        html += `</div></div>`;
+        
+        html += `</select></div>`;
         return html;
     }
 
-    // تحديث خيار اللون أو المقاس في بيانات السلة المحفوظة محلياً عند الضغط عليه
-    window.updateItemOption = function(index, type, value, btn) {
+    // تحديث خيار اللون أو المقاس في بيانات السلة عند اختيار الزبون من القائمة
+    window.updateItemOption = function(index, type, value) {
         let cart = JSON.parse(localStorage.getItem('cart')) || [];
         if (cart[index]) {
             cart[index][type] = value;
             localStorage.setItem('cart', JSON.stringify(cart));
         }
-        // تحديث تنسيق الأزرار بصرياً
-        let container = btn.parentElement;
-        container.querySelectorAll('button').forEach(b => {
-            b.classList.remove('active', 'btn-dark', 'btn-secondary', 'text-white');
-            if(type === 'color') b.classList.add('btn-outline-dark');
-            else b.classList.add('btn-outline-secondary');
-        });
-        btn.classList.remove(type === 'color' ? 'btn-outline-dark' : 'btn-outline-secondary');
-        if(type === 'color') btn.classList.add('active', 'btn-dark', 'text-white');
-        else btn.classList.add('active', 'btn-secondary', 'text-white');
     }
 
     // عند تحميل الصفحة، نتحقق هل هي سلة أم منتج منفرد
@@ -261,14 +235,6 @@ function googleTranslateElementInit() {
                     let itemTotal = item.price * (item.quantity || 1);
                     cartTotal += itemTotal;
 
-                    // تعيين القيمة الافتراضية أولية إذا لم تكن محدودة مسبقاً وكان المنتج يحتوي على ألوان/مقاسات
-                    if (item.colors && !item.color) {
-                        item.color = item.colors.split(',')[0].trim();
-                    }
-                    if (item.sizes && !item.size) {
-                        item.size = item.sizes.split(',')[0].trim();
-                    }
-
                     htmlList += `
                         <div class="p-2 border rounded bg-white">
                             <div class="d-flex justify-content-between align-items-center">
@@ -277,19 +243,14 @@ function googleTranslateElementInit() {
                             </div>
                             <span class="text-muted small">الكمية: ${item.quantity || 1}</span>
                             
-                            <!-- خانة الألوان تظهر فقط إذا كانت متوفرة في المنتج -->
-                            ${generateOptionsHtml(item.colors, 'color', index)}
+                            ${generateSelectHtml(item.colors, 'color', index)}
                             
-                            <!-- خانة المقاسات تظهر فقط إذا كانت متوفرة في المنتج -->
-                            ${generateOptionsHtml(item.sizes, 'size', index)}
+                            ${generateSelectHtml(item.sizes, 'size', index)}
                         </div>
                     `;
                 });
                 htmlList += "</div>";
                 
-                // حفظ التحديثات الأولية في الـ localStorage
-                localStorage.setItem('cart', JSON.stringify(cart));
-
                 if(summaryContainer) summaryContainer.innerHTML = htmlList;
                 basePrice = cartTotal;
                 if(priceSpan) priceSpan.innerText = cartTotal;
@@ -378,23 +339,6 @@ function googleTranslateElementInit() {
         shippingDisplay.innerText = shippingPrice;
         totalDisplay.innerText = finalTotal;
         deliveryPriceInput.value = shippingPrice;
-    }
-
-    // دوال اختيار الألوان والمقاسات للمنتج الفردي
-    function selectColor(color, btn) {
-        document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active', 'btn-dark', 'text-white'));
-        document.querySelectorAll('.color-btn').forEach(b => b.classList.add('btn-outline-dark'));
-        btn.classList.remove('btn-outline-dark');
-        btn.classList.add('active', 'btn-dark', 'text-white');
-        document.getElementById('selected_color').value = color;
-    }
-
-    function selectSize(size, btn) {
-        document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active', 'btn-secondary', 'text-white'));
-        document.querySelectorAll('.size-btn').forEach(b => b.classList.add('btn-outline-secondary'));
-        btn.classList.remove('btn-outline-secondary');
-        btn.classList.add('active', 'btn-secondary', 'text-white');
-        document.getElementById('selected_size').value = size;
     }
 
     // دالة لتجهيز وإرسال بيانات السلة عبر الحقل المخفي وتفريغها بعد التأكيد
