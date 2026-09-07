@@ -282,8 +282,125 @@ def checkout(product_id):
                 
     return render_template('checkout.html', product=product, rates=rates, jordan_rates=jordan_rates)
 
-@app.route('/submit-order', methods=['POST'])
 @app.route('/submit-souhila-order', methods=['POST'])
+def submit_souhila_order():
+    customer_name = request.form.get('customer_name')
+    customer_last_name = request.form.get('customer_last_name', '')
+    full_name = f"{customer_name} {customer_last_name}".strip()
+    
+    phone = request.form.get('phone')
+    country = request.form.get('country', 'algeria')
+    
+    baladiya = (
+        request.form.get('baladiya') or 
+        request.form.get('baladia') or 
+        request.form.get('municipality') or 
+        request.form.get('city') or 
+        "غير محددة"
+    )
+    
+    address = request.form.get('address', '')
+    delivery_type = request.form.get('delivery_type')
+    delivery_price = float(request.form.get('delivery_price', 0))
+    quantity_ordered = int(request.form.get('quantity', 1))
+    
+    selected_color = request.form.get('selected_color', '')
+    selected_size = request.form.get('selected_size', '')
+    
+    cart_raw = request.form.get('cart_data', '')
+    cart_data = []
+    
+    if cart_raw and cart_raw != '[]':
+        try:
+            cart_data = json.loads(cart_raw)
+        except:
+            cart_data = []
+            
+    product_id = request.form.get('product_id')
+    if not cart_data and product_id:
+        single_product = get_product_from_db(product_id)
+        if single_product:
+            cart_data = [single_product]
+
+    base_price = sum(float(item.get('price', 0)) * int(item.get('quantity', 1)) for item in cart_data)
+    total_price = base_price + delivery_price
+
+    region_name = ""
+    wilaya = request.form.get('wilaya')
+    region_name = wilaya
+    try:
+        w_res = supabase.table("algeria_wilayas").select("wilaya_name").eq("id", wilaya).single().execute()
+        if w_res.data and w_res.data.get('wilaya_name'):
+            region_name = w_res.data.get('wilaya_name')
+    except:
+        pass
+
+    main_product_id = cart_data[0].get('id') if cart_data else (int(product_id) if product_id else None)
+    
+    order_data = {
+        "customer_name": full_name,
+        "customer_phone": phone,
+        "product_name": ", ".join([f"{item.get('name', item.get('title', 'منتج'))} (x{item.get('quantity', 1)})" for item in cart_data]), 
+        "quantity": quantity_ordered,
+        "total_price": total_price,
+        "status": "قيد الانتظار",
+        "state": region_name,
+        "baladiya": baladiya,
+        "delivery_type": delivery_type,
+        "delivery_price": delivery_price,
+        "product_id": main_product_id,
+        "color": selected_color,
+        "size": selected_size
+    }
+    
+    try:
+        supabase.table("orders_souhila").insert(order_data).execute()
+    except Exception as e:
+        print(f"Error inserting souhila order: {e}")
+
+    try:
+        t_res = supabase.table('site_settings').select('*').in_('key', ['telegram_token', 'telegram_chat_id']).execute()
+        s_map = {item['key']: item['value'] for item in t_res.data} if t_res.data else {}
+        t_token = s_map.get('telegram_token')
+        t_chat_id = s_map.get('telegram_chat_id')
+        if t_token and t_chat_id:
+            product_names_str = ", ".join([f"{item.get('name', item.get('title', 'منتج'))} (x{item.get('quantity', 1)})" for item in cart_data])
+            msg_text = (
+               f"🛒 طلبية جديدة (موقع سهيلة)!\n"
+                f"👤 الاسم: {full_name}\n"
+                f"📞 الهاتف: {phone}\n"
+                f"📦 الدورات/المنتجات: {product_names_str}\n"
+                f"📍 المنطقة/الولاية: {region_name}\n"
+                f"🏘️ البلدية: {baladiya}\n"
+                f"💰 المجموع الكلي: {total_price} دج"
+            )
+            send_telegram_alert_by_token(t_token, t_chat_id, msg_text)
+    except Exception as err:
+        print("Telegram souhila alert error:", err)
+
+    return """
+    <!DOCTYPE html>
+    <html lang="ar" dir="rtl">
+    <head>
+        <meta charset="UTF-8">
+        <title>تم الطلب بنجاح</title>
+        <style>
+            body { font-family: Tahoma, sans-serif; background-color: #f4f7f6; text-align: center; padding-top: 50px; margin: 0; }
+            .card { background: white; max-width: 400px; margin: auto; padding: 30px; border-radius: 10px; box-shadow: 0px 4px 10px rgba(0,0,0,0.1); }
+            p { color: #555; font-size: 16px; }
+            .btn { display: inline-block; margin-top: 20px; background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; }
+        </style>
+    </head>
+    <body>
+        <div class="card">
+             <p>شكراً لثقتكم بنا، سيتم الاتصال بكم قريباً لتأكيد الطلب.</p>
+            <a href="/souhila" class="btn">🔙 العودة إلى الموقع</a>
+        </div>
+    </body>
+    </html>
+    """
+
+@app.route('/submit-order', methods=['POST'])
 def submit_order():
     customer_name = request.form.get('customer_name')
     customer_last_name = request.form.get('customer_last_name', '')
@@ -305,6 +422,10 @@ def submit_order():
     delivery_price = float(request.form.get('delivery_price', 0))
     quantity_ordered = int(request.form.get('quantity', 1))
     
+    # التقاط اللون والمقاس لـ shop
+    selected_color = request.form.get('selected_color', '')
+    selected_size = request.form.get('selected_size', '')
+    
     cart_raw = request.form.get('cart_data', '')
     cart_data = []
     
@@ -323,27 +444,14 @@ def submit_order():
     base_price = sum(float(item.get('price', 0)) * int(item.get('quantity', 1)) for item in cart_data)
     total_price = base_price + delivery_price
 
-    # --- استخراج كود الشركة بطريقة شاملة لكل المواقع ---
     company_code = ""
     
-    # 1. البحث في السلة (Cart Data)
     if cart_data:
         for item in cart_data:
             company_code = item.get('company_id_text') or item.get('company_code') or ""
             if company_code:
                 break
 
-    # 2. البحث عبر متجر الوجبات (store2)
-    if not company_code and session.get('current_store2_name'):
-        shop_name = session.get('current_store2_name').strip()
-        try:
-            settings_res = supabase.table("settings").select("company_code").ilike("company_name", shop_name).execute()
-            if settings_res.data:
-                company_code = settings_res.data[0]['company_code']
-        except Exception as e:
-            print("Error store2 code:", e)
-
-    # 3. البحث عبر المتجر العادي (shop)
     if not company_code and session.get('current_shop_name'):
         shop_name = session.get('current_shop_name').strip()
         try:
@@ -353,7 +461,6 @@ def submit_order():
         except Exception as e:
             print("Error shop code:", e)
 
-    # 4. الحل الاحتياطي عبر رقم المنتج (Product ID)
     if not company_code and cart_data:
         try:
             first_p_id = cart_data[0].get('id') or cart_data[0].get('product_id') or cart_data[0].get('productId')
@@ -364,35 +471,16 @@ def submit_order():
         except Exception as e:
             print("Error fallback product code:", e)
 
-    current_company = session.get('current_shop_name') or session.get('current_store2_name') or "متجر غير معروف"
-    if not current_company and company_code:
-        try:
-            s_res = supabase.table("settings").select("company_name").eq("company_code", company_code).single().execute()
-            if s_res.data:
-                current_company = s_res.data.get('company_name', "متجر")
-        except:
-            pass
+    current_company = session.get('current_shop_name') or "متجر"
 
     region_name = ""
-    is_souhila_order = (request.path == '/submit-souhila-order') or ('souhila' in request.referrer if request.referrer else False)
-
     if country == 'algeria':
         wilaya = request.form.get('wilaya')
         region_name = wilaya
         try:
-            table_to_query = "algeria_wilayas" if is_souhila_order else "shipping_rates"
-            w_res = supabase.table(table_to_query).select("wilaya_name").eq("id", wilaya).single().execute()
+            w_res = supabase.table("shipping_rates").select("wilaya_name").eq("id", wilaya).single().execute()
             if w_res.data and w_res.data.get('wilaya_name'):
                 region_name = w_res.data.get('wilaya_name')
-        except:
-            pass
-    elif country == 'jordan':
-        jordan_region_id = request.form.get('jordan_region')
-        region_name = "الأردن"
-        try:
-            j_res = supabase.table("jordan_rates").select("governorate_name").eq("id", jordan_region_id).single().execute()
-            if j_res.data and j_res.data.get('governorate_name'):
-                region_name = f"الأردن - {j_res.data.get('governorate_name')}"
         except:
             pass
 
@@ -409,44 +497,19 @@ def submit_order():
         "baladiya": baladiya,
         "delivery_type": delivery_type,
         "delivery_price": delivery_price,
-        "product_id": main_product_id
+        "product_id": main_product_id,
+        "company_code": company_code,
+        "color": selected_color,
+        "size": selected_size
     }
     
-    target_table = "orders"
-    if is_souhila_order:
-        target_table = "orders_souhila"
-    else:
-        order_data["company_code"] = company_code
-
     inserted_order_id = None
     try:
-        res_insert = supabase.table(target_table).insert(order_data).execute()
+        res_insert = supabase.table("orders").insert(order_data).execute()
         if res_insert.data and len(res_insert.data) > 0:
             inserted_order_id = res_insert.data[0].get('id')
     except Exception as e:
         print(f"Error inserting order: {e}")
-
-    # --- إرسال التنبيه لموقع سهيلة ---
-    if is_souhila_order:
-        try:
-            t_res = supabase.table('site_settings').select('*').in_('key', ['telegram_token', 'telegram_chat_id']).execute()
-            s_map = {item['key']: item['value'] for item in t_res.data} if t_res.data else {}
-            t_token = s_map.get('telegram_token')
-            t_chat_id = s_map.get('telegram_chat_id')
-            if t_token and t_chat_id:
-                product_names_str = ", ".join([f"{item.get('name', item.get('title', 'منتج'))} (x{item.get('quantity', 1)})" for item in cart_data])
-                msg_text = (
-                   f"🛒 طلبية جديدة (موقع سهيلة)!\n"
-                    f"👤 الاسم: {full_name}\n"
-                    f"📞 الهاتف: {phone}\n"
-                    f"📦 الدورات/المنتجات: {product_names_str}\n"
-                    f"📍 المنطقة/الولاية: {region_name}\n"
-                    f"🏘️ البلدية: {baladiya}\n"
-                    f"💰 المجموع الكلي: {total_price} دج"
-                )
-                send_telegram_alert_by_token(t_token, t_chat_id, msg_text)
-        except Exception as err:
-            print("Telegram souhila alert error:", err)
 
     # --- تحديث المخزون ---
     for item in cart_data:
@@ -478,8 +541,7 @@ def submit_order():
         except Exception as ex:
             pass
 
-    # --- إرسال تنبيه الطلب عبر التليجرام للمتاجر (shop & store2) ---
-    if company_code and not is_souhila_order:
+    if company_code:
         try:
             res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
             if res_settings.data:
@@ -493,11 +555,13 @@ def submit_order():
                         f"👤 الاسم: {full_name}\n"
                         f"📞 الهاتف: {phone}\n"
                         f"📦 المنتجات: {product_names_str}\n"
-                        f"📍 المنطقة/الولاية: {region_name}\n"
+                        f"🎨 اللون: {selected_color if selected_color else 'غير محدد'}\n"
+                        f"📏 المقاس: {selected_size if selected_size else 'غير محدد'}\n"
+                        f"📍 الولاية: {region_name}\n"
                         f"🏘️ البلدية: {baladiya}\n"
                         f"🏠 العنوان: {address}\n"
                         f"🚚 التوصيل: {delivery_text} ({delivery_price} دج)\n"
-                        f"💰 المجموع الكلي: {total_price} دج"
+                        f"💰 المجموع: {total_price} دج"
                     )
                     if inserted_order_id:
                         send_order_alert(token, chat_id, msg_text, inserted_order_id)
@@ -521,8 +585,8 @@ def submit_order():
     </head>
     <body>
         <div class="card">
-             <p>شكراً لثقتكم بنا، سيتم الاتصال بكم قريباً لتأكيد الطلب.</p>
-            <a href="/souhila" class="btn">🔙 العودة إلى الموقع</a>
+             <p>شكراً لثقتكم بنا، تم تسجيل طلبكم بنجاح وسيتم الاتصال بكم قريباً للتأكيد.</p>
+            <a href="/shop" class="btn">🔙 العودة إلى المتجر</a>
         </div>
     </body>
     </html>
@@ -757,7 +821,6 @@ def products():
         if file and file.filename != '':
             encoded_string = f'data:image/jpeg;base64,{base64.b64encode(file.read()).decode("utf-8")}'
 
-        # استقبال الألوان والمقاسات الاختيارية
         colors_input = request.form.get('colors', '').strip()
         sizes_input = request.form.get('sizes', '').strip()
 
@@ -767,8 +830,8 @@ def products():
             'price': float(request.form.get('price', 0.0)),
             'company_id_text': company_code,
             'product-images': encoded_string,
-            'colors': colors_input,  # حفظ الألوان إذا وجدت
-            'sizes': sizes_input     # حفظ المقاسات إذا وجدت
+            'colors': colors_input,
+            'sizes': sizes_input
         }
         try:
             supabase.table('inventory').insert(data).execute()
