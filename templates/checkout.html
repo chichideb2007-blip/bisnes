@@ -14,7 +14,7 @@
         .btn-confirm { background-color: #198754; color: white; padding: 12px; font-weight: bold; border: none; border-radius: 8px; flex-grow: 1; }
         .btn-back { background-color: #6c757d; color: white; padding: 12px; font-weight: bold; border: none; border-radius: 8px; text-decoration: none; text-align: center; }
 
-        /* تصميم الأوراق والأزرار المتحركة التفاعلية */
+        /* تصميم الأوراق المتحركة والأزرار الدائرية التفاعلية */
         .options-container {
             display: flex;
             flex-wrap: wrap;
@@ -26,7 +26,7 @@
             background-color: #fff;
             color: #495057;
             padding: 8px 18px;
-            border-radius: 50px; /* شكل دائري منحني يشبه الأوراق المتحركة */
+            border-radius: 50px;
             font-size: 14px;
             font-weight: 600;
             cursor: pointer;
@@ -71,6 +71,7 @@
     <div class="checkout-card">
         <h3 class="text-center mb-4">معلومات الطلب</h3>
         
+        <!-- صندوق معلومات المنتج المستخرج من جدول inventory -->
         <div class="card p-3 mb-3 border-0 bg-light" id="product_info_box">
             {% if is_cart %}
                 <h5>الطلب: <span class="text-indigo">سلة المشتريات</span></h5>
@@ -89,7 +90,8 @@
             
             <input type="hidden" name="cart_data" id="cart_data_input">
 
-            {% if not is_cart and product and product.colors and product.colors.strip() != "" %}
+            <!-- خانة الألوان المرتبطة بـ product.colors القادمة من جدول inventory -->
+            {% if not is_cart and product and product.colors and product.colors not in ['NULL', 'EMPTY', ''] %}
             <div class="mb-3">
                 <label class="form-label">اللون</label>
                 <div class="options-container">
@@ -101,7 +103,8 @@
             </div>
             {% endif %}
 
-            {% if not is_cart and product and product.sizes and product.sizes.strip() != "" %}
+            <!-- خانة المقاسات المرتبطة بـ product.sizes القادمة من جدول inventory -->
+            {% if not is_cart and product and product.sizes and product.sizes not in ['NULL', 'EMPTY', ''] %}
             <div class="mb-3">
                 <label class="form-label">المقاس</label>
                 <div class="options-container">
@@ -129,6 +132,7 @@
                 <input type="tel" name="phone" class="form-control" required placeholder="0XXXXXXXXX">
             </div>
 
+            <!-- خانة البلد -->
             <div class="mb-3">
                 <label for="country" class="form-label">البلد</label>
                 <select id="country" name="country" class="form-select" onchange="toggleCountryFields()" required>
@@ -138,11 +142,13 @@
                 </select>
             </div>
 
+            <!-- خانة الكمية -->
             <div class="mb-3" id="quantity_container">
                 <label for="quantity" class="form-label">الكمية</label>
                 <input type="number" id="quantity" name="quantity" class="form-control" value="1" min="1" oninput="calculateTotal()" required>
             </div>
 
+            <!-- خانة ولايات الجزائر -->
             <div class="mb-3" id="algeria_section">
                 <label class="form-label">الولاية</label>
                 <select id="wilaya" name="wilaya" class="form-select" onchange="calculateTotal()">
@@ -157,6 +163,7 @@
                 </select>
             </div>
 
+            <!-- خانة محافظات الأردن -->
             <div class="mb-3 d-none" id="jordan_section">
                 <label for="jordan_region" class="form-label">المحافظة والمنطقة (الأردن)</label>
                 <select id="jordan_region" name="jordan_region" class="form-select" onchange="calculateTotal()" style="color: #000 !important; background-color: #fff !important;" required>
@@ -172,6 +179,7 @@
                 </select>
             </div>
 
+            <!-- حاوية خانة البلدية -->
             <div class="mb-3" id="baladiya_container">
                 <label class="form-label">البلدية</label>
                 <input type="text" name="baladia" id="baladiya_input" class="form-control" placeholder="أدخل اسم البلدية">
@@ -220,29 +228,6 @@ function googleTranslateElementInit() {
     let isCartOrder = "{{ 'true' if is_cart else 'false' }}" === "true";
     let basePrice = 0;
 
-    // دالة لتوليد الأوراق المتحركة تلقائياً للمنتجات داخل سلة المشتريات
-    function generateCartChips(optionsStr, type, itemIndex) {
-        if (!optionsStr || optionsStr.trim() === "") return '';
-        let options = optionsStr.split(',');
-        let labelName = type === 'color' ? 'اللون' : 'المقاس';
-        
-        let html = `<div class="mt-2">
-            <label class="form-label small mb-1 text-secondary">${labelName}</label>
-            <div class="options-container">`;
-        
-        options.forEach(opt => {
-            let val = opt.trim();
-            let cart = JSON.parse(localStorage.getItem('cart')) || [];
-            let isSelected = cart[itemIndex] && cart[itemIndex][type] === val;
-            let activeClass = isSelected ? 'active' : '';
-
-            html += `<button type="button" class="option-chip ${activeClass}" onclick="updateItemOption(${itemIndex}, '${type}', '${val}', this)">${val}</button>`;
-        });
-        
-        html += `</div></div>`;
-        return html;
-    }
-
     function selectMainOption(type, value, btnElement) {
         let container = btnElement.parentElement;
         container.querySelectorAll('.option-chip').forEach(btn => btn.classList.remove('active'));
@@ -252,18 +237,6 @@ function googleTranslateElementInit() {
             document.getElementById('main_selected_color').value = value;
         } else if(type === 'size') {
             document.getElementById('main_selected_size').value = value;
-        }
-    }
-
-    window.updateItemOption = function(index, type, value, btnElement) {
-        let container = btnElement.parentElement;
-        container.querySelectorAll('.option-chip').forEach(btn => btn.classList.remove('active'));
-        btnElement.classList.add('active');
-
-        let cart = JSON.parse(localStorage.getItem('cart')) || [];
-        if (cart[index]) {
-            cart[index][type] = value;
-            localStorage.setItem('cart', JSON.stringify(cart));
         }
     }
 
@@ -277,23 +250,16 @@ function googleTranslateElementInit() {
             if(quantityContainer) quantityContainer.style.display = 'none';
             
             if (cart.length > 0) {
-                let htmlList = "<div class='d-flex flex-column gap-3'>";
+                let htmlList = "<div class='d-flex flex-column gap-2'>";
                 let cartTotal = 0;
                 
-                cart.forEach((item, index) => {
+                cart.forEach((item) => {
                     let itemTotal = item.price * (item.quantity || 1);
                     cartTotal += itemTotal;
-
                     htmlList += `
-                        <div class="p-3 border rounded bg-white shadow-sm mb-2">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="fw-bold">${item.name}</span>
-                                <span class="text-danger fw-bold">${itemTotal} دج</span>
-                            </div>
-                            <span class="text-muted small">الكمية: ${item.quantity || 1}</span>
-                            
-                            ${generateCartChips(item.colors, 'color', index)}
-                            ${generateCartChips(item.sizes, 'size', index)}
+                        <div class="d-flex justify-content-between align-items-center border-bottom pb-1">
+                            <span>${item.name} (الكمية: ${item.quantity || 1})</span>
+                            <span class="text-danger fw-bold">${itemTotal} دج</span>
                         </div>
                     `;
                 });
