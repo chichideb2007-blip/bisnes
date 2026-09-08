@@ -11,9 +11,9 @@
             border: 2px solid #e5e7eb;
             background-color: #fff;
             color: #374151;
-            padding: 4px 12px;
+            padding: 4px 10px;
             border-radius: 9999px;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 700;
             cursor: pointer;
             transition: all 0.2s ease-in-out;
@@ -130,10 +130,11 @@
     <script>
         let baseProductsTotal = 0;
 
-        // دالة تحويل النصوص الملتصقة للألوان والمقاسات إلى أزرار تفاعلية مستقلة
-        function renderOptionChips(optionsStr, type, itemIndex) {
-            if (!optionsStr || optionsStr.trim() === "" || optionsStr === "NULL" || optionsStr === "EMPTY") return '';
+        // دالة لفصل النصوص الملتصقة وتحويلها لأزرار مستقلة (Chips)
+        function renderOptionChips(optionsStr, currentSelected, type, itemIndex) {
+            if (!optionsStr || optionsStr.trim() === "" || optionsStr === "NULL") return '';
             
+            // تقسيم النص بالفواصل العربية أو الإنجليزية
             let options = optionsStr.split(/[,،]/);
             let labelText = type === 'color' ? 'اللون:' : 'المقاس:';
             
@@ -144,9 +145,11 @@
             options.forEach(opt => {
                 let val = opt.trim();
                 if(val !== "") {
-                    let cart = JSON.parse(localStorage.getItem('cart')) || [];
-                    // التحقق إذا كان هذا الخيار هو المختار حالياً
-                    let isSelected = cart[itemIndex] && cart[itemIndex][type] === val;
+                    // إذا لم يكن هناك اختيار مخزن مسبقاً، نختار الخيار الأول افتراضياً
+                    let isSelected = (currentSelected === val) || (!currentSelected && options.indexOf(opt) === 0);
+                    if (isSelected && !currentSelected) {
+                        updateCartOptionSilent(itemIndex, type, val);
+                    }
                     let activeClass = isSelected ? 'active' : '';
 
                     html += `<button type="button" class="option-chip ${activeClass}" onclick="updateCartOption(${itemIndex}, '${type}', '${val}', this)">${val}</button>`;
@@ -157,7 +160,16 @@
             return html;
         }
 
-        // تحديث الاختيار في الـ localStorage عند الضغط على الزر
+        // تحديث الاختيار في الـ localStorage بصمت عند التحميل الأول
+        function updateCartOptionSilent(index, type, value) {
+            let cart = JSON.parse(localStorage.getItem('cart')) || [];
+            if (cart[index]) {
+                cart[index][type] = value;
+                localStorage.setItem('cart', JSON.stringify(cart));
+            }
+        }
+
+        // تحديث الاختيار عند الضغط على الزر من طرف الزبون
         window.updateCartOption = function(index, type, value, btnElement) {
             let container = btnElement.parentElement;
             container.querySelectorAll('.option-chip').forEach(btn => btn.classList.remove('active'));
@@ -183,6 +195,10 @@
                 total += itemTotal;
 
                 let imgSrc = item['product-images'] || item.image || 'https://via.placeholder.com/60';
+                
+                // الاعتماد على الحقول الكاملة (colors / sizes) وإن لم تتوفر نأخذ (color / size)
+                let colorsSource = item.colors || item.color || '';
+                let sizesSource = item.sizes || item.size || '';
 
                 container.innerHTML += `
                     <div class="flex flex-col gap-2 bg-white p-3 rounded-xl border border-gray-100">
@@ -197,9 +213,9 @@
                             <span class="font-black text-indigo-600 text-sm">${itemTotal} دج</span>
                         </div>
                         
-                        <!-- توليد أزرار الألوان والمقاسات المفصولة -->
-                        ${renderOptionChips(item.colors, 'color', index)}
-                        ${renderOptionChips(item.sizes, 'size', index)}
+                        <!-- توليد الأزرار المفصولة للألوان والمقاسات -->
+                        ${renderOptionChips(colorsSource, item.color, 'color', index)}
+                        ${renderOptionChips(sizesSource, item.size, 'size', index)}
                     </div>
                 `;
             });
