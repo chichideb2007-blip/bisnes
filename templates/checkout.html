@@ -188,7 +188,7 @@ function googleTranslateElementInit() {
     let isCartOrder = "{{ 'true' if is_cart else 'false' }}" === "true";
     let basePrice = 0;
 
-    // دالة توليد قوائم اختيار الألوان أو المقاسات للمنتجات الموجودة في السلة بشكل ديناميكي
+    // دالة إنشاء قائمة منسدلة (Select) للألوان أو المقاسات داخل السلة تماماً مثل خانة البلد
     function generateSelectHtml(optionsStr, type, itemIndex) {
         if (!optionsStr || optionsStr.trim() === "") return '';
         let options = optionsStr.split(',');
