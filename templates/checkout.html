@@ -19,15 +19,15 @@
             display: flex;
             flex-wrap: wrap;
             gap: 8px;
-            margin-top: 8px;
+            margin-top: 6px;
         }
         .option-chip {
             border: 2px solid #dee2e6;
             background-color: #fff;
             color: #495057;
-            padding: 8px 18px;
+            padding: 6px 14px;
             border-radius: 50px;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.25s ease-in-out;
@@ -71,12 +71,12 @@
     <div class="checkout-card">
         <h3 class="text-center mb-4">معلومات الطلب</h3>
         
-        <!-- صندوق معلومات المنتج المستخرج من جدول inventory -->
+        <!-- صندوق معلومات الطلب والسلة -->
         <div class="card p-3 mb-3 border-0 bg-light" id="product_info_box">
             {% if is_cart %}
                 <h5>الطلب: <span class="text-indigo">سلة المشتريات</span></h5>
                 <div id="cart_items_summary" class="mt-2 text-muted small"></div>
-                <p class="mb-0 text-danger fw-bold mt-2">مجموع المنتجات: <span id="product_unit_price">0</span> دج</p>
+                <p class="mb-0 text-danger fw-bold mt-3">مجموع المنتجات: <span id="product_unit_price">0</span> دج</p>
             {% else %}
                 <h5>المنتج: <span class="text-indigo">{{ product.name }}</span></h5>
                 <p class="mb-0 text-danger fw-bold">السعر للقطعة: <span id="product_unit_price">{{ product.price }}</span> دج</p>
@@ -90,7 +90,7 @@
             
             <input type="hidden" name="cart_data" id="cart_data_input">
 
-            <!-- خانة الألوان المرتبطة بـ product.colors القادمة من جدول inventory -->
+            <!-- ألوان المنتج الفردي المستخرجة من جدول inventory -->
             {% if not is_cart and product and product.colors and product.colors not in ['NULL', 'EMPTY', ''] %}
             <div class="mb-3">
                 <label class="form-label">اللون</label>
@@ -103,7 +103,7 @@
             </div>
             {% endif %}
 
-            <!-- خانة المقاسات المرتبطة بـ product.sizes القادمة من جدول inventory -->
+            <!-- مقاسات المنتج الفردي المستخرجة من جدول inventory -->
             {% if not is_cart and product and product.sizes and product.sizes not in ['NULL', 'EMPTY', ''] %}
             <div class="mb-3">
                 <label class="form-label">المقاس</label>
@@ -228,6 +228,29 @@ function googleTranslateElementInit() {
     let isCartOrder = "{{ 'true' if is_cart else 'false' }}" === "true";
     let basePrice = 0;
 
+    // دالة توليد الأوراق المتحركة تلقائياً للمنتجات داخل السلة بناءً على مخزون المدير
+    function generateCartChips(optionsStr, type, itemIndex) {
+        if (!optionsStr || optionsStr.trim() === "" || optionsStr === "NULL" || optionsStr === "EMPTY") return '';
+        let options = optionsStr.split(',');
+        let labelName = type === 'color' ? 'اللون' : 'المقاس';
+        
+        let html = `<div class="mt-2">
+            <label class="form-label small mb-1 text-secondary">${labelName}:</label>
+            <div class="options-container">`;
+        
+        options.forEach(opt => {
+            let val = opt.trim();
+            let cart = JSON.parse(localStorage.getItem('cart')) || [];
+            let isSelected = cart[itemIndex] && cart[itemIndex][type] === val;
+            let activeClass = isSelected ? 'active' : '';
+
+            html += `<button type="button" class="option-chip ${activeClass}" onclick="updateItemOption(${itemIndex}, '${type}', '${val}', this)">${val}</button>`;
+        });
+        
+        html += `</div></div>`;
+        return html;
+    }
+
     function selectMainOption(type, value, btnElement) {
         let container = btnElement.parentElement;
         container.querySelectorAll('.option-chip').forEach(btn => btn.classList.remove('active'));
@@ -237,6 +260,18 @@ function googleTranslateElementInit() {
             document.getElementById('main_selected_color').value = value;
         } else if(type === 'size') {
             document.getElementById('main_selected_size').value = value;
+        }
+    }
+
+    window.updateItemOption = function(index, type, value, btnElement) {
+        let container = btnElement.parentElement;
+        container.querySelectorAll('.option-chip').forEach(btn => btn.classList.remove('active'));
+        btnElement.classList.add('active');
+
+        let cart = JSON.parse(localStorage.getItem('cart')) || [];
+        if (cart[index]) {
+            cart[index][type] = value;
+            localStorage.setItem('cart', JSON.stringify(cart));
         }
     }
 
@@ -250,16 +285,24 @@ function googleTranslateElementInit() {
             if(quantityContainer) quantityContainer.style.display = 'none';
             
             if (cart.length > 0) {
-                let htmlList = "<div class='d-flex flex-column gap-2'>";
+                let htmlList = "<div class='d-flex flex-column gap-3'>";
                 let cartTotal = 0;
                 
-                cart.forEach((item) => {
+                cart.forEach((item, index) => {
                     let itemTotal = item.price * (item.quantity || 1);
                     cartTotal += itemTotal;
+
                     htmlList += `
-                        <div class="d-flex justify-content-between align-items-center border-bottom pb-1">
-                            <span>${item.name} (الكمية: ${item.quantity || 1})</span>
-                            <span class="text-danger fw-bold">${itemTotal} دج</span>
+                        <div class="p-3 border rounded bg-white shadow-sm mb-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="fw-bold text-dark">${item.name}</span>
+                                <span class="text-danger fw-bold">${itemTotal} دج</span>
+                            </div>
+                            <span class="text-muted small">الكمية: ${item.quantity || 1}</span>
+                            
+                            <!-- ظهور الأوراق المتحركة التفاعلية للألوان والمقاسات داخل السلة -->
+                            ${generateCartChips(item.colors, 'color', index)}
+                            ${generateCartChips(item.sizes, 'size', index)}
                         </div>
                     `;
                 });
