@@ -6,6 +6,29 @@
     <title>إتمام الطلب</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .option-chip {
+            border: 2px solid #e5e7eb;
+            background-color: #fff;
+            color: #374151;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+        .option-chip:hover {
+            border-color: #6366f1;
+            background-color: #f8fafc;
+        }
+        .option-chip.active {
+            background-color: #6366f1 !important;
+            color: #fff !important;
+            border-color: #6366f1 !important;
+            box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);
+        }
+    </style>
 </head>
 <body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col justify-between py-8">
 
@@ -13,7 +36,6 @@
         <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
             <h3 class="text-xl font-black text-center mb-6 text-gray-900">معلومات التوصيل وتأكيد الطلب</h3>
             
-            <!-- ملخص السلة -->
             <div class="mb-6 bg-gray-50 p-4 rounded-2xl border border-gray-100">
                 <h4 class="font-bold text-gray-700 mb-3 text-sm">منتجات السلة:</h4>
                 <div id="checkout_cart_summary" class="space-y-4"></div>
@@ -107,6 +129,46 @@
     <script>
         let baseProductsTotal = 0;
 
+        // دالة لفصل الألوان أو المقاسات المعروضة بـفاصلة وعرضها كأزرار تفاعلية مستقلة
+        function renderOptionChips(optionsStr, type, itemIndex) {
+            if (!optionsStr || optionsStr.trim() === "" || optionsStr === "NULL" || optionsStr === "EMPTY") return '';
+            
+            // تقسيم النص بالفاصلة (سواء فاصلة عربية أو إنجليزية) وفصل المسافات
+            let options = optionsStr.split(/[,،]/);
+            let labelText = type === 'color' ? 'اللون:' : 'المقاس:';
+            
+            let html = `<div class="mt-2">
+                <span class="block text-xs font-bold text-gray-500 mb-1">${labelText}</span>
+                <div class="flex flex-wrap gap-1.5">`;
+            
+            options.forEach(opt => {
+                let val = opt.trim();
+                if(val !== "") {
+                    let cart = JSON.parse(localStorage.getItem('cart')) || [];
+                    let isSelected = cart[itemIndex] && cart[itemIndex][type] === val;
+                    let activeClass = isSelected ? 'active' : '';
+
+                    html += `<button type="button" class="option-chip ${activeClass}" onclick="updateCartOption(${itemIndex}, '${type}', '${val}', this)">${val}</button>`;
+                }
+            });
+            
+            html += `</div></div>`;
+            return html;
+        }
+
+        // تحديث الاختيار في الـ localStorage عند الضغط على الزر
+        window.updateCartOption = function(index, type, value, btnElement) {
+            let container = btnElement.parentElement;
+            container.querySelectorAll('.option-chip').forEach(btn => btn.classList.remove('active'));
+            btnElement.classList.add('active');
+
+            let cart = JSON.parse(localStorage.getItem('cart')) || [];
+            if (cart[index]) {
+                cart[index][type] = value;
+                localStorage.setItem('cart', JSON.stringify(cart));
+            }
+        }
+
         function loadCheckoutCart() {
             let cart = JSON.parse(localStorage.getItem('cart')) || [];
             let container = document.getElementById('checkout_cart_summary');
@@ -120,25 +182,22 @@
                 total += itemTotal;
 
                 let imgSrc = item['product-images'] || item.image || 'https://via.placeholder.com/60';
-                
-                // جلب اللون والمقاس اللذين اختارهما الزبون وتخزينهما في السلة
-                let colorText = item.color ? `<span class="text-xs bg-indigo-50 text-indigo-600 font-bold px-2 py-0.5 rounded-md ml-2">اللون: ${item.color}</span>` : '';
-                let sizeText = item.size ? `<span class="text-xs bg-purple-50 text-purple-600 font-bold px-2 py-0.5 rounded-md">المقاس: ${item.size}</span>` : '';
 
                 container.innerHTML += `
-                    <div class="flex items-start justify-between gap-3 bg-white p-3 rounded-xl border border-gray-100">
-                        <div class="flex items-start gap-3">
-                            <img src="${imgSrc}" style="width: 55px; height: 55px; object-fit: cover;" class="rounded-lg border">
-                            <div>
-                                <h5 class="font-bold text-gray-800 text-sm">${item.name}</h5>
-                                <p class="text-xs text-gray-500 mt-1">الكمية: ${qty}</p>
-                                <div class="mt-2 flex flex-wrap gap-1">
-                                    ${colorText}
-                                    ${sizeText}
+                    <div class="flex flex-col gap-2 bg-white p-3 rounded-xl border border-gray-100">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <img src="${imgSrc}" style="width: 55px; height: 55px; object-fit: cover;" class="rounded-lg border">
+                                <div>
+                                    <h5 class="font-bold text-gray-800 text-sm">${item.name}</h5>
+                                    <p class="text-xs text-gray-500">الكمية: ${qty}</p>
                                 </div>
                             </div>
+                            <span class="font-black text-indigo-600 text-sm">${itemTotal} دج</span>
                         </div>
-                        <span class="font-black text-indigo-600 text-sm">${itemTotal} دج</span>
+                        
+                        ${renderOptionChips(item.colors, 'color', index)}
+                        ${renderOptionChips(item.sizes, 'size', index)}
                     </div>
                 `;
             });
