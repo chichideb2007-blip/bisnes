@@ -14,20 +14,20 @@
         .btn-confirm { background-color: #198754; color: white; padding: 12px; font-weight: bold; border: none; border-radius: 8px; flex-grow: 1; }
         .btn-back { background-color: #6c757d; color: white; padding: 12px; font-weight: bold; border: none; border-radius: 8px; text-decoration: none; text-align: center; }
 
-        /* تصميم أزرار الألوان والمقاسات كالصور */
+        /* تنسيق أزرار الألوان والمقاسات */
         .options-container {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: 6px;
             margin-top: 5px;
         }
         .option-btn {
             border: 1px solid #0dcaf0;
             background-color: #fff;
             color: #0d6efd;
-            padding: 6px 14px;
+            padding: 4px 10px;
             border-radius: 6px;
-            font-size: 14px;
+            font-size: 13px;
             cursor: pointer;
             transition: all 0.2s ease;
         }
@@ -66,7 +66,7 @@
     <div class="checkout-card">
         <h3 class="text-center mb-4">معلومات الطلب</h3>
         
-        <!-- صندوق معلومات المنتج أو السلة -->
+        <!-- صندوق معلومات الطلب -->
         <div class="card p-3 mb-3 border-0 bg-light" id="product_info_box">
             {% if is_cart %}
                 <h5>الطلب: <span class="text-indigo">سلة المشتريات</span></h5>
@@ -223,19 +223,18 @@ function googleTranslateElementInit() {
     let isCartOrder = "{{ 'true' if is_cart else 'false' }}" === "true";
     let basePrice = 0;
 
-    // دالة لتوليد أزرار الألوان أو المقاسات داخل السلة
+    // دالة لتوليد أزرار الألوان أو المقاسات داخل السلة بأسلوب عصري
     function generateButtonsHtml(optionsStr, type, itemIndex) {
         if (!optionsStr || optionsStr.trim() === "") return '';
         let options = optionsStr.split(',');
         let labelName = type === 'color' ? 'اللون' : 'المقاس';
         
         let html = `<div class="mt-2">
-            <label class="form-label small mb-1">${labelName}</label>
+            <label class="form-label small mb-1 text-secondary">${labelName}</label>
             <div class="options-container">`;
         
         options.forEach(opt => {
             let val = opt.trim();
-            // نتحقق إذا كان هذا الخيار مختاراً مسبقاً لتلوينه
             let cart = JSON.parse(localStorage.getItem('cart')) || [];
             let isSelected = cart[itemIndex] && cart[itemIndex][type] === val;
             let activeClass = isSelected ? 'active' : '';
@@ -247,7 +246,7 @@ function googleTranslateElementInit() {
         return html;
     }
 
-    // تحديد الزر وضفظه للمنتج الفردي
+    // تحديد الزر للمنتج الفردي
     window.selectSingleOption = function(type, value, btnElement) {
         let container = btnElement.parentElement;
         container.querySelectorAll('.option-btn').forEach(btn => btn.classList.remove('active'));
@@ -260,7 +259,7 @@ function googleTranslateElementInit() {
         }
     }
 
-    // تحديث خيار اللون أو المقاس داخل عناصر السلة
+    // تحديث خيار اللون أو المقاس داخل سلة المشتريات وحفظه تلقائياً
     window.updateItemOption = function(index, type, value, btnElement) {
         let container = btnElement.parentElement;
         container.querySelectorAll('.option-btn').forEach(btn => btn.classList.remove('active'));
@@ -298,10 +297,10 @@ function googleTranslateElementInit() {
                             </div>
                             <span class="text-muted small">الكمية: ${item.quantity || 1}</span>
                             
-                            <!-- أزرار الألوان للسلة -->
+                            <!-- أزرار الألوان داخل السلة -->
                             ${generateButtonsHtml(item.colors, 'color', index)}
                             
-                            <!-- أزرار المقاسات للسلة -->
+                            <!-- أزرار المقاسات داخل السلة -->
                             ${generateButtonsHtml(item.sizes, 'size', index)}
                         </div>
                     `;
