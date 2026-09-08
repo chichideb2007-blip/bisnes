@@ -407,6 +407,7 @@ def submit_souhila_order():
 
 @app.route('/submit-order', methods=['POST'])
 def submit_order():
+    # استقبال البيانات الأساسية من النموذج مع دعم الخيارات المختلفة لاسم البلدية
     customer_name = request.form.get('customer_name')
     customer_last_name = request.form.get('customer_last_name', '')
     full_name = f"{customer_name} {customer_last_name}".strip()
@@ -427,32 +428,64 @@ def submit_order():
     delivery_price = float(request.form.get('delivery_price', 0))
     quantity_ordered = int(request.form.get('quantity', 1))
     
-    # التقاط اللون والمقاس بالصيغة المطلوبة
-    selected_color = request.form.get('selected_color', 'غير محدد')
-    selected_size = request.form.get('selected_size', 'غير محدد')
-    
-    cart_raw = request.form.get('cart_data', '')
-    cart_data = []
+    # استقبال بيانات السلة المختصرة (المعرف، الكمية، اللون، المقاس)
+    cart_raw = request.form.get('cart_data', '[]')
+    cart_items = []
     
     if cart_raw and cart_raw != '[]':
         try:
-            cart_data = json.loads(cart_raw)
+            cart_items = json.loads(cart_raw)
         except:
-            cart_data = []
+            cart_items = []
             
-    product_id = request.form.get('product_id')
-    if not cart_data and product_id:
-        single_product = get_product_from_db(product_id)
+    product_id_single = request.form.get('product_id')
+    if not cart_items and product_id_single:
+        single_product = get_product_from_db(product_id_single)
         if single_product:
-            cart_data = [single_product]
+            cart_items = [{
+                'id': single_product.get('id'),
+                'quantity': quantity_ordered,
+                'color': request.form.get('selected_color', 'غير محدد'),
+                'size': request.form.get('selected_size', 'غير محدد')
+            }]
 
-    base_price = sum(float(item.get('price', 0)) * int(item.get('quantity', 1)) for item in cart_data)
-    total_price = base_price + delivery_price
+    products_summary = []
+    total_products_price = 0
+    
+    for item in cart_items:
+        product_id = item.get('id') or item.get('product_id') or item.get('productId')
+        quantity = int(item.get('quantity', 1))
+        color = item.get('color', item.get('selected_color', 'غير محدد'))
+        size = item.get('size', item.get('selected_size', 'غير محدد'))
+        
+        product = get_product_from_db(product_id) if product_id else None
+        
+        if product:
+            product_name = product.get('name', 'منتج')
+            product_price = float(product.get('price', 0))
+            
+            item_total = product_price * quantity
+            total_products_price += item_total
+            
+            products_summary.append(f"📦 {product_name} (الكمية: {quantity}) | اللون: {color} | المقاس: {size} | السعر: {item_total} دج")
+        else:
+            fallback_name = item.get('name', item.get('title', 'منتج'))
+            fallback_price = float(item.get('price', 0))
+            item_total = fallback_price * quantity
+            total_products_price += item_total
+            products_summary.append(f"📦 {fallback_name} (الكمية: {quantity}) | اللون: {color} | المقاس: {size} | السعر: {item_total} دج")
+
+    grand_total = total_products_price + delivery_price
 
     company_code = ""
-    
-    if cart_data:
-        for item in cart_data:
+    if cart_items:
+        for item in cart_items:
+            p_id = item.get('id') or item.get('product_id')
+            if p_id:
+                p_info = get_product_from_db(p_id)
+                if p_info and p_info.get('company_id_text'):
+                    company_code = p_info.get('company_id_text')
+                    break
             company_code = item.get('company_id_text') or item.get('company_code') or ""
             if company_code:
                 break
@@ -466,21 +499,11 @@ def submit_order():
         except Exception as e:
             print("Error shop code:", e)
 
-    if not company_code and cart_data:
-        try:
-            first_p_id = cart_data[0].get('id') or cart_data[0].get('product_id') or cart_data[0].get('productId')
-            if first_p_id:
-                p_res = supabase.table("inventory").select("company_id_text").eq("id", first_p_id).single().execute()
-                if p_res.data:
-                    company_code = p_res.data.get('company_id_text', '')
-        except Exception as e:
-            print("Error fallback product code:", e)
-
     current_company = session.get('current_shop_name') or "متجر"
 
     region_name = ""
+    wilaya = request.form.get('wilaya')
     if country == 'algeria':
-        wilaya = request.form.get('wilaya')
         region_name = wilaya
         try:
             w_res = supabase.table("shipping_rates").select("wilaya_name").eq("id", wilaya).single().execute()
@@ -489,14 +512,19 @@ def submit_order():
         except:
             pass
 
-    main_product_id = cart_data[0].get('id') if cart_data else (int(product_id) if product_id else None)
+    main_product_id = cart_items[0].get('id') if cart_items else (int(product_id_single) if product_id_single else None)
     
+    # دمج أسماء المنتجات لتخزينها في قاعدة البيانات
+    product_names_db = ", ".join([f"{item.get('name', item.get('title', 'منتج'))} (x{item.get('quantity', 1)})" for item in cart_items])
+    first_item_color = cart_items[0].get('color', cart_items[0].get('selected_color', 'غير محدد')) if cart_items else 'غير محدد'
+    first_item_size = cart_items[0].get('size', cart_items[0].get('selected_size', 'غير محدد')) if cart_items else 'غير محدد'
+
     order_data = {
         "customer_name": full_name,
         "customer_phone": phone,
-        "product_name": ", ".join([f"{item.get('name', item.get('title', 'منتج'))} (x{item.get('quantity', 1)})" for item in cart_data]), 
+        "product_name": product_names_db, 
         "quantity": quantity_ordered,
-        "total_price": total_price,
+        "total_price": grand_total,
         "status": "قيد الانتظار",
         "state": region_name,
         "baladiya": baladiya,
@@ -504,8 +532,8 @@ def submit_order():
         "delivery_price": delivery_price,
         "product_id": main_product_id,
         "company_code": company_code,
-        "color": selected_color,
-        "size": selected_size
+        "color": first_item_color,
+        "size": first_item_size
     }
     
     inserted_order_id = None
@@ -517,7 +545,7 @@ def submit_order():
         print(f"Error inserting order: {e}")
 
     # --- تحديث المخزون ---
-    for item in cart_data:
+    for item in cart_items:
         p_id = item.get('id') or item.get('product_id') or item.get('productId')
         p_name = item.get('name')
         item_qty = int(item.get('quantity', 1))
@@ -552,23 +580,20 @@ def submit_order():
             if res_settings.data:
                 s = res_settings.data[0]
                 token, chat_id = s.get('telegram_token'), s.get('telegram_chat_id')
-                product_names_str = ", ".join([f"{item.get('name', item.get('title', 'منتج'))} (x{item.get('quantity', 1)})" for item in cart_data])
                 if token and chat_id:
-                    msg_text = (
+                    telegram_message = (
                         f"🚨 **تنبيه: طلبية جديدة من المتجر!**\n\n"
-                        f"👤 **الاسم:** {customer_name} {customer_last_name}\n"
+                        f"👤 **الاسم:** {full_name}\n"
                         f"📞 **الهاتف:** {phone}\n"
-                        f"🛍️ **المنتجات:** {product_names_str}\n"
-                        f"🎨 **اللون:** {selected_color}\n"
-                        f"👕 **المقاس:** {selected_size}\n"
-                        f"📍 **العنوان:** {region_name} ({baladiya}) - {address}\n"
+                        f"🛍️ **المنتجات:**\n" + "\n".join(products_summary) + "\n\n"
+                        f"📍 **العنوان:** {region_name} - {baladiya} - {address}\n"
                         f"🚚 **التوصيل:** {delivery_type}\n"
-                        f"💰 **المجموع:** {total_price} دج"
+                        f"💰 **المجموع الكلي:** {grand_total} دج"
                     )
                     if inserted_order_id:
-                        send_order_alert(token, chat_id, msg_text, inserted_order_id)
+                        send_order_alert(token, chat_id, telegram_message, inserted_order_id)
                     else:
-                        send_telegram_alert_by_token(token, chat_id, msg_text)
+                        send_telegram_alert_by_token(token, chat_id, telegram_message)
         except Exception as telegram_err:
             print("Telegram shop alert error:", telegram_err)
 
