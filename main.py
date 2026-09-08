@@ -15,6 +15,9 @@ from google.genai import types
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "fallback_dev_key")
 
+# تحديد الحد الأقصى لحجم البيانات المسموح به بـ 16 ميغابايت لحل مشاكل حجم الطلبات الكبيرة
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  
+
 # إعداد Supabase و Gemini
 supabase = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY"))
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
@@ -551,7 +554,6 @@ def submit_order():
                 token, chat_id = s.get('telegram_token'), s.get('telegram_chat_id')
                 product_names_str = ", ".join([f"{item.get('name', item.get('title', 'منتج'))} (x{item.get('quantity', 1)})" for item in cart_data])
                 if token and chat_id:
-                    # دمج التصميم المطلوب لتنبيه تيليجرام تماماً
                     msg_text = (
                         f"🚨 **تنبيه: طلبية جديدة من المتجر!**\n\n"
                         f"👤 **الاسم:** {customer_name} {customer_last_name}\n"
