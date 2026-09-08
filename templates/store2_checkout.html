@@ -134,7 +134,7 @@
 
             <div class="d-flex gap-2">
                 <button type="submit" class="btn-confirm">تأكيد الطلب الآن</button>
-                <a href="/shop" class="btn-back">رجوع للقائمة</a>
+                <a href="/store2" class="btn-back">رجوع للقائمة</a>
             </div>
         </form>
     </div>
@@ -155,7 +155,8 @@ function googleTranslateElementInit() {
     let cartTotalBase = 0;
 
     window.addEventListener('DOMContentLoaded', () => {
-        let cart = JSON.parse(localStorage.getItem('cart')) || [];
+        // تم تصحيح المفتاح هنا ليطابق store2_cart
+        let cart = JSON.parse(localStorage.getItem('store2_cart')) || [];
         let summaryContainer = document.getElementById('cart_items_summary');
         
         if (cart.length > 0) {
@@ -254,9 +255,10 @@ function googleTranslateElementInit() {
     }
 
     function prepareCartData() {
-        let cart = localStorage.getItem('cart') || '[]';
+        // تم تصحيح المفتاح هنا أيضاً لتفريغ السلة الصحيحة بعد تأكيد الطلب
+        let cart = localStorage.getItem('store2_cart') || '[]';
         document.getElementById('cart_data_input').value = cart;
-        localStorage.removeItem('cart');
+        localStorage.removeItem('store2_cart');
     }
 </script>
 
