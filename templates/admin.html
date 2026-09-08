@@ -68,6 +68,7 @@
                             <th>طريقة التوصيل</th>
                             <th>سعر التوصيل</th>
                             <th>السعر الإجمالي</th>
+                            <th>إجراء</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -87,11 +88,17 @@
                                 </td>
                                 <td>{{ order.delivery_price }} دج</td>
                                 <td><strong>{{ order.total_price }} دج</strong></td>
+                                <td style="text-align: center;">
+                                    <!-- زر حذف الطلبية من الواجهة مباشرة -->
+                                    <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove();" style="padding: 6px 12px;">
+                                        <i class="fas fa-trash"></i> حذف
+                                    </button>
+                                </td>
                             </tr>
                             {% endfor %}
                         {% else %}
                             <tr>
-                                <td colspan="7" style="text-align: center; color: #777; padding: 15px;">لا توجد طلبيات مسجلة حتى الآن.</td>
+                                <td colspan="8" style="text-align: center; color: #777; padding: 15px;">لا توجد طلبيات مسجلة حتى الآن.</td>
                             </tr>
                         {% endif %}
                     </tbody>
