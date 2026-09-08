@@ -65,7 +65,7 @@
     <div class="checkout-card">
         <h3 class="text-center mb-4">معلومات الطلب</h3>
         
-        <!-- صندوق معلومات الطلب -->
+        <!-- صندوق معلومات الطلب أو السلة -->
         <div class="card p-3 mb-3 border-0 bg-light" id="product_info_box">
             {% if is_cart %}
                 <h5>الطلب: <span class="text-indigo">سلة المشتريات</span></h5>
@@ -84,29 +84,29 @@
             
             <input type="hidden" name="cart_data" id="cart_data_input">
 
-            <!-- خانة اللون (تظهر فقط إذا كان المنتج الفردي يحتوي على ألوان في المخزون) -->
+            <!-- قسم الألوان للمنتج الفردي (يظهر فقط إذا أدخل المدير ألواناً في لوحة التحكم) -->
             {% if not is_cart and product and product.colors and product.colors.strip() != "" %}
             <div class="mb-3">
                 <label class="form-label">اللون</label>
                 <div class="options-container">
                     {% for color in product.colors.split(',') %}
-                        <button type="button" class="option-btn" onclick="selectSingleOption('color', '{{ color.strip() }}', this)">{{ color.strip() }}</button>
+                        <button type="button" class="option-btn" onclick="selectMainOption('color', '{{ color.strip() }}', this)">{{ color.strip() }}</button>
                     {% endfor %}
                 </div>
-                <input type="hidden" name="selected_color" id="single_selected_color" required>
+                <input type="hidden" name="selected_color" id="main_selected_color" required>
             </div>
             {% endif %}
 
-            <!-- خانة المقاس (تظهر فقط إذا كان المنتج الفردي يحتوي على مقاسات في المخزون) -->
+            <!-- قسم المقاسات للمنتج الفردي (يظهر فقط إذا أدخل المدير مقاسات في لوحة التحكم) -->
             {% if not is_cart and product and product.sizes and product.sizes.strip() != "" %}
             <div class="mb-3">
                 <label class="form-label">المقاس</label>
                 <div class="options-container">
                     {% for size in product.sizes.split(',') %}
-                        <button type="button" class="option-btn" onclick="selectSingleOption('size', '{{ size.strip() }}', this)">{{ size.strip() }}</button>
+                        <button type="button" class="option-btn" onclick="selectMainOption('size', '{{ size.strip() }}', this)">{{ size.strip() }}</button>
                     {% endfor %}
                 </div>
-                <input type="hidden" name="selected_size" id="single_selected_size" required>
+                <input type="hidden" name="selected_size" id="main_selected_size" required>
             </div>
             {% endif %}
 
@@ -222,8 +222,8 @@ function googleTranslateElementInit() {
     let isCartOrder = "{{ 'true' if is_cart else 'false' }}" === "true";
     let basePrice = 0;
 
-    // دالة لتوليد أزرار الألوان أو المقاسات للسلة (تظهر فقط إذا كانت متوفرة للمنتج داخل السلة)
-    function generateButtonsHtml(optionsStr, type, itemIndex) {
+    // دالة لتوليد أزرار الخيارات ديناميكياً إذا كانت موجودة في سلة المشتريات
+    function generateCartButtons(optionsStr, type, itemIndex) {
         if (!optionsStr || optionsStr.trim() === "") return '';
         let options = optionsStr.split(',');
         let labelName = type === 'color' ? 'اللون' : 'المقاس';
@@ -245,20 +245,18 @@ function googleTranslateElementInit() {
         return html;
     }
 
-    // تحديد الزر للمنتج الفردي
-    window.selectSingleOption = function(type, value, btnElement) {
+    function selectMainOption(type, value, btnElement) {
         let container = btnElement.parentElement;
         container.querySelectorAll('.option-btn').forEach(btn => btn.classList.remove('active'));
         btnElement.classList.add('active');
-        
+
         if(type === 'color') {
-            document.getElementById('single_selected_color').value = value;
+            document.getElementById('main_selected_color').value = value;
         } else if(type === 'size') {
-            document.getElementById('single_selected_size').value = value;
+            document.getElementById('main_selected_size').value = value;
         }
     }
 
-    // تحديث خيار اللون أو المقاس داخل سلة المشتريات
     window.updateItemOption = function(index, type, value, btnElement) {
         let container = btnElement.parentElement;
         container.querySelectorAll('.option-btn').forEach(btn => btn.classList.remove('active'));
@@ -296,11 +294,9 @@ function googleTranslateElementInit() {
                             </div>
                             <span class="text-muted small">الكمية: ${item.quantity || 1}</span>
                             
-                            <!-- تظهر أزرار الألوان هنا تلقائياً إذا كانت موجودة في مخزون المنتج -->
-                            ${generateButtonsHtml(item.colors, 'color', index)}
-                            
-                            <!-- تظهر أزرار المقاسات هنا تلقائياً إذا كانت موجودة في مخزون المنتج -->
-                            ${generateButtonsHtml(item.sizes, 'size', index)}
+                            <!-- توليد أزرار الألوان والمقاسات تلقائياً حسب بيانات المخزون للمنتج في السلة -->
+                            ${generateCartButtons(item.colors, 'color', index)}
+                            ${generateCartButtons(item.sizes, 'size', index)}
                         </div>
                     `;
                 });
@@ -368,7 +364,7 @@ function googleTranslateElementInit() {
             quantity = parseInt(document.getElementById('quantity').value) || 1;
         }
 
-        let shippingPrice = 500; // قيمة افتراضية يمكن تعديلها حسب نظامك
+        let shippingPrice = 0;
 
         if (country === 'algeria') {
             const wilayaSelect = document.getElementById('wilaya');
