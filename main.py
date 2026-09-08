@@ -370,6 +370,8 @@ def submit_souhila_order():
                 f"👤 الاسم: {full_name}\n"
                 f"📞 الهاتف: {phone}\n"
                 f"📦 الدورات/المنتجات: {product_names_str}\n"
+                f"🎨 اللون: {selected_color if selected_color else 'غير محدد'}\n"
+                f"👕 المقاس: {selected_size if selected_size else 'غير محدد'}\n"
                 f"📍 المنطقة/الولاية: {region_name}\n"
                 f"🏘️ البلدية: {baladiya}\n"
                 f"💰 المجموع الكلي: {total_price} دج"
@@ -422,9 +424,9 @@ def submit_order():
     delivery_price = float(request.form.get('delivery_price', 0))
     quantity_ordered = int(request.form.get('quantity', 1))
     
-    # 🔴 التقاط اللون والمقاس لـ shop بدقة
-    selected_color = request.form.get('selected_color', '')
-    selected_size = request.form.get('selected_size', '')
+    # التقاط اللون والمقاس بالصيغة المطلوبة
+    selected_color = request.form.get('selected_color', 'غير محدد')
+    selected_size = request.form.get('selected_size', 'غير محدد')
     
     cart_raw = request.form.get('cart_data', '')
     cart_data = []
@@ -486,7 +488,6 @@ def submit_order():
 
     main_product_id = cart_data[0].get('id') if cart_data else (int(product_id) if product_id else None)
     
-    # 🔴 إدراج اللون والمقاس في جدول orders
     order_data = {
         "customer_name": full_name,
         "customer_phone": phone,
@@ -550,20 +551,17 @@ def submit_order():
                 token, chat_id = s.get('telegram_token'), s.get('telegram_chat_id')
                 product_names_str = ", ".join([f"{item.get('name', item.get('title', 'منتج'))} (x{item.get('quantity', 1)})" for item in cart_data])
                 if token and chat_id:
-                    delivery_text = "توصيل للمنزل" if delivery_type == "home" else "توصيل للمكتب"
-                    # 🔴 إظهار اللون والمقاس في تنبيه التليجرام الخاص بالمتجر
+                    # دمج التصميم المطلوب لتنبيه تيليجرام تماماً
                     msg_text = (
-                        f"🛒 طلبية جديدة من ({current_company})!\n"
-                        f"👤 الاسم: {full_name}\n"
-                        f"📞 الهاتف: {phone}\n"
-                        f"📦 المنتجات: {product_names_str}\n"
-                        f"🎨 اللون: {selected_color if selected_color else 'غير محدد'}\n"
-                        f"📏 المقاس: {selected_size if selected_size else 'غير محدد'}\n"
-                        f"📍 الولاية: {region_name}\n"
-                        f"🏘️ البلدية: {baladiya}\n"
-                        f"🏠 العنوان: {address}\n"
-                        f"🚚 التوصيل: {delivery_text} ({delivery_price} دج)\n"
-                        f"💰 المجموع: {total_price} دج"
+                        f"🚨 **تنبيه: طلبية جديدة من المتجر!**\n\n"
+                        f"👤 **الاسم:** {customer_name} {customer_last_name}\n"
+                        f"📞 **الهاتف:** {phone}\n"
+                        f"🛍️ **المنتجات:** {product_names_str}\n"
+                        f"🎨 **اللون:** {selected_color}\n"
+                        f"👕 **المقاس:** {selected_size}\n"
+                        f"📍 **العنوان:** {region_name} ({baladiya}) - {address}\n"
+                        f"🚚 **التوصيل:** {delivery_type}\n"
+                        f"💰 **المجموع:** {total_price} دج"
                     )
                     if inserted_order_id:
                         send_order_alert(token, chat_id, msg_text, inserted_order_id)
