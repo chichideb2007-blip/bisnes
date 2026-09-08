@@ -14,30 +14,36 @@
         .btn-confirm { background-color: #198754; color: white; padding: 12px; font-weight: bold; border: none; border-radius: 8px; flex-grow: 1; }
         .btn-back { background-color: #6c757d; color: white; padding: 12px; font-weight: bold; border: none; border-radius: 8px; text-decoration: none; text-align: center; }
 
+        /* تصميم الأوراق والأزرار المتحركة التفاعلية */
         .options-container {
             display: flex;
             flex-wrap: wrap;
-            gap: 6px;
-            margin-top: 5px;
+            gap: 8px;
+            margin-top: 8px;
         }
-        .option-btn {
-            border: 1px solid #0dcaf0;
+        .option-chip {
+            border: 2px solid #dee2e6;
             background-color: #fff;
-            color: #0d6efd;
-            padding: 6px 14px;
-            border-radius: 6px;
+            color: #495057;
+            padding: 8px 18px;
+            border-radius: 50px; /* شكل دائري منحني يشبه الأوراق المتحركة */
             font-size: 14px;
+            font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.25s ease-in-out;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
         }
-        .option-btn:hover {
-            background-color: #e3f2fd;
+        .option-chip:hover {
+            border-color: #0dcaf0;
+            background-color: #f8f9fa;
+            transform: translateY(-2px); /* حركة خفيفة عند تمرير الفأرة */
         }
-        .option-btn.active {
+        .option-chip.active {
             background-color: #0dcaf0 !important;
             color: #fff !important;
             border-color: #0dcaf0 !important;
-            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(13, 202, 240, 0.4);
+            transform: translateY(-2px);
         }
 
         .goog-te-banner-frame.skiptranslate { display: none !important; }
@@ -65,7 +71,7 @@
     <div class="checkout-card">
         <h3 class="text-center mb-4">معلومات الطلب</h3>
         
-        <!-- صندوق معلومات الطلب أو السلة -->
+        <!-- صندوق معلومات المنتج أو السلة -->
         <div class="card p-3 mb-3 border-0 bg-light" id="product_info_box">
             {% if is_cart %}
                 <h5>الطلب: <span class="text-indigo">سلة المشتريات</span></h5>
@@ -84,26 +90,26 @@
             
             <input type="hidden" name="cart_data" id="cart_data_input">
 
-            <!-- قسم الألوان للمنتج الفردي (يظهر فقط إذا أدخل المدير ألواناً في لوحة التحكم) -->
+            <!-- قسم الألوان للمنتج الفردي (يظهر تلقائياً إذا أدخله المدير في لوحة التحكم) -->
             {% if not is_cart and product and product.colors and product.colors.strip() != "" %}
             <div class="mb-3">
                 <label class="form-label">اللون</label>
                 <div class="options-container">
                     {% for color in product.colors.split(',') %}
-                        <button type="button" class="option-btn" onclick="selectMainOption('color', '{{ color.strip() }}', this)">{{ color.strip() }}</button>
+                        <button type="button" class="option-chip" onclick="selectMainOption('color', '{{ color.strip() }}', this)">{{ color.strip() }}</button>
                     {% endfor %}
                 </div>
                 <input type="hidden" name="selected_color" id="main_selected_color" required>
             </div>
             {% endif %}
 
-            <!-- قسم المقاسات للمنتج الفردي (يظهر فقط إذا أدخل المدير مقاسات في لوحة التحكم) -->
+            <!-- قسم المقاسات للمنتج الفردي (يظهر تلقائياً إذا أدخله المدير في لوحة التحكم) -->
             {% if not is_cart and product and product.sizes and product.sizes.strip() != "" %}
             <div class="mb-3">
                 <label class="form-label">المقاس</label>
                 <div class="options-container">
                     {% for size in product.sizes.split(',') %}
-                        <button type="button" class="option-btn" onclick="selectMainOption('size', '{{ size.strip() }}', this)">{{ size.strip() }}</button>
+                        <button type="button" class="option-chip" onclick="selectMainOption('size', '{{ size.strip() }}', this)">{{ size.strip() }}</button>
                     {% endfor %}
                 </div>
                 <input type="hidden" name="selected_size" id="main_selected_size" required>
@@ -222,8 +228,8 @@ function googleTranslateElementInit() {
     let isCartOrder = "{{ 'true' if is_cart else 'false' }}" === "true";
     let basePrice = 0;
 
-    // دالة لتوليد أزرار الخيارات ديناميكياً إذا كانت موجودة في سلة المشتريات
-    function generateCartButtons(optionsStr, type, itemIndex) {
+    // دالة لتوليد الأوراق المتحركة التفاعلية داخل السلة بناءً على مخزون المدير
+    function generateCartChips(optionsStr, type, itemIndex) {
         if (!optionsStr || optionsStr.trim() === "") return '';
         let options = optionsStr.split(',');
         let labelName = type === 'color' ? 'اللون' : 'المقاس';
@@ -238,7 +244,7 @@ function googleTranslateElementInit() {
             let isSelected = cart[itemIndex] && cart[itemIndex][type] === val;
             let activeClass = isSelected ? 'active' : '';
 
-            html += `<button type="button" class="option-btn ${activeClass}" onclick="updateItemOption(${itemIndex}, '${type}', '${val}', this)">${val}</button>`;
+            html += `<button type="button" class="option-chip ${activeClass}" onclick="updateItemOption(${itemIndex}, '${type}', '${val}', this)">${val}</button>`;
         });
         
         html += `</div></div>`;
@@ -247,7 +253,7 @@ function googleTranslateElementInit() {
 
     function selectMainOption(type, value, btnElement) {
         let container = btnElement.parentElement;
-        container.querySelectorAll('.option-btn').forEach(btn => btn.classList.remove('active'));
+        container.querySelectorAll('.option-chip').forEach(btn => btn.classList.remove('active'));
         btnElement.classList.add('active');
 
         if(type === 'color') {
@@ -259,7 +265,7 @@ function googleTranslateElementInit() {
 
     window.updateItemOption = function(index, type, value, btnElement) {
         let container = btnElement.parentElement;
-        container.querySelectorAll('.option-btn').forEach(btn => btn.classList.remove('active'));
+        container.querySelectorAll('.option-chip').forEach(btn => btn.classList.remove('active'));
         btnElement.classList.add('active');
 
         let cart = JSON.parse(localStorage.getItem('cart')) || [];
@@ -287,16 +293,16 @@ function googleTranslateElementInit() {
                     cartTotal += itemTotal;
 
                     htmlList += `
-                        <div class="p-2 border rounded bg-white">
+                        <div class="p-3 border rounded bg-white shadow-sm mb-2">
                             <div class="d-flex justify-content-between align-items-center">
                                 <span class="fw-bold">${item.name}</span>
-                                <span class="text-danger">${itemTotal} دج</span>
+                                <span class="text-danger fw-bold">${itemTotal} دج</span>
                             </div>
                             <span class="text-muted small">الكمية: ${item.quantity || 1}</span>
                             
-                            <!-- توليد أزرار الألوان والمقاسات تلقائياً حسب بيانات المخزون للمنتج في السلة -->
-                            ${generateCartButtons(item.colors, 'color', index)}
-                            ${generateCartButtons(item.sizes, 'size', index)}
+                            <!-- ظهور الأوراق المتحركة للألوان والمقاسات من المخزون تلقائياً -->
+                            ${generateCartChips(item.colors, 'color', index)}
+                            ${generateCartChips(item.sizes, 'size', index)}
                         </div>
                     `;
                 });
@@ -376,7 +382,7 @@ function googleTranslateElementInit() {
             }
         } else if (country === 'jordan') {
             const jordanSelect = document.getElementById('jordan_region');
-            const deliveryType = document.getElementById('delivery_type').value;
+            const deliveryType = document.getElementById('delivery_type'].value;
             const selectedJordanOption = jordanSelect.options[jordanSelect.selectedIndex];
             
             if (selectedJordanOption && selectedJordanOption.value !== "") {
