@@ -54,12 +54,12 @@
 
             <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                 {% for product in products %}
-                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col justify-between product-card">
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 flex flex-col justify-between product-card">
                         <div>
-                            <!-- تم تعديل حاوية الصورة هنا لتصبح مربعة ومتناسقة تماماً -->
-                            <div class="w-full aspect-square bg-gray-100 rounded-xl overflow-hidden mb-3 relative flex items-center justify-center">
+                            <!-- تم تكبير مساحة عرض الصورة وجعلها تظهر كامضة بوضوح باستخدام object-contain -->
+                            <div class="w-full h-56 bg-gray-50 rounded-xl overflow-hidden mb-3 flex items-center justify-center relative border border-gray-100">
                                 {% if product['product-images'] %}
-                                    <img src="{{ product['product-images'] }}" class="w-full h-full object-cover absolute inset-0 product-img" alt="{{ product.name }}">
+                                    <img src="{{ product['product-images'] }}" class="w-full h-full object-contain product-img" alt="{{ product.name }}">
                                 {% else %}
                                     <div class="w-full h-full flex items-center justify-center text-gray-400">
                                         <i class="fas fa-image text-2xl"></i>
@@ -68,30 +68,6 @@
                             </div>
                             <h3 class="font-bold text-gray-800 text-sm mb-1 line-clamp-1 product-name">{{ product.name }}</h3>
                             <p class="text-indigo-600 font-black text-base mb-3"><span class="product-price">{{ product.price }}</span> دج</p>
-                            
-                            <!-- 🎨 خانة اختيار الألوان (تظهر فقط إذا كان المنتج يحتوي على ألوان) -->
-                            {% if product.get('colors') %}
-                            <div class="mb-2">
-                                <label class="block text-xs font-bold text-gray-600 mb-1">اللون:</label>
-                                <select class="product-color w-full text-xs border border-gray-200 rounded-lg p-1.5 bg-gray-50 outline-none">
-                                    {% for color in product.get('colors').split(',') %}
-                                        <option value="{{ color.strip() }}">{{ color.strip() }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            {% endif %}
-
-                            <!-- 📏 خانة اختيار المقاسات (تظهر فقط إذا كان المنتج يحتوي على مقاسات) -->
-                            {% if product.get('sizes') %}
-                            <div class="mb-3">
-                                <label class="block text-xs font-bold text-gray-600 mb-1">المقاس:</label>
-                                <select class="product-size w-full text-xs border border-gray-200 rounded-lg p-1.5 bg-gray-50 outline-none">
-                                    {% for size in product.get('sizes').split(',') %}
-                                        <option value="{{ size.strip() }}">{{ size.strip() }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            {% endif %}
                         </div>
 
                         <div>
@@ -133,28 +109,20 @@
             });
         }
 
-        // الاستماع لأزرار الإضافة للسلة بأمان تام
+        // الاستماع لأزرار الإضافة للسلة بأمان تام (بدون الحاجة لاختيار ألوان أو مقاسات من الواجهة)
         document.addEventListener('click', function(event) {
             let btn = event.target.closest('.add-to-cart-btn');
             if (!btn) return;
 
-            let card = btn.closest('.product-card');
             let id = btn.getAttribute('data-id');
             let name = btn.getAttribute('data-name');
             let price = parseFloat(btn.getAttribute('data-price')) || 0;
             let image = btn.getAttribute('data-image');
 
-            // التقاط اللون والمقاس إذا وجدا في كارت المنتج
-            let colorSelect = card.querySelector('.product-color');
-            let sizeSelect = card.querySelector('.product-size');
-            
-            let color = colorSelect ? colorSelect.value : '';
-            let size = sizeSelect ? sizeSelect.value : '';
-
             let cart = JSON.parse(localStorage.getItem('cart')) || [];
             
-            // البحث عن المنتج بنفس الـ ID واللون والمقاس معاً
-            let existingItem = cart.find(item => item.id == id && item.color === color && item.size === size);
+            // البحث عن المنتج بنفس الـ ID فقط في السلة
+            let existingItem = cart.find(item => item.id == id);
 
             if (existingItem) {
                 existingItem.quantity = (parseInt(existingItem.quantity) || 1) + 1;
@@ -164,8 +132,6 @@
                     name: name,
                     price: price,
                     'product-images': image,
-                    color: color,
-                    size: size,
                     quantity: 1
                 });
             }
