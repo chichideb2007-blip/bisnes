@@ -15,8 +15,8 @@ from google.genai import types
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "fallback_dev_key")
 
-# تحديد الحد الأقصى لحجم البيانات المسموح به بـ 16 ميغابايت لحل مشاكل حجم الطلبات الكبيرة
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  
+# تحديد الحد الأقصى لحجم البيانات المسموح به بـ 32 ميغابايت لمنع أي مشكلة في حجم الطلبات الكبيرة جداً
+app.config['MAX_CONTENT_LENGTH'] = 32 * 1024 * 1024  
 
 # إعداد Supabase و Gemini
 supabase = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY"))
@@ -38,8 +38,11 @@ def inject_currency():
 # --- الدوال المساعدة ---
 
 def get_product_from_db(product_id):
-    res = supabase.table("inventory").select("*").eq("id", product_id).single().execute()
-    return res.data if res.data else None
+    try:
+        res = supabase.table("inventory").select("*").eq("id", product_id).single().execute()
+        return res.data if res.data else None
+    except:
+        return None
 
 # --- دالة خاصة حصرياً بولايات موقع سهيلة (من جدول algeria_wilayas) ---
 def get_souhila_wilayas_from_db():
@@ -343,7 +346,7 @@ def submit_souhila_order():
     order_data = {
         "customer_name": full_name,
         "customer_phone": phone,
-        "product_name": ", ".join([f"{item.get('name', item.get('title', 'منتج'))} (x{item.get('quantity', 1)})" for item in cart_data]), 
+        "product_name": ", ".join([f"{item.get('name', item.get('title', 'منتج'))} (x{item.get('quantity', 1)})" for item in cart_data])[:450], 
         "quantity": quantity_ordered,
         "total_price": total_price,
         "status": "قيد الانتظار",
@@ -427,7 +430,6 @@ def submit_order():
     delivery_price = float(request.form.get('delivery_price', 0))
     quantity_ordered = int(request.form.get('quantity', 1))
     
-    # الأعمدة الجديدة الخاصة بالمطعم
     order_type = request.form.get('order_type', 'delivery')
     table_number = request.form.get('table_number', '')
 
@@ -436,7 +438,16 @@ def submit_order():
     
     if cart_raw and cart_raw != '[]':
         try:
-            cart_items = json.loads(cart_raw)
+            parsed_cart = json.loads(cart_raw)
+            for item in parsed_cart:
+                cart_items.append({
+                    'id': item.get('id') or item.get('product_id'),
+                    'name': str(item.get('name', 'منتج'))[:50],
+                    'quantity': int(item.get('quantity', 1)),
+                    'price': float(item.get('price', 0)),
+                    'color': str(item.get('color', 'غير محدد'))[:20],
+                    'size': str(item.get('size', 'غير محدد'))[:20]
+                })
         except:
             cart_items = []
             
@@ -446,50 +457,32 @@ def submit_order():
         if single_product:
             cart_items = [{
                 'id': single_product.get('id'),
+                'name': str(single_product.get('name', 'منتج'))[:50],
                 'quantity': quantity_ordered,
-                'color': request.form.get('selected_color', 'غير محدد'),
-                'size': request.form.get('selected_size', 'غير محدد')
+                'price': float(single_product.get('price', 0)),
+                'color': request.form.get('selected_color', 'غير محدد')[:20],
+                'size': request.form.get('selected_size', 'غير محدد')[:20]
             }]
 
     products_summary = []
     total_products_price = 0
     
     for item in cart_items:
-        product_id = item.get('id') or item.get('product_id') or item.get('productId')
+        product_price = float(item.get('price', 0))
         quantity = int(item.get('quantity', 1))
-        color = item.get('color', item.get('selected_color', 'غير محدد'))
-        size = item.get('size', item.get('selected_size', 'غير محدد'))
-        
-        product = get_product_from_db(product_id) if product_id else None
-        
-        if product:
-            product_name = product.get('name', 'منتج')
-            product_price = float(product.get('price', 0))
-            
-            item_total = product_price * quantity
-            total_products_price += item_total
-            
-            products_summary.append(f"📦 {product_name} (الكمية: {quantity}) | اللون: {color} | المقاس: {size} | السعر: {item_total} دج")
-        else:
-            fallback_name = item.get('name', item.get('title', 'منتج'))
-            fallback_price = float(item.get('price', 0))
-            item_total = fallback_price * quantity
-            total_products_price += item_total
-            products_summary.append(f"📦 {fallback_name} (الكمية: {quantity}) | اللون: {color} | المقاس: {size} | السعر: {item_total} دج")
+        item_total = product_price * quantity
+        total_products_price += item_total
+        products_summary.append(f"📦 {item.get('name')} (الكمية: {quantity}) | السعر: {item_total} دج")
 
     grand_total = total_products_price + delivery_price
 
     company_code = ""
-    if cart_items:
-        for item in cart_items:
-            p_id = item.get('id') or item.get('product_id')
-            if p_id:
-                p_info = get_product_from_db(p_id)
-                if p_info and p_info.get('company_id_text'):
-                    company_code = p_info.get('company_id_text')
-                    break
-            company_code = item.get('company_id_text') or item.get('company_code') or ""
-            if company_code:
+    for item in cart_items:
+        p_id = item.get('id')
+        if p_id:
+            p_info = get_product_from_db(p_id)
+            if p_info and p_info.get('company_id_text'):
+                company_code = p_info.get('company_id_text')
                 break
 
     if not company_code and session.get('current_shop_name'):
@@ -498,17 +491,13 @@ def submit_order():
             settings_res = supabase.table("settings").select("company_code").ilike("company_name", shop_name).execute()
             if settings_res.data:
                 company_code = settings_res.data[0]['company_code']
-        except Exception as e:
-            print("Error shop code:", e)
+        except:
+            pass
 
-    current_company = session.get('current_shop_name') or "متجر"
-
-    region_name = ""
-    wilaya = request.form.get('wilaya')
-    if country == 'algeria':
-        region_name = wilaya
+    region_name = request.form.get('wilaya', '')
+    if country == 'algeria' and region_name:
         try:
-            w_res = supabase.table("shipping_rates").select("wilaya_name").eq("id", wilaya).single().execute()
+            w_res = supabase.table("shipping_rates").select("wilaya_name").eq("id", region_name).single().execute()
             if w_res.data and w_res.data.get('wilaya_name'):
                 region_name = w_res.data.get('wilaya_name')
         except:
@@ -516,27 +505,25 @@ def submit_order():
 
     main_product_id = cart_items[0].get('id') if cart_items else (int(product_id_single) if product_id_single else None)
     
-    product_names_db = ", ".join([f"{item.get('name', item.get('title', 'منتج'))} (x{item.get('quantity', 1)})" for item in cart_items])
-    first_item_color = cart_items[0].get('color', cart_items[0].get('selected_color', 'غير محدد')) if cart_items else 'غير محدد'
-    first_item_size = cart_items[0].get('size', cart_items[0].get('selected_size', 'غير محدد')) if cart_items else 'غير محدد'
+    product_names_db = ", ".join([f"{item.get('name')} (x{item.get('quantity', 1)})" for item in cart_items])[:250]
 
     order_data = {
-        "customer_name": full_name,
-        "customer_phone": phone,
+        "customer_name": full_name[:100],
+        "customer_phone": phone[:30],
         "product_name": product_names_db, 
         "quantity": quantity_ordered,
         "total_price": grand_total,
         "status": "قيد الانتظار",
-        "state": region_name,
-        "baladiya": baladiya,
-        "delivery_type": delivery_type,
+        "state": region_name[:50],
+        "baladiya": baladiya[:50],
+        "delivery_type": str(delivery_type)[:50],
         "delivery_price": delivery_price,
         "product_id": main_product_id,
         "company_code": company_code,
-        "color": first_item_color,
-        "size": first_item_size,
-        "order_type": order_type,
-        "table_number": table_number
+        "color": cart_items[0].get('color', 'غير محدد')[:20] if cart_items else 'غير محدد',
+        "size": cart_items[0].get('size', 'غير محدد')[:20] if cart_items else 'غير محدد',
+        "order_type": str(order_type)[:20],
+        "table_number": str(table_number)[:20]
     }
     
     inserted_order_id = None
@@ -548,32 +535,19 @@ def submit_order():
         print(f"Error inserting order: {e}")
 
     for item in cart_items:
-        p_id = item.get('id') or item.get('product_id') or item.get('productId')
-        p_name = item.get('name')
+        p_id = item.get('id')
         item_qty = int(item.get('quantity', 1))
-        
         try:
-            prod_info = None
             if p_id:
                 prod_res = supabase.table("inventory").select("id, name, quantity").eq("id", p_id).execute()
                 if prod_res.data and len(prod_res.data) > 0:
                     prod_info = prod_res.data[0]
-            elif p_name and company_code:
-                prod_res = supabase.table("inventory").select("id, name, quantity").eq("name", p_name).eq("company_id_text", company_code).execute()
-                if prod_res.data and len(prod_res.data) > 0:
-                    prod_info = prod_res.data[0]
-
-            if prod_info:
-                real_p_id = prod_info.get('id')
-                current_qty = int(prod_info.get('quantity', 0))
-                product_name_db = prod_info.get('name', 'منتج')
-                
-                new_qty = max(0, current_qty - item_qty)
-                supabase.table("inventory").update({"quantity": new_qty}).eq("id", real_p_id).execute()
-                
-                if new_qty <= 0:
-                    send_telegram_alert(product_name_db, current_company, company_code)
-        except Exception as ex:
+                    current_qty = int(prod_info.get('quantity', 0))
+                    new_qty = max(0, current_qty - item_qty)
+                    supabase.table("inventory").update({"quantity": new_qty}).eq("id", p_id).execute()
+                    if new_qty <= 0:
+                        send_telegram_alert(prod_info.get('name'), session.get('current_shop_name', ''), company_code)
+        except:
             pass
 
     if company_code:
@@ -1044,7 +1018,7 @@ def orders():
     return render_template('orders_dashboard.html', 
                            orders=orders_res.data or [], 
                            wilayas=wilayas_res.data or [],  
-                           jordan_rates=jordan_res.data or [])
+                           jordan_res=jordan_res.data or [])
 
 @app.route('/shop', methods=['GET', 'POST'])
 def shop():
