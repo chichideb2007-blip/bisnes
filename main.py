@@ -369,7 +369,7 @@ def submit_souhila_order():
         if t_token and t_chat_id:
             product_names_str = ", ".join([f"{item.get('name', item.get('title', 'منتج'))} (x{item.get('quantity', 1)})" for item in cart_data])
             msg_text = (
-               f"🛒 طلبية جديدة (موقع سهيلة)!\n"
+              f"🛒 طلبية جديدة (موقع سهيلة)!\n"
                 f"👤 الاسم: {full_name}\n"
                 f"📞 الهاتف: {phone}\n"
                 f"📦 الدورات/المنتجات: {product_names_str}\n"
@@ -407,7 +407,6 @@ def submit_souhila_order():
 
 @app.route('/submit-order', methods=['POST'])
 def submit_order():
-    # استقبال البيانات الأساسية من النموذج مع دعم الخيارات المختلفة لاسم البلدية
     customer_name = request.form.get('customer_name')
     customer_last_name = request.form.get('customer_last_name', '')
     full_name = f"{customer_name} {customer_last_name}".strip()
@@ -428,7 +427,10 @@ def submit_order():
     delivery_price = float(request.form.get('delivery_price', 0))
     quantity_ordered = int(request.form.get('quantity', 1))
     
-    # استقبال بيانات السلة المختصرة (المعرف، الكمية، اللون، المقاس)
+    # الأعمدة الجديدة الخاصة بالمطعم
+    order_type = request.form.get('order_type', 'delivery')
+    table_number = request.form.get('table_number', '')
+
     cart_raw = request.form.get('cart_data', '[]')
     cart_items = []
     
@@ -514,7 +516,6 @@ def submit_order():
 
     main_product_id = cart_items[0].get('id') if cart_items else (int(product_id_single) if product_id_single else None)
     
-    # دمج أسماء المنتجات لتخزينها في قاعدة البيانات
     product_names_db = ", ".join([f"{item.get('name', item.get('title', 'منتج'))} (x{item.get('quantity', 1)})" for item in cart_items])
     first_item_color = cart_items[0].get('color', cart_items[0].get('selected_color', 'غير محدد')) if cart_items else 'غير محدد'
     first_item_size = cart_items[0].get('size', cart_items[0].get('selected_size', 'غير محدد')) if cart_items else 'غير محدد'
@@ -533,7 +534,9 @@ def submit_order():
         "product_id": main_product_id,
         "company_code": company_code,
         "color": first_item_color,
-        "size": first_item_size
+        "size": first_item_size,
+        "order_type": order_type,
+        "table_number": table_number
     }
     
     inserted_order_id = None
@@ -544,7 +547,6 @@ def submit_order():
     except Exception as e:
         print(f"Error inserting order: {e}")
 
-    # --- تحديث المخزون ---
     for item in cart_items:
         p_id = item.get('id') or item.get('product_id') or item.get('productId')
         p_name = item.get('name')
@@ -581,10 +583,12 @@ def submit_order():
                 s = res_settings.data[0]
                 token, chat_id = s.get('telegram_token'), s.get('telegram_chat_id')
                 if token and chat_id:
+                    order_type_text = "🍽️ داخل المطعم (طاولة رقم: " + str(table_number) + ")" if order_type == 'dine_in' else "🛵 توصيل منزلي"
                     telegram_message = (
                         f"🚨 **تنبيه: طلبية جديدة من المتجر!**\n\n"
                         f"👤 **الاسم:** {full_name}\n"
                         f"📞 **الهاتف:** {phone}\n"
+                        f"📌 **نوع الطلب:** {order_type_text}\n"
                         f"🛍️ **المنتجات:**\n" + "\n".join(products_summary) + "\n\n"
                         f"📍 **العنوان:** {region_name} - {baladiya} - {address}\n"
                         f"🚚 **التوصيل:** {delivery_type}\n"
