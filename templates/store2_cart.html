@@ -21,13 +21,35 @@
     <main class="max-w-4xl mx-auto px-4 py-8 flex-grow w-full">
         <div id="cart-items-container" class="space-y-4 mb-6"></div>
 
-        <div id="cart-summary" class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hidden">
-            <div class="flex justify-between items-center mb-4">
+        <div id="cart-summary" class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hidden space-y-5">
+            <!-- 🍽️ خيار نوع الطلب (داخل المطعم أو توصيل للمنزل) -->
+            <div class="border-b border-gray-100 pb-4">
+                <label class="block text-xs font-bold text-gray-600 mb-2">نوع الطلب:</label>
+                <div class="grid grid-cols-2 gap-3">
+                    <label class="flex items-center justify-center gap-2 p-3 border-2 border-amber-200 rounded-2xl cursor-pointer bg-amber-50/50 hover:bg-amber-100/50 transition-all font-bold text-sm">
+                        <input type="radio" name="order_type" value="dine_in" onchange="toggleOrderType()" checked class="accent-amber-600">
+                        <span>داخل المطعم</span>
+                    </label>
+                    <label class="flex items-center justify-center gap-2 p-3 border-2 border-gray-200 rounded-2xl cursor-pointer hover:bg-gray-50 transition-all font-bold text-sm">
+                        <input type="radio" name="order_type" value="delivery" onchange="toggleOrderType()" class="accent-amber-600">
+                        <span>للمنزل (توصيل)</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- 🪑 خانة رقم الطاولة (تظهر حصرياً لطلبات داخل المطعم ويكتبها الزبون) -->
+            <div id="table-number-container" class="border-b border-gray-100 pb-4">
+                <label class="block text-xs font-bold text-gray-600 mb-1">رقم الطاولة:</label>
+                <input type="number" id="table-number-input" placeholder="اكتب رقم الطاولة هنا (مثال: 4)" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 outline-none text-sm font-bold focus:border-amber-500">
+            </div>
+
+            <div class="flex justify-between items-center">
                 <span class="text-gray-500 font-bold">المجموع الكلي للوجبات:</span>
                 <span class="text-2xl font-black text-amber-600"><span id="total-price">0</span> دج</span>
             </div>
-            <button onclick="proceedToCheckout()" class="w-full bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-amber-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer">
-                <i class="fas fa-motorcycle"></i> تأكيد الطلب وإدخال معلومات التوصيل
+
+            <button onclick="submitOrder()" class="w-full bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-amber-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer">
+                <i class="fas fa-check-circle"></i> تأكيد وإرسال الطلب
             </button>
         </div>
 
@@ -43,7 +65,6 @@
 
     <script>
         function loadCart() {
-            // جلب الوجبات مباشرة من الذاكرة المحلية للمتجر دون حذفها بالخطأ
             let cart = JSON.parse(localStorage.getItem('store2_cart')) || [];
             let container = document.getElementById('cart-items-container');
             let summary = document.getElementById('cart-summary');
@@ -95,6 +116,18 @@
             document.getElementById('total-price').innerText = total;
         }
 
+        // إظهار أو إخفاء خانة رقم الطاولة بناءً على اختيار الزبون
+        function toggleOrderType() {
+            let orderType = document.querySelector('input[name="order_type"]:checked').value;
+            let tableContainer = document.getElementById('table-number-container');
+            
+            if (orderType === 'dine_in') {
+                tableContainer.style.display = 'block';
+            } else {
+                tableContainer.style.display = 'none';
+            }
+        }
+
         function changeQuantity(index, delta) {
             let cart = JSON.parse(localStorage.getItem('store2_cart')) || [];
             if (cart[index]) {
@@ -112,8 +145,23 @@
             loadCart();
         }
 
-        function proceedToCheckout() {
-            window.location.href = "/store2_checkout_page"; // الرابط الصحيح المتطابق مع بايثون
+        function submitOrder() {
+            let orderType = document.querySelector('input[name="order_type"]:checked').value;
+            
+            if (orderType === 'dine_in') {
+                let tableNumber = document.getElementById('table-number-input').value.trim();
+                if (!tableNumber) {
+                    alert('الرجاء إدخال رقم الطاولة التي تجلس عليها');
+                    return;
+                }
+                localStorage.setItem('store2_table_number', tableNumber);
+                localStorage.setItem('store2_order_type', 'داخل المطعم');
+            } else {
+                localStorage.removeItem('store2_table_number');
+                localStorage.setItem('store2_order_type', 'توصيل للمنزل');
+            }
+
+            window.location.href = "/store2_checkout_page";
         }
 
         loadCart();
