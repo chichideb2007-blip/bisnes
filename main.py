@@ -164,70 +164,74 @@ def submit_souhila_order():
     
     return """<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>نجاح</title></head><body style="text-align:center;padding-top:50px;font-family:Tahoma;"><div style="background:#fff;max-width:400px;margin:auto;padding:30px;border-radius:10px;box-shadow:0 0 10px rgba(0,0,0,0.1);"><p>شكراً لك، سيتم الاتصال بك قريباً.</p><a href="/souhila" style="background:#007bff;color:#fff;padding:10px 20px;text-decoration:none;border-radius:5px;display:inline-block;margin-top:20px;">العودة</a></div></body></html>"""
 
-@app.route('/submit-order', methods=['POST'])
+@app.route('/submit-order', methods=['GET', 'POST'])
 def submit_order():
-    f_name = f"{request.form.get('customer_name')} {request.form.get('customer_last_name', '')}".strip()
-    phone, qty = request.form.get('phone'), int(request.form.get('quantity', 1))
-    baladiya = request.form.get('baladiya') or request.form.get('baladia') or request.form.get('municipality') or request.form.get('city') or "غير محددة"
-    d_type, d_price = request.form.get('delivery_type'), float(request.form.get('delivery_price', 0))
-    o_type, t_num = request.form.get('order_type', 'delivery'), request.form.get('table_number', '')
-    
-    cart_items = []
-    cart_raw = request.form.get('cart_data', '[]')
-    if cart_raw and cart_raw != '[]':
+    if request.method == 'POST':
+        f_name = f"{request.form.get('customer_name')} {request.form.get('customer_last_name', '')}".strip()
+        phone, qty = request.form.get('phone'), int(request.form.get('quantity', 1))
+        baladiya = request.form.get('baladiya') or request.form.get('baladia') or request.form.get('municipality') or request.form.get('city') or "غير محددة"
+        d_type, d_price = request.form.get('delivery_type'), float(request.form.get('delivery_price', 0))
+        o_type, t_num = request.form.get('order_type', 'delivery'), request.form.get('table_number', '')
+        
+        cart_items = []
+        cart_raw = request.form.get('cart_data', '[]')
+        if cart_raw and cart_raw != '[]':
+            try:
+                for item in json.loads(cart_raw):
+                    cart_items.append({'id': item.get('id') or item.get('product_id'), 'name': str(item.get('name', 'منتج'))[:50], 'quantity': int(item.get('quantity', 1)), 'price': float(item.get('price', 0)), 'color': str(item.get('color', 'غير محدد'))[:20], 'size': str(item.get('size', 'غير محدد'))[:20]})
+            except: cart_items = []
+            
+        p_single = request.form.get('product_id')
+        if not cart_items and p_single:
+            p_obj = get_product_from_db(p_single)
+            if p_obj: cart_items = [{'id': p_obj.get('id'), 'name': str(p_obj.get('name'))[:50], 'quantity': qty, 'price': float(p_obj.get('price', 0)), 'color': request.form.get('selected_color', 'غير محدد')[:20], 'size': request.form.get('selected_size', 'غير محدد')[:20]}]
+            
+        p_summary = [f"📦 {i.get('name')} (الكمية: {i.get('quantity')}) | السعر: {float(i.get('price', 0)) * int(i.get('quantity', 1))} دج" for i in cart_items]
+        grand_total = sum(float(i.get('price', 0)) * int(i.get('quantity', 1)) for i in cart_items) + d_price
+        
+        comp_code = next((get_product_from_db(i.get('id')).get('company_id_text') for i in cart_items if i.get('id') and get_product_from_db(i.get('id')) and get_product_from_db(i.get('id')).get('company_id_text')), "")
+        if not comp_code and session.get('current_shop_name'):
+            s_res = supabase.table("settings").select("company_code").ilike("company_name", session.get('current_shop_name').strip()).execute().data
+            if s_res: comp_code = s_res[0]['company_code']
+            
+        region = request.form.get('wilaya', '')
+        if request.form.get('country', 'algeria') == 'algeria' and region:
+            try:
+                w_res = supabase.table("shipping_rates").select("wilaya_name").eq("id", region).single().execute().data
+                if w_res: region = w_res.get('wilaya_name')
+            except: pass
+            
+        order_data = {"customer_name": f_name[:100], "customer_phone": phone[:30], "product_name": ", ".join([f"{i.get('name')} (x{i.get('quantity', 1)})" for i in cart_items])[:250], "quantity": qty, "total_price": grand_total, "status": "قيد الانتظار", "state": region[:50], "baladiya": baladiya[:50], "delivery_type": str(d_type)[:50], "delivery_price": d_price, "product_id": cart_items[0].get('id') if cart_items else (int(p_single) if p_single else None), "company_code": comp_code, "color": cart_items[0].get('color', 'غير محدد')[:20] if cart_items else 'غير محدد', "size": cart_items[0].get('size', 'غير محدد')[:20] if cart_items else 'غير محدد', "order_type": str(o_type)[:20], "table_number": str(t_num)[:20]}
+        
+        ins_id = None
         try:
-            for item in json.loads(cart_raw):
-                cart_items.append({'id': item.get('id') or item.get('product_id'), 'name': str(item.get('name', 'منتج'))[:50], 'quantity': int(item.get('quantity', 1)), 'price': float(item.get('price', 0)), 'color': str(item.get('color', 'غير محدد'))[:20], 'size': str(item.get('size', 'غير محدد'))[:20]})
-        except: cart_items = []
-        
-    p_single = request.form.get('product_id')
-    if not cart_items and p_single:
-        p_obj = get_product_from_db(p_single)
-        if p_obj: cart_items = [{'id': p_obj.get('id'), 'name': str(p_obj.get('name'))[:50], 'quantity': qty, 'price': float(p_obj.get('price', 0)), 'color': request.form.get('selected_color', 'غير محدد')[:20], 'size': request.form.get('selected_size', 'غير محدد')[:20]}]
-        
-    p_summary = [f"📦 {i.get('name')} (الكمية: {i.get('quantity')}) | السعر: {float(i.get('price', 0)) * int(i.get('quantity', 1))} دج" for i in cart_items]
-    grand_total = sum(float(i.get('price', 0)) * int(i.get('quantity', 1)) for i in cart_items) + d_price
-    
-    comp_code = next((get_product_from_db(i.get('id')).get('company_id_text') for i in cart_items if i.get('id') and get_product_from_db(i.get('id')) and get_product_from_db(i.get('id')).get('company_id_text')), "")
-    if not comp_code and session.get('current_shop_name'):
-        s_res = supabase.table("settings").select("company_code").ilike("company_name", session.get('current_shop_name').strip()).execute().data
-        if s_res: comp_code = s_res[0]['company_code']
-        
-    region = request.form.get('wilaya', '')
-    if request.form.get('country', 'algeria') == 'algeria' and region:
-        try:
-            w_res = supabase.table("shipping_rates").select("wilaya_name").eq("id", region).single().execute().data
-            if w_res: region = w_res.get('wilaya_name')
+            ins_res = supabase.table("orders").insert(order_data).execute().data
+            if ins_res: ins_id = ins_res[0].get('id')
         except: pass
         
-    order_data = {"customer_name": f_name[:100], "customer_phone": phone[:30], "product_name": ", ".join([f"{i.get('name')} (x{i.get('quantity', 1)})" for i in cart_items])[:250], "quantity": qty, "total_price": grand_total, "status": "قيد الانتظار", "state": region[:50], "baladiya": baladiya[:50], "delivery_type": str(d_type)[:50], "delivery_price": d_price, "product_id": cart_items[0].get('id') if cart_items else (int(p_single) if p_single else None), "company_code": comp_code, "color": cart_items[0].get('color', 'غير محدد')[:20] if cart_items else 'غير محدد', "size": cart_items[0].get('size', 'غير محدد')[:20] if cart_items else 'غير محدد', "order_type": str(o_type)[:20], "table_number": str(t_num)[:20]}
+        for i in cart_items:
+            try:
+                if i.get('id'):
+                    p_db = supabase.table("inventory").select("id, name, quantity").eq("id", i.get('id')).execute().data
+                    if p_db:
+                        new_q = max(0, int(p_db[0].get('quantity', 0)) - int(i.get('quantity', 1)))
+                        supabase.table("inventory").update({"quantity": new_q}).eq("id", i.get('id')).execute()
+                        if new_q <= 0: send_telegram_alert(p_db[0].get('name'), session.get('current_shop_name', ''), comp_code)
+            except: pass
+            
+        if comp_code:
+            try:
+                set_res = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", comp_code).execute().data
+                if set_res and set_res[0].get('telegram_token') and set_res[0].get('telegram_chat_id'):
+                    t_msg = f"🚨 **طلب جديد!**\n👤 الاسم: {f_name}\n📞 الهاتف: {phone}\n📌 نوع الطلب: {'🍽️ داخل المطعم (' + t_num + ')' if o_type == 'dine_in' else '🛵 توصيل'}\n🛍️ المنتجات:\n" + "\n".join(p_summary) + f"\n📍 العنوان: {region} - {baladiya}\n💰 المجموع: {grand_total} دج"
+                    if ins_id: send_order_alert(set_res[0]['telegram_token'], set_res[0]['telegram_chat_id'], t_msg, ins_id)
+                    else: send_telegram_by_token(set_res[0]['telegram_token'], set_res[0]['telegram_chat_id'], t_msg)
+            except: pass
+            
+        return """<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>نجاح</title></head><body style="text-align:center;padding-top:50px;font-family:Tahoma;"><div style="background:#fff;max-width:400px;margin:auto;padding:30px;border-radius:10px;box-shadow:0 0 10px rgba(0,0,0,0.1);"><p>شكراً لثقتكم، تم تسجيل طلبكم بنجاح.</p><a href="/shop" style="background:#007bff;color:#fff;padding:10px 20px;text-decoration:none;border-radius:5px;display:inline-block;margin-top:20px;">العودة للمتجر</a></div></body></html>"""
     
-    ins_id = None
-    try:
-        ins_res = supabase.table("orders").insert(order_data).execute().data
-        if ins_res: ins_id = ins_res[0].get('id')
-    except: pass
-    
-    for i in cart_items:
-        try:
-            if i.get('id'):
-                p_db = supabase.table("inventory").select("id, name, quantity").eq("id", i.get('id')).execute().data
-                if p_db:
-                    new_q = max(0, int(p_db[0].get('quantity', 0)) - int(i.get('quantity', 1)))
-                    supabase.table("inventory").update({"quantity": new_q}).eq("id", i.get('id')).execute()
-                    if new_q <= 0: send_telegram_alert(p_db[0].get('name'), session.get('current_shop_name', ''), comp_code)
-        except: pass
-        
-    if comp_code:
-        try:
-            set_res = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", comp_code).execute().data
-            if set_res and set_res[0].get('telegram_token') and set_res[0].get('telegram_chat_id'):
-                t_msg = f"🚨 **طلب جديد!**\n👤 الاسم: {f_name}\n📞 الهاتف: {phone}\n📌 نوع الطلب: {'🍽️ داخل المطعم (' + t_num + ')' if o_type == 'dine_in' else '🛵 توصيل'}\n🛍️ المنتجات:\n" + "\n".join(p_summary) + f"\n📍 العنوان: {region} - {baladiya}\n💰 المجموع: {grand_total} دج"
-                if ins_id: send_order_alert(set_res[0]['telegram_token'], set_res[0]['telegram_chat_id'], t_msg, ins_id)
-                else: send_telegram_by_token(set_res[0]['telegram_token'], set_res[0]['telegram_chat_id'], t_msg)
-        except: pass
-        
-    return """<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>نجاح</title></head><body style="text-align:center;padding-top:50px;font-family:Tahoma;"><div style="background:#fff;max-width:400px;margin:auto;padding:30px;border-radius:10px;box-shadow:0 0 10px rgba(0,0,0,0.1);"><p>شكراً لثقتكم، تم تسجيل طلبكم بنجاح.</p><a href="/shop" style="background:#007bff;color:#fff;padding:10px 20px;text-decoration:none;border-radius:5px;display:inline-block;margin-top:20px;">العودة للمتجر</a></div></body></html>"""
+    else:
+        return redirect('/store2')
 
 # --- لوحة التحكم والمصادقة ---
 @app.route('/login', methods=['GET', 'POST'])
@@ -300,17 +304,6 @@ def settings():
 @app.route('/shipping_settings', methods=['GET'])
 @login_required
 def shipping_settings(): return render_template('shipping_settings.html')
-
-@app.route('/get_delivery_prices', methods=['GET'])
-@login_required
-def get_delivery_prices(): return jsonify(supabase.table("delivery_prices").select("*").eq("company_code", session.get('company_code')).execute().data)
-
-@app.route('/get_shipping_rates')
-def get_shipping_rates():
-    try:
-        res = supabase.table("delivery_prices").select("home_price, office_price").eq("company_code", request.args.get('company_code')).single().execute().data
-        return jsonify({"price": float((res.get('home_price') if request.args.get('type') == 'home' else res.get('office_price')) or 0)})
-    except: return jsonify({"price": 0})
 
 @app.route('/update_delivery_settings', methods=['POST'])
 @login_required
