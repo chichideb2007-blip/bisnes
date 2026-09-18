@@ -11,8 +11,8 @@
         .checkout-card { background: white; border-radius: 15px; padding: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 600px; margin: auto; }
         .form-label { font-weight: bold; color: #333; }
         .price-box { background: #e9ecef; padding: 15px; border-radius: 10px; margin: 20px 0; }
-        .btn-confirm { background-color: #d97706; color: white; padding: 12px; font-weight: bold; border: none; border-radius: 8px; flex-grow: 1; }
-        .btn-back { background-color: #6c757d; color: white; padding: 12px; font-weight: bold; border: none; border-radius: 8px; text-decoration: none; text-align: center; }
+        .btn-confirm { background-color: #d97706; color: white; padding: 12px; font-weight: bold; border: none; border-radius: 8px; flex-grow: 1; cursor: pointer; }
+        .btn-back { background-color: #6c757d; color: white; padding: 12px; font-weight: bold; border: none; border-radius: 8px; text-decoration: none; text-align: center; display: inline-block; }
 
         .goog-te-banner-frame.skiptranslate { display: none !important; }
         body { top: 0px !important; }
@@ -45,25 +45,24 @@
             <div id="cart_items_summary" class="mt-2 text-muted small">جاري تحميل الوجبات...</div>
         </div>
 
-        <form action="/submit-order" method="POST" onsubmit="prepareCartData()">
-            <input type="hidden" name="cart_data" id="cart_data_input">
+        <form id="checkout-form" onsubmit="submitOrder(event)">
             <input type="hidden" name="order_type" id="order_type_input" value="delivery">
             <input type="hidden" name="table_number" id="table_number_input_hidden" value="">
 
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">الاسم</label>
-                    <input type="text" name="customer_name" class="form-control" required placeholder="أدخل الاسم">
+                    <input type="text" id="customer-name" name="customer_name" class="form-control" required placeholder="أدخل الاسم">
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">اللقب</label>
-                    <input type="text" name="customer_last_name" class="form-control" required placeholder="أدخل اللقب">
+                    <input type="text" id="customer-last-name" name="customer_last_name" class="form-control" required placeholder="أدخل اللقب">
                 </div>
             </div>
 
             <div class="mb-3">
                 <label class="form-label">رقم الهاتف</label>
-                <input type="tel" name="phone" class="form-control" required placeholder="0XXXXXXXXX">
+                <input type="tel" id="customer-phone" name="phone" class="form-control" required placeholder="0XXXXXXXXX">
             </div>
 
             <div id="delivery_sections_wrapper">
@@ -78,7 +77,7 @@
 
                 <div class="mb-3" id="algeria_section">
                     <label class="form-label">الولاية / المدينة</label>
-                    <select id="wilaya" name="wilaya" class="form-select" onchange="calculateTotal()">
+                    <select id="wilaya-select" name="wilaya" class="form-select" onchange="calculateTotal()">
                         <option value="">-- اختر الولاية --</option>
                         {% for wilaya in rates %}
                             <option value="{{ wilaya.id }}" 
@@ -116,7 +115,7 @@
 
                 <div class="mb-3" id="delivery_type_box">
                     <label class="form-label">طريقة الاستلام</label>
-                    <select id="delivery_type" name="delivery_type" class="form-select" onchange="calculateTotal()">
+                    <select id="delivery-type" name="delivery_type" class="form-select" onchange="calculateTotal()">
                         <option value="home">توصيل للمنزل (دليفري)</option>
                         <option value="office">استلام من المطعم / المكتب</option>
                     </select>
@@ -130,7 +129,7 @@
                 <div id="shipping_box">
                     <h5>سعر التوصيل: <span id="shipping_display">0</span> دج</h5>
                 </div>
-                <h4 class="text-danger mt-2">المجموع الكلي: <span id="total_display">0</span> دج</h4>
+                <h4 class="text-danger mt-2">المجموع الكلي: <span id="total-price">0</span> دج</h4>
             </div>
 
             <div class="d-flex gap-2">
@@ -160,7 +159,6 @@ function googleTranslateElementInit() {
         let cart = JSON.parse(localStorage.getItem('store2_cart')) || [];
         let summaryContainer = document.getElementById('cart_items_summary');
         
-        // التحقق من نوع الطلب ورقم الطاولة القادمين من صفحة السلة
         let orderType = localStorage.getItem('store2_order_type') || 'توصيل للمنزل';
         let tableNumber = localStorage.getItem('store2_table_number') || '';
 
@@ -178,11 +176,9 @@ function googleTranslateElementInit() {
             tableInfoBox.style.display = 'block';
             displayTableNumEl.innerText = tableNumber;
             
-            // إخفاء حقول التوصيل والبلد والعنوان لأن الزبون قاعد فالمطعم
             deliverySectionsWrapper.style.display = 'none';
             shippingBox.style.display = 'none';
 
-            // إزالة المتطلبات (required) من حقول التوصيل لكي لا تمنع الإرسال
             document.getElementById('country').removeAttribute('required');
             document.getElementById('address_input').removeAttribute('required');
 
@@ -195,7 +191,6 @@ function googleTranslateElementInit() {
             deliverySectionsWrapper.style.display = 'block';
             shippingBox.style.display = 'block';
 
-            // إعادة تفعيل المتطلبات لحقول التوصيل
             document.getElementById('country').setAttribute('required', 'required');
             document.getElementById('address_input').setAttribute('required', 'required');
 
@@ -229,7 +224,7 @@ function googleTranslateElementInit() {
         const country = document.getElementById('country').value;
         const algeriaSection = document.getElementById('algeria_section');
         const jordanSection = document.getElementById('jordan_section');
-        const wilayaSelect = document.getElementById('wilaya');
+        const wilayaSelect = document.getElementById('wilaya-select');
         const jordanSelect = document.getElementById('jordan_region');
         const baladiyaContainer = document.getElementById('baladiya_container');
         const baladiyaInput = document.getElementById('baladiya_input');
@@ -266,7 +261,7 @@ function googleTranslateElementInit() {
     function calculateTotal() {
         const productsTotalDisplay = document.getElementById('products_total_display');
         const shippingDisplay = document.getElementById('shipping_display');
-        const totalDisplay = document.getElementById('total_display');
+        const totalDisplay = document.getElementById('total-price');
         const deliveryPriceInput = document.getElementById('delivery_price_input');
         
         let shippingPrice = 0;
@@ -274,8 +269,8 @@ function googleTranslateElementInit() {
         if (!isDineIn) {
             const country = document.getElementById('country').value;
             if (country === 'algeria') {
-                const wilayaSelect = document.getElementById('wilaya');
-                const deliveryType = document.getElementById('delivery_type').value;
+                const wilayaSelect = document.getElementById('wilaya-select');
+                const deliveryType = document.getElementById('delivery-type').value;
                 const selectedOption = wilayaSelect.options[wilayaSelect.selectedIndex];
                 
                 if (selectedOption && selectedOption.value !== "") {
@@ -283,7 +278,7 @@ function googleTranslateElementInit() {
                 }
             } else if (country === 'jordan') {
                 const jordanSelect = document.getElementById('jordan_region');
-                const deliveryType = document.getElementById('delivery_type').value;
+                const deliveryType = document.getElementById('delivery-type').value;
                 const selectedJordanOption = jordanSelect.options[jordanSelect.selectedIndex];
                 
                 if (selectedJordanOption && selectedJordanOption.value !== "") {
@@ -300,10 +295,43 @@ function googleTranslateElementInit() {
         if(deliveryPriceInput) deliveryPriceInput.value = shippingPrice;
     }
 
-    function prepareCartData() {
-        let cart = localStorage.getItem('store2_cart') || '[]';
-        document.getElementById('cart_data_input').value = cart;
-        localStorage.removeItem('store2_cart');
+    // دالة إرسال الطلبية بالطريقة المختصرة والنظيفة لمنع أخطاء الـ Payload
+    function submitOrder(event) {
+        event.preventDefault(); // منع الإرسال العادي للصفحة
+
+        const orderData = {
+            customer_name: document.getElementById('customer-name').value + ' ' + document.getElementById('customer-last-name').value,
+            phone: document.getElementById('customer-phone').value,
+            wilaya: document.getElementById('wilaya-select').value,
+            baladiya: document.getElementById('baladiya_input').value,
+            delivery_type: document.getElementById('delivery-type').value,
+            product_summary: document.getElementById('cart_items_summary').innerText,
+            total_price: document.getElementById('total-price').innerText,
+            order_type: document.getElementById('order_type_input').value,
+            table_number: document.getElementById('table_number_input_hidden').value
+        };
+
+        fetch('/submit-order', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(orderData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if(data.success || data.status === 'success') {
+                alert('تم تأكيد طلبيتك بنجاح!');
+                localStorage.removeItem('store2_cart');
+                window.location.href = '/store2'; // العودة لصفحة المتجر أو القائمة
+            } else {
+                alert('حدث خطأ، يرجى المحاولة مرة أخرى.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('تم إرسال الطلب أو حدث خطأ في الاتصال بالسيرفر.');
+        });
     }
 </script>
 
