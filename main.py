@@ -7,7 +7,9 @@ from google import genai
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "fallback_dev_key")
-app.config['MAX_CONTENT_LENGTH'] = 32 * 1024 * 1024  # 32MB
+
+# تم زيادة حد حجم الطلب إلى 32 ميغابايت لتجنب مشاكل 413 Request Entity Too Large
+app.config['MAX_CONTENT_LENGTH'] = 32 * 1024 * 1024  
 
 supabase = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY"))
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
@@ -423,6 +425,7 @@ def orders():
 
 # --- مسارات المتاجر الإضافية ---
 @app.route('/shop', methods=['GET', 'POST'])
+@login_required
 def shop():
     if request.method == 'POST' and request.form.get('company_name'): session['current_shop_name'] = request.form.get('company_name')
     shop_name = session.get('current_shop_name')
