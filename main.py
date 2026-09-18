@@ -1,627 +1,254 @@
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify, make_response
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from supabase import create_client
-from collections import defaultdict
 from datetime import datetime
 from functools import wraps
-import os
-import time
-import requests
-import urllib.parse
-import base64
-import json
+import os, time, requests, urllib.parse, base64, json
 from google import genai 
-from google.genai import types 
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "fallback_dev_key")
+app.config['MAX_CONTENT_LENGTH'] = 32 * 1024 * 1024  # 32MB
 
-# تحديد الحد الأقصى لحجم البيانات المسموح به بـ 32 ميغابايت لمنع أي مشكلة في حجم الطلبات الكبيرة جداً
-app.config['MAX_CONTENT_LENGTH'] = 32 * 1024 * 1024  
-
-# إعداد Supabase و Gemini
 supabase = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY"))
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
-# --- المعالج التلقائي للعملة ---
+# --- المعالجات والدوال المساعدة ---
 @app.context_processor
 def inject_currency():
-    company_code = session.get('company_code')
-    if company_code:
-        try:
-            res = supabase.table('settings').select("currency").eq("company_code", company_code).single().execute()
-            if res.data:
-                return dict(currency=res.data.get('currency', ''))
-        except:
-            pass
-    return dict(currency='DA')
-
-# --- الدوال المساعدة ---
-
-def get_product_from_db(product_id):
     try:
-        res = supabase.table("inventory").select("*").eq("id", product_id).single().execute()
-        return res.data if res.data else None
+        res = supabase.table('settings').select("currency").eq("company_code", session.get('company_code', '')).single().execute()
+        return dict(currency=res.data.get('currency', 'DA') if res.data else 'DA')
     except:
-        return None
+        return dict(currency='DA')
 
-# --- دالة خاصة حصرياً بولايات موقع سهيلة (من جدول algeria_wilayas) ---
-def get_souhila_wilayas_from_db():
-    try:
-        res = supabase.table("algeria_wilayas").select("*").order("id").execute()
-        wilayas = res.data if res.data else []
-        
-        for w in wilayas:
-            w['home_price'] = w.get('souhila_home_price', 0)
-            w['office_price'] = w.get('souhila_office_price', 0)
-            
-        return wilayas
-    except Exception as e:
-        print("Error fetching souhila wilayas:", e)
-        return []
+def get_product_from_db(pid):
+    try: return supabase.table("inventory").select("*").eq("id", pid).single().execute().data
+    except: return None
 
-# --- دالة أسعار الشحن الخاصة بلوحة التحكم والتجار (من جدول shipping_rates) ---
-def get_wilayas_from_db():
+def get_souhila_wilayas():
     try:
-        res = supabase.table("shipping_rates").select("*").order("id").execute()
-        return res.data if res.data else []
-    except Exception as e:
-        print("Error fetching shipping rates:", e)
-        return []
+        res = supabase.table("algeria_wilayas").select("*").order("id").execute().data or []
+        for w in res:
+            w['home_price'], w['office_price'] = w.get('souhila_home_price', 0), w.get('souhila_office_price', 0)
+        return res
+    except: return []
 
-def send_telegram_alert(product_name, company_name, company_code=""):
-    try:
-        if company_code:
-            res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
-            if res_settings.data:
-                s = res_settings.data[0]
-                token, chat_id = s.get('telegram_token'), s.get('telegram_chat_id')
-                if token and chat_id:
-                    message = f"🚨 تنبيه نفاذ المخزون!\n\n🏪 المحل / المتجر: {company_name}\n📦 المنتج الذي نفد: {product_name}\n\n⚠️ لقد نفذت كمية هذا المنتج تماماً من المخزون!"
-                    url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={requests.utils.quote(message)}"
-                    requests.get(url)
-                    return
-    except Exception as e:
-        print("Telegram error:", e)
+def get_wilayas():
+    try: return supabase.table("shipping_rates").select("*").order("id").execute().data or []
+    except: return []
 
-def send_telegram_alert_by_token(token, chat_id, message):
-    if not token or not chat_id:
-        return False
+def send_telegram_alert(p_name, c_name, c_code=""):
     try:
-        url = f"https://api.telegram.org/bot{token}/sendMessage"
-        params = {"chat_id": chat_id, "text": message}
-        response = requests.get(url, params=params)
-        return response.status_code == 200
-    except Exception as e:
-        return False
+        if c_code:
+            s = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", c_code).execute().data
+            if s and s[0].get('telegram_token') and s[0].get('telegram_chat_id'):
+                msg = f"🚨 نفاذ المخزون!\n🏪 المتجر: {c_name}\n📦 المنتج: {p_name}"
+                requests.get(f"https://api.telegram.org/bot{s[0]['telegram_token']}/sendMessage?chat_id={s[0]['telegram_chat_id']}&text={requests.utils.quote(msg)}")
+    except: pass
 
-def send_order_alert(token, chat_id, message, order_id):
-    if not token or not chat_id:
-        return False
-    try:
-        url = f"https://api.telegram.org/bot{token}/sendMessage"
-        keyboard = {
-            "inline_keyboard": [[
-                {"text": "✅ تم التحضير", "callback_data": f"status_done_{order_id}"},
-                {"text": "❌ لم يتم التحضير", "callback_data": f"status_pending_{order_id}"}
-            ]]
-        }
-        payload = {
-            "chat_id": chat_id, 
-            "text": message, 
-            "reply_markup": keyboard
-        }
-        response = requests.post(url, json=payload)
-        return response.status_code == 200
-    except Exception as e:
-        return False
+def send_telegram_by_token(token, chat_id, msg):
+    try: return requests.get(f"https://api.telegram.org/bot{token}/sendMessage", params={"chat_id": chat_id, "text": msg}).status_code == 200
+    except: return False
 
-def get_products_by_shop_name(shop_name):
+def send_order_alert(token, chat_id, msg, order_id):
     try:
-        shop_name_decoded = urllib.parse.unquote(shop_name).strip()
-        settings = supabase.table("settings").select("company_code").ilike("company_name", shop_name_decoded).execute()
-        if not settings.data:
-            return []
-        company_code = settings.data[0]['company_code']
-        products = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
-        return products.data
-    except Exception as e:
-        return []
+        keyboard = {"inline_keyboard": [[{"text": "✅ تم", "callback_data": f"status_done_{order_id}"}, {"text": "❌ لم يتم", "callback_data": f"status_pending_{order_id}"}]]}
+        return requests.post(f"https://api.telegram.org/bot{token}/sendMessage", json={"chat_id": chat_id, "text": msg, "reply_markup": keyboard}).status_code == 200
+    except: return False
+
+def get_products_by_shop(shop_name):
+    try:
+        decoded = urllib.parse.unquote(shop_name).strip()
+        settings = supabase.table("settings").select("company_code").ilike("company_name", decoded).execute().data
+        return supabase.table("inventory").select("*").eq("company_id_text", settings[0]['company_code']).execute().data if settings else []
+    except: return []
 
 def login_required(f):
     @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'company_code' not in session: return redirect(url_for('login'))
-        return f(*args, **kwargs)
-    return decorated_function
+    def wrap(*args, **kwargs):
+        return redirect(url_for('login')) if 'company_code' not in session else f(*args, **kwargs)
+    return wrap
 
-# --- المسارات الأساسية ---
-
+# --- المسارات العامة ---
 @app.route('/favicon.ico')
-def favicon():
-    return '', 204
+def favicon(): return '', 204
 
 @app.route('/')
-def home():
-    return redirect(url_for('login'))
+def home(): return redirect(url_for('login'))
 
 @app.route('/souhila')
 def souhila_home():
-    settings = {}
-    try:
-        settings_response = supabase.table('site_settings').select('*').execute()
-        if settings_response.data:
-            for item in settings_response.data:
-                settings[item.get('key')] = item.get('value')
-    except Exception as e:
-        pass
-    
-    courses_res = supabase.table('souhila_courses').select('*').execute()
-    courses = courses_res.data if courses_res.data else []
-    
+    settings = {item['key']: item['value'] for item in (supabase.table('site_settings').select('*').execute().data or [])}
+    courses = supabase.table('souhila_courses').select('*').execute().data or []
     return render_template('souhila.html', settings=settings, courses=courses)
 
 @app.route('/souhila-checkout/<int:course_id>')
 def souhila_checkout(course_id):
-    rates = get_souhila_wilayas_from_db()
-    course_res = supabase.table('souhila_courses').select('*').eq('id', course_id).single().execute()
-    selected_course = course_res.data if course_res.data else None
-    
-    settings_res = supabase.table('site_settings').select('*').execute()
-    settings = {item.get('key'): item.get('value') for item in settings_res.data} if settings_res.data else {}
-
-    return render_template('souhila_checkout.html', rates=rates, course=selected_course, settings=settings)
+    rates = get_souhila_wilayas()
+    course = supabase.table('souhila_courses').select('*').eq('id', course_id).single().execute().data
+    settings = {item['key']: item['value'] for item in (supabase.table('site_settings').select('*').execute().data or [])}
+    return render_template('souhila_checkout.html', rates=rates, course=course, settings=settings)
 
 @app.route('/admin', methods=['GET', 'POST'])
 def admin():
     msg = None
-    
     if request.method == 'POST':
-        form_type = request.form.get('form_type')
-        
+        f_type = request.form.get('form_type')
         try:
-            if form_type == 'settings_update':
-                phone = request.form.get('phone')
-                whatsapp = request.form.get('whatsapp')
-                email = request.form.get('email')
-                map_url = request.form.get('map_url')
-                telegram_token = request.form.get('telegram_token')
-                telegram_chat_id = request.form.get('telegram_chat_id')
-                
-                supabase.table('site_settings').upsert([
-                    {'key': 'phone', 'value': phone},
-                    {'key': 'whatsapp', 'value': whatsapp},
-                    {'key': 'email', 'value': email},
-                    {'key': 'map_url', 'value': map_url},
-                    {'key': 'telegram_token', 'value': telegram_token},
-                    {'key': 'telegram_chat_id', 'value': telegram_chat_id}
-                ], on_conflict='key').execute()
-                
-                msg = "تم حفظ التعديلات بنجاح!"
-
-            elif form_type == 'add_course':
-                title = request.form.get('course_title')
-                desc = request.form.get('course_desc')
-                raw_price = request.form.get('course_price', '0')
-                price = float(raw_price) if raw_price else 0.0
-                
-                image_file = request.files.get('course_image')
-                image_url = ""
-                
-                if image_file and image_file.filename != '':
-                    img_binary = image_file.read()
-                    encoded_img = base64.b64encode(img_binary).decode('utf-8')
-                    image_url = f"data:{image_file.content_type};base64,{encoded_img}"
-
-                supabase.table('souhila_courses').insert({
-                    'title': title,
-                    'description': desc,
-                    'price': price,
-                    'image': image_url,
-                    'company_code': 'souhila' 
-                }).execute()
-                
-                msg = "Formation ajoutée avec succès !"
-
-            elif form_type == 'delete_course':
-                course_id = request.form.get('course_id')
-                supabase.table('souhila_courses').delete().eq('id', course_id).execute()
-                msg = "Formation supprimée avec succès !"
-                
-        except Exception as e:
-            print(f"CRITICAL ERROR in admin POST: {e}")
-            msg = f"Erreur de sauvegarde: {str(e)}"
-
-    settings_response = supabase.table('site_settings').select('*').execute()
-    settings = {item.get('key'): item.get('value') for item in settings_response.data} if settings_response.data else {}
-
-    courses_response = supabase.table('souhila_courses').select('*').execute()
-    courses = courses_response.data if courses_response.data else []
-
-    orders_response = supabase.table('orders_souhila').select('*').order('id', desc=True).execute()
-    orders = orders_response.data if orders_response.data else []
-
-    rates = get_souhila_wilayas_from_db()
-
-    return render_template('admin.html', settings=settings, courses=courses, orders=orders, rates=rates, msg=msg)
+            if f_type == 'settings_update':
+                supabase.table('site_settings').upsert([{'key': k, 'value': request.form.get(k)} for k in ['phone', 'whatsapp', 'email', 'map_url', 'telegram_token', 'telegram_chat_id']], on_conflict='key').execute()
+                msg = "تم الحفظ بنجاح!"
+            elif f_type == 'add_course':
+                img_file = request.files.get('course_image')
+                img_url = f"data:{img_file.content_type};base64,{base64.b64encode(img_file.read()).decode('utf-8')}" if img_file and img_file.filename else ""
+                supabase.table('souhila_courses').insert({'title': request.form.get('course_title'), 'description': request.form.get('course_desc'), 'price': float(request.form.get('course_price') or 0), 'image': img_url, 'company_code': 'souhila'}).execute()
+                msg = "تمت الإضافة!"
+            elif f_type == 'delete_course':
+                supabase.table('souhila_courses').delete().eq('id', request.form.get('course_id')).execute()
+                msg = "تم الحذف!"
+        except Exception as e: msg = f"خطأ: {e}"
+        
+    settings = {item['key']: item['value'] for item in (supabase.table('site_settings').select('*').execute().data or [])}
+    return render_template('admin.html', settings=settings, courses=supabase.table('souhila_courses').select('*').execute().data or [], orders=supabase.table('orders_souhila').select('*').order('id', desc=True).execute().data or [], rates=get_souhila_wilayas(), msg=msg)
 
 @app.route('/update_souhila_delivery_price', methods=['POST'])
 def update_souhila_delivery_price():
     data = request.json if request.is_json else request.form
-    row_id = data.get('id')
-    new_office = data.get('office_price')
-    new_home = data.get('home_price')
-    
-    if not row_id:
-        return jsonify({"status": "error", "message": "ID missing"}), 400
-        
     try:
-        supabase.table("algeria_wilayas").update({
-            "souhila_office_price": float(new_office or 0),
-            "souhila_home_price": float(new_home or 0)
-        }).eq("id", int(row_id)).execute()
+        supabase.table("algeria_wilayas").update({"souhila_office_price": float(data.get('office_price') or 0), "souhila_home_price": float(data.get('home_price') or 0)}).eq("id", int(data.get('id'))).execute()
         return jsonify({"status": "success"})
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+    except Exception as e: return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route('/cart')
-def cart_page():
-    return render_template('cart.html')
+def cart_page(): return render_template('cart.html')
 
 @app.route('/checkout_cart')
-def checkout_cart_page():
-    rates = get_wilayas_from_db() 
-    return render_template('checkout.html', rates=rates, is_cart=True)
+def checkout_cart_page(): return render_template('checkout.html', rates=get_wilayas(), is_cart=True)
 
 @app.route('/checkout/<int:product_id>')
 def checkout(product_id):
-    rates = get_wilayas_from_db()
-    jordan_res = supabase.table("jordan_rates").select("*").execute()
-    jordan_rates = jordan_res.data if jordan_res.data else []
     product = get_product_from_db(product_id)
-    
-    if product:
-        company_code = product.get('company_id_text')
-        if company_code:
-            settings_res = supabase.table("settings").select("company_name").eq("company_code", company_code).execute()
-            if settings_res.data:
-                session['current_shop_name'] = settings_res.data[0].get('company_name')
-                
-    return render_template('checkout.html', product=product, rates=rates, jordan_rates=jordan_rates)
+    if product and product.get('company_id_text'):
+        s_res = supabase.table("settings").select("company_name").eq("company_code", product.get('company_id_text')).execute().data
+        if s_res: session['current_shop_name'] = s_res[0].get('company_name')
+    return render_template('checkout.html', product=product, rates=get_wilayas(), jordan_rates=supabase.table("jordan_rates").select("*").execute().data or [])
 
+# --- معالجة الطلبات ---
 @app.route('/submit-souhila-order', methods=['POST'])
 def submit_souhila_order():
-    customer_name = request.form.get('customer_name')
-    customer_last_name = request.form.get('customer_last_name', '')
-    full_name = f"{customer_name} {customer_last_name}".strip()
+    f_name = f"{request.form.get('customer_name')} {request.form.get('customer_last_name', '')}".strip()
+    phone, qty = request.form.get('phone'), int(request.form.get('quantity', 1))
+    baladiya = request.form.get('baladiya') or request.form.get('baladia') or request.form.get('municipality') or request.form.get('city') or "غير محددة"
     
-    phone = request.form.get('phone')
-    country = request.form.get('country', 'algeria')
-    
-    baladiya = (
-        request.form.get('baladiya') or 
-        request.form.get('baladia') or 
-        request.form.get('municipality') or 
-        request.form.get('city') or 
-        "غير محددة"
-    )
-    
-    address = request.form.get('address', '')
-    delivery_type = request.form.get('delivery_type')
-    delivery_price = float(request.form.get('delivery_price', 0))
-    quantity_ordered = int(request.form.get('quantity', 1))
-    
-    selected_color = request.form.get('selected_color', '')
-    selected_size = request.form.get('selected_size', '')
-    
-    cart_raw = request.form.get('cart_data', '')
-    cart_data = []
-    
-    if cart_raw and cart_raw != '[]':
-        try:
-            cart_data = json.loads(cart_raw)
-        except:
-            cart_data = []
-            
-    product_id = request.form.get('product_id')
-    if not cart_data and product_id:
-        single_product = get_product_from_db(product_id)
-        if single_product:
-            cart_data = [single_product]
-
-    base_price = sum(float(item.get('price', 0)) * int(item.get('quantity', 1)) for item in cart_data)
-    total_price = base_price + delivery_price
-
-    region_name = ""
-    wilaya = request.form.get('wilaya')
-    region_name = wilaya
+    cart = json.loads(request.form.get('cart_data', '[]')) if request.form.get('cart_data') else []
+    p_id = request.form.get('product_id')
+    if not cart and p_id: 
+        prod = get_product_from_db(p_id)
+        if prod: cart = [prod]
+        
+    total = sum(float(i.get('price', 0)) * int(i.get('quantity', 1)) for i in cart) + float(request.form.get('delivery_price', 0))
+    region = request.form.get('wilaya')
     try:
-        w_res = supabase.table("algeria_wilayas").select("wilaya_name").eq("id", wilaya).single().execute()
-        if w_res.data and w_res.data.get('wilaya_name'):
-            region_name = w_res.data.get('wilaya_name')
-    except:
-        pass
-
-    main_product_id = cart_data[0].get('id') if cart_data else (int(product_id) if product_id else None)
+        w_res = supabase.table("algeria_wilayas").select("wilaya_name").eq("id", region).single().execute().data
+        if w_res: region = w_res.get('wilaya_name')
+    except: pass
     
-    order_data = {
-        "customer_name": full_name,
-        "customer_phone": phone,
-        "product_name": ", ".join([f"{item.get('name', item.get('title', 'منتج'))} (x{item.get('quantity', 1)})" for item in cart_data])[:450], 
-        "quantity": quantity_ordered,
-        "total_price": total_price,
-        "status": "قيد الانتظار",
-        "state": region_name,
-        "baladiya": baladiya,
-        "delivery_type": delivery_type,
-        "delivery_price": delivery_price,
-        "product_id": main_product_id,
-        "color": selected_color,
-        "size": selected_size
-    }
+    p_names = ", ".join([f"{i.get('name', i.get('title'))} (x{i.get('quantity', 1)})" for i in cart])[:450]
+    supabase.table("orders_souhila").insert({"customer_name": f_name, "customer_phone": phone, "product_name": p_names, "quantity": qty, "total_price": total, "status": "قيد الانتظار", "state": region, "baladiya": baladiya, "delivery_type": request.form.get('delivery_type'), "delivery_price": float(request.form.get('delivery_price', 0)), "product_id": cart[0].get('id') if cart else (int(p_id) if p_id else None), "color": request.form.get('selected_color', ''), "size": request.form.get('selected_size', '')}).execute()
     
     try:
-        supabase.table("orders_souhila").insert(order_data).execute()
-    except Exception as e:
-        print(f"Error inserting souhila order: {e}")
-
-    try:
-        t_res = supabase.table('site_settings').select('*').in_('key', ['telegram_token', 'telegram_chat_id']).execute()
-        s_map = {item['key']: item['value'] for item in t_res.data} if t_res.data else {}
-        t_token = s_map.get('telegram_token')
-        t_chat_id = s_map.get('telegram_chat_id')
-        if t_token and t_chat_id:
-            product_names_str = ", ".join([f"{item.get('name', item.get('title', 'منتج'))} (x{item.get('quantity', 1)})" for item in cart_data])
-            msg_text = (
-              f"🛒 طلبية جديدة (موقع سهيلة)!\n"
-                f"👤 الاسم: {full_name}\n"
-                f"📞 الهاتف: {phone}\n"
-                f"📦 الدورات/المنتجات: {product_names_str}\n"
-                f"🎨 اللون: {selected_color if selected_color else 'غير محدد'}\n"
-                f"👕 المقاس: {selected_size if selected_size else 'غير محدد'}\n"
-                f"📍 المنطقة/الولاية: {region_name}\n"
-                f"🏘️ البلدية: {baladiya}\n"
-                f"💰 المجموع الكلي: {total_price} دج"
-            )
-            send_telegram_alert_by_token(t_token, t_chat_id, msg_text)
-    except Exception as err:
-        print("Telegram souhila alert error:", err)
-
-    return """
-    <!DOCTYPE html>
-    <html lang="ar" dir="rtl">
-    <head>
-        <meta charset="UTF-8">
-        <title>تم الطلب بنجاح</title>
-        <style>
-            body { font-family: Tahoma, sans-serif; background-color: #f4f7f6; text-align: center; padding-top: 50px; margin: 0; }
-            .card { background: white; max-width: 400px; margin: auto; padding: 30px; border-radius: 10px; box-shadow: 0px 4px 10px rgba(0,0,0,0.1); }
-            p { color: #555; font-size: 16px; }
-            .btn { display: inline-block; margin-top: 20px; background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; }
-        </style>
-    </head>
-    <body>
-        <div class="card">
-             <p>شكراً لثقتكم بنا، سيتم الاتصال بكم قريباً لتأكيد الطلب.</p>
-            <a href="/souhila" class="btn">🔙 العودة إلى الموقع</a>
-        </div>
-    </body>
-    </html>
-    """
+        t_res = {item['key']: item['value'] for item in (supabase.table('site_settings').select('*').in_('key', ['telegram_token', 'telegram_chat_id']).execute().data or [])}
+        if t_res.get('telegram_token') and t_res.get('telegram_chat_id'):
+            send_telegram_by_token(t_res['telegram_token'], t_res['telegram_chat_id'], f"🛒 طلبية جديدة (سهيلة)!\n👤 الاسم: {f_name}\n📞 الهاتف: {phone}\n📦 المنتجات: {p_names}\n💰 المجموع: {total} دج")
+    except: pass
+    
+    return """<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>نجاح</title></head><body style="text-align:center;padding-top:50px;font-family:Tahoma;"><div style="background:#fff;max-width:400px;margin:auto;padding:30px;border-radius:10px;box-shadow:0 0 10px rgba(0,0,0,0.1);"><p>شكراً لك، سيتم الاتصال بك قريباً.</p><a href="/souhila" style="background:#007bff;color:#fff;padding:10px 20px;text-decoration:none;border-radius:5px;display:inline-block;margin-top:20px;">العودة</a></div></body></html>"""
 
 @app.route('/submit-order', methods=['POST'])
 def submit_order():
-    customer_name = request.form.get('customer_name')
-    customer_last_name = request.form.get('customer_last_name', '')
-    full_name = f"{customer_name} {customer_last_name}".strip()
+    f_name = f"{request.form.get('customer_name')} {request.form.get('customer_last_name', '')}".strip()
+    phone, qty = request.form.get('phone'), int(request.form.get('quantity', 1))
+    baladiya = request.form.get('baladiya') or request.form.get('baladia') or request.form.get('municipality') or request.form.get('city') or "غير محددة"
+    d_type, d_price = request.form.get('delivery_type'), float(request.form.get('delivery_price', 0))
+    o_type, t_num = request.form.get('order_type', 'delivery'), request.form.get('table_number', '')
     
-    phone = request.form.get('phone')
-    country = request.form.get('country', 'algeria')
-    
-    baladiya = (
-        request.form.get('baladiya') or 
-        request.form.get('baladia') or 
-        request.form.get('municipality') or 
-        request.form.get('city') or 
-        "غير محددة"
-    )
-    
-    address = request.form.get('address', '')
-    delivery_type = request.form.get('delivery_type')
-    delivery_price = float(request.form.get('delivery_price', 0))
-    quantity_ordered = int(request.form.get('quantity', 1))
-    
-    order_type = request.form.get('order_type', 'delivery')
-    table_number = request.form.get('table_number', '')
-
-    cart_raw = request.form.get('cart_data', '[]')
     cart_items = []
-    
+    cart_raw = request.form.get('cart_data', '[]')
     if cart_raw and cart_raw != '[]':
         try:
-            parsed_cart = json.loads(cart_raw)
-            for item in parsed_cart:
-                cart_items.append({
-                    'id': item.get('id') or item.get('product_id'),
-                    'name': str(item.get('name', 'منتج'))[:50],
-                    'quantity': int(item.get('quantity', 1)),
-                    'price': float(item.get('price', 0)),
-                    'color': str(item.get('color', 'غير محدد'))[:20],
-                    'size': str(item.get('size', 'غير محدد'))[:20]
-                })
-        except:
-            cart_items = []
-            
-    product_id_single = request.form.get('product_id')
-    if not cart_items and product_id_single:
-        single_product = get_product_from_db(product_id_single)
-        if single_product:
-            cart_items = [{
-                'id': single_product.get('id'),
-                'name': str(single_product.get('name', 'منتج'))[:50],
-                'quantity': quantity_ordered,
-                'price': float(single_product.get('price', 0)),
-                'color': request.form.get('selected_color', 'غير محدد')[:20],
-                'size': request.form.get('selected_size', 'غير محدد')[:20]
-            }]
-
-    products_summary = []
-    total_products_price = 0
+            for item in json.loads(cart_raw):
+                cart_items.append({'id': item.get('id') or item.get('product_id'), 'name': str(item.get('name', 'منتج'))[:50], 'quantity': int(item.get('quantity', 1)), 'price': float(item.get('price', 0)), 'color': str(item.get('color', 'غير محدد'))[:20], 'size': str(item.get('size', 'غير محدد'))[:20]})
+        except: cart_items = []
+        
+    p_single = request.form.get('product_id')
+    if not cart_items and p_single:
+        p_obj = get_product_from_db(p_single)
+        if p_obj: cart_items = [{'id': p_obj.get('id'), 'name': str(p_obj.get('name'))[:50], 'quantity': qty, 'price': float(p_obj.get('price', 0)), 'color': request.form.get('selected_color', 'غير محدد')[:20], 'size': request.form.get('selected_size', 'غير محدد')[:20]}]
+        
+    p_summary = [f"📦 {i.get('name')} (الكمية: {i.get('quantity')}) | السعر: {float(i.get('price', 0)) * int(i.get('quantity', 1))} دج" for i in cart_items]
+    grand_total = sum(float(i.get('price', 0)) * int(i.get('quantity', 1)) for i in cart_items) + d_price
     
-    for item in cart_items:
-        product_price = float(item.get('price', 0))
-        quantity = int(item.get('quantity', 1))
-        item_total = product_price * quantity
-        total_products_price += item_total
-        products_summary.append(f"📦 {item.get('name')} (الكمية: {quantity}) | السعر: {item_total} دج")
-
-    grand_total = total_products_price + delivery_price
-
-    company_code = ""
-    for item in cart_items:
-        p_id = item.get('id')
-        if p_id:
-            p_info = get_product_from_db(p_id)
-            if p_info and p_info.get('company_id_text'):
-                company_code = p_info.get('company_id_text')
-                break
-
-    if not company_code and session.get('current_shop_name'):
-        shop_name = session.get('current_shop_name').strip()
+    comp_code = next((get_product_from_db(i.get('id')).get('company_id_text') for i in cart_items if i.get('id') and get_product_from_db(i.get('id')) and get_product_from_db(i.get('id')).get('company_id_text')), "")
+    if not comp_code and session.get('current_shop_name'):
+        s_res = supabase.table("settings").select("company_code").ilike("company_name", session.get('current_shop_name').strip()).execute().data
+        if s_res: comp_code = s_res[0]['company_code']
+        
+    region = request.form.get('wilaya', '')
+    if request.form.get('country', 'algeria') == 'algeria' and region:
         try:
-            settings_res = supabase.table("settings").select("company_code").ilike("company_name", shop_name).execute()
-            if settings_res.data:
-                company_code = settings_res.data[0]['company_code']
-        except:
-            pass
-
-    region_name = request.form.get('wilaya', '')
-    if country == 'algeria' and region_name:
-        try:
-            w_res = supabase.table("shipping_rates").select("wilaya_name").eq("id", region_name).single().execute()
-            if w_res.data and w_res.data.get('wilaya_name'):
-                region_name = w_res.data.get('wilaya_name')
-        except:
-            pass
-
-    main_product_id = cart_items[0].get('id') if cart_items else (int(product_id_single) if product_id_single else None)
+            w_res = supabase.table("shipping_rates").select("wilaya_name").eq("id", region).single().execute().data
+            if w_res: region = w_res.get('wilaya_name')
+        except: pass
+        
+    order_data = {"customer_name": f_name[:100], "customer_phone": phone[:30], "product_name": ", ".join([f"{i.get('name')} (x{i.get('quantity', 1)})" for i in cart_items])[:250], "quantity": qty, "total_price": grand_total, "status": "قيد الانتظار", "state": region[:50], "baladiya": baladiya[:50], "delivery_type": str(d_type)[:50], "delivery_price": d_price, "product_id": cart_items[0].get('id') if cart_items else (int(p_single) if p_single else None), "company_code": comp_code, "color": cart_items[0].get('color', 'غير محدد')[:20] if cart_items else 'غير محدد', "size": cart_items[0].get('size', 'غير محدد')[:20] if cart_items else 'غير محدد', "order_type": str(o_type)[:20], "table_number": str(t_num)[:20]}
     
-    product_names_db = ", ".join([f"{item.get('name')} (x{item.get('quantity', 1)})" for item in cart_items])[:250]
-
-    order_data = {
-        "customer_name": full_name[:100],
-        "customer_phone": phone[:30],
-        "product_name": product_names_db, 
-        "quantity": quantity_ordered,
-        "total_price": grand_total,
-        "status": "قيد الانتظار",
-        "state": region_name[:50],
-        "baladiya": baladiya[:50],
-        "delivery_type": str(delivery_type)[:50],
-        "delivery_price": delivery_price,
-        "product_id": main_product_id,
-        "company_code": company_code,
-        "color": cart_items[0].get('color', 'غير محدد')[:20] if cart_items else 'غير محدد',
-        "size": cart_items[0].get('size', 'غير محدد')[:20] if cart_items else 'غير محدد',
-        "order_type": str(order_type)[:20],
-        "table_number": str(table_number)[:20]
-    }
-    
-    inserted_order_id = None
+    ins_id = None
     try:
-        res_insert = supabase.table("orders").insert(order_data).execute()
-        if res_insert.data and len(res_insert.data) > 0:
-            inserted_order_id = res_insert.data[0].get('id')
-    except Exception as e:
-        print(f"Error inserting order: {e}")
-
-    for item in cart_items:
-        p_id = item.get('id')
-        item_qty = int(item.get('quantity', 1))
+        ins_res = supabase.table("orders").insert(order_data).execute().data
+        if ins_res: ins_id = ins_res[0].get('id')
+    except: pass
+    
+    for i in cart_items:
         try:
-            if p_id:
-                prod_res = supabase.table("inventory").select("id, name, quantity").eq("id", p_id).execute()
-                if prod_res.data and len(prod_res.data) > 0:
-                    prod_info = prod_res.data[0]
-                    current_qty = int(prod_info.get('quantity', 0))
-                    new_qty = max(0, current_qty - item_qty)
-                    supabase.table("inventory").update({"quantity": new_qty}).eq("id", p_id).execute()
-                    if new_qty <= 0:
-                        send_telegram_alert(prod_info.get('name'), session.get('current_shop_name', ''), company_code)
-        except:
-            pass
-
-    if company_code:
+            if i.get('id'):
+                p_db = supabase.table("inventory").select("id, name, quantity").eq("id", i.get('id')).execute().data
+                if p_db:
+                    new_q = max(0, int(p_db[0].get('quantity', 0)) - int(i.get('quantity', 1)))
+                    supabase.table("inventory").update({"quantity": new_q}).eq("id", i.get('id')).execute()
+                    if new_q <= 0: send_telegram_alert(p_db[0].get('name'), session.get('current_shop_name', ''), comp_code)
+        except: pass
+        
+    if comp_code:
         try:
-            res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
-            if res_settings.data:
-                s = res_settings.data[0]
-                token, chat_id = s.get('telegram_token'), s.get('telegram_chat_id')
-                if token and chat_id:
-                    order_type_text = "🍽️ داخل المطعم (طاولة رقم: " + str(table_number) + ")" if order_type == 'dine_in' else "🛵 توصيل منزلي"
-                    telegram_message = (
-                        f"🚨 **تنبيه: طلبية جديدة من المتجر!**\n\n"
-                        f"👤 **الاسم:** {full_name}\n"
-                        f"📞 **الهاتف:** {phone}\n"
-                        f"📌 **نوع الطلب:** {order_type_text}\n"
-                        f"🛍️ **المنتجات:**\n" + "\n".join(products_summary) + "\n\n"
-                        f"📍 **العنوان:** {region_name} - {baladiya} - {address}\n"
-                        f"🚚 **التوصيل:** {delivery_type}\n"
-                        f"💰 **المجموع الكلي:** {grand_total} دج"
-                    )
-                    if inserted_order_id:
-                        send_order_alert(token, chat_id, telegram_message, inserted_order_id)
-                    else:
-                        send_telegram_alert_by_token(token, chat_id, telegram_message)
-        except Exception as telegram_err:
-            print("Telegram shop alert error:", telegram_err)
+            set_res = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", comp_code).execute().data
+            if set_res and set_res[0].get('telegram_token') and set_res[0].get('telegram_chat_id'):
+                t_msg = f"🚨 **طلب جديد!**\n👤 الاسم: {f_name}\n📞 الهاتف: {phone}\n📌 نوع الطلب: {'🍽️ داخل المطعم (' + t_num + ')' if o_type == 'dine_in' else '🛵 توصيل'}\n🛍️ المنتجات:\n" + "\n".join(p_summary) + f"\n📍 العنوان: {region} - {baladiya}\n💰 المجموع: {grand_total} دج"
+                if ins_id: send_order_alert(set_res[0]['telegram_token'], set_res[0]['telegram_chat_id'], t_msg, ins_id)
+                else: send_telegram_by_token(set_res[0]['telegram_token'], set_res[0]['telegram_chat_id'], t_msg)
+        except: pass
+        
+    return """<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>نجاح</title></head><body style="text-align:center;padding-top:50px;font-family:Tahoma;"><div style="background:#fff;max-width:400px;margin:auto;padding:30px;border-radius:10px;box-shadow:0 0 10px rgba(0,0,0,0.1);"><p>شكراً لثقتكم، تم تسجيل طلبكم بنجاح.</p><a href="/shop" style="background:#007bff;color:#fff;padding:10px 20px;text-decoration:none;border-radius:5px;display:inline-block;margin-top:20px;">العودة للمتجر</a></div></body></html>"""
 
-    return """
-    <!DOCTYPE html>
-    <html lang="ar" dir="rtl">
-    <head>
-        <meta charset="UTF-8">
-        <title>تم الطلب بنجاح</title>
-        <style>
-            body { font-family: Tahoma, sans-serif; background-color: #f4f7f6; text-align: center; padding-top: 50px; margin: 0; }
-            .card { background: white; max-width: 400px; margin: auto; padding: 30px; border-radius: 10px; box-shadow: 0px 4px 10px rgba(0,0,0,0.1); }
-            p { color: #555; font-size: 16px; }
-            .btn { display: inline-block; margin-top: 20px; background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; }
-        </style>
-    </head>
-    <body>
-        <div class="card">
-             <p>شكراً لثقتكم بنا، تم تسجيل طلبكم بنجاح وسيتم الاتصال بكم قريباً للتأكيد.</p>
-            <a href="/shop" class="btn">🔙 العودة إلى المتجر</a>
-        </div>
-    </body>
-    </html>
-    """
-
+# --- لوحة التحكم والمصادقة ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        company_code = request.form.get('company_code')
-        res = supabase.table("settings").select("company_code").eq("company_code", company_code).execute()
-        if res.data:
-            session['company_code'] = company_code
+        c_code = request.form.get('company_code')
+        if supabase.table("settings").select("company_code").eq("company_code", c_code).execute().data:
+            session['company_code'] = c_code
             return redirect(url_for('dashboard'))
-        else:
-            return "كود الشركة غير صحيح، يرجى التأكد منه.", 401
+        return "كود الشركة غير صحيح", 401
     return render_template('login.html')
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
-        company_code = request.form.get('company_code')
-        company_name = request.form.get('company_name')
-        res = supabase.table("settings").select("company_code").eq("company_code", company_code).execute()
-        if res.data:
-            return "هذا الكود مستخدم بالفعل، يرجى اختيار كود آخر!", 400
+        c_code, c_name = request.form.get('company_code'), request.form.get('company_name')
+        if supabase.table("settings").select("company_code").eq("company_code", c_code).execute().data: return "الكود مستخدم مسبقاً", 400
         try:
-            supabase.table("settings").insert({"company_code": company_code, "company_name": company_name}).execute()
+            supabase.table("settings").insert({"company_code": c_code, "company_name": c_name}).execute()
             return "تم إنشاء الحساب بنجاح!"
-        except Exception as e:
-            return f"حدث خطأ: {e}", 500
+        except Exception as e: return f"خطأ: {e}", 500
     return render_template('signup.html')
 
 @app.route('/logout')
@@ -631,313 +258,135 @@ def logout():
 
 @app.route('/dashboard')
 @login_required
-def dashboard():
-    return render_template('dashboard.html')
+def dashboard(): return render_template('dashboard.html')
 
 @app.route('/stats')
 @login_required
 def stats():
-    company_code = session.get('company_code')
-    try:
-        res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
-        orders = res.data or []
-    except Exception as e:
-        orders = []
-
-    total_revenue = sum(float(order.get("total_price") or 0) for order in orders)
-    total_orders_count = len(orders)
-    total_expenses = 0.0 
-
-    days_map = {"السبت": 0, "الأحد": 0, "الاثنين": 0, "الثلاثاء": 0, "الأربعاء": 0, "الخميس": 0, "الجمعة": 0}
-    day_names_map = {5: "السبت", 6: "الأحد", 0: "الاثنين", 1: "الثلاثاء", 2: "الأربعاء", 3: "الخميس", 4: "الجمعة"}
-
-    monthly_map = {
-        "جانفي": 0, "فيفري": 0, "مارس": 0, "أفريل": 0, "ماي": 0, "جوان": 0,
-        "جويلية": 0, "أوت": 0, "سبتمبر": 0, "أكتوبر": 0, "نوفمبر": 0, "ديسمبر": 0
-    }
-    month_names_map = {
-        1: "جانفي", 2: "فيفري", 3: "مارس", 4: "أفريل", 5: "ماي", 6: "جوان",
-        7: "جويلية", 8: "أوت", 9: "سبتمبر", 10: "أكتوبر", 11: "نوفمبر", 12: "ديسمبر"
-    }
-
-    current_year = datetime.now().year
-    yearly_map = {}
-    for y in range(2026, max(current_year + 1, 2027)):
-        yearly_map[str(y)] = 0
-
-    for order in orders:
-        created_at = order.get("created_at")
-        total_price = float(order.get("total_price") or 0)
-        if created_at:
+    c_code = session.get('company_code')
+    orders = supabase.table("orders").select("*").eq("company_code", c_code).execute().data or []
+    days, months = {"السبت": 0, "الأحد": 0, "الاثنين": 0, "الثلاثاء": 0, "الأربعاء": 0, "الخميس": 0, "الجمعة": 0}, {"جانفي": 0, "فيفري": 0, "مارس": 0, "أفريل": 0, "ماي": 0, "جوان": 0, "جويلية": 0, "أوت": 0, "سبتمبر": 0, "أكتوبر": 0, "نوفمبر": 0, "ديسمبر": 0}
+    d_map, m_map = {5: "السبت", 6: "الأحد", 0: "الاثنين", 1: "الثلاثاء", 2: "الأربعاء", 3: "الخميس", 4: "الجمعة"}, {1: "جانفي", 2: "فيفري", 3: "مارس", 4: "أفريل", 5: "ماي", 6: "جوان", 7: "جويلية", 8: "أوت", 9: "سبتمبر", 10: "أكتوبر", 11: "نوفمبر", 12: "ديسمبر"}
+    yearly = {str(y): 0 for y in range(2026, max(datetime.now().year + 1, 2027))}
+    
+    total_rev = 0
+    for o in orders:
+        price = float(o.get("total_price") or 0)
+        total_rev += price
+        if o.get("created_at"):
             try:
-                dt = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
-                day_name = day_names_map.get(dt.weekday())
-                if day_name in days_map:
-                    days_map[day_name] += total_price
-
-                month_name = month_names_map.get(dt.month)
-                if month_name in monthly_map:
-                    monthly_map[month_name] += total_price
-
-                year_str = str(dt.year)
-                if year_str not in yearly_map:
-                    yearly_map[year_str] = 0
-                yearly_map[year_str] += total_price
-            except Exception as ex:
-                pass
-
-    cleaned_orders = []
-    for order in orders:
-        cleaned_order = {
-            "id": order.get("id"),
-            "customer_name": str(order.get("customer_name") or ""),
-            "total_price": float(order.get("total_price") or 0),
-            "status": str(order.get("status") or ""),
-            "created_at": str(order.get("created_at") or ""),
-            "product_name": str(order.get("product_name") or "")
-        }
-        cleaned_orders.append(cleaned_order)
-
-    return render_template(
-        'stats.html', 
-        orders=cleaned_orders, 
-        total_orders_count=total_orders_count, 
-        total_revenue=total_revenue,
-        total_expenses=total_expenses,
-        daily=days_map,
-        monthly=monthly_map,
-        yearly=yearly_map
-    )
+                dt = datetime.fromisoformat(o.get("created_at").replace('Z', '+00:00'))
+                if d_map.get(dt.weekday()) in days: days[d_map[dt.weekday()]] += price
+                if m_map.get(dt.month) in months: months[m_map[dt.month]] += price
+                if str(dt.year) in yearly: yearly[str(dt.year)] += price
+            except: pass
+            
+    cleaned = [{"id": o.get("id"), "customer_name": str(o.get("customer_name") or ""), "total_price": float(o.get("total_price") or 0), "status": str(o.get("status") or ""), "created_at": str(o.get("created_at") or ""), "product_name": str(o.get("product_name") or "")} for o in orders]
+    return render_template('stats.html', orders=cleaned, total_orders_count=len(orders), total_revenue=total_rev, total_expenses=0.0, daily=days, monthly=months, yearly=yearly)
 
 @app.route('/settings', methods=['GET', 'POST'])
 @login_required
 def settings():
-    company_code = session.get('company_code')
-    currencies = [
-        ("USD", "دولار أمريكي"), ("EUR", "يورو"), ("GBP", "جنيه إسترليني"), ("JPY", "ين ياباني"),
-        ("SAR", "ريال سعودي"), ("AED", "درهم إماراتي"), ("DZD", "دينار جزائري"), ("EGP", "جنيه مصري"),
-        ("KWD", "دينار كويتي"), ("QAR", "ريال قطري"), ("BHD", "دينار بحريني"), ("OMR", "ريال عماني"),
-        ("JOD", "دينار أردني"), ("LBP", "ليرة لبنانية"), ("LYD", "دينار ليبي"), ("MAD", "درهم مغربي"),
-        ("TND", "دينار تونسي"), ("IQD", "دينار عراقي"), ("SYP", "ليرة سورية"), ("YER", "ريال يمني"),
-        ("TRY", "ليرة تركية"), ("AUD", "دولار أسترالي"), ("CAD", "دولار كندي"), ("CHF", "فرنك سويسري"),
-        ("CNY", "يوان صيني"), ("INR", "روبية هندية"), ("RUB", "روبل روسي"), ("SGD", "دولار سنغافوري"),
-        ("SDG", "جنيه سوداني"), ("MRU", "أوقية موريتانية"), ("SOS", "شلن صومالي"), ("KMF", "فرنك جزر القمر"),
-        ("DJF", "فرنك جيبوتي"), ("BND", "دولار بروناي"), ("KRW", "وون كوري جنوبي"), ("MXN", "بيزو مكسيكي")
-    ]
-    
+    c_code = session.get('company_code')
+    currencies = [("USD", "دولار أمريكي"), ("EUR", "يورو"), ("GBP", "جنيه إسترليني"), ("SAR", "ريال سعودي"), ("AED", "درهم إماراتي"), ("DZD", "دينار جزائري"), ("EGP", "جنيه مصري"), ("TND", "دينار تونسي"), ("MAD", "درهم مغربي"), ("TRY", "ليرة تركية")]
     if request.method == 'POST':
-        data = {
-            "company_name": request.form.get('shop_name'),
-            "telegram_token": request.form.get('bot_token'),
-            "telegram_chat_id": request.form.get('chat_id'),
-            "instagram_url": request.form.get('instagram_link'),
-            "currency": request.form.get('currency') 
-        }
         try:
-            supabase.table("settings").update(data).eq("company_code", company_code).execute()
-        except Exception as e:
-            return f"حدث خطأ أثناء الحفظ: {str(e)}", 500
+            supabase.table("settings").update({"company_name": request.form.get('shop_name'), "telegram_token": request.form.get('bot_token'), "telegram_chat_id": request.form.get('chat_id'), "instagram_url": request.form.get('instagram_link'), "currency": request.form.get('currency')}).eq("company_code", c_code).execute()
+        except Exception as e: return f"خطأ: {e}", 500
         return redirect(url_for('settings'))
-    
-    res = supabase.table("settings").select("*").eq("company_code", company_code).execute()
-    settings_data = res.data[0] if res.data else {}
-    return render_template('settings.html', settings=settings_data, currencies=currencies)
+    res = supabase.table("settings").select("*").eq("company_code", c_code).execute().data
+    return render_template('settings.html', settings=res[0] if res else {}, currencies=currencies)
 
 @app.route('/shipping_settings', methods=['GET'])
 @login_required
-def shipping_settings():
-    return render_template('shipping_settings.html')
+def shipping_settings(): return render_template('shipping_settings.html')
 
 @app.route('/get_delivery_prices', methods=['GET'])
 @login_required
-def get_delivery_prices():
-    company_code = session.get('company_code')
-    data = supabase.table("delivery_prices").select("*").eq("company_code", company_code).execute()
-    return jsonify(data.data)
+def get_delivery_prices(): return jsonify(supabase.table("delivery_prices").select("*").eq("company_code", session.get('company_code')).execute().data)
 
 @app.route('/get_shipping_rates')
 def get_shipping_rates():
-    company_code = request.args.get('company_code')
-    delivery_type = request.args.get('type') 
-    
     try:
-        res = supabase.table("delivery_prices") \
-            .select("home_price, office_price") \
-            .eq("company_code", company_code) \
-            .single().execute()
-        if res.data:
-            price = res.data.get('home_price') if delivery_type == 'home' else res.data.get('office_price')
-            return jsonify({"price": float(price or 0)})
-    except Exception as e:
-        pass
-    return jsonify({"price": 0})
+        res = supabase.table("delivery_prices").select("home_price, office_price").eq("company_code", request.args.get('company_code')).single().execute().data
+        return jsonify({"price": float((res.get('home_price') if request.args.get('type') == 'home' else res.get('office_price')) or 0)})
+    except: return jsonify({"price": 0})
 
 @app.route('/update_delivery_settings', methods=['POST'])
 @login_required
 def update_delivery_settings():
-    data = request.json
-    company_code = session.get('company_code')
-    supabase.table("company_settings").update({
-        "delivery_office_price": data.get('office_price'),
-        "delivery_home_price": data.get('home_price')
-    }).eq("company_code", company_code).execute()
+    supabase.table("company_settings").update({"delivery_office_price": request.json.get('office_price'), "delivery_home_price": request.json.get('home_price')}).eq("company_code", session.get('company_code')).execute()
     return jsonify({"status": "success"})
 
 @app.route('/admin/jordan-shipping')
 @login_required
-def admin_jordan_shipping():
-    res = supabase.table("jordan_rates").select("*").order("id").execute()
-    jordan_rates = res.data if res.data else []
-    return render_template('admin_jordan.html', jordan_rates=jordan_rates)
+def admin_jordan_shipping(): return render_template('admin_jordan.html', jordan_rates=supabase.table("jordan_rates").select("*").order("id").execute().data or [])
 
 @app.route('/admin/update-jordan-rate/<int:id>', methods=['POST'])
 @login_required
 def update_jordan_rate(id):
     try:
-        if request.is_json:
-            data = request.json
-            home_price = data.get('home_price')
-            office_price = data.get('office_price')
-        else:
-            home_price = request.form.get('home_price')
-            office_price = request.form.get('office_price')
+        d = request.json if request.is_json else request.form
+        supabase.table("jordan_rates").update({"home_price": float(d.get('home_price') or 0), "office_price": float(d.get('office_price') or 0)}).eq("id", id).execute()
+        return jsonify({"status": "success"}) if request.is_json else redirect(url_for('orders'))
+    except Exception as e: return jsonify({"status": "error", "message": str(e)}), 500 if request.is_json else f"خطأ: {e}", 500
 
-        supabase.table("jordan_rates").update({
-            "home_price": float(home_price or 0),
-            "office_price": float(office_price or 0)
-        }).eq("id", id).execute()
-
-        if request.is_json:
-            return jsonify({"status": "success"})
-        return redirect(url_for('orders'))
-    except Exception as e:
-        if request.is_json:
-            return jsonify({"status": "error", "message": str(e)}), 500
-        return f"حدث خطأ: {e}", 500
-
+# --- إدارة المنتجات والمخزون ---
 @app.route('/products', methods=['GET', 'POST'])
 @login_required
 def products():
-    company_code = session.get('company_code')
-    
+    c_code = session.get('company_code')
     if request.method == 'POST':
         file = request.files.get('product_image')
-        encoded_string = ""
-        if file and file.filename != '':
-            encoded_string = f'data:image/jpeg;base64,{base64.b64encode(file.read()).decode("utf-8")}'
-
-        colors_input = request.form.get('colors', '').strip()
-        sizes_input = request.form.get('sizes', '').strip()
-
-        data = {
-            'name': request.form.get('name'),
-            'quantity': int(request.form.get('quantity', 0)),
-            'price': float(request.form.get('price', 0.0)),
-            'company_id_text': company_code,
-            'product-images': encoded_string,
-            'colors': colors_input,
-            'sizes': sizes_input
-        }
+        img_str = f'data:image/jpeg;base64,{base64.b64encode(file.read()).decode("utf-8")}' if file and file.filename else ""
         try:
-            supabase.table('inventory').insert(data).execute()
+            supabase.table('inventory').insert({'name': request.form.get('name'), 'quantity': int(request.form.get('quantity', 0)), 'price': float(request.form.get('price', 0.0)), 'company_id_text': c_code, 'product-images': img_str, 'colors': request.form.get('colors', '').strip(), 'sizes': request.form.get('sizes', '').strip()}).execute()
             return redirect(url_for('products'))
-        except Exception as e:
-            return f"خطأ في قاعدة البيانات: {str(e)}", 500
-
-    res = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
-    return render_template('products.html', products=res.data or [])
+        except Exception as e: return f"خطأ: {e}", 500
+    return render_template('products.html', products=supabase.table("inventory").select("*").eq("company_id_text", c_code).execute().data or [])
 
 @app.route('/inventory_management', methods=['GET', 'POST'])
 @login_required
 def inventory_management():
-    company_code = session.get('company_code')
-    
+    c_code = session.get('company_code')
     if request.method == 'POST':
-        product_id = request.form.get('product_id')
-        new_quantity = request.form.get('quantity')
         file = request.files.get('product_image')
-        
-        update_data = {"quantity": int(new_quantity)}
-        
-        if file and file.filename != '':
-            filename = f"{company_code}/{int(time.time())}_{file.filename}"
-            supabase.storage.from_("products").upload(
-                path=filename,
-                file=file.read(),
-                file_options={"content-type": file.content_type}
-            )
-            public_url = supabase.storage.from_("products").get_public_url(filename)
-            update_data["product-images"] = public_url
-        
-        try:
-            supabase.table('inventory').update(update_data).eq("id", product_id).eq("company_id_text", company_code).execute()
-        except Exception as e:
-            pass
-            
-    try:
-        res = supabase.table("inventory").select("*").eq("company_id_text", company_code).execute()
-        inventory_data = res.data or []
-    except Exception as e:
-        inventory_data = []
-        
-    return render_template('inventory_management.html', inventory=inventory_data)
+        up_data = {"quantity": int(request.form.get('quantity'))}
+        if file and file.filename:
+            path = f"{c_code}/{int(time.time())}_{file.filename}"
+            supabase.storage.from_("products").upload(path, file.read(), {"content-type": file.content_type})
+            up_data["product-images"] = supabase.storage.from_("products").get_public_url(path)
+        try: supabase.table('inventory').update(up_data).eq("id", request.form.get('product_id')).eq("company_id_text", c_code).execute()
+        except: pass
+    res = supabase.table("inventory").select("*").eq("company_id_text", c_code).execute().data or []
+    return render_template('inventory_management.html', inventory=res)
 
 @app.route('/edit_product/<int:id>', methods=['GET', 'POST'])
 @login_required
 def edit_product(id):
-    company_code = session.get('company_code')
-    res = supabase.table("inventory").select("*").eq("id", id).eq("company_id_text", company_code).execute()
-    product = res.data[0] if res.data else None
-    
-    if not product:
-        return "المنتج غير موجود", 404
-
+    c_code = session.get('company_code')
+    prod = supabase.table("inventory").select("*").eq("id", id).eq("company_id_text", c_code).execute().data
+    if not prod: return "غير موجود", 404
     if request.method == 'POST':
-        new_name = request.form.get('name')
-        new_quantity = request.form.get('quantity')
-        new_price = request.form.get('price')
-        colors_input = request.form.get('colors', '').strip()
-        sizes_input = request.form.get('sizes', '').strip()
-        
-        supabase.table("inventory").update({
-            "name": new_name,
-            "quantity": int(new_quantity),
-            "price": float(new_price),
-            "colors": colors_input,
-            "sizes": sizes_input
-        }).eq("id", id).execute()
-        
+        supabase.table("inventory").update({"name": request.form.get('name'), "quantity": int(request.form.get('quantity')), "price": float(request.form.get('price')), "colors": request.form.get('colors', '').strip(), "sizes": request.form.get('sizes', '').strip()}).eq("id", id).execute()
         return redirect(url_for('products'))
-        
-    return render_template('edit_product.html', product=product)
+    return render_template('edit_product.html', product=prod[0])
 
 @app.route('/update_quantity/<int:product_id>', methods=['POST'])
 @login_required
 def update_quantity(product_id):
-    company_code = session.get('company_code')
-    action_type = request.form.get('action_type')
-    amount = int(request.form.get('amount', 0))
-    
-    prod = supabase.table("inventory").select("quantity").eq("id", product_id).eq("company_id_text", company_code).single().execute()
-    
-    if prod.data:
-        current_qty = prod.data.get('quantity', 0)
-        if action_type == 'add':
-            new_qty = current_qty + amount
-        else:
-            new_qty = amount
-            
-        supabase.table("inventory").update({"quantity": new_qty}).eq("id", product_id).execute()
-        
+    prod = supabase.table("inventory").select("quantity").eq("id", product_id).eq("company_id_text", session.get('company_code')).single().execute().data
+    if prod:
+        amt = int(request.form.get('amount', 0))
+        new_q = (prod.get('quantity', 0) + amt) if request.form.get('action_type') == 'add' else amt
+        supabase.table("inventory").update({"quantity": new_q}).eq("id", product_id).execute()
     return redirect(url_for('products'))
 
 @app.route('/delete_product/<int:id>', methods=['POST'])
 @login_required
 def delete_product(id):
-    try: 
-        supabase.table("inventory").delete().eq("id", id).execute()
-    except Exception as e: 
-        pass
+    try: supabase.table("inventory").delete().eq("id", id).execute()
+    except: pass
     return redirect(url_for('products'))
 
 @app.route('/delete_order/<int:id>', methods=['POST'])
@@ -949,89 +398,42 @@ def delete_order(id):
 @app.route('/update_status/<int:order_id>', methods=['POST'])
 @login_required
 def update_status(order_id):
-    new_status = request.form.get('status')
-    if new_status:
-        supabase.table("orders").update({"status": new_status}).eq("id", order_id).execute()
+    if request.form.get('status'): supabase.table("orders").update({"status": request.form.get('status')}).eq("id", order_id).execute()
     return redirect(url_for('orders'))
 
 @app.route('/orders', methods=['GET', 'POST'])
 @login_required
 def orders():
-    company_code = session.get('company_code')
-    
+    c_code = session.get('company_code')
     if request.method == 'POST':
-        product_name = request.form.get('product_name')
-        requested_qty = int(request.form.get('quantity', 1))
-        customer_name = request.form.get('customer_name')
-        customer_phone = request.form.get('customer_phone')
-        state = request.form.get('state')
-        delivery_type = request.form.get('delivery_type')
-        delivery_price = float(request.form.get('delivery_price', 0.0))
-        base_price = float(request.form.get('price', 0.0))
-        total_price = base_price + delivery_price
-
-        product_res = supabase.table("inventory").select("id, quantity").eq("name", product_name).eq("company_id_text", company_code).execute()
+        p_name, req_q = request.form.get('product_name'), int(request.form.get('quantity', 1))
+        c_name, phone, state, d_type = request.form.get('customer_name'), request.form.get('customer_phone'), request.form.get('state'), request.form.get('delivery_type')
+        d_price, base_price = float(request.form.get('delivery_price', 0)), float(request.form.get('price', 0))
         
-        prod_id = None
-        if product_res.data:
-            product = product_res.data[0]
-            prod_id = product['id']
-            current_qty = product['quantity']
-            new_qty = max(0, current_qty - requested_qty)
-            supabase.table("inventory").update({"quantity": new_qty}).eq("id", prod_id).execute()
-
-        order_data = {
-            "customer_name": customer_name,
-            "customer_phone": customer_phone,
-            "product_name": product_name,
-            "quantity": requested_qty,
-            "total_price": total_price,
-            "company_code": company_code,
-            "status": "قيد الانتظار",
-            "state": state,
-            "delivery_type": delivery_type,
-            "delivery_price": delivery_price,
-            "product_id": prod_id
-        }
+        p_res = supabase.table("inventory").select("id, quantity").eq("name", p_name).eq("company_id_text", c_code).execute().data
+        p_id = None
+        if p_res:
+            p_id = p_res[0]['id']
+            supabase.table("inventory").update({"quantity": max(0, p_res[0]['quantity'] - req_q)}).eq("id", p_id).execute()
+            
+        ins_res = supabase.table("orders").insert({"customer_name": c_name, "customer_phone": phone, "product_name": p_name, "quantity": req_q, "total_price": base_price + d_price, "company_code": c_code, "status": "قيد الانتظار", "state": state, "delivery_type": d_type, "delivery_price": d_price, "product_id": p_id}).execute().data
+        ins_id = ins_res[0].get('id') if ins_res else None
         
-        res_insert = supabase.table("orders").insert(order_data).execute()
-        inserted_order_id = res_insert.data[0].get('id') if res_insert.data else None
-        
-        res_settings = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", company_code).execute()
-        if res_settings.data:
-            s = res_settings.data[0]
-            token = s.get('telegram_token')
-            chat_id = s.get('telegram_chat_id')
-            if token and chat_id:
-                msg_text = f"🛒 طلبية جديدة من لوحة التحكم!\nالعميل: {customer_name}\nالمنتج: {product_name}\nالكمية: {requested_qty}\nالولاية: {state}"
-                if inserted_order_id:
-                    send_order_alert(token, chat_id, msg_text, inserted_order_id)
-                else:
-                    send_telegram_alert_by_token(token, chat_id, msg_text)
-        
+        s_res = supabase.table("settings").select("telegram_token, telegram_chat_id").eq("company_code", c_code).execute().data
+        if s_res and s_res[0].get('telegram_token') and s_res[0].get('telegram_chat_id'):
+            msg = f"🛒 طلبية من لوحة التحكم!\nالعميل: {c_name}\nالمنتج: {p_name}\nالكمية: {req_q}"
+            if ins_id: send_order_alert(s_res[0]['telegram_token'], s_res[0]['telegram_chat_id'], msg, ins_id)
+            else: send_telegram_by_token(s_res[0]['telegram_token'], s_res[0]['telegram_chat_id'], msg)
         return redirect(url_for('orders'))
+        
+    return render_template('orders_dashboard.html', orders=supabase.table("orders").select("*").eq("company_code", c_code).execute().data or [], wilayas=supabase.table("shipping_rates").select("*").order("id").execute().data or [], jordan_res=supabase.table("jordan_rates").select("*").order("id").execute().data or [])
 
-    orders_res = supabase.table("orders").select("*").eq("company_code", company_code).execute()
-    wilayas_res = supabase.table("shipping_rates").select("*").order("id").execute()
-    jordan_res = supabase.table("jordan_rates").select("*").order("id").execute()
-    
-    return render_template('orders_dashboard.html', 
-                           orders=orders_res.data or [], 
-                           wilayas=wilayas_res.data or [],  
-                           jordan_res=jordan_res.data or [])
-
+# --- مسارات المتاجر الإضافية ---
 @app.route('/shop', methods=['GET', 'POST'])
 def shop():
-    if request.method == 'POST' and 'company_name' in request.form:
-        session['current_shop_name'] = request.form.get('company_name')
-        return redirect(url_for('shop'))
-
+    if request.method == 'POST' and request.form.get('company_name'): session['current_shop_name'] = request.form.get('company_name')
     shop_name = session.get('current_shop_name')
-    products = []
-    if shop_name:
-        products = get_products_by_shop_name(shop_name)
-    
-    return render_template('shop.html', products=products, current_company=shop_name)
+    return render_template('shop.html', products=get_products_by_shop(shop_name) if shop_name else [], current_company=shop_name)
 
 @app.route('/clear_session')
 def clear_session():
@@ -1040,16 +442,9 @@ def clear_session():
 
 @app.route('/store2', methods=['GET', 'POST'])
 def store2():
-    if request.method == 'POST' and 'company_name' in request.form:
-        session['current_store2_name']  = request.form.get('company_name')
-        return redirect(url_for('store2'))
-
+    if request.method == 'POST' and request.form.get('company_name'): session['current_store2_name'] = request.form.get('company_name')
     shop_name = session.get('current_store2_name')
-    products = []
-    if shop_name:
-        products = get_products_by_shop_name(shop_name)
-    
-    return render_template('store2.html', products=products, current_company=shop_name)
+    return render_template('store2.html', products=get_products_by_shop(shop_name) if shop_name else [], current_company=shop_name)
 
 @app.route('/clear_store2_session')
 def clear_store2_session():
@@ -1057,47 +452,29 @@ def clear_store2_session():
     return redirect(url_for('store2'))
 
 @app.route('/store2_cart')
-def store2_cart():
-    return render_template('store2_cart.html')
+def store2_cart(): return render_template('store2_cart.html')
 
 @app.route('/store2_checkout_page')
-def store2_checkout_page():
-    rates = get_wilayas_from_db()
-    return render_template('store2_checkout.html', rates=rates, product=None)
+def store2_checkout_page(): return render_template('store2_checkout.html', rates=get_wilayas(), product=None)
 
 @app.route('/store2_checkout/<int:product_id>')
 def store2_checkout(product_id):
     product = get_product_from_db(product_id)
-    if not product:
-        return "المنتج غير موجود", 404
-    rates = get_wilayas_from_db()
-    return render_template('store2_checkout.html', product=product, rates=rates)
+    if not product: return "غير موجود", 404
+    return render_template('store2_checkout.html', product=product, rates=get_wilayas())
 
 @app.route('/get_all_shipping_rates', methods=['GET'])
 @login_required
-def get_all_shipping_rates():
-    res = supabase.table("shipping_rates").select("*").order("id").execute()
-    return jsonify(res.data)
+def get_all_shipping_rates(): return jsonify(supabase.table("shipping_rates").select("*").order("id").execute().data)
 
 @app.route('/update_delivery_price', methods=['POST'])
 def update_delivery_price():
     data = request.json if request.is_json else request.form
-    row_id = data.get('id')
-    new_office = data.get('office_price')
-    new_home = data.get('home_price')
-    
-    if not row_id:
-        return jsonify({"status": "error", "message": "ID missing"}), 400
-        
+    if not data.get('id'): return jsonify({"status": "error", "message": "ID missing"}), 400
     try:
-        supabase.table("shipping_rates").update({
-            "office_price": float(new_office or 0),
-            "home_price": float(new_home or 0)
-        }).eq("id", int(row_id)).execute()
+        supabase.table("shipping_rates").update({"office_price": float(data.get('office_price') or 0), "home_price": float(data.get('home_price') or 0)}).eq("id", int(data.get('id'))).execute()
         return jsonify({"status": "success"})
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
-
+    except Exception as e: return jsonify({"status": "error", "message": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
